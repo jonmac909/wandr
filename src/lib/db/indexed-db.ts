@@ -1,8 +1,9 @@
-// IndexedDB wrapper using Dexie.js for offline storage
+// IndexedDB wrapper using Dexie.js for offline storage with Supabase cloud sync
 
 import Dexie, { type EntityTable } from 'dexie';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary } from '@/types/itinerary';
+import { supabaseTrips } from './supabase';
 
 // Stored trip with metadata
 export interface StoredTrip {
@@ -64,19 +65,46 @@ class TravelerDatabase extends Dexie {
 // Singleton database instance
 export const db = new TravelerDatabase();
 
-// Trip operations
+// Trip operations with cloud sync
 export const tripDb = {
-  // Get all trips
+  // Get all trips (cloud-first, fallback to local)
   async getAll(): Promise<StoredTrip[]> {
+    try {
+      // Try cloud first
+      if (supabaseTrips.isConfigured()) {
+        const cloudTrips = await supabaseTrips.getAll();
+        if (cloudTrips.length > 0) {
+          // Cache to local
+          for (const trip of cloudTrips) {
+            await db.trips.put(trip);
+          }
+          return cloudTrips;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud fetch failed, using local:', error);
+    }
+    // Fallback to local
     return db.trips.orderBy('updatedAt').reverse().toArray();
   },
 
-  // Get single trip
+  // Get single trip (cloud-first)
   async get(id: string): Promise<StoredTrip | undefined> {
+    try {
+      if (supabaseTrips.isConfigured()) {
+        const cloudTrip = await supabaseTrips.get(id);
+        if (cloudTrip) {
+          await db.trips.put(cloudTrip);
+          return cloudTrip;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud get failed, using local:', error);
+    }
     return db.trips.get(id);
   },
 
-  // Create new trip
+  // Create new trip (saves to both local and cloud)
   async create(tripDna: TripDNA): Promise<StoredTrip> {
     const now = new Date();
     const trip: StoredTrip = {
@@ -89,6 +117,8 @@ export const tripDb = {
       status: 'draft',
     };
     await db.trips.add(trip);
+    // Sync to cloud
+    this.syncToCloud(trip);
     return trip;
   },
 
@@ -98,6 +128,9 @@ export const tripDb = {
       tripDna,
       updatedAt: new Date(),
     });
+    // Sync to cloud
+    const trip = await db.trips.get(id);
+    if (trip) this.syncToCloud(trip);
   },
 
   // Update itinerary
@@ -107,6 +140,9 @@ export const tripDb = {
       status: 'generated',
       updatedAt: new Date(),
     });
+    // Sync to cloud
+    const trip = await db.trips.get(id);
+    if (trip) this.syncToCloud(trip);
   },
 
   // Update status
@@ -115,23 +151,60 @@ export const tripDb = {
       status,
       updatedAt: new Date(),
     });
+    // Sync to cloud
+    const trip = await db.trips.get(id);
+    if (trip) this.syncToCloud(trip);
   },
 
-  // Delete trip
+  // Delete trip (from both local and cloud)
   async delete(id: string): Promise<void> {
     await db.transaction('rw', [db.trips, db.documents, db.packingStates], async () => {
       await db.trips.delete(id);
       await db.documents.where('tripId').equals(id).delete();
       await db.packingStates.delete(id);
     });
+    // Delete from cloud
+    try {
+      if (supabaseTrips.isConfigured()) {
+        await supabaseTrips.delete(id);
+      }
+    } catch (error) {
+      console.warn('Cloud delete failed:', error);
+    }
   },
 
-  // Save or update a complete trip (upsert)
+  // Save or update a complete trip (upsert to both local and cloud)
   async save(trip: StoredTrip): Promise<void> {
     await db.trips.put({
       ...trip,
       updatedAt: new Date(),
     });
+    // Sync to cloud
+    this.syncToCloud(trip);
+  },
+
+  // Sync a single trip to cloud (fire and forget)
+  syncToCloud(trip: StoredTrip): void {
+    if (!supabaseTrips.isConfigured()) return;
+    supabaseTrips.save(trip).catch((error) => {
+      console.warn('Cloud sync failed:', error);
+    });
+  },
+
+  // Force sync all local trips to cloud
+  async syncAllToCloud(): Promise<number> {
+    if (!supabaseTrips.isConfigured()) return 0;
+    const localTrips = await db.trips.toArray();
+    let synced = 0;
+    for (const trip of localTrips) {
+      try {
+        await supabaseTrips.save(trip);
+        synced++;
+      } catch (error) {
+        console.warn(`Failed to sync trip ${trip.id}:`, error);
+      }
+    }
+    return synced;
   },
 
   // Import from localStorage (migration helper)
