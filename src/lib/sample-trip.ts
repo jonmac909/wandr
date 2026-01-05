@@ -41,7 +41,7 @@ export const sampleTripDna: TripDNA = {
       dietaryRestrictions: [],
       cuisinePreferences: ['thai', 'vietnamese', 'japanese'],
     },
-    hobbies: ['photography', 'relaxation'],
+    hobbies: ['photography', 'meditation'],
   },
   logistics: {
     movementTolerance: 'moderate',
