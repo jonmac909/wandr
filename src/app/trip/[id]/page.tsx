@@ -46,19 +46,54 @@ export default function TripPage() {
   const [foodModalDay, setFoodModalDay] = useState<DayPlan | null>(null);
 
   useEffect(() => {
-    // Load Trip DNA from localStorage
-    const storedTripDna = localStorage.getItem(`trip-dna-${tripId}`);
-    if (storedTripDna) {
-      setTripDna(JSON.parse(storedTripDna));
+    async function loadTrip() {
+      try {
+        // Load from cloud/IndexedDB (cloud-first with local fallback)
+        const storedTrip = await tripDb.get(tripId);
+
+        if (storedTrip) {
+          setTripDna(storedTrip.tripDna);
+          if (storedTrip.itinerary) {
+            // Parse dates if they're strings (from JSON storage)
+            const itinerary = storedTrip.itinerary;
+            if (typeof itinerary.createdAt === 'string') {
+              itinerary.createdAt = new Date(itinerary.createdAt);
+            }
+            if (typeof itinerary.updatedAt === 'string') {
+              itinerary.updatedAt = new Date(itinerary.updatedAt);
+            }
+            if (itinerary.aiMeta && typeof itinerary.aiMeta.generatedAt === 'string') {
+              itinerary.aiMeta.generatedAt = new Date(itinerary.aiMeta.generatedAt);
+            }
+            setItinerary(itinerary);
+          }
+        } else {
+          // Fallback to localStorage for backwards compatibility
+          const storedTripDna = localStorage.getItem(`trip-dna-${tripId}`);
+          if (storedTripDna) {
+            setTripDna(JSON.parse(storedTripDna));
+          }
+          const storedItinerary = localStorage.getItem(`itinerary-${tripId}`);
+          if (storedItinerary) {
+            setItinerary(JSON.parse(storedItinerary));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading trip:', error);
+        // Fallback to localStorage on error
+        const storedTripDna = localStorage.getItem(`trip-dna-${tripId}`);
+        if (storedTripDna) {
+          setTripDna(JSON.parse(storedTripDna));
+        }
+        const storedItinerary = localStorage.getItem(`itinerary-${tripId}`);
+        if (storedItinerary) {
+          setItinerary(JSON.parse(storedItinerary));
+        }
+      }
+      setLoading(false);
     }
 
-    // Load itinerary if exists
-    const storedItinerary = localStorage.getItem(`itinerary-${tripId}`);
-    if (storedItinerary) {
-      setItinerary(JSON.parse(storedItinerary));
-    }
-
-    setLoading(false);
+    loadTrip();
   }, [tripId]);
 
   const handleDelete = async () => {
@@ -68,7 +103,7 @@ export default function TripPage() {
     router.push('/');
   };
 
-  const handleSaveTitle = () => {
+  const handleSaveTitle = async () => {
     if (!itinerary || !editedTitle.trim()) return;
 
     const updatedItinerary = {
@@ -80,6 +115,11 @@ export default function TripPage() {
     setItinerary(updatedItinerary);
     localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
     setIsEditing(false);
+
+    // Sync to cloud
+    if (tripDna) {
+      tripDb.updateItinerary(tripId, updatedItinerary);
+    }
   };
 
   const startEditing = () => {
@@ -102,6 +142,9 @@ export default function TripPage() {
 
     setItinerary(updatedItinerary);
     localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
   const handleAddFoodRecommendation = (recommendation: FoodRecommendation) => {
@@ -163,6 +206,9 @@ export default function TripPage() {
 
     setItinerary(updatedItinerary);
     localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
   const handleDeleteFoodRecommendation = (foodId: string) => {
@@ -186,6 +232,9 @@ export default function TripPage() {
 
     setItinerary(updatedItinerary);
     localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
   // Get location for a specific day based on the base or activities
@@ -214,6 +263,9 @@ export default function TripPage() {
 
     setItinerary(updatedItinerary);
     localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
   // Fix flight durations by parsing "Xhr flight" from notes/description
