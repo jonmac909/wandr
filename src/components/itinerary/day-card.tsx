@@ -1,0 +1,681 @@
+'use client';
+
+import { useState } from 'react';
+import { DayPlan, TimeBlock, Activity, ActivityPriority, TimeBlockType } from '@/types/itinerary';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sun, Coffee, Moon, Bed, Plane,
+  MapPin, Clock, Star, Sparkles, AlertCircle,
+  Pencil, Trash2, Check, X, ExternalLink, DollarSign, UtensilsCrossed
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { PlaceDetailsModal } from '@/components/maps/place-details-modal';
+import { generateBookingUrl, getBookingProvider } from '@/lib/booking/urls';
+
+interface DayCardProps {
+  day: DayPlan;
+  isToday?: boolean;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  onUpdateDay?: (updatedDay: DayPlan) => void;
+  onDeleteActivity?: (blockId: string) => void;
+  onFindFood?: (day: DayPlan) => void;
+  location?: string;
+}
+
+const BLOCK_ICONS: Record<string, React.ReactNode> = {
+  'morning-anchor': <Sun className="w-4 h-4" />,
+  'midday-flex': <Coffee className="w-4 h-4" />,
+  'evening-vibe': <Moon className="w-4 h-4" />,
+  'rest-block': <Bed className="w-4 h-4" />,
+  'transit': <Plane className="w-4 h-4" />,
+};
+
+const BLOCK_COLORS: Record<string, string> = {
+  'morning-anchor': 'bg-amber-100 text-amber-800 border-amber-200',
+  'midday-flex': 'bg-blue-100 text-blue-800 border-blue-200',
+  'evening-vibe': 'bg-purple-100 text-purple-800 border-purple-200',
+  'rest-block': 'bg-green-100 text-green-800 border-green-200',
+  'transit': 'bg-gray-100 text-gray-800 border-gray-200',
+};
+
+const PRIORITY_STYLES: Record<string, { bg: string; icon: React.ReactNode }> = {
+  'must-see': { bg: 'bg-red-500', icon: <Star className="w-3 h-3" /> },
+  'if-energy': { bg: 'bg-amber-500', icon: <Sparkles className="w-3 h-3" /> },
+  'skip-guilt-free': { bg: 'bg-gray-400', icon: <AlertCircle className="w-3 h-3" /> },
+};
+
+// Convert 24-hour time to 12-hour format
+function formatTime12h(time: string): string {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
+
+// Format duration (stored in minutes) to hours display
+function formatDuration(minutes: number): string {
+  if (!minutes || minutes <= 0) return '';
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) {
+    return `${mins}m`;
+  } else if (mins === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${mins}m`;
+  }
+}
+
+export function DayCard({ day, isToday, isExpanded = true, onToggle, onUpdateDay, onFindFood, location }: DayCardProps) {
+  const [editingTheme, setEditingTheme] = useState(false);
+  const [themeValue, setThemeValue] = useState(day.theme || '');
+
+  const formattedDate = new Date(day.date).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const handleSaveTheme = () => {
+    if (onUpdateDay) {
+      onUpdateDay({ ...day, theme: themeValue || undefined });
+    }
+    setEditingTheme(false);
+  };
+
+  const handleUpdateBlock = (blockId: string, updates: Partial<TimeBlock>) => {
+    if (onUpdateDay) {
+      const updatedBlocks = day.blocks.map(b =>
+        b.id === blockId ? { ...b, ...updates } : b
+      );
+      onUpdateDay({ ...day, blocks: updatedBlocks });
+    }
+  };
+
+  const handleDeleteBlock = (blockId: string) => {
+    if (onUpdateDay) {
+      const updatedBlocks = day.blocks.filter(b => b.id !== blockId);
+      onUpdateDay({ ...day, blocks: updatedBlocks });
+    }
+  };
+
+  return (
+    <Card className={cn(
+      'transition-all',
+      isToday && 'ring-2 ring-primary shadow-lg'
+    )}>
+      <CardHeader
+        className={cn(
+          'cursor-pointer hover:bg-muted/50 transition-colors',
+          onToggle && 'cursor-pointer'
+        )}
+        onClick={onToggle}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg',
+              isToday ? 'bg-primary text-primary-foreground' : 'bg-muted'
+            )}>
+              {day.dayNumber}
+            </div>
+            <div>
+              {editingTheme ? (
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    value={themeValue}
+                    onChange={(e) => setThemeValue(e.target.value)}
+                    placeholder="Day theme..."
+                    className="h-8 w-48"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTheme();
+                      if (e.key === 'Escape') setEditingTheme(false);
+                    }}
+                  />
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleSaveTheme}>
+                    <Check className="w-4 h-4 text-primary" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTheme(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {day.theme || `Day ${day.dayNumber}`}
+                  {isToday && (
+                    <Badge variant="default" className="text-xs">Today</Badge>
+                  )}
+                  {onUpdateDay && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setThemeValue(day.theme || '');
+                        setEditingTheme(true);
+                      }}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )}
+                </CardTitle>
+              )}
+              <p className="text-sm text-muted-foreground">{formattedDate}</p>
+            </div>
+          </div>
+          {day.weather && (
+            <div className="text-right text-sm">
+              <div className="font-medium">{day.weather.condition}</div>
+              <div className="text-muted-foreground">
+                {day.weather.high}° / {day.weather.low}°
+              </div>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+
+      {isExpanded && (
+        <CardContent className="pt-0">
+          <div className="space-y-3">
+            {day.blocks.map((block) => (
+              <TimeBlockCard
+                key={block.id}
+                block={block}
+                date={day.date}
+                onUpdate={(updates) => handleUpdateBlock(block.id, updates)}
+                onDelete={() => handleDeleteBlock(block.id)}
+                editable={!!onUpdateDay}
+              />
+            ))}
+          </div>
+
+          {day.notes && (
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
+              <strong>Notes:</strong> {day.notes}
+            </div>
+          )}
+
+          {/* Find Food Button */}
+          {onFindFood && (
+            <div className="mt-4 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => onFindFood(day)}
+              >
+                <UtensilsCrossed className="w-4 h-4" />
+                Find Restaurants for This Day
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+interface TimeBlockCardProps {
+  block: TimeBlock;
+  date?: string; // ISO date string for booking URLs
+  onUpdate?: (updates: Partial<TimeBlock>) => void;
+  onDelete?: () => void;
+  editable?: boolean;
+}
+
+interface EditFormState {
+  name: string;
+  description: string;
+  location: string;
+  startTime: string;
+  endTime: string;
+  duration: string;
+  cost: string;
+  notes: string;
+  blockType: TimeBlockType;
+  priority: ActivityPriority;
+}
+
+function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false }: TimeBlockCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditFormState>({
+    name: block.activity?.name || '',
+    description: block.activity?.description || '',
+    location: block.activity?.location?.name || '',
+    startTime: block.startTime || '',
+    endTime: block.endTime || '',
+    duration: block.activity?.duration?.toString() || '60',
+    cost: block.activity?.cost?.amount?.toString() || '',
+    notes: block.notes || '',
+    blockType: block.type,
+    priority: block.priority,
+  });
+
+  const blockStyle = BLOCK_COLORS[block.type] || BLOCK_COLORS['transit'];
+  const priorityStyle = PRIORITY_STYLES[block.priority];
+
+  const startEditing = () => {
+    setEditForm({
+      name: block.activity?.name || '',
+      description: block.activity?.description || '',
+      location: block.activity?.location?.name || '',
+      startTime: block.startTime || '',
+      endTime: block.endTime || '',
+      duration: block.activity?.duration?.toString() || '60',
+      cost: block.activity?.cost?.amount?.toString() || '',
+      notes: block.notes || '',
+      blockType: block.type,
+      priority: block.priority,
+    });
+    setIsEditing(true);
+  };
+
+  const openPlaceDetails = (location: string) => {
+    setSelectedLocation(location);
+  };
+
+  const handleSave = () => {
+    if (!onUpdate) return;
+
+    const updates: Partial<TimeBlock> = {
+      type: editForm.blockType,
+      startTime: editForm.startTime || undefined,
+      endTime: editForm.endTime || undefined,
+      notes: editForm.notes || undefined,
+      priority: editForm.priority,
+    };
+
+    if (editForm.name) {
+      updates.activity = {
+        ...(block.activity || {
+          id: `act-${Date.now()}`,
+          category: 'activity',
+          bookingRequired: false,
+          tags: [],
+        }),
+        name: editForm.name,
+        description: editForm.description,
+        duration: parseInt(editForm.duration) || 60,
+        location: editForm.location ? { name: editForm.location } : undefined,
+        cost: editForm.cost ? {
+          amount: parseFloat(editForm.cost),
+          currency: 'USD',
+          isEstimate: true,
+        } : undefined,
+      } as Activity;
+    }
+
+    onUpdate(updates);
+    setIsEditing(false);
+  };
+
+  const cyclePriority = () => {
+    if (!onUpdate) return;
+    const priorities: ActivityPriority[] = ['must-see', 'if-energy', 'skip-guilt-free'];
+    const currentIndex = priorities.indexOf(block.priority);
+    const nextIndex = (currentIndex + 1) % priorities.length;
+    onUpdate({ priority: priorities[nextIndex] });
+  };
+
+  return (
+    <>
+      {/* Place Details Modal */}
+      {selectedLocation && (
+        <PlaceDetailsModal
+          location={selectedLocation}
+          onClose={() => setSelectedLocation(null)}
+        />
+      )}
+    <div className={cn(
+      'p-3 rounded-lg border group/block relative',
+      blockStyle,
+      block.isLocked && 'ring-1 ring-primary'
+    )}>
+      {/* Edit/Delete buttons */}
+      {editable && !isEditing && (
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/block:opacity-100 transition-opacity z-10">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 bg-white/80 hover:bg-white shadow-sm"
+            onClick={startEditing}
+          >
+            <Pencil className="w-3 h-3" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 bg-white/80 hover:bg-white hover:text-destructive shadow-sm"
+            onClick={onDelete}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      )}
+
+      <div className="flex items-start gap-3">
+        {/* Time block icon */}
+        <div className="mt-0.5">
+          {BLOCK_ICONS[block.type]}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-medium uppercase tracking-wide opacity-70">
+              {block.type.replace('-', ' ')}
+            </span>
+            {block.startTime && (
+              <span className="text-xs opacity-70">
+                {formatTime12h(block.startTime)}
+                {block.endTime && ` - ${formatTime12h(block.endTime)}`}
+              </span>
+            )}
+          </div>
+
+          {/* Edit Form */}
+          {isEditing ? (
+            <div className="space-y-3 bg-white/80 rounded-lg p-3 -mx-1" onClick={(e) => e.stopPropagation()}>
+              {/* Row 1: Block Type & Priority */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Block Type</Label>
+                  <Select
+                    value={editForm.blockType}
+                    onValueChange={(v) => setEditForm({ ...editForm, blockType: v as TimeBlockType })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="morning-anchor">Morning Anchor</SelectItem>
+                      <SelectItem value="midday-flex">Midday Flex</SelectItem>
+                      <SelectItem value="evening-vibe">Evening Vibe</SelectItem>
+                      <SelectItem value="rest-block">Rest Block</SelectItem>
+                      <SelectItem value="transit">Transit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Priority</Label>
+                  <Select
+                    value={editForm.priority}
+                    onValueChange={(v) => setEditForm({ ...editForm, priority: v as ActivityPriority })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="must-see">Must-Do</SelectItem>
+                      <SelectItem value="if-energy">If-Energy</SelectItem>
+                      <SelectItem value="skip-guilt-free">Skip Guilt-Free</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 2: Time */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Start Time</Label>
+                  <Input
+                    type="time"
+                    value={editForm.startTime}
+                    onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">End Time</Label>
+                  <Input
+                    type="time"
+                    value={editForm.endTime}
+                    onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Duration (min)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.duration}
+                    onChange={(e) => setEditForm({ ...editForm, duration: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Activity Name */}
+              <div className="space-y-1">
+                <Label className="text-xs">Activity Name</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="What are you doing?"
+                  className="h-8"
+                />
+              </div>
+
+              {/* Row 4: Location & Cost */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Location</Label>
+                  <Input
+                    value={editForm.location}
+                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                    placeholder="Address or place name"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Cost ($)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.cost}
+                    onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                    placeholder="0"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Row 5: Description */}
+              <div className="space-y-1">
+                <Label className="text-xs">Description</Label>
+                <Textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="Details about this activity..."
+                  className="min-h-[60px] text-xs"
+                />
+              </div>
+
+              {/* Row 6: Notes */}
+              <div className="space-y-1">
+                <Label className="text-xs">Notes</Label>
+                <Input
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="Booking reference, tips, etc."
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={handleSave}>
+                  <Check className="w-3 h-3 mr-1" /> Save
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : block.activity ? (
+            <ActivityDisplay
+              activity={block.activity}
+              priority={block.priority}
+              date={date}
+              onOpenPlaceDetails={openPlaceDetails}
+              editable={editable}
+              onToggleBooked={() => {
+                if (!onUpdate || !block.activity) return;
+                const currentStatus = block.activity.reservationStatus;
+                const newStatus = currentStatus === 'done' ? 'not-started' : 'done';
+                onUpdate({
+                  activity: {
+                    ...block.activity,
+                    reservationStatus: newStatus,
+                  },
+                });
+              }}
+            />
+          ) : (
+            <div className="text-sm italic opacity-70">
+              {block.type === 'rest-block' ? 'Rest & recharge' : 'Flexible time'}
+            </div>
+          )}
+
+          {/* Alternatives */}
+          {!isEditing && block.alternatives && block.alternatives.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-current/10">
+              <div className="text-xs font-medium mb-1 opacity-70">Alternatives:</div>
+              <div className="space-y-1">
+                {block.alternatives.map((alt) => (
+                  <div key={alt.id} className="text-sm opacity-80">
+                    • {alt.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {!isEditing && block.notes && (
+            <div className="mt-2 text-xs opacity-70 italic">{block.notes}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Priority indicator - bottom right (clickable to cycle) */}
+      {block.activity && !isEditing && (
+        <button
+          onClick={editable ? cyclePriority : undefined}
+          className={cn(
+            'absolute bottom-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white transition-transform',
+            priorityStyle.bg,
+            editable && 'hover:scale-110 cursor-pointer'
+          )}
+          title={`${block.priority === 'must-see' ? 'must do' : block.priority.replace('-', ' ')}${editable ? ' (click to change)' : ''}`}
+        >
+          {priorityStyle.icon}
+        </button>
+      )}
+    </div>
+    </>
+  );
+}
+
+interface ActivityDisplayProps {
+  activity: Activity;
+  priority: string;
+  date?: string; // ISO date string for booking URLs
+  onOpenPlaceDetails?: (location: string) => void;
+  onToggleBooked?: () => void;
+  editable?: boolean;
+}
+
+function ActivityDisplay({ activity, priority, date, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
+  const isBooked = activity.reservationStatus === 'done';
+
+  return (
+    <div>
+      <div className="font-medium">{activity.name}</div>
+      {activity.description && (
+        <p className="text-sm opacity-80 mt-0.5 line-clamp-2">{activity.description}</p>
+      )}
+      <div className="flex flex-wrap gap-2 mt-2 text-xs">
+        {activity.location?.name && (
+          <button
+            onClick={() => onOpenPlaceDetails?.(activity.location!.name)}
+            className="flex items-center gap-1 opacity-70 hover:opacity-100 hover:text-blue-600 transition-colors group"
+            title="View place details"
+          >
+            <MapPin className="w-3 h-3" />
+            <span className="group-hover:underline">{activity.location.name}</span>
+            <Star className="w-3 h-3 opacity-0 group-hover:opacity-100" />
+          </button>
+        )}
+        {activity.duration && (
+          <span className="flex items-center gap-1 opacity-70">
+            <Clock className="w-3 h-3" />
+            {formatDuration(activity.duration)}
+          </span>
+        )}
+        {activity.cost && (
+          <span className="flex items-center gap-1 opacity-70">
+            <DollarSign className="w-3 h-3" />
+            {activity.cost.amount}
+          </span>
+        )}
+        {activity.bookingRequired && (
+          <div className="flex items-center gap-1">
+            <Badge
+              variant={isBooked ? 'default' : 'outline'}
+              className={cn(
+                'text-xs cursor-pointer transition-colors',
+                isBooked
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (editable && onToggleBooked) {
+                  onToggleBooked();
+                }
+              }}
+              title={editable ? (isBooked ? 'Click to mark as not booked' : 'Click to mark as booked') : undefined}
+            >
+              {isBooked ? 'Booked!' : 'Booking required'}
+            </Badge>
+            {!isBooked && (
+              <a
+                href={activity.bookingUrl || generateBookingUrl(activity, { date })}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                title={`Book on ${getBookingProvider(activity.category).name}`}
+              >
+                <ExternalLink className="w-3 h-3" />
+                Book
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+      {activity.tips && activity.tips.length > 0 && (
+        <div className="mt-2 text-xs opacity-70">
+          💡 {activity.tips[0]}
+        </div>
+      )}
+    </div>
+  );
+}
