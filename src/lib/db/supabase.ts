@@ -1,10 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { StoredTrip } from './indexed-db';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Lazy initialization to avoid build-time errors
+let supabaseClient: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getSupabase(): SupabaseClient | null {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseClient;
+}
 
 // Database row type
 interface TripRow {
@@ -43,6 +55,9 @@ function storedTripToRow(trip: StoredTrip): Omit<TripRow, 'created_at'> & { crea
 export const supabaseTrips = {
   // Get all trips from Supabase
   async getAll(): Promise<StoredTrip[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
     const { data, error } = await supabase
       .from('trips')
       .select('*')
@@ -58,6 +73,9 @@ export const supabaseTrips = {
 
   // Get a single trip by ID
   async get(id: string): Promise<StoredTrip | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from('trips')
       .select('*')
@@ -78,6 +96,9 @@ export const supabaseTrips = {
 
   // Save (upsert) a trip
   async save(trip: StoredTrip): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
     const row = storedTripToRow(trip);
 
     const { error } = await supabase
@@ -92,6 +113,9 @@ export const supabaseTrips = {
 
   // Delete a trip
   async delete(id: string): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
     const { error } = await supabase
       .from('trips')
       .delete()
@@ -112,6 +136,6 @@ export const supabaseTrips = {
 
   // Check if Supabase is configured
   isConfigured(): boolean {
-    return Boolean(supabaseUrl && supabaseAnonKey);
+    return getSupabase() !== null;
   },
 };
