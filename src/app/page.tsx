@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { tripDb, StoredTrip } from '@/lib/db/indexed-db';
 import { createTripDNA } from '@/types/trip-dna';
-import { loadSampleTrip } from '@/lib/sample-trip';
 import { useRouter } from 'next/navigation';
 import { importCSV } from '@/lib/csv/parser';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -82,11 +81,6 @@ export default function Home() {
       localStorage.removeItem(`itinerary-${tripId}`);
       setTrips(trips.filter(t => t.id !== tripId));
     }
-  };
-
-  const handleLoadSampleTrip = async () => {
-    const tripId = await loadSampleTrip();
-    router.push(`/trip/${tripId}`);
   };
 
   return (
@@ -238,15 +232,6 @@ export default function Home() {
                           Plan New Trip
                         </Button>
                       </Link>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="gap-2 w-full sm:w-auto bg-white/80 hover:bg-white"
-                        onClick={handleLoadSampleTrip}
-                      >
-                        <Plane className="w-5 h-5" />
-                        Load Asia Trip
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
