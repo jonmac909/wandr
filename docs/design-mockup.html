@@ -1,0 +1,3859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wandr - Design Mockups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --coral: #FF6B5B;
+      --coral-light: #FF8A7A;
+      --coral-glow: rgba(255, 107, 91, 0.3);
+      --ocean: #2D7DD2;
+      --ocean-dark: #1B5AA5;
+      --forest: #45B69C;
+      --gold: #F4B942;
+      --purple: #9B5DE5;
+      --charcoal: #1A1A2E;
+      --navy: #16213E;
+      --slate: #4A4A68;
+      --glass: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.15);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+      color: white;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 48px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 60px;
+      font-size: 18px;
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--coral);
+      margin: 60px 0 30px;
+    }
+
+    .screens-container {
+      display: flex;
+      gap: 40px;
+      overflow-x: auto;
+      padding: 20px 40px 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .screen-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .phone-frame {
+      width: 375px;
+      height: 812px;
+      background: var(--charcoal);
+      border-radius: 50px;
+      border: 10px solid #2A2A3E;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 50px 100px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(255,255,255,0.1),
+        inset 0 0 30px rgba(0,0,0,0.3);
+    }
+
+    .notch {
+      width: 150px;
+      height: 32px;
+      background: #2A2A3E;
+      border-radius: 0 0 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+    }
+
+    .screen {
+      height: 100%;
+      overflow-y: auto;
+      background: linear-gradient(180deg, var(--charcoal) 0%, var(--navy) 100%);
+    }
+
+    .screen::-webkit-scrollbar {
+      display: none;
+    }
+
+    .screen-label {
+      margin-top: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Header */
+    .header {
+      padding: 50px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-icons {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      background: var(--glass);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--glass-border);
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ocean) 0%, var(--forest) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    /* Greeting */
+    .greeting {
+      padding: 0 20px 20px;
+    }
+
+    .greeting-date {
+      font-size: 13px;
+      color: var(--coral);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .greeting-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .greeting-name {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    /* Next Trip Card */
+    .next-trip-card {
+      margin: 0 20px 24px;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      height: 200px;
+    }
+
+    .next-trip-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #FF6B5B 0%, #FF8A7A 40%, #FFB088 100%);
+    }
+
+    .next-trip-content {
+      position: relative;
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .trip-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .trip-info h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .trip-dates {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .trip-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .trip-stat {
+      background: rgba(0,0,0,0.2);
+      padding: 10px 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .trip-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .trip-stat-label {
+      font-size: 10px;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+
+    /* Quick Stats */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 20px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--coral);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Section Header */
+    .section-header {
+      padding: 0 20px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .see-all {
+      color: var(--coral);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Todo List */
+    .todo-list {
+      margin: 0 20px 24px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .todo-item {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+
+    .todo-checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .todo-checkbox.checked {
+      background: var(--forest);
+      border-color: var(--forest);
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .todo-text.completed {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    .todo-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* Budget Card */
+    .budget-card {
+      margin: 0 20px 24px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .budget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .budget-amount {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .budget-total {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .budget-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .budget-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--forest) 0%, var(--ocean) 100%);
+      border-radius: 4px;
+      width: 68%;
+    }
+
+    .budget-categories {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .budget-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .budget-category {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .category-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Weather */
+    .weather-card {
+      margin: 0 20px 24px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .weather-days {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+    }
+
+    .weather-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .weather-day-name {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .weather-icon {
+      font-size: 24px;
+    }
+
+    .weather-temp {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(26, 26, 46, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 12px 24px 28px;
+      display: flex;
+      justify-content: space-around;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: rgba(255,255,255,0.4);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .nav-item.active {
+      color: var(--coral);
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* World Map Screen */
+    .map-hero {
+      height: 350px;
+      background: linear-gradient(180deg, var(--navy) 0%, var(--charcoal) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    .map-glow {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.4;
+    }
+
+    .glow-1 {
+      background: var(--coral);
+      top: 20%;
+      left: 10%;
+    }
+
+    .glow-2 {
+      background: var(--ocean);
+      top: 40%;
+      right: 20%;
+    }
+
+    .glow-3 {
+      background: var(--forest);
+      bottom: 20%;
+      left: 40%;
+    }
+
+    .map-pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pin-dot {
+      width: 16px;
+      height: 16px;
+      background: var(--coral);
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 4px 12px rgba(255, 107, 91, 0.5);
+    }
+
+    .pin-label {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .map-stats-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .map-stat {
+      text-align: center;
+    }
+
+    .map-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--coral);
+    }
+
+    .map-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Trips List */
+    .trips-section {
+      padding: 24px 20px;
+    }
+
+    .trips-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .filter-chip {
+      padding: 8px 16px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .filter-chip.active {
+      background: var(--coral);
+      border-color: var(--coral);
+    }
+
+    .trip-list-item {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .trip-thumb {
+      width: 70px;
+      height: 70px;
+      border-radius: 14px;
+      flex-shrink: 0;
+    }
+
+    .trip-thumb.coral { background: linear-gradient(135deg, var(--coral) 0%, #FFB088 100%); }
+    .trip-thumb.ocean { background: linear-gradient(135deg, var(--ocean) 0%, var(--forest) 100%); }
+    .trip-thumb.purple { background: linear-gradient(135deg, var(--purple) 0%, #C77DFF 100%); }
+    .trip-thumb.gold { background: linear-gradient(135deg, var(--gold) 0%, #FFD166 100%); }
+
+    .trip-list-info {
+      flex: 1;
+    }
+
+    .trip-list-title {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .trip-list-meta {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .trip-list-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .badge-upcoming { background: rgba(69, 182, 156, 0.2); color: var(--forest); }
+    .badge-draft { background: rgba(255, 255, 255, 0.1); color: rgba(255,255,255,0.6); }
+    .badge-past { background: rgba(45, 125, 210, 0.2); color: var(--ocean); }
+
+    /* Trip Detail Screen */
+    .trip-hero {
+      height: 260px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .trip-hero-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 50%, #FFB088 100%);
+    }
+
+    .trip-hero-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 24px 20px;
+      background: linear-gradient(transparent, rgba(26,26,46,0.95));
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 50px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .trip-hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .trip-hero-dates {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      padding: 16px 20px;
+      gap: 8px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .tab {
+      padding: 10px 18px;
+      background: var(--glass);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .tab.active {
+      background: var(--coral);
+      border-color: var(--coral);
+    }
+
+    /* Day Card */
+    .day-card {
+      margin: 16px 20px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .day-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .day-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .day-date {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .activity {
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .activity:last-child {
+      border-bottom: none;
+    }
+
+    .activity-time {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      width: 45px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .activity-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--glass);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .activity-content {
+      flex: 1;
+    }
+
+    .activity-name {
+      font-weight: 500;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .activity-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Restaurant Screen */
+    .filter-section {
+      padding: 20px;
+    }
+
+    .slider-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .slider-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .slider-value {
+      color: var(--coral);
+      font-weight: 600;
+    }
+
+    .slider-track {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 73%;
+      background: linear-gradient(90deg, var(--coral) 0%, var(--coral-light) 100%);
+      border-radius: 3px;
+    }
+
+    .slider-thumb {
+      position: absolute;
+      left: 73%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 8px 14px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .chip.active {
+      background: var(--ocean);
+      border-color: var(--ocean);
+    }
+
+    /* Restaurant Card */
+    .restaurant-card {
+      margin: 0 20px 16px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .restaurant-image {
+      height: 140px;
+    }
+
+    .restaurant-info {
+      padding: 16px;
+    }
+
+    .restaurant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .restaurant-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .restaurant-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 107, 91, 0.2);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--coral);
+    }
+
+    .restaurant-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 12px;
+    }
+
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(69, 182, 156, 0.2);
+      color: var(--forest);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* Calendar Screen */
+    .calendar-header {
+      padding: 50px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calendar-month {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .calendar-nav-btn {
+      width: 36px;
+      height: 36px;
+      background: var(--glass);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--glass-border);
+    }
+
+    .calendar-grid {
+      padding: 0 20px 20px;
+    }
+
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .weekday {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      padding: 8px 0;
+    }
+
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      border-radius: 12px;
+    }
+
+    .calendar-day.empty {
+      opacity: 0;
+    }
+
+    .calendar-day.today {
+      background: var(--glass);
+      border: 1px solid var(--coral);
+      color: var(--coral);
+      font-weight: 600;
+    }
+
+    .calendar-day.trip {
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+      font-weight: 600;
+    }
+
+    .calendar-day.trip-start {
+      border-radius: 12px 4px 4px 12px;
+    }
+
+    .calendar-day.trip-end {
+      border-radius: 4px 12px 12px 4px;
+    }
+
+    .calendar-day.trip-mid {
+      border-radius: 4px;
+    }
+
+    .calendar-events {
+      padding: 0 20px;
+    }
+
+    .calendar-event {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .event-color {
+      width: 4px;
+      height: 50px;
+      border-radius: 2px;
+      background: var(--coral);
+    }
+
+    .event-info {
+      flex: 1;
+    }
+
+    .event-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .event-time {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Profile Screen */
+    .profile-header {
+      padding: 60px 20px 30px;
+      text-align: center;
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ocean) 0%, var(--forest) 100%);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 600;
+      border: 4px solid var(--glass-border);
+    }
+
+    .profile-name {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .profile-email {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .dna-card {
+      margin: 0 20px 24px;
+      background: linear-gradient(135deg, rgba(45, 125, 210, 0.2) 0%, rgba(69, 182, 156, 0.2) 100%);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .dna-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .dna-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--ocean) 0%, var(--forest) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dna-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .dna-subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .dna-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .trait {
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .trait.adventure { background: rgba(255, 107, 91, 0.2); color: var(--coral-light); }
+    .trait.culture { background: rgba(45, 125, 210, 0.2); color: #5A9FE8; }
+    .trait.food { background: rgba(69, 182, 156, 0.2); color: #6DCDB8; }
+    .trait.default { background: var(--glass); }
+
+    .settings-section {
+      padding: 0 20px;
+    }
+
+    .settings-item {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .settings-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--glass);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .settings-text {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .settings-arrow {
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* Packing List Screen */
+    .packing-progress {
+      margin: 20px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .packing-progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .packing-progress-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .packing-progress-count {
+      font-size: 14px;
+      color: var(--forest);
+      font-weight: 600;
+    }
+
+    .packing-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .packing-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--forest) 0%, var(--ocean) 100%);
+      width: 65%;
+      border-radius: 4px;
+    }
+
+    .packing-category {
+      margin: 0 20px 16px;
+    }
+
+    .packing-category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+    }
+
+    .packing-category-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .packing-category-count {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .packing-items {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .packing-item {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .packing-item:last-child {
+      border-bottom: none;
+    }
+
+    .packing-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .packing-check.checked {
+      background: var(--forest);
+      border-color: var(--forest);
+    }
+
+    .packing-text {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .packing-text.checked {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    .packing-note {
+      font-size: 11px;
+      color: var(--coral);
+      background: rgba(255, 107, 91, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* Quiz Screen */
+    .quiz-progress {
+      padding: 60px 20px 20px;
+    }
+
+    .quiz-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .quiz-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .quiz-dot.active {
+      background: var(--coral);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .quiz-dot.done {
+      background: var(--forest);
+    }
+
+    .quiz-step {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .quiz-question {
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .quiz-question h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .quiz-options {
+      padding: 0 20px;
+    }
+
+    .quiz-option {
+      background: var(--glass);
+      border: 2px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quiz-option.selected {
+      border-color: var(--coral);
+      background: rgba(255, 107, 91, 0.1);
+    }
+
+    .quiz-option-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .quiz-option-icon {
+      font-size: 24px;
+    }
+
+    .quiz-option-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .quiz-option-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      padding-left: 36px;
+    }
+
+    .quiz-footer {
+      padding: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .quiz-btn {
+      flex: 1;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .quiz-btn.secondary {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+    }
+
+    .quiz-btn.primary {
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+    }
+
+    /* Bucket List */
+    .bucket-list {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px 24px;
+      overflow-x: auto;
+    }
+
+    .bucket-card {
+      min-width: 150px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bucket-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      opacity: 0.3;
+    }
+
+    .bucket-card.mountain::before {
+      background: linear-gradient(135deg, var(--ocean) 0%, var(--forest) 100%);
+    }
+
+    .bucket-card.sakura::before {
+      background: linear-gradient(135deg, #FFB7C5 0%, var(--coral-light) 100%);
+    }
+
+    .bucket-card.northern::before {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--purple) 100%);
+    }
+
+    .bucket-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .bucket-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      position: relative;
+    }
+
+    .bucket-note {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      position: relative;
+      font-style: italic;
+    }
+
+    /* Vibe Grid */
+    .vibe-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 20px 24px;
+    }
+
+    .vibe-card {
+      background: var(--glass);
+      border: 2px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .vibe-card.selected {
+      border-color: var(--coral);
+      background: rgba(255, 107, 91, 0.1);
+    }
+
+    .vibe-icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .vibe-name {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* Canvas Tabs */
+    .canvas-tabs {
+      display: flex;
+      padding: 12px 20px;
+      gap: 8px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .canvas-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--glass);
+      border-radius: 10px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .canvas-tab.active {
+      background: var(--coral);
+      color: white;
+    }
+
+    /* City Buckets */
+    .city-buckets {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .city-bucket {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .city-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .city-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .city-count {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .city-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .city-tag {
+      background: rgba(255,255,255,0.08);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .city-tag.more {
+      background: rgba(255, 107, 91, 0.2);
+      color: var(--coral);
+    }
+
+    /* AI Insight Card */
+    .ai-insight-card {
+      margin: 0 20px 20px;
+      background: linear-gradient(135deg, rgba(45, 125, 210, 0.15) 0%, rgba(69, 182, 156, 0.15) 100%);
+      border: 1px solid rgba(69, 182, 156, 0.3);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .ai-icon {
+      font-size: 18px;
+    }
+
+    .ai-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--forest);
+    }
+
+    .ai-content p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 8px;
+    }
+
+    .ai-suggestions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .ai-suggestion {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .ai-city {
+      font-weight: 500;
+    }
+
+    .ai-days {
+      color: var(--forest);
+      font-weight: 600;
+    }
+
+    .ai-total {
+      font-weight: 600 !important;
+      color: white !important;
+    }
+
+    /* Canvas Map */
+    .canvas-map {
+      margin: 0 20px 20px;
+      height: 120px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-pin {
+      position: absolute;
+      background: var(--coral);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      transform: translate(-50%, -50%);
+    }
+
+    .map-distance {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* Flight Prices */
+    .flight-prices {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .flight-option {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .flight-dates {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .flight-price {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--coral);
+    }
+
+    .flight-badge {
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .flight-badge.cheapest {
+      background: rgba(69, 182, 156, 0.2);
+      color: var(--forest);
+    }
+
+    /* Canvas Actions */
+    .canvas-actions {
+      padding: 16px 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .canvas-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .canvas-btn.secondary {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+    }
+
+    .canvas-btn.primary {
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+    }
+
+    /* Discovery Cards */
+    .discovery-cards {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .discovery-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .discovery-image {
+      height: 120px;
+      position: relative;
+    }
+
+    .discovery-save {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: white;
+    }
+
+    .discovery-save.saved {
+      background: var(--coral);
+      color: white;
+    }
+
+    .discovery-info {
+      padding: 14px 16px;
+    }
+
+    .discovery-name {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .discovery-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+
+    .discovery-match {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--forest);
+    }
+
+    .match-icon {
+      font-size: 14px;
+    }
+
+    /* Past Adventures */
+    .past-trips {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px 24px;
+      overflow-x: auto;
+    }
+
+    .past-card {
+      min-width: 140px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .past-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .past-info {
+      flex: 1;
+    }
+
+    .past-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .past-date {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Plan Trip Action Buttons */
+    .plan-trip-actions {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px 20px;
+    }
+
+    .plan-trip-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .plan-trip-btn.primary {
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+      color: white;
+    }
+
+    .plan-trip-btn.secondary {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: white;
+    }
+
+    .plan-btn-icon {
+      font-size: 16px;
+    }
+
+    /* Planner Mode Cards */
+    .planner-mode-cards {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .planner-mode-card {
+      background: var(--glass);
+      border: 2px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .planner-mode-card:hover {
+      border-color: var(--coral);
+    }
+
+    .planner-mode-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .planner-mode-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .planner-mode-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 16px;
+    }
+
+    .planner-mode-features {
+      margin-bottom: 16px;
+    }
+
+    .planner-feature {
+      font-size: 13px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 6px;
+    }
+
+    .planner-mode-btn {
+      background: linear-gradient(135deg, var(--coral) 0%, var(--coral-light) 100%);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .planner-mode-btn.secondary {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+    }
+
+    .import-section {
+      padding: 30px 20px;
+    }
+
+    .import-divider {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .import-divider::before,
+    .import-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--glass-border);
+    }
+
+    .import-divider span {
+      padding: 0 16px;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+    }
+
+    .import-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--glass);
+      border: 1px dashed var(--glass-border);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+    }
+
+    .import-icon {
+      font-size: 18px;
+    }
+
+    /* Custom Interest Input */
+    .custom-interest-section {
+      padding: 0 20px 20px;
+    }
+
+    .custom-interest-label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 10px;
+    }
+
+    .custom-interest-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .interest-input-field {
+      flex: 1;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: white;
+      outline: none;
+    }
+
+    .interest-input-field::placeholder {
+      color: rgba(255,255,255,0.4);
+    }
+
+    .interest-add-btn {
+      background: var(--coral);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+    }
+
+    .custom-interest-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .interest-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 107, 91, 0.15);
+      border: 1px solid var(--coral);
+      border-radius: 20px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .chip-remove {
+      cursor: pointer;
+      opacity: 0.7;
+      font-size: 16px;
+    }
+
+    /* View Toggle */
+    .view-toggle-section {
+      padding: 12px 20px;
+    }
+
+    .view-toggle {
+      display: flex;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 4px;
+    }
+
+    .view-toggle-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-toggle-btn.active {
+      background: var(--coral);
+      color: white;
+    }
+
+    .toggle-icon {
+      font-size: 14px;
+    }
+
+    /* Calendar View */
+    .calendar-view {
+      padding: 0 20px;
+    }
+
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .calendar-nav {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--glass);
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .calendar-month {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 8px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .calendar-day.other {
+      color: rgba(255,255,255,0.3);
+    }
+
+    .calendar-day.trip-day {
+      background: rgba(255, 107, 91, 0.2);
+      color: var(--coral-light);
+      font-weight: 600;
+    }
+
+    .calendar-day.trip-day.start {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .calendar-day.trip-day.end {
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* Calendar Day Summary */
+    .calendar-day-summary {
+      margin: 16px 20px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .summary-date {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .summary-badge {
+      background: var(--coral);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .summary-activities {
+      margin-bottom: 12px;
+    }
+
+    .summary-activity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .summary-activity:last-child {
+      border-bottom: none;
+    }
+
+    .summary-time {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      width: 40px;
+    }
+
+    .summary-icon {
+      font-size: 16px;
+    }
+
+    .summary-name {
+      font-size: 13px;
+    }
+
+    .summary-view-full {
+      text-align: center;
+      color: var(--coral);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+  </style>
+</head>
+<body>
+
+<h1>Wandr</h1>
+<p class="subtitle">Design Mockups &bull; Rich & Immersive</p>
+
+<!-- DASHBOARD -->
+<div class="section-label">Dashboard</div>
+<div class="screens-container">
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="logo">Wandr</div>
+          <div class="header-icons">
+            <div class="icon-btn">
+              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+            </div>
+            <div class="avatar">JY</div>
+          </div>
+        </div>
+
+        <div class="greeting">
+          <div class="greeting-date">Sunday, January 5</div>
+          <div class="greeting-text">Good morning,</div>
+          <div class="greeting-name">Jacqueline</div>
+        </div>
+
+        <!-- Plan My Trip Action Buttons -->
+        <div class="plan-trip-actions">
+          <div class="plan-trip-btn primary">
+            <span class="plan-btn-icon">✨</span>
+            <span class="plan-btn-text">Plan My Trip</span>
+          </div>
+          <div class="plan-trip-btn secondary">
+            <span class="plan-btn-icon">📤</span>
+            <span class="plan-btn-text">Upload Trip</span>
+          </div>
+        </div>
+
+        <div class="next-trip-card">
+          <div class="next-trip-bg"></div>
+          <div class="next-trip-content">
+            <div class="trip-badge">
+              <span>✈️</span>
+              <span>In 45 days</span>
+            </div>
+            <div class="trip-info">
+              <h2>Tokyo</h2>
+              <div class="trip-dates">Mar 5 - 12, 2025 &bull; 7 days</div>
+            </div>
+            <div class="trip-stats">
+              <div class="trip-stat">
+                <div class="trip-stat-value">12/18</div>
+                <div class="trip-stat-label">Tasks</div>
+              </div>
+              <div class="trip-stat">
+                <div class="trip-stat-value">$2.4k</div>
+                <div class="trip-stat-label">Budget</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">12</div>
+            <div class="stat-label">Countries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">47</div>
+            <div class="stat-label">Cities</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">156</div>
+            <div class="stat-label">Days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">4</div>
+            <div class="stat-label">Continents</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">To-Do Before Tokyo</div>
+          <div class="see-all">See All</div>
+        </div>
+
+        <div class="todo-list">
+          <div class="todo-item">
+            <div class="todo-checkbox"></div>
+            <div class="todo-text">Book TeamLab tickets</div>
+            <div class="todo-date">Mar 1</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-checkbox"></div>
+            <div class="todo-text">Exchange currency</div>
+            <div class="todo-date">Mar 3</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-checkbox checked">✓</div>
+            <div class="todo-text completed">Confirm hotel</div>
+            <div class="todo-date">Done</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Weather Forecast</div>
+          <div class="see-all">Tokyo</div>
+        </div>
+
+        <div class="weather-card">
+          <div class="weather-days">
+            <div class="weather-day">
+              <div class="weather-day-name">Wed</div>
+              <div class="weather-icon">☀️</div>
+              <div class="weather-temp">54°</div>
+            </div>
+            <div class="weather-day">
+              <div class="weather-day-name">Thu</div>
+              <div class="weather-icon">⛅</div>
+              <div class="weather-temp">52°</div>
+            </div>
+            <div class="weather-day">
+              <div class="weather-day-name">Fri</div>
+              <div class="weather-icon">🌧️</div>
+              <div class="weather-temp">48°</div>
+            </div>
+            <div class="weather-day">
+              <div class="weather-day-name">Sat</div>
+              <div class="weather-icon">🌧️</div>
+              <div class="weather-temp">50°</div>
+            </div>
+            <div class="weather-day">
+              <div class="weather-day-name">Sun</div>
+              <div class="weather-icon">☀️</div>
+              <div class="weather-temp">55°</div>
+            </div>
+            <div class="weather-day">
+              <div class="weather-day-name">Mon</div>
+              <div class="weather-icon">☀️</div>
+              <div class="weather-temp">58°</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Bucket List</div>
+          <div class="see-all">+ Add</div>
+        </div>
+
+        <div class="bucket-list">
+          <div class="bucket-card mountain">
+            <div class="bucket-icon">🏔️</div>
+            <div class="bucket-name">Patagonia</div>
+            <div class="bucket-note">"Before I'm 40"</div>
+          </div>
+          <div class="bucket-card sakura">
+            <div class="bucket-icon">🌸</div>
+            <div class="bucket-name">Kyoto</div>
+            <div class="bucket-note">"Cherry blossoms"</div>
+          </div>
+          <div class="bucket-card northern">
+            <div class="bucket-icon">🌌</div>
+            <div class="bucket-name">Iceland</div>
+            <div class="bucket-note">"Northern lights"</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Past Adventures</div>
+          <div class="see-all">See All</div>
+        </div>
+
+        <div class="past-trips">
+          <div class="past-card">
+            <div class="past-thumb" style="background: linear-gradient(135deg, var(--gold) 0%, #FFD166 100%);"></div>
+            <div class="past-info">
+              <div class="past-name">Peru</div>
+              <div class="past-date">Dec 2024</div>
+            </div>
+          </div>
+          <div class="past-card">
+            <div class="past-thumb" style="background: linear-gradient(135deg, var(--forest) 0%, var(--ocean) 100%);"></div>
+            <div class="past-info">
+              <div class="past-name">Italy</div>
+              <div class="past-date">Sep 2023</div>
+            </div>
+          </div>
+          <div class="past-card">
+            <div class="past-thumb" style="background: linear-gradient(135deg, var(--purple) 0%, #C77DFF 100%);"></div>
+            <div class="past-info">
+              <div class="past-name">Greece</div>
+              <div class="past-date">Jun 2023</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Dashboard</div>
+  </div>
+</div>
+
+<!-- WORLD MAP -->
+<div class="section-label">World Map</div>
+<div class="screens-container">
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="map-hero">
+          <div class="map-grid"></div>
+          <div class="map-glow glow-1"></div>
+          <div class="map-glow glow-2"></div>
+          <div class="map-glow glow-3"></div>
+
+          <div class="map-pin" style="top: 25%; left: 15%;">
+            <div class="pin-dot"></div>
+            <div class="pin-label">Peru</div>
+          </div>
+          <div class="map-pin" style="top: 20%; left: 48%;">
+            <div class="pin-dot"></div>
+            <div class="pin-label">Paris</div>
+          </div>
+          <div class="map-pin" style="top: 30%; left: 78%;">
+            <div class="pin-dot"></div>
+            <div class="pin-label">Tokyo</div>
+          </div>
+          <div class="map-pin" style="top: 55%; left: 70%;">
+            <div class="pin-dot"></div>
+            <div class="pin-label">Bali</div>
+          </div>
+
+          <div class="map-stats-bar">
+            <div class="map-stat">
+              <div class="map-stat-value">12</div>
+              <div class="map-stat-label">Countries</div>
+            </div>
+            <div class="map-stat">
+              <div class="map-stat-value">47</div>
+              <div class="map-stat-label">Cities</div>
+            </div>
+            <div class="map-stat">
+              <div class="map-stat-value">4</div>
+              <div class="map-stat-label">Continents</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="trips-section">
+          <div class="trips-filter">
+            <div class="filter-chip active">All</div>
+            <div class="filter-chip">Upcoming</div>
+            <div class="filter-chip">Drafts</div>
+            <div class="filter-chip">Past</div>
+          </div>
+
+          <div class="trip-list-item">
+            <div class="trip-thumb coral"></div>
+            <div class="trip-list-info">
+              <div class="trip-list-title">Tokyo</div>
+              <div class="trip-list-meta">Mar 5-12 &bull; 7 days</div>
+            </div>
+            <div class="trip-list-badge badge-upcoming">45 days</div>
+          </div>
+
+          <div class="trip-list-item">
+            <div class="trip-thumb ocean"></div>
+            <div class="trip-list-info">
+              <div class="trip-list-title">Bali</div>
+              <div class="trip-list-meta">Jun 20-27 &bull; Planning</div>
+            </div>
+            <div class="trip-list-badge badge-draft">Draft</div>
+          </div>
+
+          <div class="trip-list-item">
+            <div class="trip-thumb purple"></div>
+            <div class="trip-list-info">
+              <div class="trip-list-title">Paris</div>
+              <div class="trip-list-meta">Sep 10-17 &bull; 8 days</div>
+            </div>
+            <div class="trip-list-badge badge-draft">Draft</div>
+          </div>
+
+          <div class="trip-list-item">
+            <div class="trip-thumb gold"></div>
+            <div class="trip-list-info">
+              <div class="trip-list-title">Peru</div>
+              <div class="trip-list-meta">Dec 2024 &bull; 10 days</div>
+            </div>
+            <div class="trip-list-badge badge-past">Past</div>
+          </div>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">World Map + Trips</div>
+  </div>
+</div>
+
+<!-- TRIP DETAIL + ITINERARY -->
+<div class="section-label">Trip Itinerary</div>
+<div class="screens-container">
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="trip-hero">
+          <div class="trip-hero-bg"></div>
+          <div class="back-btn">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div class="trip-hero-overlay">
+            <div class="trip-hero-title">Tokyo</div>
+            <div class="trip-hero-dates">Mar 5 - 12, 2025 &bull; 7 days</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active">Itinerary</div>
+          <div class="tab">Map</div>
+          <div class="tab">Food</div>
+          <div class="tab">Packing</div>
+          <div class="tab">Budget</div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-toggle-section">
+          <div class="view-toggle">
+            <div class="view-toggle-btn active">
+              <span class="toggle-icon">📋</span>
+              <span>Daily</span>
+            </div>
+            <div class="view-toggle-btn">
+              <span class="toggle-icon">📅</span>
+              <span>Calendar</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="day-card">
+          <div class="day-header">
+            <div class="day-title">Day 1</div>
+            <div class="day-date">Wed, Mar 5</div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">2:30p</div>
+            <div class="activity-icon">✈️</div>
+            <div class="activity-content">
+              <div class="activity-name">Land at Narita Airport</div>
+              <div class="activity-note">Terminal 1</div>
+            </div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">4:00p</div>
+            <div class="activity-icon">🚃</div>
+            <div class="activity-content">
+              <div class="activity-name">Narita Express → Shinjuku</div>
+              <div class="activity-note">~90 min, use JR Pass</div>
+            </div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">6:00p</div>
+            <div class="activity-icon">🏨</div>
+            <div class="activity-content">
+              <div class="activity-name">Check in Park Hyatt</div>
+              <div class="activity-note">Lost in Translation vibes</div>
+            </div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">8:00p</div>
+            <div class="activity-icon">🍜</div>
+            <div class="activity-content">
+              <div class="activity-name">Dinner: Ichiran Ramen</div>
+              <div class="activity-note">Solo booth experience</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="day-card">
+          <div class="day-header">
+            <div class="day-title">Day 2</div>
+            <div class="day-date">Thu, Mar 6</div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">6:00a</div>
+            <div class="activity-icon">⛩️</div>
+            <div class="activity-content">
+              <div class="activity-name">Tsukiji Outer Market</div>
+              <div class="activity-note">Fresh sushi breakfast</div>
+            </div>
+          </div>
+          <div class="activity">
+            <div class="activity-time">10:00a</div>
+            <div class="activity-icon">🎨</div>
+            <div class="activity-content">
+              <div class="activity-name">TeamLab Planets</div>
+              <div class="activity-note">Book tickets in advance!</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Trip Itinerary (Daily View)</div>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="trip-hero">
+          <div class="trip-hero-bg"></div>
+          <div class="back-btn">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div class="trip-hero-overlay">
+            <div class="trip-hero-title">Tokyo</div>
+            <div class="trip-hero-dates">Mar 5 - 12, 2025 &bull; 7 days</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active">Itinerary</div>
+          <div class="tab">Map</div>
+          <div class="tab">Food</div>
+          <div class="tab">Packing</div>
+          <div class="tab">Budget</div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-toggle-section">
+          <div class="view-toggle">
+            <div class="view-toggle-btn">
+              <span class="toggle-icon">📋</span>
+              <span>Daily</span>
+            </div>
+            <div class="view-toggle-btn active">
+              <span class="toggle-icon">📅</span>
+              <span>Calendar</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="calendar-view">
+          <div class="calendar-header">
+            <div class="calendar-nav">‹</div>
+            <div class="calendar-month">March 2025</div>
+            <div class="calendar-nav">›</div>
+          </div>
+          <div class="calendar-weekdays">
+            <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+          </div>
+          <div class="calendar-grid">
+            <div class="calendar-day other">23</div>
+            <div class="calendar-day other">24</div>
+            <div class="calendar-day other">25</div>
+            <div class="calendar-day other">26</div>
+            <div class="calendar-day other">27</div>
+            <div class="calendar-day other">28</div>
+            <div class="calendar-day">1</div>
+            <div class="calendar-day">2</div>
+            <div class="calendar-day">3</div>
+            <div class="calendar-day">4</div>
+            <div class="calendar-day trip-day start">5</div>
+            <div class="calendar-day trip-day">6</div>
+            <div class="calendar-day trip-day">7</div>
+            <div class="calendar-day trip-day">8</div>
+            <div class="calendar-day trip-day">9</div>
+            <div class="calendar-day trip-day">10</div>
+            <div class="calendar-day trip-day">11</div>
+            <div class="calendar-day trip-day end">12</div>
+            <div class="calendar-day">13</div>
+            <div class="calendar-day">14</div>
+          </div>
+        </div>
+
+        <!-- Selected Day Summary -->
+        <div class="calendar-day-summary">
+          <div class="summary-header">
+            <div class="summary-date">Wed, Mar 5</div>
+            <div class="summary-badge">Day 1</div>
+          </div>
+          <div class="summary-activities">
+            <div class="summary-activity">
+              <span class="summary-time">2:30p</span>
+              <span class="summary-icon">✈️</span>
+              <span class="summary-name">Land at Narita</span>
+            </div>
+            <div class="summary-activity">
+              <span class="summary-time">6:00p</span>
+              <span class="summary-icon">🏨</span>
+              <span class="summary-name">Check in Park Hyatt</span>
+            </div>
+            <div class="summary-activity">
+              <span class="summary-time">8:00p</span>
+              <span class="summary-icon">🍜</span>
+              <span class="summary-name">Ichiran Ramen</span>
+            </div>
+          </div>
+          <div class="summary-view-full">View Full Day →</div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Trip Itinerary (Calendar View)</div>
+  </div>
+
+  <!-- RESTAURANTS -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">Restaurants</div>
+          <div class="icon-btn">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="slider-card">
+            <div class="slider-header">
+              <div class="slider-label">Minimum Rating</div>
+              <div class="slider-value">4.4 ★</div>
+            </div>
+            <div class="slider-track">
+              <div class="slider-fill"></div>
+              <div class="slider-thumb"></div>
+            </div>
+          </div>
+
+          <div class="filter-chips">
+            <div class="chip active">Japanese</div>
+            <div class="chip">Ramen</div>
+            <div class="chip">Sushi</div>
+            <div class="chip">$$</div>
+            <div class="chip">< 15 min</div>
+          </div>
+        </div>
+
+        <div class="restaurant-card">
+          <div class="restaurant-image" style="background: linear-gradient(135deg, #45B69C 0%, #2D7DD2 100%);"></div>
+          <div class="restaurant-info">
+            <div class="restaurant-header">
+              <div class="restaurant-name">Narisawa</div>
+              <div class="restaurant-rating">★ 4.8</div>
+            </div>
+            <div class="restaurant-meta">
+              <span>$$$$</span>
+              <span>Japanese</span>
+              <span>15 min walk</span>
+            </div>
+            <div class="match-badge">
+              <span>◈</span>
+              <span>94% Match</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="restaurant-card">
+          <div class="restaurant-image" style="background: linear-gradient(135deg, #FF6B5B 0%, #FFB088 100%);"></div>
+          <div class="restaurant-info">
+            <div class="restaurant-header">
+              <div class="restaurant-name">Ichiran Shibuya</div>
+              <div class="restaurant-rating">★ 4.5</div>
+            </div>
+            <div class="restaurant-meta">
+              <span>$$</span>
+              <span>Ramen</span>
+              <span>5 min walk</span>
+            </div>
+            <div class="match-badge">
+              <span>◈</span>
+              <span>89% Match</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Restaurant Filter</div>
+  </div>
+
+  <!-- PACKING LIST -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">Packing List</div>
+          <div class="icon-btn">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+
+        <div class="packing-progress">
+          <div class="packing-progress-header">
+            <div class="packing-progress-text">Packing Progress</div>
+            <div class="packing-progress-count">13 / 20 items</div>
+          </div>
+          <div class="packing-bar">
+            <div class="packing-fill"></div>
+          </div>
+        </div>
+
+        <div class="packing-category">
+          <div class="packing-category-header">
+            <div class="packing-category-title">👔 Clothing</div>
+            <div class="packing-category-count">5 / 8</div>
+          </div>
+          <div class="packing-items">
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">T-shirts (5)</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">Light jacket</div>
+              <div class="packing-note">Rain Day 3-4</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check"></div>
+              <div class="packing-text">Nice outfit</div>
+              <div class="packing-note">Narisawa dinner</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check"></div>
+              <div class="packing-text">Swimsuit</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="packing-category">
+          <div class="packing-category-header">
+            <div class="packing-category-title">🔌 Electronics</div>
+            <div class="packing-category-count">3 / 4</div>
+          </div>
+          <div class="packing-items">
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">Phone + charger</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">Power adapter (Type A/B)</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check"></div>
+              <div class="packing-text">Portable battery</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="packing-category">
+          <div class="packing-category-header">
+            <div class="packing-category-title">📄 Documents</div>
+            <div class="packing-category-count">3 / 3</div>
+          </div>
+          <div class="packing-items">
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">Passport (valid 2027)</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">Hotel confirmations</div>
+            </div>
+            <div class="packing-item">
+              <div class="packing-check checked">✓</div>
+              <div class="packing-text checked">JR Pass voucher</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Packing List</div>
+  </div>
+</div>
+
+<!-- CALENDAR + PROFILE -->
+<div class="section-label">Calendar & Profile</div>
+<div class="screens-container">
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="calendar-header">
+          <div class="calendar-month">March 2025</div>
+          <div class="calendar-nav">
+            <div class="calendar-nav-btn">
+              <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="calendar-nav-btn">
+              <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="calendar-weekdays">
+            <div class="weekday">Sun</div>
+            <div class="weekday">Mon</div>
+            <div class="weekday">Tue</div>
+            <div class="weekday">Wed</div>
+            <div class="weekday">Thu</div>
+            <div class="weekday">Fri</div>
+            <div class="weekday">Sat</div>
+          </div>
+          <div class="calendar-days">
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day">1</div>
+            <div class="calendar-day">2</div>
+            <div class="calendar-day">3</div>
+            <div class="calendar-day">4</div>
+            <div class="calendar-day trip trip-start">5</div>
+            <div class="calendar-day trip trip-mid">6</div>
+            <div class="calendar-day trip trip-mid">7</div>
+            <div class="calendar-day trip trip-mid">8</div>
+            <div class="calendar-day trip trip-mid">9</div>
+            <div class="calendar-day trip trip-mid">10</div>
+            <div class="calendar-day trip trip-mid">11</div>
+            <div class="calendar-day trip trip-end">12</div>
+            <div class="calendar-day">13</div>
+            <div class="calendar-day">14</div>
+            <div class="calendar-day">15</div>
+            <div class="calendar-day">16</div>
+            <div class="calendar-day">17</div>
+            <div class="calendar-day">18</div>
+            <div class="calendar-day">19</div>
+            <div class="calendar-day">20</div>
+            <div class="calendar-day">21</div>
+            <div class="calendar-day">22</div>
+            <div class="calendar-day">23</div>
+            <div class="calendar-day">24</div>
+            <div class="calendar-day">25</div>
+            <div class="calendar-day">26</div>
+            <div class="calendar-day">27</div>
+            <div class="calendar-day">28</div>
+            <div class="calendar-day">29</div>
+            <div class="calendar-day">30</div>
+            <div class="calendar-day">31</div>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top: 20px;">
+          <div class="section-title">March 5</div>
+          <div class="see-all">Day 1</div>
+        </div>
+
+        <div class="calendar-events">
+          <div class="calendar-event">
+            <div class="event-color"></div>
+            <div class="event-info">
+              <div class="event-title">✈️ Land at Narita</div>
+              <div class="event-time">2:30 PM</div>
+            </div>
+          </div>
+          <div class="calendar-event">
+            <div class="event-color" style="background: var(--ocean);"></div>
+            <div class="event-info">
+              <div class="event-title">🏨 Check in Park Hyatt</div>
+              <div class="event-time">6:00 PM</div>
+            </div>
+          </div>
+          <div class="calendar-event">
+            <div class="event-color" style="background: var(--forest);"></div>
+            <div class="event-info">
+              <div class="event-title">🍜 Dinner: Ichiran Ramen</div>
+              <div class="event-time">8:00 PM</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Calendar</div>
+  </div>
+
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="profile-header">
+          <div class="profile-avatar">JY</div>
+          <div class="profile-name">Jacqueline Yeung</div>
+          <div class="profile-email">jacqueline@email.com</div>
+        </div>
+
+        <div class="dna-card">
+          <div class="dna-header">
+            <div class="dna-icon">
+              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div>
+              <div class="dna-title">Your Travel DNA</div>
+              <div class="dna-subtitle">Based on 12 trips</div>
+            </div>
+          </div>
+          <div class="dna-traits">
+            <span class="trait adventure">Adventurer</span>
+            <span class="trait culture">Culture Seeker</span>
+            <span class="trait food">Foodie</span>
+            <span class="trait default">Early Riser</span>
+            <span class="trait default">Boutique Hotels</span>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-item">
+            <div class="settings-icon">⚙️</div>
+            <div class="settings-text">Preferences</div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon">🔔</div>
+            <div class="settings-text">Notifications</div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon">🍽️</div>
+            <div class="settings-text">Dietary Restrictions</div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon">♿</div>
+            <div class="settings-text">Accessibility</div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon">🔗</div>
+            <div class="settings-text">Connected Apps</div>
+            <div class="settings-arrow">›</div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Profile</div>
+  </div>
+</div>
+
+<!-- DISCOVERY CANVAS -->
+<div class="section-label">Discovery Canvas (Trip Planner)</div>
+<div class="screens-container">
+
+  <!-- Planner Mode Selection -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">New Trip</div>
+          <div style="width: 40px;"></div>
+        </div>
+
+        <div class="quiz-question" style="padding: 60px 20px 30px;">
+          <h2 style="font-size: 28px;">How do you want to plan?</h2>
+          <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 12px;">Choose your planning style</p>
+        </div>
+
+        <div class="planner-mode-cards">
+          <div class="planner-mode-card">
+            <div class="planner-mode-icon">🤖</div>
+            <div class="planner-mode-title">Plan it for me</div>
+            <div class="planner-mode-desc">Answer a few questions and let AI create your perfect itinerary</div>
+            <div class="planner-mode-features">
+              <div class="planner-feature">✓ Personalized questionnaire</div>
+              <div class="planner-feature">✓ AI-generated skeleton</div>
+              <div class="planner-feature">✓ Smart suggestions</div>
+            </div>
+            <div class="planner-mode-btn">Start Questionnaire →</div>
+          </div>
+
+          <div class="planner-mode-card">
+            <div class="planner-mode-icon">✏️</div>
+            <div class="planner-mode-title">Do it myself</div>
+            <div class="planner-mode-desc">Build your trip manually or import an existing itinerary</div>
+            <div class="planner-mode-features">
+              <div class="planner-feature">✓ Upload tickets & reservations</div>
+              <div class="planner-feature">✓ Import existing plans</div>
+              <div class="planner-feature">✓ Full manual control</div>
+            </div>
+            <div class="planner-mode-btn secondary">Start from Scratch →</div>
+          </div>
+        </div>
+
+        <div class="import-section">
+          <div class="import-divider">
+            <span>or</span>
+          </div>
+          <div class="import-btn">
+            <span class="import-icon">📤</span>
+            <span>Import Existing Itinerary</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Planner Mode Selection</div>
+  </div>
+
+  <!-- Trip Vibe Selection -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">New Trip</div>
+          <div style="width: 40px;"></div>
+        </div>
+
+        <div class="quiz-progress" style="padding-top: 20px;">
+          <div class="quiz-dots">
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot active"></div>
+            <div class="quiz-dot"></div>
+          </div>
+          <div class="quiz-step">What kind of trip?</div>
+        </div>
+
+        <div class="quiz-question" style="padding: 20px;">
+          <h2 style="font-size: 24px;">What vibe are you going for?</h2>
+          <p style="color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 8px;">Select all that apply</p>
+        </div>
+
+        <div class="vibe-grid">
+          <div class="vibe-card selected">
+            <div class="vibe-icon">🏔️</div>
+            <div class="vibe-name">Adventure</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">🏛️</div>
+            <div class="vibe-name">History</div>
+          </div>
+          <div class="vibe-card selected">
+            <div class="vibe-icon">🍜</div>
+            <div class="vibe-name">Food</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">🏖️</div>
+            <div class="vibe-name">Relaxation</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">👨‍👩‍👧</div>
+            <div class="vibe-name">Family</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">🌃</div>
+            <div class="vibe-name">Nightlife</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">🛍️</div>
+            <div class="vibe-name">Shopping</div>
+          </div>
+          <div class="vibe-card">
+            <div class="vibe-icon">📸</div>
+            <div class="vibe-name">Photography</div>
+          </div>
+        </div>
+
+        <!-- Custom Interest Input -->
+        <div class="custom-interest-section">
+          <div class="custom-interest-label">Add your own interests</div>
+          <div class="custom-interest-input">
+            <input type="text" placeholder="e.g., F1, Theme Parks, Wine..." class="interest-input-field" />
+            <button class="interest-add-btn">+ Add</button>
+          </div>
+          <div class="custom-interest-chips">
+            <div class="interest-chip added">🏎️ F1 <span class="chip-remove">×</span></div>
+            <div class="interest-chip added">🎢 Theme Parks <span class="chip-remove">×</span></div>
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <div class="quiz-btn secondary">Back</div>
+          <div class="quiz-btn primary">Continue</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Trip Vibe Selection</div>
+  </div>
+
+  <!-- Date Flexibility -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">Asia Adventure</div>
+          <div style="width: 40px;"></div>
+        </div>
+
+        <div class="quiz-progress" style="padding-top: 20px;">
+          <div class="quiz-dots">
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot active"></div>
+          </div>
+          <div class="quiz-step">When are you thinking?</div>
+        </div>
+
+        <div class="quiz-question" style="padding: 20px;">
+          <h2 style="font-size: 24px;">Do you have dates in mind?</h2>
+        </div>
+
+        <div class="quiz-options">
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">📅</div>
+              <div class="quiz-option-title">I have specific dates</div>
+            </div>
+            <div class="quiz-option-desc">I know when I'm going</div>
+          </div>
+
+          <div class="quiz-option selected">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">🎯</div>
+              <div class="quiz-option-title">Flexible - find me cheap flights</div>
+            </div>
+            <div class="quiz-option-desc">Show me the best prices across months</div>
+          </div>
+
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">🤷</div>
+              <div class="quiz-option-title">No idea yet</div>
+            </div>
+            <div class="quiz-option-desc">Just exploring for now</div>
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <div class="quiz-btn secondary">Back</div>
+          <div class="quiz-btn primary">Start Discovering</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Date Flexibility</div>
+  </div>
+
+  <!-- Discovery Canvas Main -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">Asia Adventure</div>
+          <div class="icon-btn">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+
+        <div class="canvas-tabs">
+          <div class="canvas-tab active">Canvas</div>
+          <div class="canvas-tab">Itinerary</div>
+          <div class="canvas-tab">Map</div>
+        </div>
+
+        <!-- City Buckets -->
+        <div class="section-header" style="margin-top: 16px;">
+          <div class="section-title">Your Discoveries</div>
+          <div class="see-all">+ Add City</div>
+        </div>
+
+        <div class="city-buckets">
+          <div class="city-bucket">
+            <div class="city-header">
+              <span class="city-name">Tokyo</span>
+              <span class="city-count">12 saves</span>
+            </div>
+            <div class="city-tags">
+              <span class="city-tag">🍜 Ichiran</span>
+              <span class="city-tag">🏨 Park Hyatt</span>
+              <span class="city-tag">🎌 Shibuya</span>
+              <span class="city-tag more">+9</span>
+            </div>
+          </div>
+
+          <div class="city-bucket">
+            <div class="city-header">
+              <span class="city-name">Kyoto</span>
+              <span class="city-count">8 saves</span>
+            </div>
+            <div class="city-tags">
+              <span class="city-tag">🏯 Fushimi Inari</span>
+              <span class="city-tag">🍵 Tea ceremony</span>
+              <span class="city-tag more">+6</span>
+            </div>
+          </div>
+
+          <div class="city-bucket">
+            <div class="city-header">
+              <span class="city-name">Osaka</span>
+              <span class="city-count">3 saves</span>
+            </div>
+            <div class="city-tags">
+              <span class="city-tag">🍣 Kuromon Market</span>
+              <span class="city-tag more">+2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="ai-insight-card">
+          <div class="ai-header">
+            <span class="ai-icon">💡</span>
+            <span class="ai-label">AI Insight</span>
+          </div>
+          <div class="ai-content">
+            <p>Based on your 23 saves:</p>
+            <div class="ai-suggestions">
+              <div class="ai-suggestion">
+                <span class="ai-city">Tokyo</span>
+                <span class="ai-days">~5 days</span>
+              </div>
+              <div class="ai-suggestion">
+                <span class="ai-city">Kyoto</span>
+                <span class="ai-days">~2-3 days</span>
+              </div>
+              <div class="ai-suggestion">
+                <span class="ai-city">Osaka</span>
+                <span class="ai-days">~1-2 days</span>
+              </div>
+            </div>
+            <p class="ai-total">Total: 8-10 days recommended</p>
+          </div>
+        </div>
+
+        <!-- Mini Map -->
+        <div class="canvas-map">
+          <div class="map-grid"></div>
+          <div class="canvas-pin" style="left: 30%; top: 30%;">Tokyo</div>
+          <div class="canvas-pin" style="left: 50%; top: 50%;">Kyoto</div>
+          <div class="canvas-pin" style="left: 60%; top: 60%;">Osaka</div>
+          <div class="canvas-route"></div>
+          <div class="map-distance">Tokyo → Kyoto: 2h15m train</div>
+        </div>
+
+        <!-- Flight Prices -->
+        <div class="section-header">
+          <div class="section-title">Flight Prices</div>
+          <div class="see-all">8-10 days</div>
+        </div>
+
+        <div class="flight-prices">
+          <div class="flight-option">
+            <div class="flight-dates">Apr 2-11</div>
+            <div class="flight-price">$645</div>
+            <div class="flight-badge cheapest">Cheapest</div>
+          </div>
+          <div class="flight-option">
+            <div class="flight-dates">Mar 5-14</div>
+            <div class="flight-price">$823</div>
+            <div class="flight-badge">Cherry Blossoms</div>
+          </div>
+          <div class="flight-option">
+            <div class="flight-dates">Oct 15-24</div>
+            <div class="flight-price">$689</div>
+            <div class="flight-badge">Best Weather</div>
+          </div>
+        </div>
+
+        <div class="canvas-actions">
+          <div class="canvas-btn secondary">Keep Exploring</div>
+          <div class="canvas-btn primary">Lock Apr 2-11</div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Discovery Canvas</div>
+  </div>
+
+  <!-- Activity Discovery -->
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header">
+          <div class="back-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </div>
+          <div style="font-weight: 600; font-size: 18px;">Discover Tokyo</div>
+          <div class="icon-btn">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+        </div>
+
+        <div class="trips-filter" style="padding: 16px 20px 0;">
+          <div class="filter-chip active">For You</div>
+          <div class="filter-chip">Adventure</div>
+          <div class="filter-chip">Food</div>
+          <div class="filter-chip">Culture</div>
+        </div>
+
+        <div class="discovery-cards">
+          <div class="discovery-card">
+            <div class="discovery-image" style="background: linear-gradient(135deg, var(--coral) 0%, #FFB088 100%);">
+              <div class="discovery-save">♡</div>
+            </div>
+            <div class="discovery-info">
+              <div class="discovery-name">Mt. Fuji Day Trip</div>
+              <div class="discovery-meta">Adventure • 8-10 hrs • from Tokyo</div>
+              <div class="discovery-match">
+                <span class="match-icon">◈</span>
+                <span>92% match based on your vibe</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="discovery-card saved">
+            <div class="discovery-image" style="background: linear-gradient(135deg, var(--forest) 0%, var(--ocean) 100%);">
+              <div class="discovery-save saved">♥</div>
+            </div>
+            <div class="discovery-info">
+              <div class="discovery-name">Tsukiji Market Food Tour</div>
+              <div class="discovery-meta">Food • 3 hrs • Morning</div>
+              <div class="discovery-match">
+                <span class="match-icon">◈</span>
+                <span>96% match • Saved to Tokyo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="discovery-card">
+            <div class="discovery-image" style="background: linear-gradient(135deg, var(--purple) 0%, #C77DFF 100%);">
+              <div class="discovery-save">♡</div>
+            </div>
+            <div class="discovery-info">
+              <div class="discovery-name">TeamLab Planets</div>
+              <div class="discovery-meta">Art • 2-3 hrs • Book ahead</div>
+              <div class="discovery-match">
+                <span class="match-icon">◈</span>
+                <span>89% match based on your vibe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 100px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <div class="nav-icon">🗺️</div>
+            <span>Map</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon">👤</div>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Activity Discovery</div>
+  </div>
+</div>
+
+<!-- PERSONALITY QUIZ -->
+<div class="section-label">Onboarding Quiz</div>
+<div class="screens-container">
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="quiz-progress">
+          <div class="quiz-dots">
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot active"></div>
+            <div class="quiz-dot"></div>
+            <div class="quiz-dot"></div>
+          </div>
+          <div class="quiz-step">Question 3 of 5</div>
+        </div>
+
+        <div class="quiz-question">
+          <h2>It's 7 AM on vacation. You're...</h2>
+        </div>
+
+        <div class="quiz-options">
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">☀️</div>
+              <div class="quiz-option-title">Already out exploring</div>
+            </div>
+            <div class="quiz-option-desc">Sunrise photos, empty streets, first in line</div>
+          </div>
+
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">☕</div>
+              <div class="quiz-option-title">Enjoying slow breakfast</div>
+            </div>
+            <div class="quiz-option-desc">Café vibes, people watching, no rush</div>
+          </div>
+
+          <div class="quiz-option selected">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">😴</div>
+              <div class="quiz-option-title">Still asleep, obviously</div>
+            </div>
+            <div class="quiz-option-desc">Vacation = no alarms, ever</div>
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <div class="quiz-btn secondary">Back</div>
+          <div class="quiz-btn primary">Next</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Personality Quiz</div>
+  </div>
+
+  <div class="screen-wrapper">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="quiz-progress">
+          <div class="quiz-dots">
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot done"></div>
+            <div class="quiz-dot active"></div>
+            <div class="quiz-dot"></div>
+          </div>
+          <div class="quiz-step">Question 4 of 5</div>
+        </div>
+
+        <div class="quiz-question">
+          <h2>How much planning do you want?</h2>
+        </div>
+
+        <div class="quiz-options">
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">📋</div>
+              <div class="quiz-option-title">Every detail mapped out</div>
+            </div>
+            <div class="quiz-option-desc">Minute-by-minute, no surprises</div>
+          </div>
+
+          <div class="quiz-option selected">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">🎯</div>
+              <div class="quiz-option-title">Key highlights + flexibility</div>
+            </div>
+            <div class="quiz-option-desc">Big things booked, room to wander</div>
+          </div>
+
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">🎲</div>
+              <div class="quiz-option-title">Just the basics</div>
+            </div>
+            <div class="quiz-option-desc">Flight and hotel, figure out the rest there</div>
+          </div>
+
+          <div class="quiz-option">
+            <div class="quiz-option-header">
+              <div class="quiz-option-icon">✨</div>
+              <div class="quiz-option-title">AI, handle it for me</div>
+            </div>
+            <div class="quiz-option-desc">Surprise me with a great trip</div>
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <div class="quiz-btn secondary">Back</div>
+          <div class="quiz-btn primary">Next</div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Planning Style</div>
+  </div>
+</div>
+
+</body>
+</html>

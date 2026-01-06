@@ -18,7 +18,7 @@ import {
 import {
   Sun, Coffee, Moon, Bed, Plane,
   MapPin, Clock, Star, Sparkles, AlertCircle,
-  Pencil, Trash2, Check, X, ExternalLink, DollarSign, UtensilsCrossed
+  Pencil, Trash2, Check, X, ExternalLink, DollarSign, UtensilsCrossed, GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlaceDetailsModal } from '@/components/maps/place-details-modal';
@@ -33,6 +33,13 @@ interface DayCardProps {
   onDeleteActivity?: (blockId: string) => void;
   onFindFood?: (day: DayPlan) => void;
   location?: string;
+  // Drag and drop
+  onDragStart?: (blockId: string, dayId: string) => void;
+  onDragEnd?: () => void;
+  onDrop?: (targetDayId: string, targetIndex: number) => void;
+  isDragging?: boolean;
+  dragOverIndex?: number | null;
+  onDragOver?: (dayId: string, index: number) => void;
 }
 
 const BLOCK_ICONS: Record<string, React.ReactNode> = {
@@ -80,7 +87,21 @@ function formatDuration(minutes: number): string {
   }
 }
 
-export function DayCard({ day, isToday, isExpanded = true, onToggle, onUpdateDay, onFindFood, location }: DayCardProps) {
+export function DayCard({
+  day,
+  isToday,
+  isExpanded = true,
+  onToggle,
+  onUpdateDay,
+  onFindFood,
+  location,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  isDragging,
+  dragOverIndex,
+  onDragOver
+}: DayCardProps) {
   const [editingTheme, setEditingTheme] = useState(false);
   const [themeValue, setThemeValue] = useState(day.theme || '');
 
@@ -191,18 +212,56 @@ export function DayCard({ day, isToday, isExpanded = true, onToggle, onUpdateDay
       </CardHeader>
 
       {isExpanded && (
-        <CardContent className="pt-0">
+        <CardContent
+          className="pt-0"
+          onDragOver={(e) => {
+            e.preventDefault();
+            // If dropping at end of list
+            if (onDragOver && e.currentTarget === e.target) {
+              onDragOver(day.id, day.blocks.length);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (onDrop) {
+              onDrop(day.id, dragOverIndex ?? day.blocks.length);
+            }
+          }}
+        >
           <div className="space-y-3">
-            {day.blocks.map((block) => (
-              <TimeBlockCard
+            {day.blocks.map((block, index) => (
+              <div
                 key={block.id}
-                block={block}
-                date={day.date}
-                onUpdate={(updates) => handleUpdateBlock(block.id, updates)}
-                onDelete={() => handleDeleteBlock(block.id)}
-                editable={!!onUpdateDay}
-              />
+                className="relative"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onDragOver) {
+                    onDragOver(day.id, index);
+                  }
+                }}
+              >
+                {/* Drop indicator line */}
+                {isDragging && dragOverIndex === index && (
+                  <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-primary rounded-full z-10" />
+                )}
+                <TimeBlockCard
+                  key={block.id}
+                  block={block}
+                  date={day.date}
+                  onUpdate={(updates) => handleUpdateBlock(block.id, updates)}
+                  onDelete={() => handleDeleteBlock(block.id)}
+                  editable={!!onUpdateDay}
+                  draggable={!!onDragStart}
+                  onDragStart={() => onDragStart?.(block.id, day.id)}
+                  onDragEnd={onDragEnd}
+                />
+              </div>
             ))}
+            {/* Drop zone at end */}
+            {isDragging && dragOverIndex === day.blocks.length && (
+              <div className="h-0.5 bg-primary rounded-full" />
+            )}
           </div>
 
           {day.notes && (
@@ -237,6 +296,9 @@ interface TimeBlockCardProps {
   onUpdate?: (updates: Partial<TimeBlock>) => void;
   onDelete?: () => void;
   editable?: boolean;
+  draggable?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 interface EditFormState {
@@ -252,7 +314,7 @@ interface EditFormState {
   priority: ActivityPriority;
 }
 
-function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false }: TimeBlockCardProps) {
+function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, draggable = false, onDragStart, onDragEnd }: TimeBlockCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState>({
@@ -343,11 +405,36 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false }: Ti
           onClose={() => setSelectedLocation(null)}
         />
       )}
-    <div className={cn(
-      'p-3 rounded-lg border group/block relative',
-      blockStyle,
-      block.isLocked && 'ring-1 ring-primary'
-    )}>
+    <div
+      className={cn(
+        'p-3 rounded-lg border group/block relative transition-all',
+        blockStyle,
+        block.isLocked && 'ring-1 ring-primary',
+        draggable && 'cursor-grab active:cursor-grabbing'
+      )}
+      draggable={draggable && !isEditing}
+      onDragStart={(e) => {
+        if (!draggable || isEditing) return;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', block.id);
+        // Add a slight delay to show drag preview
+        setTimeout(() => {
+          (e.target as HTMLElement).style.opacity = '0.5';
+        }, 0);
+        onDragStart?.();
+      }}
+      onDragEnd={(e) => {
+        (e.target as HTMLElement).style.opacity = '1';
+        onDragEnd?.();
+      }}
+    >
+      {/* Drag handle */}
+      {draggable && !isEditing && (
+        <div className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/block:opacity-50 hover:!opacity-100 transition-opacity cursor-grab">
+          <GripVertical className="w-4 h-4 text-current" />
+        </div>
+      )}
+
       {/* Edit/Delete buttons */}
       {editable && !isEditing && (
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/block:opacity-100 transition-opacity z-10">
@@ -370,7 +457,7 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false }: Ti
         </div>
       )}
 
-      <div className="flex items-start gap-3">
+      <div className={cn('flex items-start gap-3', draggable && 'pl-4')}>
         {/* Time block icon */}
         <div className="mt-0.5">
           {BLOCK_ICONS[block.type]}

@@ -7,8 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Plane, Sparkles, Calendar, ChevronRight,
-  Plus, Upload, Trash2, MapPin, ArrowRight,
-  Palmtree, Mountain, Building2
+  Plus, Upload, Trash2, MapPin, Map, Bell,
+  Heart, Clock, AlertCircle
 } from 'lucide-react';
 import { tripDb, StoredTrip } from '@/lib/db/indexed-db';
 import { createTripDNA } from '@/types/trip-dna';
@@ -19,14 +19,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, FileSpreadsheet } from 'lucide-react';
 
+// Dream trip type for bucket list
+interface DreamTrip {
+  id: string;
+  destination: string;
+  emoji: string;
+  note: string;
+}
+
+// Sample dream trips (would be stored in DB in production)
+const sampleDreamTrips: DreamTrip[] = [
+  { id: '1', destination: 'Patagonia', emoji: '🏔️', note: 'Before 40' },
+  { id: '2', destination: 'Kyoto', emoji: '🌸', note: 'Cherry blossoms' },
+  { id: '3', destination: 'Iceland', emoji: '🌌', note: 'Northern lights' },
+  { id: '4', destination: 'Maldives', emoji: '🏝️', note: '30th birthday' },
+];
+
 export default function Home() {
   const router = useRouter();
   const [trips, setTrips] = useState<StoredTrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [heroView, setHeroView] = useState<'map' | 'calendar'>('map');
+  const [dreamTrips] = useState<DreamTrip[]>(sampleDreamTrips);
 
   useEffect(() => {
-    // Helper to load trips from localStorage
     const loadFromLocalStorage = (): StoredTrip[] => {
       const localTrips: StoredTrip[] = [];
       const keys = Object.keys(localStorage);
@@ -53,17 +70,13 @@ export default function Home() {
       return localTrips;
     };
 
-    // Load trips from IndexedDB, merge with localStorage
     tripDb.getAll().then((dbTrips) => {
       const localTrips = loadFromLocalStorage();
-
-      // Merge: use IndexedDB as primary, add any localStorage-only trips
       const dbTripIds = new Set(dbTrips.map(t => t.id));
       const mergedTrips = [
         ...dbTrips,
         ...localTrips.filter(t => !dbTripIds.has(t.id))
       ];
-
       setTrips(mergedTrips);
       setLoading(false);
     }).catch(() => {
@@ -83,114 +96,238 @@ export default function Home() {
     }
   };
 
+  // Categorize trips
+  const upcomingTrips = trips.filter(t => t.status === 'generated' && t.itinerary);
+  const draftTrips = trips.filter(t => t.status === 'draft' || !t.itinerary);
+  const pastTrips: StoredTrip[] = []; // Would filter by date in production
+
+  // Calculate stats
+  const totalCountries = new Set(trips.flatMap(t =>
+    t.itinerary?.route?.bases?.map(b => b.location.country) || []
+  )).size;
+  const totalCities = trips.reduce((acc, t) =>
+    acc + (t.itinerary?.route?.bases?.length || 0), 0
+  );
+
+  // Get days until next trip
+  const getDaysUntil = (trip: StoredTrip) => {
+    if (!trip.itinerary?.meta?.startDate) return null;
+    const start = new Date(trip.itinerary.meta.startDate);
+    const now = new Date();
+    const diff = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : null;
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <div className="gradient-hero">
-        <div className="max-w-5xl mx-auto px-4 pt-12 pb-16">
-          {/* Logo/Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-primary px-5 py-2.5 rounded-full text-sm font-medium shadow-soft border border-primary/10">
-              <Sparkles className="w-4 h-4" />
-              AI-Powered Trip Planning
-            </div>
-          </div>
-
-          {/* Main Heading */}
-          <div className="text-center mb-10">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text">
-              Wandr
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Not just where to go, but <span className="text-primary font-medium">how to experience it</span> —
-              optimized for your pace, priorities, and travel style.
-            </p>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/questionnaire">
-              <Button size="lg" className="gap-2 h-12 px-6 text-base shadow-glow">
-                <Plus className="w-5 h-5" />
-                Plan New Trip
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="lg"
-              className="gap-2 h-12 px-6 text-base bg-white/80 backdrop-blur-sm hover:bg-white"
-              onClick={() => setShowImportModal(true)}
-            >
-              <Upload className="w-5 h-5" />
-              Import Itinerary
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Wandr
+          </h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-5 h-5" />
             </Button>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+              JY
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-12">
-        {/* My Trips Section */}
-        {trips.length > 0 && (
-          <section className="mb-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">My Trips</h2>
-              <Link href="/questionnaire">
-                <Button variant="ghost" size="sm" className="gap-1 text-primary">
-                  New Trip <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+        {/* Hero: Map/Calendar View */}
+        <section>
+          <Card className="overflow-hidden">
+            <div className="relative h-48 md:h-64 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+              {/* Map visualization */}
+              {heroView === 'map' && (
+                <div className="absolute inset-0 p-6">
+                  {/* Simplified world map dots */}
+                  <div className="relative w-full h-full">
+                    {/* Past trip markers */}
+                    {trips.map((trip, i) => (
+                      <div
+                        key={trip.id}
+                        className="absolute w-3 h-3 rounded-full bg-primary/60 animate-pulse"
+                        style={{
+                          left: `${20 + (i * 15) % 60}%`,
+                          top: `${30 + (i * 20) % 40}%`,
+                        }}
+                        title={trip.itinerary?.meta.title || 'Trip'}
+                      />
+                    ))}
+                    {/* Upcoming trip star */}
+                    {upcomingTrips[0] && (
+                      <div
+                        className="absolute"
+                        style={{ left: '70%', top: '35%' }}
+                      >
+                        <div className="w-4 h-4 text-yellow-400">★</div>
+                        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-white/80 whitespace-nowrap">
+                          {upcomingTrips[0].itinerary?.meta.title}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Calendar visualization */}
+              {heroView === 'calendar' && (
+                <div className="absolute inset-0 p-6 flex items-center justify-center">
+                  <div className="text-center text-white/60">
+                    <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Calendar view coming soon</p>
+                  </div>
+                </div>
+              )}
+
+              {/* View toggle */}
+              <div className="absolute bottom-4 left-4 flex gap-1 bg-black/30 rounded-lg p-1">
+                <button
+                  onClick={() => setHeroView('map')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    heroView === 'map'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/60 hover:text-white'
+                  }`}
+                >
+                  <Map className="w-4 h-4 inline mr-1.5" />
+                  Map
+                </button>
+                <button
+                  onClick={() => setHeroView('calendar')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    heroView === 'calendar'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/60 hover:text-white'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 inline mr-1.5" />
+                  Calendar
+                </button>
+              </div>
             </div>
-            <div className="grid gap-4">
-              {trips.map((trip) => (
-                <Link key={trip.id} href={`/trip/${trip.id}`}>
-                  <Card className="group hover:shadow-soft hover:border-primary/30 transition-all cursor-pointer overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="flex items-stretch">
-                        {/* Color accent bar */}
-                        <div className="w-1.5 bg-gradient-to-b from-primary to-primary/60" />
 
-                        <div className="flex-1 p-5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-sm">
-                                <Plane className="w-7 h-7 text-white" />
-                              </div>
-                              <div>
-                                <div className="font-semibold text-lg flex items-center gap-2 group-hover:text-primary transition-colors">
-                                  {trip.itinerary?.meta.title || trip.tripDna.interests.destination || 'Untitled Trip'}
-                                </div>
-                                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    {trip.itinerary?.meta.totalDays || trip.tripDna.constraints.dates.totalDays || '?'} days
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3.5 h-3.5" />
-                                    {trip.itinerary?.route.bases.length || '?'} stops
-                                  </span>
-                                  <Badge
-                                    variant={trip.status === 'generated' ? 'default' : 'secondary'}
-                                    className="text-xs"
-                                  >
-                                    {trip.status}
-                                  </Badge>
-                                </div>
-                              </div>
+            {/* Stats bar */}
+            <div className="px-4 py-3 bg-card border-t flex items-center justify-between">
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <span><strong className="text-foreground">{totalCountries || 0}</strong> countries</span>
+                <span><strong className="text-foreground">{totalCities || 0}</strong> cities</span>
+                <span><strong className="text-foreground">{trips.length}</strong> trips</span>
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        {/* Action Buttons */}
+        <section className="grid grid-cols-2 gap-3">
+          <Link href="/plan-mode" className="block">
+            <Button className="w-full h-14 gap-2 text-base shadow-glow">
+              <Sparkles className="w-5 h-5" />
+              Plan My Trip
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            className="h-14 gap-2 text-base"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload className="w-5 h-5" />
+            Upload Trip
+          </Button>
+        </section>
+
+        {/* Upcoming Trips */}
+        {upcomingTrips.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Plane className="w-5 h-5 text-primary" />
+                Upcoming
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {upcomingTrips.map((trip) => {
+                const daysUntil = getDaysUntil(trip);
+                return (
+                  <Link key={trip.id} href={`/trip/${trip.id}`}>
+                    <Card className="group hover:border-primary/30 transition-all cursor-pointer">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
+                              <Plane className="w-6 h-6 text-white" />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
-                                onClick={(e) => deleteTrip(trip.id, e)}
-                                title="Delete trip"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <div>
+                              <h3 className="font-semibold group-hover:text-primary transition-colors">
+                                {trip.itinerary?.meta.title || 'Untitled'}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {trip.itinerary?.meta.startDate} • {trip.itinerary?.meta.totalDays} days
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {daysUntil && (
+                              <Badge variant="secondary" className="mb-1">
+                                In {daysUntil} days
+                              </Badge>
+                            )}
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              {/* Would show task progress */}
                             </div>
                           </div>
                         </div>
+                        {/* Alert for urgent tasks */}
+                        <div className="mt-3 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>Book tickets before they sell out</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Draft Trips */}
+        {draftTrips.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-muted-foreground">Drafts</h2>
+            </div>
+            <div className="space-y-2">
+              {draftTrips.map((trip) => (
+                <Link key={trip.id} href={`/trip/${trip.id}`}>
+                  <Card className="group hover:border-primary/30 transition-all cursor-pointer">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                            <MapPin className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-sm">
+                              {trip.tripDna.interests.destination || 'Untitled Trip'}
+                            </h3>
+                            <Badge variant="outline" className="text-xs">Draft</Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => deleteTrip(trip.id, e)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -200,47 +337,90 @@ export default function Home() {
           </section>
         )}
 
-        {/* Empty State / Demo Trip */}
-        {!loading && trips.length === 0 && (
-          <section className="mb-16">
-            <Card className="overflow-hidden border-dashed border-2">
-              <div className="gradient-card-coral">
-                <CardContent className="py-12">
-                  <div className="text-center max-w-lg mx-auto">
-                    {/* Decorative icons */}
-                    <div className="flex justify-center gap-3 mb-6">
-                      <div className="w-12 h-12 rounded-xl bg-white/80 flex items-center justify-center shadow-sm">
-                        <Palmtree className="w-6 h-6 text-emerald-500" />
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-white/80 flex items-center justify-center shadow-sm -mt-2">
-                        <Building2 className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-white/80 flex items-center justify-center shadow-sm">
-                        <Mountain className="w-6 h-6 text-purple-500" />
-                      </div>
-                    </div>
-
-                    <h3 className="text-2xl font-bold mb-3">Start Your Adventure</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Create your first AI-optimized trip plan, or explore our demo to see the magic in action.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Link href="/questionnaire">
-                        <Button size="lg" className="gap-2 w-full sm:w-auto shadow-glow">
-                          <Plus className="w-5 h-5" />
-                          Plan New Trip
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
+        {/* Dream Trips / Bucket List */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Heart className="w-5 h-5 text-pink-500" />
+              Dream Trips
+            </h2>
+            <Button variant="ghost" size="sm" className="text-primary">
+              + Add
+            </Button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+            {dreamTrips.map((dream) => (
+              <Card
+                key={dream.id}
+                className="flex-shrink-0 w-32 hover:border-primary/30 transition-all cursor-pointer"
+              >
+                <CardContent className="p-3 text-center">
+                  <div className="text-3xl mb-2">{dream.emoji}</div>
+                  <h3 className="font-medium text-sm">{dream.destination}</h3>
+                  <p className="text-xs text-muted-foreground italic">"{dream.note}"</p>
                 </CardContent>
-              </div>
+              </Card>
+            ))}
+          </div>
+        </section>
 
-            </Card>
+        {/* Past Adventures */}
+        {(pastTrips.length > 0 || trips.length > 0) && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                📸 Past Adventures
+              </h2>
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                See All
+              </Button>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+              {trips.filter(t => t.itinerary).slice(0, 4).map((trip) => (
+                <Link key={trip.id} href={`/trip/${trip.id}`}>
+                  <Card className="flex-shrink-0 w-28 hover:border-primary/30 transition-all cursor-pointer overflow-hidden">
+                    <div className="h-16 gradient-primary" />
+                    <CardContent className="p-2 text-center">
+                      <h3 className="font-medium text-sm truncate">
+                        {trip.itinerary?.meta.title?.split(' ')[0] || 'Trip'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {trip.itinerary?.meta.totalDays} days
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 
+        {/* Empty State */}
+        {!loading && trips.length === 0 && (
+          <section>
+            <Card className="border-dashed border-2">
+              <CardContent className="py-12 text-center">
+                <div className="text-5xl mb-4">🌍</div>
+                <h3 className="text-xl font-semibold mb-2">Start Your Adventure</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                  Plan your perfect trip with AI assistance, or import an existing itinerary.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link href="/plan-mode">
+                    <Button className="gap-2 shadow-glow">
+                      <Sparkles className="w-5 h-5" />
+                      Plan My Trip
+                    </Button>
+                  </Link>
+                  <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
       </main>
 
       {/* Import Modal */}
@@ -264,17 +444,14 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     try {
       const parsed = JSON.parse(itineraryJson);
 
-      // Basic validation
       if (!parsed.meta || !parsed.days) {
         setError('Invalid itinerary format. Must have "meta" and "days" fields.');
         return;
       }
 
-      // Generate ID if not present
       const id = parsed.id || crypto.randomUUID();
       parsed.id = id;
 
-      // Create a basic Trip DNA from the itinerary using helper
       const tripDna = createTripDNA({
         interests: {
           destination: parsed.meta.destination || '',
@@ -288,14 +465,11 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           accommodation: { style: 'boutique', priority: 'location' },
         },
       });
-      // Override ID to match parsed itinerary
       tripDna.id = id;
 
-      // Save to localStorage
       localStorage.setItem(`trip-dna-${id}`, JSON.stringify(tripDna));
       localStorage.setItem(`itinerary-${id}`, JSON.stringify(parsed));
 
-      // Save to IndexedDB so it appears on homepage
       await tripDb.save({
         id,
         tripDna,
@@ -306,7 +480,6 @@ function ImportModal({ onClose }: { onClose: () => void }) {
         status: 'generated',
       });
 
-      // Navigate to trip
       router.push(`/trip/${id}`);
     } catch {
       setError('Invalid JSON. Please check your itinerary format.');
@@ -327,7 +500,6 @@ function ImportModal({ onClose }: { onClose: () => void }) {
         return;
       }
 
-      // Create a basic Trip DNA from the itinerary using helper
       const tripDna = createTripDNA({
         interests: {
           destination: itinerary.meta.destination || '',
@@ -341,14 +513,11 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           accommodation: { style: 'boutique', priority: 'location' },
         },
       });
-      // Override ID to match itinerary
       tripDna.id = itinerary.id;
 
-      // Save to localStorage
       localStorage.setItem(`trip-dna-${itinerary.id}`, JSON.stringify(tripDna));
       localStorage.setItem(`itinerary-${itinerary.id}`, JSON.stringify(itinerary));
 
-      // Save to IndexedDB so it appears on homepage
       await tripDb.save({
         id: itinerary.id,
         tripDna,
@@ -359,7 +528,6 @@ function ImportModal({ onClose }: { onClose: () => void }) {
         status: 'generated',
       });
 
-      // Navigate to trip
       router.push(`/trip/${itinerary.id}`);
     } catch (err) {
       setError(`Error parsing CSV: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -374,7 +542,6 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       setCsvContent(content);
-      // Extract trip name from filename
       if (!tripName) {
         const nameFromFile = file.name.replace(/\.csv$/i, '').replace(/_/g, ' ');
         setTripName(nameFromFile);

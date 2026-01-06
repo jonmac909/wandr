@@ -160,19 +160,52 @@ export function ConstraintsStep() {
       <div className="space-y-4 mt-8">
         <h2 className="text-lg font-semibold">Budget</h2>
 
-        <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+        <div className="p-4 bg-muted/50 rounded-lg space-y-6">
+          {/* Total Trip Budget - Main Slider */}
           <div>
-            <Label>Accommodation per night: ${budget.accommodationRange.min} - ${budget.accommodationRange.max}</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-base font-medium">Total trip budget</Label>
+              <span className="text-2xl font-bold text-primary">
+                ${((budget as { totalBudget?: number }).totalBudget || 5000).toLocaleString()}
+              </span>
+            </div>
             <Slider
-              value={[budget.accommodationRange.min, budget.accommodationRange.max]}
-              onValueChange={([min, max]) => updateBudget({
-                accommodationRange: { ...budget.accommodationRange, min, max }
-              })}
-              min={25}
-              max={500}
-              step={25}
+              value={[(budget as { totalBudget?: number }).totalBudget || 5000]}
+              onValueChange={([v]) => updateBudget({ totalBudget: v } as never)}
+              min={1000}
+              max={50000}
+              step={500}
               className="mt-2"
             />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>$1,000</span>
+              <span>$50,000</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              {((budget as { totalBudget?: number }).totalBudget || 5000) <= 3000 && '💡 Budget-conscious adventure'}
+              {((budget as { totalBudget?: number }).totalBudget || 5000) > 3000 && ((budget as { totalBudget?: number }).totalBudget || 5000) <= 8000 && '💡 Comfortable mid-range travel'}
+              {((budget as { totalBudget?: number }).totalBudget || 5000) > 8000 && ((budget as { totalBudget?: number }).totalBudget || 5000) <= 15000 && '💡 Premium experiences unlocked'}
+              {((budget as { totalBudget?: number }).totalBudget || 5000) > 15000 && ((budget as { totalBudget?: number }).totalBudget || 5000) <= 30000 && '💡 Luxury travel territory'}
+              {((budget as { totalBudget?: number }).totalBudget || 5000) > 30000 && '💡 No limits. Dream big.'}
+            </p>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="text-sm text-muted-foreground mb-4">Fine-tune how you want to spend:</p>
+
+            <div>
+              <Label>Accommodation per night: ${budget.accommodationRange.min} - ${budget.accommodationRange.max}</Label>
+              <Slider
+                value={[budget.accommodationRange.min, budget.accommodationRange.max]}
+                onValueChange={([min, max]) => updateBudget({
+                  accommodationRange: { ...budget.accommodationRange, min, max }
+                })}
+                min={25}
+                max={500}
+                step={25}
+                className="mt-2"
+              />
+            </div>
           </div>
 
           <div>
