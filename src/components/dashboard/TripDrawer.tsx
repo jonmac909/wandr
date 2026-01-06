@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { StoredTrip } from '@/lib/db/indexed-db';
+import { getDestinationImage } from '@/lib/dashboard/image-utils';
 
 interface TripDrawerProps {
   open: boolean;
@@ -86,7 +87,8 @@ function DrawerTripCard({ trip }: { trip: StoredTrip }) {
     '';
 
   const isDraft = trip.status === 'draft' || !trip.itinerary;
-  const photoQuery = destination.split(',')[0]?.trim().toLowerCase() || 'travel';
+  const photoQuery = destination.split(',')[0]?.trim() || 'travel';
+  const imageUrl = getDestinationImage(photoQuery, 128, 128);
 
   return (
     <Link href={`/trip/${trip.id}`}>
@@ -94,7 +96,7 @@ function DrawerTripCard({ trip }: { trip: StoredTrip }) {
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
           <img
-            src={`https://source.unsplash.com/100x100/?${encodeURIComponent(photoQuery)},landmark`}
+            src={imageUrl}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

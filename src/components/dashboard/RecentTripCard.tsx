@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MapPin, ChevronRight } from 'lucide-react';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { cn } from '@/lib/utils';
+import { getDestinationImage } from '@/lib/dashboard/image-utils';
 
 interface RecentTripCardProps {
   trip: StoredTrip;
@@ -22,7 +23,8 @@ export function RecentTripCard({ trip, className }: RecentTripCardProps) {
     : '';
 
   // Use destination for thumbnail
-  const photoQuery = destination.split(',')[0]?.trim().toLowerCase() || 'travel';
+  const photoQuery = destination.split(',')[0]?.trim() || 'travel';
+  const imageUrl = getDestinationImage(photoQuery, 128, 128);
 
   return (
     <Link href={`/trip/${trip.id}`}>
@@ -35,7 +37,7 @@ export function RecentTripCard({ trip, className }: RecentTripCardProps) {
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
           <img
-            src={`https://source.unsplash.com/100x100/?${encodeURIComponent(photoQuery)},landmark`}
+            src={imageUrl}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

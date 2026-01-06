@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar, MapPin, Users, Home, Car, Sparkles, Check, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StoredTrip } from '@/lib/db/indexed-db';
+import { getDestinationImage } from '@/lib/dashboard/image-utils';
 
 interface FeaturedTripCardProps {
   trip: StoredTrip | null;
@@ -29,7 +30,8 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
   const destination = itinerary.meta?.destination ||
     itinerary.route?.bases?.[0]?.location ||
     '';
-  const photoQuery = destination.split(',')[0]?.trim().toLowerCase() || 'travel';
+  const photoQuery = destination.split(',')[0]?.trim() || 'travel';
+  const imageUrl = getDestinationImage(photoQuery, 400, 400);
 
   // Status calculations
   const hasHousing = itinerary.route?.bases?.some(b => b.accommodation?.name);
@@ -41,16 +43,16 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
   return (
     <Link href={`/trip/${trip.id}`}>
       <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
-        <div className="flex flex-col md:flex-row">
-          {/* Large Photo - Left side */}
-          <div className="relative w-full md:w-[220px] h-[160px] md:h-[200px] flex-shrink-0 overflow-hidden">
+        <div className="flex">
+          {/* Large Square Photo - Left side */}
+          <div className="relative w-[200px] h-[200px] flex-shrink-0 overflow-hidden bg-muted">
             <img
-              src={`https://source.unsplash.com/600x600/?${encodeURIComponent(photoQuery)},landmark,travel`}
+              src={imageUrl}
               alt={title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Image carousel dots */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
               <div className="w-2 h-2 rounded-full bg-white shadow" />
               <div className="w-2 h-2 rounded-full bg-white/50" />
               <div className="w-2 h-2 rounded-full bg-white/50" />
@@ -58,7 +60,7 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
           </div>
 
           {/* Trip Details - Right side */}
-          <CardContent className="flex-1 p-5">
+          <CardContent className="flex-1 p-4">
             {/* Title */}
             <h2 className="text-2xl font-bold mb-3">{title}</h2>
 

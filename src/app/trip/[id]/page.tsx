@@ -11,11 +11,9 @@ import { FoodLayerView } from '@/components/itinerary/food-layer';
 import { FoodRecommendationModal } from '@/components/itinerary/food-recommendation-modal';
 import { generatePackingList, isPackingListEmpty } from '@/lib/packing/generator';
 import { fixFlightDurations, fixAirportCodes } from '@/lib/trips/fix-durations';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane,
   ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
@@ -571,101 +569,167 @@ ${JSON.stringify(tripDna, null, 2)}`}
       {/* Main Navigation Header */}
       <DashboardHeader activeTab="trips" />
 
-      {/* Trip Title Bar */}
-      <div className="sticky top-14 bg-background/95 backdrop-blur border-b z-10">
-        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="w-5 h-5" />
-          </Link>
+      <div className="flex h-[calc(100vh-56px)]">
+        {/* Side Navigation */}
+        <aside className="w-56 border-r bg-muted/30 flex-shrink-0 hidden lg:flex flex-col">
+          {/* Trip Title & Back */}
+          <div className="p-4 border-b">
+            <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-3">
+              <ChevronLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+            {isEditing ? (
+              <div className="space-y-2">
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  className="h-8 text-sm font-semibold"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTitle();
+                    if (e.key === 'Escape') setIsEditing(false);
+                  }}
+                />
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 flex-1" onClick={handleSaveTitle}>
+                    <Save className="w-3 h-3 mr-1" />
+                    Save
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7" onClick={() => setIsEditing(false)}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start justify-between gap-2">
+                <h1 className="font-semibold text-sm leading-tight">{itinerary.meta.title}</h1>
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={startEditing}>
+                  <Pencil className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+          </div>
 
-          {isEditing ? (
-            <div className="flex items-center gap-2 flex-1 mx-4">
-              <Input
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                className="h-8 text-center font-semibold"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveTitle();
-                  if (e.key === 'Escape') setIsEditing(false);
-                }}
-              />
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSaveTitle}>
-                <Save className="w-4 h-4 text-primary" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(false)}>
-                <X className="w-4 h-4" />
-              </Button>
+          {/* Navigation Links */}
+          <nav className="flex-1 p-2">
+            <div className="space-y-1">
+              {[
+                { id: 'overview', label: 'Overview', icon: Sparkles },
+                { id: 'days', label: 'Itinerary', icon: Calendar },
+                { id: 'map', label: 'Map', icon: Map },
+                { id: 'budget', label: 'Budget', icon: DollarSign },
+                { id: 'docs', label: 'Docs', icon: FileText },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeTab === id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <h1 className="font-semibold truncate flex-1 text-center mx-4">{itinerary.meta.title}</h1>
-          )}
+          </nav>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={startEditing}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Rename Trip
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleFixFlightDurations}>
-                <Clock className="w-4 h-4 mr-2" />
-                Fix Flight Durations
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleFixAirportCodes}>
-                <Plane className="w-4 h-4 mr-2" />
-                Fix Airport Codes
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setShowDeleteConfirm(true)}
+          {/* Bottom Actions */}
+          <div className="p-2 border-t">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-2 text-sm h-9">
+                  <MoreVertical className="w-4 h-4" />
+                  More Options
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={handleFixFlightDurations}>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Fix Flight Durations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleFixAirportCodes}>
+                  <Plane className="w-4 h-4 mr-2" />
+                  Fix Airport Codes
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Trip
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </aside>
+
+        {/* Mobile Top Bar (hidden on desktop) */}
+        <div className="lg:hidden fixed top-14 left-0 right-0 bg-background/95 backdrop-blur border-b z-10">
+          <div className="px-4 py-2 flex items-center justify-between">
+            <Link href="/" className="text-muted-foreground hover:text-foreground">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="font-semibold text-sm truncate flex-1 text-center mx-4">{itinerary.meta.title}</h1>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={startEditing}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Rename Trip
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Trip
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {/* Mobile Tabs */}
+          <div className="flex overflow-x-auto px-2 pb-2 gap-1">
+            {[
+              { id: 'overview', label: 'Overview', icon: Sparkles },
+              { id: 'days', label: 'Itinerary', icon: Calendar },
+              { id: 'map', label: 'Map', icon: Map },
+              { id: 'budget', label: 'Budget', icon: DollarSign },
+              { id: 'docs', label: 'Docs', icon: FileText },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
+                  activeTab === id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Trip
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-4xl mx-auto">
-        <div className="sticky top-[104px] bg-background/95 backdrop-blur border-b z-10">
-          <TabsList className="w-full justify-start px-4 py-2 h-auto bg-transparent gap-1 overflow-x-auto">
-            <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm">
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="days" className="gap-1.5 text-xs sm:text-sm">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Itinerary</span>
-            </TabsTrigger>
-            <TabsTrigger value="map" className="gap-1.5 text-xs sm:text-sm">
-              <Map className="w-4 h-4" />
-              <span className="hidden sm:inline">Map</span>
-            </TabsTrigger>
-            <TabsTrigger value="budget" className="gap-1.5 text-xs sm:text-sm">
-              <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Budget</span>
-            </TabsTrigger>
-            <TabsTrigger value="docs" className="gap-1.5 text-xs sm:text-sm">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Docs</span>
-            </TabsTrigger>
-          </TabsList>
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="px-4 py-6">
-          <TabsContent value="overview" className="mt-0">
-            <TripOverview itinerary={itinerary} />
-          </TabsContent>
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-4xl mx-auto px-4 py-6 lg:py-6 pt-28 lg:pt-6">
+            {activeTab === 'overview' && (
+              <TripOverview itinerary={itinerary} />
+            )}
 
-          <TabsContent value="days" className="mt-0 space-y-4">
+            {activeTab === 'days' && (
+              <div className="space-y-4">
             {/* View Toggle: Daily vs Calendar */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Your Itinerary</h2>
@@ -733,131 +797,135 @@ ${JSON.stringify(tripDna, null, 2)}`}
               </Card>
             )}
 
-            {/* Drag hint */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
-              <GripVertical className="w-3 h-3" />
-              <span>Drag activities to reorder or move between days</span>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="map" className="mt-0">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground py-12">
-                  <Map className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium mb-2">Interactive Map</p>
-                  <p className="text-sm mb-4">View all your destinations, activities, and route on the map</p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {itinerary.route.bases.map((base, i) => (
-                      <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                        {base.location}
-                      </span>
-                    ))}
-                  </div>
+                {/* Drag hint */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
+                  <GripVertical className="w-3 h-3" />
+                  <span>Drag activities to reorder or move between days</span>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            )}
 
-          <TabsContent value="budget" className="mt-0">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-6">
-                  {/* Budget Summary */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Estimated Total</p>
-                      <p className="text-2xl font-bold text-primary">
-                        ${((tripDna?.constraints.budget.dailySpend.max || 200) * itinerary.days.length).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Daily Average</p>
-                      <p className="text-2xl font-bold">
-                        ${tripDna?.constraints.budget.dailySpend.max || 200}
-                      </p>
+            {activeTab === 'map' && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center text-muted-foreground py-12">
+                    <Map className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium mb-2">Interactive Map</p>
+                    <p className="text-sm mb-4">View all your destinations, activities, and route on the map</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {itinerary.route.bases.map((base, i) => (
+                        <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
+                          {base.location}
+                        </span>
+                      ))}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
 
-                  {/* Budget Categories */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold">Budget Breakdown</h3>
-                    {[
-                      { label: 'Accommodation', percent: 40, amount: ((tripDna?.constraints.budget.accommodationRange.max || 150) * itinerary.days.length) },
-                      { label: 'Food & Dining', percent: 25, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.4 * itinerary.days.length) },
-                      { label: 'Activities', percent: 20, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.35 * itinerary.days.length) },
-                      { label: 'Transport', percent: 15, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.25 * itinerary.days.length) },
-                    ].map((cat, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>{cat.label}</span>
-                          <span className="font-medium">${Math.round(cat.amount).toLocaleString()}</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${cat.percent}%` }}
-                          />
-                        </div>
+            {activeTab === 'budget' && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-6">
+                    {/* Budget Summary */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Estimated Total</p>
+                        <p className="text-2xl font-bold text-primary">
+                          ${((tripDna?.constraints.budget.dailySpend.max || 200) * itinerary.days.length).toLocaleString()}
+                        </p>
                       </div>
-                    ))}
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Daily Average</p>
+                        <p className="text-2xl font-bold">
+                          ${tripDna?.constraints.budget.dailySpend.max || 200}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Budget Categories */}
+                    <div className="space-y-3">
+                      <h3 className="font-semibold">Budget Breakdown</h3>
+                      {[
+                        { label: 'Accommodation', percent: 40, amount: ((tripDna?.constraints.budget.accommodationRange.max || 150) * itinerary.days.length) },
+                        { label: 'Food & Dining', percent: 25, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.4 * itinerary.days.length) },
+                        { label: 'Activities', percent: 20, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.35 * itinerary.days.length) },
+                        { label: 'Transport', percent: 15, amount: ((tripDna?.constraints.budget.dailySpend.max || 200) * 0.25 * itinerary.days.length) },
+                      ].map((cat, i) => (
+                        <div key={i} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>{cat.label}</span>
+                            <span className="font-medium">${Math.round(cat.amount).toLocaleString()}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all"
+                              style={{ width: `${cat.percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            )}
 
-          <TabsContent value="docs" className="mt-0 space-y-4">
-            {/* Food/Restaurants */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Utensils className="w-4 h-4" />
-                    Restaurants & Food
-                  </h3>
-                  <span className="text-sm text-muted-foreground">{itinerary.foodLayer.length} saved</span>
-                </div>
-                <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
-              </CardContent>
-            </Card>
+            {activeTab === 'docs' && (
+              <div className="space-y-4">
+                {/* Food/Restaurants */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Utensils className="w-4 h-4" />
+                        Restaurants & Food
+                      </h3>
+                      <span className="text-sm text-muted-foreground">{itinerary.foodLayer.length} saved</span>
+                    </div>
+                    <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
+                  </CardContent>
+                </Card>
 
-            {/* Packing List */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Packing List
-                  </h3>
-                  <Button variant="ghost" size="sm" onClick={handleRegeneratePackingList}>
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Regenerate
-                  </Button>
-                </div>
-                <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
-              </CardContent>
-            </Card>
+                {/* Packing List */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Packing List
+                      </h3>
+                      <Button variant="ghost" size="sm" onClick={handleRegeneratePackingList}>
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Regenerate
+                      </Button>
+                    </div>
+                    <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
+                  </CardContent>
+                </Card>
 
-            {/* Notes/Links placeholder */}
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold flex items-center gap-2 mb-4">
-                  <FileText className="w-4 h-4" />
-                  Notes & Links
-                </h3>
-                <div className="text-center text-muted-foreground py-8">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Add booking confirmations, travel documents, and notes here</p>
-                  <Button variant="outline" size="sm" className="mt-4">
-                    Add Document
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </div>
-      </Tabs>
+                {/* Notes/Links placeholder */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold flex items-center gap-2 mb-4">
+                      <FileText className="w-4 h-4" />
+                      Notes & Links
+                    </h3>
+                    <div className="text-center text-muted-foreground py-8">
+                      <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Add booking confirmations, travel documents, and notes here</p>
+                      <Button variant="outline" size="sm" className="mt-4">
+                        Add Document
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

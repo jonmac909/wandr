@@ -5,6 +5,7 @@ import { MapPin, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { RecentTripCard } from './RecentTripCard';
+import { getDestinationImage } from '@/lib/dashboard/image-utils';
 
 interface RecentTripsSidebarProps {
   trips: StoredTrip[];
@@ -73,7 +74,8 @@ function FeaturedUpcomingTrip({ trip }: { trip: StoredTrip }) {
     trip.itinerary?.route?.bases?.[0]?.location ||
     trip.tripDna?.interests?.destination ||
     '';
-  const photoQuery = destination.split(',')[0]?.trim().toLowerCase() || 'travel';
+  const photoQuery = destination.split(',')[0]?.trim() || 'travel';
+  const imageUrl = getDestinationImage(photoQuery, 160, 160);
   const dates = trip.itinerary?.meta?.startDate
     ? formatDateRange(trip.itinerary.meta.startDate, trip.itinerary.meta.endDate)
     : '';
@@ -81,27 +83,31 @@ function FeaturedUpcomingTrip({ trip }: { trip: StoredTrip }) {
   return (
     <Link href={`/trip/${trip.id}`} className="block group">
       <div className="px-3 pb-3">
-        {/* Large photo */}
-        <div className="relative w-full h-24 rounded-lg overflow-hidden bg-muted mb-2">
-          <img
-            src={`https://source.unsplash.com/400x200/?${encodeURIComponent(photoQuery)},landmark,travel`}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-
-        {/* Trip info */}
-        <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">{title}</h4>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-          <MapPin className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{destination || 'No destination'}</span>
-        </div>
-        {dates && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-            <Calendar className="w-3 h-3 flex-shrink-0" />
-            <span>{dates}</span>
+        <div className="flex gap-3">
+          {/* Square photo on left */}
+          <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
           </div>
-        )}
+
+          {/* Trip info on right */}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">{title}</h4>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{destination || 'No destination'}</span>
+            </div>
+            {dates && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <Calendar className="w-3 h-3 flex-shrink-0" />
+                <span>{dates}</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Link>
   );

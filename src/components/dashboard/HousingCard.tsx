@@ -1,9 +1,9 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Base } from '@/types/itinerary';
+import { getAccommodationImage } from '@/lib/dashboard/image-utils';
 
 interface HousingCardProps {
   base: Base;
@@ -12,7 +12,7 @@ interface HousingCardProps {
 export function HousingCard({ base }: HousingCardProps) {
   const name = base.accommodation?.name || base.location.split(',')[0];
   const address = base.location;
-  const photoQuery = base.location.split(',')[0]?.trim().toLowerCase() || 'hotel';
+  const imageUrl = getAccommodationImage(name, 160, 160);
 
   // Format dates
   const dateRange = formatDateRange(base.checkIn, base.checkOut);
@@ -23,37 +23,35 @@ export function HousingCard({ base }: HousingCardProps) {
     : null;
 
   return (
-    <Card className="overflow-hidden hover:border-primary/30 transition-colors group">
-      <div className="flex">
-        {/* Square Photo on LEFT */}
-        <div className="relative w-28 h-28 flex-shrink-0 overflow-hidden">
-          <img
-            src={`https://source.unsplash.com/300x300/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
-            alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+    <div className="flex gap-3 group">
+      {/* Square Photo on LEFT */}
+      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
+      {/* Info on RIGHT */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
+        <div>
+          <h4 className="font-medium text-sm truncate">{name}</h4>
+          <p className="text-xs text-muted-foreground truncate">{address}</p>
+          <p className="text-xs text-muted-foreground">{dateRange}</p>
         </div>
 
-        {/* Info on RIGHT */}
-        <div className="flex-1 p-3 flex flex-col justify-between">
-          <div>
-            <h4 className="font-semibold text-sm mb-1 line-clamp-2">{name}</h4>
-            <p className="text-xs text-muted-foreground mb-1 line-clamp-1">{address}</p>
-            <p className="text-xs text-muted-foreground">{dateRange}</p>
-          </div>
-
-          <div className="flex items-center gap-2 mt-2">
-            {price && (
-              <span className="text-sm font-bold">{price}</span>
-            )}
-            <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
-              <Check className="w-3 h-3" />
-              Paid
-            </Badge>
-          </div>
+        <div className="flex items-center gap-2">
+          {price && (
+            <span className="text-sm font-bold">{price}</span>
+          )}
+          <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
+            <Check className="w-3 h-3" />
+            Paid
+          </Badge>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

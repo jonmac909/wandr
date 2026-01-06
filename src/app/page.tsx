@@ -60,11 +60,12 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* Center Column: Featured Trip + Housing + Transport stacked */}
+          {/* Center Column: Featured Trip + Housing + Transport + Weather stacked */}
           <section className="lg:col-span-6 flex flex-col gap-4 overflow-auto">
             <FeaturedTripCard trip={featuredTrip} />
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
             <TransportSection transport={transport.slice(0, 2)} />
+            <WeatherWidget location={featuredTrip?.itinerary?.meta?.destination || featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
           </section>
 
           {/* Right Column: Stats + Map + Countries + Plan Button */}
