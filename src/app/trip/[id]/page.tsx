@@ -648,96 +648,96 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </Link>
         </div>
 
-        {/* Hero Section - Centered Title, Route, Stats */}
-        <div className="text-center mb-4 pb-4 border-b flex-shrink-0">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            {isEditing ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  className="h-10 w-80 text-center text-2xl font-bold"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveTitle();
-                    if (e.key === 'Escape') setIsEditing(false);
-                  }}
-                />
-                <Button variant="ghost" size="icon" onClick={handleSaveTitle}>
-                  <Save className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <h1 className="text-2xl font-bold">{itinerary.meta.title}</h1>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditing}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <MoreVertical className="w-3.5 h-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleFixFlightDurations}>
-                      <Clock className="w-4 h-4 mr-2" />
-                      Fix Flight Durations
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleFixAirportCodes}>
-                      <Plane className="w-4 h-4 mr-2" />
-                      Fix Airport Codes
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Trip
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
-          </div>
-
-          {/* Route */}
-          <p className="text-sm text-muted-foreground mb-2">
-            {itinerary.route.bases.map(b => b.location.split(',')[0]).join(' → ')}
-          </p>
-
-          {/* Stats Row */}
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="font-medium">{itinerary.days.length} days</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Hotel className="w-4 h-4 text-primary" />
-              <span className="font-medium">{itinerary.route.bases.length} bases</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <span className="font-medium">
-                {tripDna?.constraints?.budget?.dailySpend
-                  ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
-                  : 'Budget TBD'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Two Column Layout: Pipeline Left, Itinerary Right - fills remaining space */}
+        {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left Column - Pipeline */}
-          <aside className="lg:col-span-4 min-h-0">
-            <Card className="h-full flex flex-col">
+          {/* Left Column - Trip Info + Pipeline */}
+          <aside className="lg:col-span-4 min-h-0 flex flex-col gap-3">
+            {/* Trip Info Card */}
+            <Card className="flex-shrink-0">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        className="h-8 text-lg font-bold"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveTitle();
+                          if (e.key === 'Escape') setIsEditing(false);
+                        }}
+                      />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveTitle}>
+                        <Save className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(false)}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={startEditing}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <MoreVertical className="w-3 h-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={handleFixFlightDurations}>
+                              <Clock className="w-4 h-4 mr-2" />
+                              Fix Flight Durations
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleFixAirportCodes}>
+                              <Plane className="w-4 h-4 mr-2" />
+                              Fix Airport Codes
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setShowDeleteConfirm(true)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Trip
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {itinerary.route.bases.map(b => b.location.split(',')[0]).join(' → ')}
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    <span>{itinerary.days.length} days</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Hotel className="w-3.5 h-3.5 text-primary" />
+                    <span>{itinerary.route.bases.length} bases</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-primary" />
+                    <span>
+                      {tripDna?.constraints?.budget?.dailySpend
+                        ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
+                        : 'Budget TBD'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pipeline Card */}
+            <Card className="flex-1 min-h-0 flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
-                <h3 className="font-semibold mb-3 flex-shrink-0">Trip Pipeline</h3>
                 <div className="grid grid-cols-3 gap-2 auto-rows-fr">
                   {/* Flights */}
                   <PipelineRow
