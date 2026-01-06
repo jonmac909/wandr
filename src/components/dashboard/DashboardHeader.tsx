@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, Menu, Plane } from 'lucide-react';
+import { Bell, Plane, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface DashboardHeaderProps {
   activeTab?: 'trips';
   onOpenDrawer?: () => void;
+  onOpenProfile?: () => void;
 }
 
-export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: DashboardHeaderProps) {
+export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfile }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
@@ -25,7 +26,7 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: Dashboard
         <div className="w-24" />
 
         {/* Right side actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Trips button - opens drawer */}
           <Button
             variant="ghost"
@@ -43,13 +44,15 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: Dashboard
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
           </Button>
 
-          {/* Profile avatar */}
-          <Avatar className="w-8 h-8 cursor-pointer">
-            <AvatarImage src="" alt="Profile" />
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-              JY
-            </AvatarFallback>
-          </Avatar>
+          {/* Profile avatar - opens settings */}
+          <button onClick={onOpenProfile} className="ml-1">
+            <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
+              <AvatarImage src="" alt="Profile" />
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                JY
+              </AvatarFallback>
+            </Avatar>
+          </button>
         </div>
       </div>
     </header>

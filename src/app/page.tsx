@@ -16,6 +16,7 @@ import {
   TripDrawer,
   ImportModal,
   BucketList,
+  ProfileSettings,
 } from '@/components/dashboard';
 import { useDashboardData, getFeaturedTrip, getRecentTrips } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
@@ -27,6 +28,7 @@ export default function Home() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Derived data
   const featuredTrip = useMemo(() => getFeaturedTrip(trips), [trips]);
@@ -49,13 +51,14 @@ export default function Home() {
       <DashboardHeader
         activeTab="trips"
         onOpenDrawer={() => setDrawerOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 overflow-hidden min-h-0">
         <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* Left Column: Weather + Calendar + Recent Trips (hidden on mobile) */}
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 min-h-0 overflow-hidden">
-            <WeatherWidget location={featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
+            <WeatherWidget /> {/* Uses user's home location from profile */}
             <MonthCalendar trips={trips} />
             <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={2} />
           </aside>
@@ -88,6 +91,11 @@ export default function Home() {
       <ImportModal
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
+      />
+
+      <ProfileSettings
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
       />
     </div>
   );

@@ -21,9 +21,10 @@ import {
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin
 } from 'lucide-react';
 import Link from 'next/link';
-import { tripDb } from '@/lib/db/indexed-db';
-import { DashboardHeader } from '@/components/dashboard';
+import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
+import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,11 @@ export default function TripPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [foodModalDay, setFoodModalDay] = useState<DayPlan | null>(null);
   const [contentFilter, setContentFilter] = useState<string>('all');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  // Get all trips for the drawer
+  const { trips } = useDashboardData();
 
   // Drag and drop state
   const [dragState, setDragState] = useState<{
@@ -568,7 +574,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
       )}
 
       {/* Main Navigation Header */}
-      <DashboardHeader activeTab="trips" />
+      <DashboardHeader
+        activeTab="trips"
+        onOpenDrawer={() => setDrawerOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
+      />
 
       {/* Mobile Top Bar (hidden on desktop) */}
       <div className="lg:hidden fixed top-14 left-0 right-0 bg-background/95 backdrop-blur border-b z-10">
@@ -643,8 +653,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
             {/* Trip Info Card */}
             <Card className="flex-shrink-0">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between mb-1">
                   {isEditing ? (
                     <div className="flex items-center gap-2 flex-1">
                       <Input
@@ -700,34 +710,28 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </>
                   )}
                 </div>
-                {/* Schedule - each base with nights */}
-                <div className="space-y-1.5 mb-3">
+                {/* Schedule - compact horizontal flow */}
+                <div className="flex flex-wrap items-center gap-1 mb-2">
                   {itinerary.route.bases.map((base, idx) => (
-                    <div key={base.id} className="flex items-center gap-2 text-xs">
-                      <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
-                      <span className="font-medium">{base.location.split(',')[0]}</span>
-                      <span className="text-muted-foreground">
-                        {base.nights} {base.nights === 1 ? 'night' : 'nights'}
+                    <div key={base.id} className="flex items-center">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
+                        {base.location.split(',')[0]}
+                        <span className="text-primary/60">{base.nights}n</span>
                       </span>
                       {idx < itinerary.route.bases.length - 1 && (
-                        <span className="text-muted-foreground">→</span>
+                        <span className="text-muted-foreground text-xs mx-0.5">→</span>
                       )}
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground border-t pt-3">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{itinerary.days.length} days total</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    <span>
-                      {tripDna?.constraints?.budget?.dailySpend
-                        ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
-                        : 'Budget TBD'}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  <span>{itinerary.days.length} days</span>
+                  <span>•</span>
+                  <span>
+                    {tripDna?.constraints?.budget?.dailySpend
+                      ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
+                      : 'Budget TBD'}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -948,6 +952,17 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </main>
 
+      {/* Overlays */}
+      <TripDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        trips={trips}
+      />
+
+      <ProfileSettings
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+      />
     </div>
   );
 }

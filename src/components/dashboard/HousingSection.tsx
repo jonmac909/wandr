@@ -14,10 +14,10 @@ export function HousingSection({ bases }: HousingSectionProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <h3 className="font-semibold mb-3 text-sm">Accommodation</h3>
-        <div className="grid grid-cols-2 gap-4">
+    <Card className="flex-shrink-0">
+      <CardContent className="p-3">
+        <h3 className="font-medium mb-2 text-xs text-muted-foreground">Accommodation</h3>
+        <div className="grid grid-cols-2 gap-3">
           {bases.map((base) => (
             <HousingCard key={base.id} base={base} />
           ))}

@@ -27,3 +27,4 @@ export { BucketList } from './BucketList';
 // Overlays
 export { TripDrawer } from './TripDrawer';
 export { ImportModal } from './ImportModal';
+export { ProfileSettings } from './ProfileSettings';

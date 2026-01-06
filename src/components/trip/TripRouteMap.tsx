@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ZoomIn, ZoomOut, MapPin } from 'lucide-react';
 import type { Base } from '@/types/itinerary';
 
 interface TripRouteMapProps {
@@ -87,11 +89,15 @@ function calculateMapBounds(bases: Base[]) {
 }
 
 export function TripRouteMap({ bases, className }: TripRouteMapProps) {
+  const [zoomLevel, setZoomLevel] = useState(0); // -2 to +2 from base zoom
+
   if (!bases || bases.length === 0) {
     return null;
   }
 
-  const { center, zoom } = calculateMapBounds(bases);
+  const { center, zoom: baseZoom } = calculateMapBounds(bases);
+  const zoom = Math.max(1, Math.min(18, baseZoom + zoomLevel));
+
   const coords = bases
     .map(b => ({ ...b, coords: getCityCoordinates(b.location) }))
     .filter(b => b.coords !== null);
@@ -105,68 +111,93 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
     ? `&path=color:0x4f46e5%7Cweight:2%7C${coords.map(b => `${b.coords!.lat},${b.coords!.lng}`).join('|')}`
     : '';
 
-  const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat},${center.lng}&zoom=${zoom}&size=400x200&scale=2&maptype=roadmap&${markers}${path}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+  // Square map (300x300)
+  const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat},${center.lng}&zoom=${zoom}&size=300x300&scale=2&maptype=roadmap&${markers}${path}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
   // Fallback if no API key - show a simple visual representation
   const hasApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 1, 4));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 1, -2));
+
   return (
     <Card className={className}>
-      <CardContent className="p-0 overflow-hidden">
+      <CardContent className="p-0 overflow-hidden relative">
         {hasApiKey ? (
           <img
             src={mapUrl}
             alt="Trip route map"
-            className="w-full h-32 object-cover"
+            className="w-full aspect-square object-cover"
           />
         ) : (
-          // Fallback visual representation
-          <div className="h-32 bg-gradient-to-br from-blue-100 to-blue-200 relative">
+          // Fallback visual representation - square
+          <div className="aspect-square bg-gradient-to-br from-blue-100 to-blue-200 relative">
             {/* Route line visualization */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 50">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
               {/* Simple curved path between points */}
               {coords.length > 1 && (
                 <path
-                  d={`M ${10 + (0 / (coords.length - 1)) * 80} 25 ${coords.slice(1).map((_, i) => `L ${10 + ((i + 1) / (coords.length - 1)) * 80} ${20 + (i % 2) * 10}`).join(' ')}`}
+                  d={`M ${15 + (0 / (coords.length - 1)) * 70} 50 ${coords.slice(1).map((_, i) => `L ${15 + ((i + 1) / (coords.length - 1)) * 70} ${35 + (i % 2) * 30}`).join(' ')}`}
                   fill="none"
                   stroke="#4f46e5"
-                  strokeWidth="1.5"
-                  strokeDasharray="3,2"
+                  strokeWidth="2"
+                  strokeDasharray="4,3"
                 />
               )}
               {/* City markers */}
               {coords.map((_, i) => {
-                const x = coords.length === 1 ? 50 : 10 + (i / (coords.length - 1)) * 80;
-                const y = coords.length === 1 ? 25 : 20 + (i % 2) * 10;
+                const x = coords.length === 1 ? 50 : 15 + (i / (coords.length - 1)) * 70;
+                const y = coords.length === 1 ? 50 : 35 + (i % 2) * 30;
                 return (
                   <g key={i}>
-                    <circle cx={x} cy={y} r="4" fill="#4f46e5" />
-                    <circle cx={x} cy={y} r="2" fill="white" />
+                    <circle cx={x} cy={y} r="6" fill="#4f46e5" />
+                    <circle cx={x} cy={y} r="3" fill="white" />
+                    <text x={x} y={y + 1.5} textAnchor="middle" className="text-[8px] fill-primary font-bold">{i + 1}</text>
                   </g>
                 );
               })}
             </svg>
 
             {/* City labels */}
-            <div className="absolute bottom-2 left-2 right-2 flex justify-between">
-              {bases.slice(0, 3).map((base, i) => (
-                <div key={base.id} className="flex items-center gap-1 bg-white/80 rounded px-1.5 py-0.5">
-                  <span className="w-4 h-4 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-medium">
+            <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 justify-center">
+              {bases.slice(0, 4).map((base, i) => (
+                <div key={base.id} className="flex items-center gap-1 bg-white/90 rounded px-1.5 py-0.5 shadow-sm">
+                  <span className="w-4 h-4 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
                     {i + 1}
                   </span>
-                  <span className="text-[10px] font-medium truncate max-w-[60px]">
+                  <span className="text-[10px] font-medium truncate max-w-[50px]">
                     {base.location.split(',')[0]}
                   </span>
                 </div>
               ))}
-              {bases.length > 3 && (
-                <div className="bg-white/80 rounded px-1.5 py-0.5">
-                  <span className="text-[10px] text-muted-foreground">+{bases.length - 3} more</span>
+              {bases.length > 4 && (
+                <div className="bg-white/90 rounded px-1.5 py-0.5 shadow-sm">
+                  <span className="text-[10px] text-muted-foreground">+{bases.length - 4}</span>
                 </div>
               )}
             </div>
           </div>
         )}
+
+        {/* Zoom controls */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
+            onClick={handleZoomIn}
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
+            onClick={handleZoomOut}
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

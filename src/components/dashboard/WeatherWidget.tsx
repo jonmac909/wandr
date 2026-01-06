@@ -4,19 +4,35 @@ import { useEffect, useState } from 'react';
 import { MapPin, Droplets, ThermometerSun } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchWeather, WeatherData } from '@/lib/dashboard/weather';
+import { preferencesDb } from '@/lib/db/indexed-db';
 
 interface WeatherWidgetProps {
-  location?: string;
+  location?: string; // Optional: if not provided, uses user's home location
 }
 
-export function WeatherWidget({ location }: WeatherWidgetProps) {
+export function WeatherWidget({ location: propLocation }: WeatherWidgetProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [location, setLocation] = useState<string | undefined>(propLocation);
+
+  // Load user's home location from preferences if no prop location provided
+  useEffect(() => {
+    if (!propLocation) {
+      preferencesDb.get().then((prefs) => {
+        if (prefs.location) {
+          setLocation(prefs.location);
+        } else {
+          setLoading(false);
+        }
+      });
+    } else {
+      setLocation(propLocation);
+    }
+  }, [propLocation]);
 
   useEffect(() => {
     if (!location) {
-      setLoading(false);
       return;
     }
 
@@ -37,7 +53,7 @@ export function WeatherWidget({ location }: WeatherWidgetProps) {
       });
   }, [location]);
 
-  if (!location) {
+  if (!location && !loading) {
     return null;
   }
 

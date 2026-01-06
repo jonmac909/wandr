@@ -18,23 +18,23 @@ export function StatCard({ label, value, trend, suffix, className }: StatCardPro
 
   return (
     <Card className={cn("", className)}>
-      <CardContent className="p-4">
-        <p className="text-sm text-muted-foreground mb-1">{label}</p>
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold">{value}</span>
-          {suffix && <span className="text-lg text-muted-foreground mb-1">{suffix}</span>}
+      <CardContent className="p-3">
+        <p className="text-xs text-muted-foreground mb-1 truncate">{label}</p>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-bold">{value}</span>
+          {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
           {trend !== undefined && trend !== 0 && (
             <span
               className={cn(
-                "flex items-center gap-0.5 text-xs font-medium mb-1",
+                "flex items-center gap-0.5 text-[10px] font-medium",
                 isPositive && "text-green-600",
                 isNegative && "text-red-600"
               )}
             >
               {isPositive ? (
-                <TrendingUp className="w-3 h-3" />
+                <TrendingUp className="w-2.5 h-2.5" />
               ) : (
-                <TrendingDown className="w-3 h-3" />
+                <TrendingDown className="w-2.5 h-2.5" />
               )}
               {isPositive && '+'}
               {trend}%

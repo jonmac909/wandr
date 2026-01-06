@@ -41,6 +41,11 @@ export interface UserPreferences {
   defaultCurrency: string;
   measurementSystem: 'metric' | 'imperial';
   notifications: boolean;
+  // User profile
+  name?: string;
+  location?: string; // e.g., "Kelowna, Canada"
+  timezone?: string;
+  homeAirport?: string; // e.g., "YLW"
 }
 
 // Database definition
@@ -318,6 +323,10 @@ export const preferencesDb = {
       defaultCurrency: 'USD',
       measurementSystem: 'metric',
       notifications: true,
+      name: '',
+      location: '',
+      timezone: '',
+      homeAirport: '',
     };
   },
 

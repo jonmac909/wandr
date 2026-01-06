@@ -15,9 +15,9 @@ export function TransportSection({ transport }: TransportSectionProps) {
 
   return (
     <Card className="flex-shrink-0">
-      <CardContent className="p-4 pb-3">
-        <h3 className="font-semibold mb-2 text-sm">Transport</h3>
-        <div className="space-y-1">
+      <CardContent className="p-3">
+        <h3 className="font-medium mb-2 text-xs text-muted-foreground">Transport</h3>
+        <div className="space-y-0.5">
           {transport.map((t) => (
             <TransportRow key={t.id} transport={t} />
           ))}
