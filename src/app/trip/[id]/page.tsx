@@ -637,99 +637,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
       {/* Main Content Area - Fixed height, no page scroll */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 lg:pt-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left Column - Route Map + Trip Info + Pipeline */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3">
+          {/* Left Column - Route Map + Pipeline */}
           <aside className="lg:col-span-4 min-h-0 flex flex-col gap-3">
             {/* Route Map */}
             <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
 
-            {/* Trip Info Card */}
-            <Card className="flex-shrink-0">
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between mb-1">
-                  {isEditing ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <Input
-                        value={editedTitle}
-                        onChange={(e) => setEditedTitle(e.target.value)}
-                        className="h-8 text-lg font-bold"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveTitle();
-                          if (e.key === 'Escape') setIsEditing(false);
-                        }}
-                      />
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveTitle}>
-                        <Save className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(false)}>
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={startEditing}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreVertical className="w-3 h-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleFixFlightDurations}>
-                              <Clock className="w-4 h-4 mr-2" />
-                              Fix Flight Durations
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleFixAirportCodes}>
-                              <Plane className="w-4 h-4 mr-2" />
-                              Fix Airport Codes
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setShowDeleteConfirm(true)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Trip
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </>
-                  )}
-                </div>
-                {/* Schedule - compact horizontal flow */}
-                <div className="flex flex-wrap items-center gap-1 mb-2">
-                  {itinerary.route.bases.map((base, idx) => (
-                    <div key={base.id} className="flex items-center">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
-                        {base.location.split(',')[0]}
-                        <span className="text-primary/60">{base.nights}n</span>
-                      </span>
-                      {idx < itinerary.route.bases.length - 1 && (
-                        <span className="text-muted-foreground text-xs mx-0.5">→</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span>{itinerary.days.length} days</span>
-                  <span>•</span>
-                  <span>
-                    {tripDna?.constraints?.budget?.dailySpend
-                      ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
-                      : 'Budget TBD'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Pipeline Card - Click to filter */}
-            <Card className="flex-1 min-h-0 flex flex-col">
+            <Card className="flex-shrink-0">
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="grid grid-cols-3 gap-2 auto-rows-fr">
                   {/* Flights */}
