@@ -18,7 +18,7 @@ import {
 import {
   Sun, Coffee, Moon, Bed, Plane,
   MapPin, Clock, Star, Sparkles, AlertCircle,
-  Pencil, Trash2, Check, X, ExternalLink, DollarSign, UtensilsCrossed, GripVertical
+  Pencil, Trash2, Check, X, ExternalLink, DollarSign, GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlaceDetailsModal } from '@/components/maps/place-details-modal';
@@ -31,7 +31,6 @@ interface DayCardProps {
   onToggle?: () => void;
   onUpdateDay?: (updatedDay: DayPlan) => void;
   onDeleteActivity?: (blockId: string) => void;
-  onFindFood?: (day: DayPlan) => void;
   location?: string;
   // Drag and drop
   onDragStart?: (blockId: string, dayId: string) => void;
@@ -106,7 +105,6 @@ export function DayCard({
   isExpanded = true,
   onToggle,
   onUpdateDay,
-  onFindFood,
   location,
   onDragStart,
   onDragEnd,
@@ -283,20 +281,6 @@ export function DayCard({
             </div>
           )}
 
-          {/* Find Food Button */}
-          {onFindFood && (
-            <div className="mt-4 pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={() => onFindFood(day)}
-              >
-                <UtensilsCrossed className="w-4 h-4" />
-                Find Restaurants for This Day
-              </Button>
-            </div>
-          )}
         </CardContent>
       )}
     </Card>

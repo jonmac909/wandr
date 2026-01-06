@@ -823,7 +823,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                             expandedDay === day.dayNumber ? null : day.dayNumber
                           )}
                           onUpdateDay={handleUpdateDay}
-                          onFindFood={(d) => setFoodModalDay(d)}
                           location={getLocationForDay(day)}
                           onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
