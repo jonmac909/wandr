@@ -472,36 +472,41 @@ export default function TripPage() {
     return `${weekday}, ${monthName} ${day}`;
   };
 
-  // Get the BASE CITY for a day (used for overview grouping - only groups by city changes)
-  // Returns the city where you SLEEP that night, not where you start the day
+  // Get the BASE CITY for a day - analyze the schedule to find where you SLEEP that night
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
-    // Find the base where this day is the checkIn date or between checkIn and day before checkOut
+    // 1. First check for accommodation activity - that's where you sleep
+    const accommodationBlock = day.blocks.find(b =>
+      b.activity?.category === 'accommodation' ||
+      b.activity?.category === 'checkin'
+    );
+    if (accommodationBlock?.activity?.location?.name) {
+      return accommodationBlock.activity.location.name;
+    }
+
+    // 2. Check for flight - the destination is where you're headed to sleep
+    const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
+    if (flightBlocks.length > 0) {
+      // Get the last flight's destination (where you end up)
+      const lastFlight = flightBlocks[flightBlocks.length - 1];
+      if (lastFlight?.activity?.location?.name) {
+        return lastFlight.activity.location.name;
+      }
+    }
+
+    // 3. Check any activity's location - they should all be in same city for that day
+    for (const block of day.blocks) {
+      if (block.activity?.location?.name) {
+        return block.activity.location.name;
+      }
+    }
+
+    // 4. Fallback to base data if no activities have location
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date < base.checkOut) {
         return base.location;
       }
-    }
-
-    // Check if this day is the checkIn date of any base
-    for (const base of itinerary.route.bases) {
-      if (day.date === base.checkIn) {
-        return base.location;
-      }
-    }
-
-    // For travel days before first base, find the next base (where you'll arrive)
-    const sortedBases = [...itinerary.route.bases].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-    for (const base of sortedBases) {
-      if (day.date < base.checkIn) {
-        return base.location;
-      }
-    }
-
-    // For days after last checkout, use last base
-    if (sortedBases.length > 0) {
-      return sortedBases[sortedBases.length - 1].location;
     }
 
     return '';
