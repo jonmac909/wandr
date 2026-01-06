@@ -972,32 +972,35 @@ interface PipelineRowProps {
   onClick: () => void;
 }
 
+// Pipeline category colors matching the daily itinerary
+const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
+  'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
+  'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
+  'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
+  'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
+  'Packing List': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
+};
+
 function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
+  const colors = PIPELINE_COLORS[label] || { bg: 'bg-muted/50 border-transparent', iconBg: 'bg-muted text-muted-foreground', text: '' };
+
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all aspect-square ${
+      className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all aspect-square border ${
         active
-          ? 'bg-primary text-primary-foreground'
-          : status === 'complete'
-          ? 'bg-green-50 border border-green-200 hover:bg-green-100'
-          : status === 'partial'
-          ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100'
-          : 'bg-muted/50 border border-transparent hover:bg-muted'
+          ? 'bg-primary text-primary-foreground border-primary'
+          : `${colors.bg} hover:opacity-80`
       }`}
     >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
         active
           ? 'bg-primary-foreground/20'
-          : status === 'complete'
-          ? 'bg-green-100 text-green-600'
-          : status === 'partial'
-          ? 'bg-amber-100 text-amber-600'
-          : 'bg-muted text-muted-foreground'
+          : colors.iconBg
       }`}>
         {status === 'complete' && !active ? <Check className="w-5 h-5" /> : icon}
       </div>
-      <span className={`text-xs font-medium text-center ${active ? '' : ''}`}>{label}</span>
+      <span className={`text-xs font-medium text-center ${active ? '' : colors.text}`}>{label}</span>
       {count !== undefined && (
         <p className={`text-[10px] text-center ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
           {total ? `${count}/${total}` : `${count}`}

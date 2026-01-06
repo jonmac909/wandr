@@ -58,6 +58,19 @@ const BLOCK_COLORS: Record<string, string> = {
   'transit': 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
+// Category-based colors matching the pipeline
+const CATEGORY_COLORS: Record<string, string> = {
+  'flight': 'bg-blue-100 text-blue-800 border-blue-200',
+  'hotel': 'bg-purple-100 text-purple-800 border-purple-200',
+  'accommodation': 'bg-purple-100 text-purple-800 border-purple-200',
+  'food': 'bg-orange-100 text-orange-800 border-orange-200',
+  'restaurant': 'bg-orange-100 text-orange-800 border-orange-200',
+  'activity': 'bg-amber-100 text-amber-800 border-amber-200',
+  'experience': 'bg-amber-100 text-amber-800 border-amber-200',
+  'sightseeing': 'bg-amber-100 text-amber-800 border-amber-200',
+  'transit': 'bg-gray-100 text-gray-800 border-gray-200',
+};
+
 const PRIORITY_STYLES: Record<string, { bg: string; icon: React.ReactNode }> = {
   'must-see': { bg: 'bg-red-500', icon: <Star className="w-3 h-3" /> },
   'if-energy': { bg: 'bg-amber-500', icon: <Sparkles className="w-3 h-3" /> },
@@ -330,7 +343,9 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, drag
     priority: block.priority,
   });
 
-  const blockStyle = BLOCK_COLORS[block.type] || BLOCK_COLORS['transit'];
+  // Use category color if activity exists, otherwise fall back to block type color
+  const categoryColor = block.activity?.category ? CATEGORY_COLORS[block.activity.category] : null;
+  const blockStyle = categoryColor || BLOCK_COLORS[block.type] || BLOCK_COLORS['transit'];
   const priorityStyle = PRIORITY_STYLES[block.priority];
 
   const startEditing = () => {

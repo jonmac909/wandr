@@ -13,9 +13,16 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
-        {/* Left spacer for balance */}
-        <div className="flex-1 flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Wandr
+          </h1>
+        </Link>
+
+        {/* Right side actions */}
+        <div className="flex items-center gap-2">
           {/* Trips button - opens drawer */}
           <Button
             variant="ghost"
@@ -25,17 +32,7 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: Dashboard
             <Plane className="w-4 h-4" />
             <span className="hidden sm:inline">Trips</span>
           </Button>
-        </div>
 
-        {/* Logo - Centered */}
-        <Link href="/" className="flex items-center gap-2">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Wandr
-          </h1>
-        </Link>
-
-        {/* Right side actions */}
-        <div className="flex-1 flex items-center gap-2 justify-end">
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="w-5 h-5" />
