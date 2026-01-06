@@ -101,9 +101,12 @@ export default function Home() {
   const draftTrips = trips.filter(t => t.status === 'draft' || !t.itinerary);
   const pastTrips: StoredTrip[] = []; // Would filter by date in production
 
-  // Calculate stats
+  // Calculate stats - extract country from location string (e.g., "Bangkok, Thailand" -> "Thailand")
   const totalCountries = new Set(trips.flatMap(t =>
-    t.itinerary?.route?.bases?.map(b => b.location.country) || []
+    t.itinerary?.route?.bases?.map(b => {
+      const parts = b.location.split(',');
+      return parts[parts.length - 1]?.trim() || b.location;
+    }) || []
   )).size;
   const totalCities = trips.reduce((acc, t) =>
     acc + (t.itinerary?.route?.bases?.length || 0), 0
