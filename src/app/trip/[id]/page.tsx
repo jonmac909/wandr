@@ -638,167 +638,72 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </div>
 
-      {/* Main Content Area with Sidebar Card */}
-      <main className="max-w-6xl mx-auto px-4 py-6 pt-28 lg:pt-6">
-        {/* Back link - desktop only */}
-        <div className="hidden lg:block mb-4">
+      {/* Main Content Area */}
+      <main className="max-w-4xl mx-auto px-4 py-6 pt-28 lg:pt-6">
+        {/* Back link and title header - desktop only */}
+        <div className="hidden lg:flex lg:items-center lg:justify-between mb-6">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  className="h-8 w-64"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTitle();
+                    if (e.key === 'Escape') setIsEditing(false);
+                  }}
+                />
+                <Button variant="ghost" size="sm" onClick={handleSaveTitle}>
+                  <Save className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">{itinerary.meta.title}</h1>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditing}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleFixFlightDurations}>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Fix Flight Durations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleFixAirportCodes}>
+                  <Plane className="w-4 h-4 mr-2" />
+                  Fix Airport Codes
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Trip
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <div className="flex gap-6">
-          {/* Pipeline Sidebar Card - Trip Checklist */}
-          <Card className="hidden lg:block w-60 flex-shrink-0 h-fit sticky top-6">
-            <CardContent className="p-0">
-              {/* Trip Title */}
-              <div className="p-4 border-b">
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <Input
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      className="h-8 text-sm font-semibold"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveTitle();
-                        if (e.key === 'Escape') setIsEditing(false);
-                      }}
-                    />
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 flex-1" onClick={handleSaveTitle}>
-                        <Save className="w-3 h-3 mr-1" />
-                        Save
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7" onClick={() => setIsEditing(false)}>
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-2">
-                    <h1 className="font-semibold leading-tight">{itinerary.meta.title}</h1>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={startEditing}>
-                      <Pencil className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {itinerary.days.length} days • {itinerary.meta.destination}
-                </p>
-              </div>
-
-              {/* Pipeline Checklist */}
-              <div className="p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-3">Trip Checklist</p>
-                <div className="space-y-1">
-                  {(() => {
-                    // Calculate completion status for each category
-                    const hasFlights = itinerary.days.some(d =>
-                      d.blocks.some(b => b.activity?.category === 'flight')
-                    );
-                    const hasHotels = itinerary.route.bases.some(b => b.accommodation?.name);
-                    const hasPacking = itinerary.packingLayer.capsuleWardrobe.length > 0;
-                    const hasRestaurants = itinerary.foodLayer.length > 0;
-                    const hasExperiences = itinerary.days.some(d =>
-                      d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')
-                    );
-
-                    const pipelineItems = [
-                      { id: 'flights' as const, label: 'Flights', icon: Plane, complete: hasFlights, count: itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0) },
-                      { id: 'hotels' as const, label: 'Hotels', icon: Hotel, complete: hasHotels, count: itinerary.route.bases.filter(b => b.accommodation?.name).length },
-                      { id: 'packing' as const, label: 'Packing', icon: Package, complete: hasPacking, count: itinerary.packingLayer.capsuleWardrobe.length + itinerary.packingLayer.activitySpecific.length },
-                      { id: 'restaurants' as const, label: 'Restaurants', icon: UtensilsCrossed, complete: hasRestaurants, count: itinerary.foodLayer.length },
-                      { id: 'experiences' as const, label: 'Experiences', icon: Compass, complete: hasExperiences, count: itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').length, 0) },
-                    ];
-
-                    return pipelineItems.map(({ id, label, icon: Icon, complete, count }) => (
-                      <button
-                        key={id}
-                        onClick={() => setActiveModal(id)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-muted group"
-                      >
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          complete
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : 'border-muted-foreground/30 group-hover:border-primary/50'
-                        }`}>
-                          {complete && <Check className="w-3 h-3" />}
-                        </div>
-                        <Icon className={`w-4 h-4 flex-shrink-0 ${complete ? 'text-foreground' : 'text-muted-foreground'}`} />
-                        <span className={`flex-1 text-left ${complete ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
-                        {count > 0 && (
-                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{count}</span>
-                        )}
-                      </button>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              {/* Completion Progress */}
-              <div className="px-4 pb-4">
-                {(() => {
-                  const hasFlights = itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight'));
-                  const hasHotels = itinerary.route.bases.some(b => b.accommodation?.name);
-                  const hasPacking = itinerary.packingLayer.capsuleWardrobe.length > 0;
-                  const hasRestaurants = itinerary.foodLayer.length > 0;
-                  const hasExperiences = itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food'));
-                  const completed = [hasFlights, hasHotels, hasPacking, hasRestaurants, hasExperiences].filter(Boolean).length;
-                  const percent = Math.round((completed / 5) * 100);
-
-                  return (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Trip Planning</span>
-                        <span className="font-medium">{percent}%</span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-500"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* More Options */}
-              <div className="p-2 border-t">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start gap-2 text-sm h-9">
-                      <MoreVertical className="w-4 h-4" />
-                      More Options
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem onClick={handleFixFlightDurations}>
-                      <Clock className="w-4 h-4 mr-2" />
-                      Fix Flight Durations
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleFixAirportCodes}>
-                      <Plane className="w-4 h-4 mr-2" />
-                      Fix Airport Codes
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Trip
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
+        {/* Main Content */}
+        <div>
             {/* Filter Bar */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Trip Overview</h2>
@@ -990,7 +895,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                 )}
               </div>
             )}
-          </div>
         </div>
       </main>
 

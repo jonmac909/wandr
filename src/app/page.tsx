@@ -60,14 +60,13 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* Center Column: Featured Trip + Housing/Transport side by side */}
+          {/* Center Column: Featured Trip + Housing (horizontal) + Transport (below) */}
           <section className="lg:col-span-6 flex flex-col gap-3 overflow-hidden">
             <FeaturedTripCard trip={featuredTrip} />
-            {/* Housing and Transport side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-              <TransportSection transport={transport.slice(0, 2)} />
-            </div>
+            {/* Housing - horizontal layout */}
+            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
+            {/* Transport - below housing */}
+            <TransportSection transport={transport.slice(0, 2)} />
           </section>
 
           {/* Right Column: Weather + Stats + Map + Countries + Plan Button */}
