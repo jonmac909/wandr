@@ -51,28 +51,31 @@ export default function Home() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* Left Column: Calendar + Recent Trips (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 overflow-hidden">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 overflow-hidden">
             <MonthCalendar trips={trips} />
             <div className="flex-1 min-h-0">
               <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
             </div>
           </aside>
 
-          {/* Center Column: Featured Trip + Housing + Transport + Weather stacked */}
-          <section className="lg:col-span-6 flex flex-col gap-4 overflow-auto">
+          {/* Center Column: Featured Trip + Housing/Transport side by side */}
+          <section className="lg:col-span-6 flex flex-col gap-3 overflow-hidden">
             <FeaturedTripCard trip={featuredTrip} />
-            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-            <TransportSection transport={transport.slice(0, 2)} />
-            <WeatherWidget location={featuredTrip?.itinerary?.meta?.destination || featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
+            {/* Housing and Transport side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
+              <TransportSection transport={transport.slice(0, 2)} />
+            </div>
           </section>
 
-          {/* Right Column: Stats + Map + Countries + Plan Button */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 overflow-auto">
+          {/* Right Column: Weather + Stats + Map + Countries + Plan Button */}
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 overflow-hidden">
+            <WeatherWidget location={featuredTrip?.itinerary?.meta?.destination || featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={5} />
+            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={3} />
             <PlanNewTripButton />
           </aside>
         </div>

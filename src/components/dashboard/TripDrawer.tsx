@@ -20,16 +20,11 @@ interface TripDrawerProps {
 }
 
 export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
-  // Filter to in-progress/planned trips
-  const plannedTrips = trips.filter(t => {
-    // Draft trips
-    if (t.status === 'draft' || !t.itinerary) return true;
-
-    // Upcoming trips (start date in future)
-    if (t.itinerary?.meta?.startDate) {
-      return new Date(t.itinerary.meta.startDate) > new Date();
-    }
-    return false;
+  // Sort trips by most recent update
+  const sortedTrips = [...trips].sort((a, b) => {
+    const dateA = new Date(a.updatedAt);
+    const dateB = new Date(b.updatedAt);
+    return dateB.getTime() - dateA.getTime();
   });
 
   return (
@@ -37,16 +32,16 @@ export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
       <SheetContent side="right" className="w-[400px] sm:w-[540px]">
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between">
-            <span>Planned Trips</span>
-            <Badge variant="secondary">{plannedTrips.length}</Badge>
+            <span>My Trips</span>
+            <Badge variant="secondary">{trips.length}</Badge>
           </SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-3">
-          {plannedTrips.length === 0 ? (
+        <div className="mt-6 space-y-3 max-h-[calc(100vh-200px)] overflow-auto">
+          {sortedTrips.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-4xl mb-3">✈️</div>
-              <p className="text-muted-foreground mb-4">No trips in progress</p>
+              <p className="text-muted-foreground mb-4">No trips yet</p>
               <Link href="/plan-mode">
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
@@ -55,13 +50,13 @@ export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
               </Link>
             </div>
           ) : (
-            plannedTrips.map((trip) => (
+            sortedTrips.map((trip) => (
               <DrawerTripCard key={trip.id} trip={trip} />
             ))
           )}
         </div>
 
-        {plannedTrips.length > 0 && (
+        {sortedTrips.length > 0 && (
           <div className="mt-6 pt-4 border-t">
             <Link href="/plan-mode" className="block">
               <Button variant="outline" className="w-full gap-2">
