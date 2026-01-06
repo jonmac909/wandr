@@ -44,53 +44,35 @@ export function TransportRow({ transport }: TransportRowProps) {
   });
 
   return (
-    <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
       {/* Carrier icon */}
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
-        <Icon className="w-5 h-5" />
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+        <Icon className="w-3.5 h-3.5" />
       </div>
 
-      {/* Carrier name */}
-      <div className="w-24 flex-shrink-0">
-        <p className="font-medium text-sm truncate">
-          {transport.carrier || transport.type.charAt(0).toUpperCase() + transport.type.slice(1)}
-        </p>
-      </div>
-
-      {/* Departure */}
-      <div className="text-center">
-        <p className="text-lg font-bold">{transport.departureTime || '--:--'}</p>
-        <p className="text-xs text-muted-foreground">{dateStr}</p>
-        <p className="text-xs text-muted-foreground">{transport.from || 'Origin'}</p>
-      </div>
-
-      {/* Duration line */}
-      <div className="flex-1 flex items-center gap-2 px-2">
-        <div className="flex-1 border-t border-dashed border-muted-foreground/30" />
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {durationStr}
-          <br />
-          <span className="text-muted-foreground/70">no transfers</span>
+      {/* Route info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="font-medium truncate">{transport.from || 'Origin'}</span>
+          <span className="text-muted-foreground">→</span>
+          <span className="font-medium truncate">{transport.to || 'Dest'}</span>
         </div>
-        <div className="flex-1 border-t border-dashed border-muted-foreground/30" />
-      </div>
-
-      {/* Arrival */}
-      <div className="text-center">
-        <p className="text-lg font-bold">{transport.arrivalTime || '--:--'}</p>
-        <p className="text-xs text-muted-foreground">{dateStr}</p>
-        <p className="text-xs text-muted-foreground">{transport.to || 'Destination'}</p>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <span>{dateStr}</span>
+          <span>·</span>
+          <span>{durationStr}</span>
+        </div>
       </div>
 
       {/* Status */}
       <Badge
         variant="outline"
-        className={transport.isPaid
+        className={`flex-shrink-0 text-[10px] px-1.5 py-0 ${transport.isPaid
           ? "text-green-600 border-green-200 bg-green-50"
           : "text-amber-600 border-amber-200 bg-amber-50"
-        }
+        }`}
       >
-        {transport.isPaid ? 'Paid' : 'Payment on site'}
+        {transport.isPaid ? 'Paid' : 'Pending'}
       </Badge>
     </div>
   );

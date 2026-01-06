@@ -28,7 +28,7 @@ export function HousingCard({ base }: HousingCardProps) {
     <Card className="overflow-hidden hover:border-primary/30 transition-colors">
       <div className="flex">
         {/* Thumbnail */}
-        <div className="w-24 h-24 flex-shrink-0 overflow-hidden">
+        <div className="w-16 h-16 flex-shrink-0 overflow-hidden">
           <img
             src={`https://source.unsplash.com/150x150/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
             alt={name}
@@ -37,17 +37,16 @@ export function HousingCard({ base }: HousingCardProps) {
         </div>
 
         {/* Info */}
-        <CardContent className="flex-1 p-3">
-          <h4 className="font-semibold text-sm mb-0.5 line-clamp-1">{name}</h4>
-          <p className="text-xs text-muted-foreground mb-1 line-clamp-1">{address}</p>
-          <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
+        <CardContent className="flex-1 p-2">
+          <h4 className="font-semibold text-xs mb-0.5 line-clamp-1">{name}</h4>
+          <p className="text-xs text-muted-foreground line-clamp-1">{dateRange}</p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 mt-1">
             {price && (
-              <span className="text-sm font-semibold">{price}</span>
+              <span className="text-xs font-semibold">{price}</span>
             )}
-            <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
-              <Check className="w-3 h-3" />
+            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 text-green-600 border-green-200 bg-green-50">
+              <Check className="w-2.5 h-2.5" />
               Paid
             </Badge>
           </div>

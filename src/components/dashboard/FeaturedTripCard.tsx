@@ -43,7 +43,7 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
       <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
         <div className="flex flex-col md:flex-row">
           {/* Large Photo - Left side */}
-          <div className="relative w-full md:w-[280px] h-[200px] md:h-[280px] flex-shrink-0 overflow-hidden">
+          <div className="relative w-full md:w-[220px] h-[160px] md:h-[200px] flex-shrink-0 overflow-hidden">
             <img
               src={`https://source.unsplash.com/600x600/?${encodeURIComponent(photoQuery)},landmark,travel`}
               alt={title}
