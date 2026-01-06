@@ -881,9 +881,12 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           <h3 className="text-sm font-medium text-muted-foreground mb-3">Itinerary</h3>
                           <div className="space-y-2">
                             {itinerary.route.bases.map((base, index) => {
-                              const checkIn = new Date(base.checkIn);
-                              const checkOut = new Date(base.checkOut);
-                              const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              // Parse date string directly to avoid timezone issues
+                              const formatDateString = (dateStr: string) => {
+                                const [year, month, day] = dateStr.split('-').map(Number);
+                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                return `${months[month - 1]} ${day}`;
+                              };
 
                               return (
                                 <div
@@ -896,7 +899,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{base.location}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {formatDate(checkIn)} – {formatDate(checkOut)}
+                                      {formatDateString(base.checkIn)} – {formatDateString(base.checkOut)}
                                     </p>
                                   </div>
                                 </div>
