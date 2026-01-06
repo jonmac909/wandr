@@ -59,17 +59,11 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* Center Column: Featured Trip + Housing/Transport side by side */}
-          <section className="lg:col-span-6 flex flex-col gap-4 overflow-hidden">
+          {/* Center Column: Featured Trip + Housing + Transport stacked */}
+          <section className="lg:col-span-6 flex flex-col gap-4 overflow-auto">
             <FeaturedTripCard trip={featuredTrip} />
-            <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-              <div className="overflow-auto">
-                <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-              </div>
-              <div className="overflow-auto">
-                <TransportSection transport={transport.slice(0, 2)} />
-              </div>
-            </div>
+            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
+            <TransportSection transport={transport.slice(0, 2)} />
           </section>
 
           {/* Right Column: Stats + Weather + Map + Plan Button */}
