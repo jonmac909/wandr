@@ -65,6 +65,7 @@ export default function TripPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
+  const [expandedOverviewIndex, setExpandedOverviewIndex] = useState<number | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1086,75 +1087,161 @@ ${JSON.stringify(tripDna, null, 2)}`}
                             <Card>
                               <CardContent className="p-4">
                                 <div className="space-y-2">
-                                  {groups.map((group, index) => (
-                                    <div
-                                      key={`${group.location}-${index}`}
-                                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
-                                      onClick={() => {
-                                        if (editingOverviewIndex !== index) {
-                                          setEditingOverviewIndex(index);
-                                          setEditedLocation(group.location);
-                                        }
-                                      }}
-                                    >
-                                      <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
-                                        {group.startDay === group.endDay
-                                          ? `Day ${group.startDay}`
-                                          : `Day ${group.startDay}-${group.endDay}`}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        {editingOverviewIndex === index ? (
-                                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                            <Input
-                                              value={editedLocation}
-                                              onChange={(e) => setEditedLocation(e.target.value)}
-                                              className="h-7 text-sm"
-                                              autoFocus
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation);
-                                                } else if (e.key === 'Escape') {
-                                                  setEditingOverviewIndex(null);
-                                                }
-                                              }}
-                                            />
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-7 w-7"
-                                              onClick={() => handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation)}
-                                            >
-                                              <Check className="w-3.5 h-3.5" />
-                                            </Button>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-7 w-7"
-                                              onClick={() => setEditingOverviewIndex(null)}
-                                            >
-                                              <X className="w-3.5 h-3.5" />
-                                            </Button>
+                                  {groups.map((group, index) => {
+                                    // Get days within this group's date range
+                                    const daysInGroup = itinerary.days.filter(
+                                      d => d.date >= group.startDate && d.date <= group.endDate
+                                    );
+                                    // Get transport blocks for this group
+                                    const transportBlocks = daysInGroup.flatMap(d =>
+                                      d.blocks.filter(b =>
+                                        b.activity?.category === 'flight' || b.activity?.category === 'transit'
+                                      ).map(b => ({ ...b, date: d.date }))
+                                    );
+                                    const isExpanded = expandedOverviewIndex === index;
+
+                                    return (
+                                      <div key={`${group.location}-${index}`}>
+                                        <div
+                                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                                          onClick={() => {
+                                            if (editingOverviewIndex !== index) {
+                                              setExpandedOverviewIndex(isExpanded ? null : index);
+                                            }
+                                          }}
+                                        >
+                                          <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
+                                            {group.startDay === group.endDay
+                                              ? `Day ${group.startDay}`
+                                              : `Day ${group.startDay}-${group.endDay}`}
                                           </div>
-                                        ) : (
-                                          <>
-                                            <p className="font-medium truncate flex items-center gap-2">
-                                              {group.location}
-                                              <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50" />
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                              {formatDateString(group.startDate)}
-                                              {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
-                                            </p>
-                                          </>
+                                          <div className="flex-1 min-w-0">
+                                            {editingOverviewIndex === index ? (
+                                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <Input
+                                                  value={editedLocation}
+                                                  onChange={(e) => setEditedLocation(e.target.value)}
+                                                  className="h-7 text-sm"
+                                                  autoFocus
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                      handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation);
+                                                    } else if (e.key === 'Escape') {
+                                                      setEditingOverviewIndex(null);
+                                                    }
+                                                  }}
+                                                />
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-7 w-7"
+                                                  onClick={() => handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation)}
+                                                >
+                                                  <Check className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-7 w-7"
+                                                  onClick={() => setEditingOverviewIndex(null)}
+                                                >
+                                                  <X className="w-3.5 h-3.5" />
+                                                </Button>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <p className="font-medium truncate flex items-center gap-2">
+                                                  {group.location}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  {formatDateString(group.startDate)}
+                                                  {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                                </p>
+                                              </>
+                                            )}
+                                          </div>
+                                          {editingOverviewIndex !== index && (
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                              <span className="text-xs text-muted-foreground">
+                                                {group.nights === 1 ? '1 night' : `${group.nights} nights`}
+                                              </span>
+                                              <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingOverviewIndex(index);
+                                                  setEditedLocation(group.location);
+                                                }}
+                                              >
+                                                <Pencil className="w-3 h-3" />
+                                              </Button>
+                                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Expanded dropdown with daily details */}
+                                        {isExpanded && editingOverviewIndex !== index && (
+                                          <div className="ml-16 mt-2 space-y-2 pb-2">
+                                            {/* Transport for this location group */}
+                                            {transportBlocks.length > 0 && (
+                                              <div className="space-y-1">
+                                                {transportBlocks.map((block) => (
+                                                  <div
+                                                    key={block.id}
+                                                    className="flex items-center gap-2 p-2 rounded bg-blue-50 text-sm"
+                                                  >
+                                                    {block.activity?.category === 'flight' ? (
+                                                      <Plane className="w-3.5 h-3.5 text-blue-600" />
+                                                    ) : (
+                                                      <Train className="w-3.5 h-3.5 text-cyan-600" />
+                                                    )}
+                                                    <span className="flex-1">{block.activity?.name}</span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {formatDisplayDate(block.date)}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Summary of days */}
+                                            {daysInGroup.map((day) => {
+                                              const nonTransportActivities = day.blocks.filter(
+                                                b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit'
+                                              );
+                                              if (nonTransportActivities.length === 0 && !transportBlocks.some(t => t.date === day.date)) return null;
+
+                                              return (
+                                                <div key={day.id} className="p-2 rounded bg-muted/30 text-sm">
+                                                  <div className="flex items-center gap-2 mb-1">
+                                                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                                                    <span className="font-medium">{formatDisplayDate(day.date)}</span>
+                                                  </div>
+                                                  {nonTransportActivities.length > 0 && (
+                                                    <ul className="ml-5 text-xs text-muted-foreground space-y-0.5">
+                                                      {nonTransportActivities.slice(0, 3).map((block) => (
+                                                        <li key={block.id}>{block.activity?.name}</li>
+                                                      ))}
+                                                      {nonTransportActivities.length > 3 && (
+                                                        <li>+{nonTransportActivities.length - 3} more</li>
+                                                      )}
+                                                    </ul>
+                                                  )}
+                                                </div>
+                                              );
+                                            })}
+
+                                            {daysInGroup.length === 0 && transportBlocks.length === 0 && (
+                                              <p className="text-xs text-muted-foreground italic">No activities planned</p>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
-                                      {editingOverviewIndex !== index && (
-                                        <div className="text-xs text-muted-foreground flex-shrink-0">
-                                          {group.nights === 1 ? '1 night' : `${group.nights} nights`}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </CardContent>
                             </Card>
