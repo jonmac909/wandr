@@ -398,19 +398,36 @@ export default function TripPage() {
 
   // Airport code to city name mapping
   const AIRPORT_TO_CITY: Record<string, string> = {
+    // Japan
     'NRT': 'Tokyo', 'HND': 'Tokyo', 'KIX': 'Osaka', 'ITM': 'Osaka',
-    'BKK': 'Bangkok', 'DMK': 'Bangkok', 'SIN': 'Singapore',
-    'HKG': 'Hong Kong', 'ICN': 'Seoul', 'GMP': 'Seoul',
-    'TPE': 'Taipei', 'DPS': 'Bali', 'HKT': 'Phuket',
-    'HAN': 'Hanoi', 'SGN': 'Ho Chi Minh City', 'KUL': 'Kuala Lumpur',
-    'MNL': 'Manila', 'CGK': 'Jakarta', 'CDG': 'Paris', 'ORY': 'Paris',
-    'LHR': 'London', 'LGW': 'London', 'STN': 'London',
+    'NGO': 'Nagoya', 'CTS': 'Sapporo', 'FUK': 'Fukuoka', 'OKA': 'Okinawa',
+    // Thailand
+    'BKK': 'Bangkok', 'DMK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
+    'USM': 'Koh Samui', 'KBV': 'Krabi',
+    // Vietnam
+    'HAN': 'Hanoi', 'SGN': 'Ho Chi Minh City', 'DAD': 'Da Nang',
+    'CXR': 'Nha Trang', 'PQC': 'Phu Quoc', 'HUI': 'Hue',
+    // Southeast Asia
+    'SIN': 'Singapore', 'KUL': 'Kuala Lumpur', 'MNL': 'Manila',
+    'CGK': 'Jakarta', 'DPS': 'Bali', 'REP': 'Siem Reap', 'PNH': 'Phnom Penh',
+    'RGN': 'Yangon', 'VTE': 'Vientiane', 'LPQ': 'Luang Prabang',
+    // East Asia
+    'HKG': 'Hong Kong', 'ICN': 'Seoul', 'GMP': 'Seoul', 'TPE': 'Taipei',
+    'PEK': 'Beijing', 'PVG': 'Shanghai', 'SHA': 'Shanghai',
+    // Europe
+    'CDG': 'Paris', 'ORY': 'Paris', 'LHR': 'London', 'LGW': 'London',
+    'STN': 'London', 'FCO': 'Rome', 'BCN': 'Barcelona', 'AMS': 'Amsterdam',
+    'BER': 'Berlin', 'TXL': 'Berlin', 'MUC': 'Munich', 'VIE': 'Vienna',
+    'ZRH': 'Zurich', 'GVA': 'Geneva', 'MAD': 'Madrid', 'LIS': 'Lisbon',
+    // North America
     'JFK': 'New York', 'EWR': 'New York', 'LGA': 'New York',
     'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'YVR': 'Vancouver',
-    'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland',
-    'DXB': 'Dubai', 'FCO': 'Rome', 'BCN': 'Barcelona',
-    'AMS': 'Amsterdam', 'BER': 'Berlin', 'TXL': 'Berlin',
-    'YLW': 'Kelowna', 'CNX': 'Chiang Mai', 'REP': 'Siem Reap',
+    'YYZ': 'Toronto', 'YUL': 'Montreal', 'YLW': 'Kelowna', 'SEA': 'Seattle',
+    // Oceania
+    'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland', 'BNE': 'Brisbane',
+    // Middle East
+    'DXB': 'Dubai', 'DOH': 'Doha', 'AUH': 'Abu Dhabi',
+    // Hawaii
     'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
   };
 
@@ -465,19 +482,22 @@ export default function TripPage() {
 
     // Find which base this day belongs to based on date
     for (const base of itinerary.route.bases) {
-      if (day.date >= base.checkIn && day.date < base.checkOut) {
+      if (day.date >= base.checkIn && day.date <= base.checkOut) {
         return airportToCity(base.location);
       }
     }
 
-    // Fallback: check last base (might be checkout day)
-    const lastBase = itinerary.route.bases[itinerary.route.bases.length - 1];
-    if (lastBase && day.date === lastBase.checkOut) {
-      return airportToCity(lastBase.location);
+    // Fallback: try to get from accommodation block
+    const hotelBlock = day.blocks.find(b =>
+      b.activity?.category === 'accommodation' ||
+      b.activity?.category === 'checkin'
+    );
+    if (hotelBlock?.activity?.location?.name) {
+      return airportToCity(hotelBlock.activity.location.name);
     }
 
     // Final fallback to destination
-    return itinerary.meta.destination || '';
+    return airportToCity(itinerary.meta.destination || '');
   };
 
   // Get location for a specific day - infer from activities
