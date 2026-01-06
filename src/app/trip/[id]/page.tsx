@@ -988,25 +988,80 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Schedule - Daily Itinerary (same as All but with different trigger) */}
                   {(contentFilter === 'schedule' || contentFilter === 'all') && (
                     <div className="space-y-4 pr-2">
-                      {itinerary.days.map((day) => (
-                        <DayCard
-                          key={day.id}
-                          day={day}
-                          isToday={day.date === new Date().toISOString().split('T')[0]}
-                          isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                          onToggle={() => setExpandedDay(
-                            expandedDay === day.dayNumber ? null : day.dayNumber
-                          )}
-                          onUpdateDay={handleUpdateDay}
-                          location={getLocationForDay(day)}
-                          onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                          onDrop={handleDrop}
-                          onDragOver={handleDragOver}
-                          isDragging={dragState.blockId !== null}
-                          dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
-                        />
-                      ))}
+                      {(() => {
+                        // Generate all days in the date range (no gaps)
+                        const firstDate = itinerary.days[0]?.date;
+                        const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
+                        if (!firstDate || !lastDate) return itinerary.days.map((day) => (
+                          <DayCard key={day.id} day={day} location={getLocationForDay(day)} />
+                        ));
+
+                        const [y1, m1, d1] = firstDate.split('-').map(Number);
+                        const [y2, m2, d2] = lastDate.split('-').map(Number);
+                        const start = new Date(y1, m1 - 1, d1);
+                        const end = new Date(y2, m2 - 1, d2);
+
+                        // Create a map of existing days by date
+                        const daysByDate = new Map(itinerary.days.map(d => [d.date, d]));
+
+                        // Generate all days
+                        const allDays: (DayPlan | { date: string; dayNumber: number; isEmpty: true })[] = [];
+                        let dayNum = 1;
+                        const current = new Date(start);
+
+                        while (current <= end) {
+                          const dateStr = current.toISOString().split('T')[0];
+                          const existingDay = daysByDate.get(dateStr);
+
+                          if (existingDay) {
+                            allDays.push({ ...existingDay, dayNumber: dayNum });
+                          } else {
+                            allDays.push({ date: dateStr, dayNumber: dayNum, isEmpty: true });
+                          }
+
+                          dayNum++;
+                          current.setDate(current.getDate() + 1);
+                        }
+
+                        return allDays.map((day) => {
+                          if ('isEmpty' in day) {
+                            // Render empty day placeholder
+                            const [year, month, dayOfMonth] = day.date.split('-').map(Number);
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            const dateDisplay = `${months[month - 1]} ${dayOfMonth}`;
+
+                            return (
+                              <div key={day.date} className="p-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                  <span className="text-sm font-medium">Day {day.dayNumber}</span>
+                                  <span className="text-xs">{dateDisplay}</span>
+                                  <span className="text-xs ml-auto italic">No activities planned</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <DayCard
+                              key={day.id}
+                              day={day}
+                              isToday={day.date === new Date().toISOString().split('T')[0]}
+                              isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                              onToggle={() => setExpandedDay(
+                                expandedDay === day.dayNumber ? null : day.dayNumber
+                              )}
+                              onUpdateDay={handleUpdateDay}
+                              location={getLocationForDay(day)}
+                              onDragStart={handleDragStart}
+                              onDragEnd={handleDragEnd}
+                              onDrop={handleDrop}
+                              onDragOver={handleDragOver}
+                              isDragging={dragState.blockId !== null}
+                              dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
+                            />
+                          );
+                        });
+                      })()}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
                         <GripVertical className="w-3 h-3" />
                         <span>Drag activities to reorder or move between days</span>
