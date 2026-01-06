@@ -13,7 +13,7 @@ interface MonthCalendarProps {
   onDateClick?: (date: Date, trip?: TripDateRange) => void;
 }
 
-const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -27,9 +27,8 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
 
-  // Get day of week (0 = Sunday, adjust for Monday start)
-  let startDayOfWeek = firstDay.getDay();
-  startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Convert to Monday = 0
+  // Get day of week (0 = Sunday, which is already correct for Sunday start)
+  const startDayOfWeek = firstDay.getDay();
 
   const days: (Date | null)[] = [];
 
@@ -126,7 +125,7 @@ export function MonthCalendar({ trips, onDateClick }: MonthCalendarProps) {
               key={day}
               className={cn(
                 "text-center text-xs font-medium py-1",
-                i >= 5 ? "text-primary" : "text-muted-foreground"
+                (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
               )}
             >
               {day}
