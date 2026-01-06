@@ -1115,21 +1115,21 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         return (
                           <>
                             {/* Trip Stats */}
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                               <Card>
-                                <CardContent className="p-3 text-center">
+                                <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{totalDays}</p>
                                   <p className="text-xs text-muted-foreground">Days</p>
                                 </CardContent>
                               </Card>
                               <Card>
-                                <CardContent className="p-3 text-center">
+                                <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{uniqueDestinations}</p>
                                   <p className="text-xs text-muted-foreground">Destinations</p>
                                 </CardContent>
                               </Card>
                               <Card>
-                                <CardContent className="p-3 text-center">
+                                <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{transportCount}</p>
                                   <p className="text-xs text-muted-foreground">Flights</p>
                                 </CardContent>
@@ -1137,7 +1137,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                             </div>
 
                             <Card>
-                              <CardContent className="p-4">
+                              <CardContent className="p-2">
                                 <div className="space-y-2">
                                   {groups.map((group, index) => {
                                     // Get days within this group's date range
