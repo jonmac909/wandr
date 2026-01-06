@@ -762,8 +762,18 @@ ${JSON.stringify(tripDna, null, 2)}`}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
           {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
           <aside className="hidden md:flex md:col-span-4 flex-col gap-3 min-h-0">
-            {/* Route Map - expanded to fill available space */}
-            <TripRouteMap bases={itinerary.route.bases} className="flex-1 min-h-[200px]" />
+            {/* Map - shows all locations for overview, single location for schedule */}
+            <TripRouteMap
+              bases={itinerary.route.bases}
+              className="flex-1 min-h-[200px]"
+              singleLocation={contentFilter === 'schedule' ? (() => {
+                // Get today's date or first day's location for schedule view
+                const today = new Date().toISOString().split('T')[0];
+                const todayDay = itinerary.days.find(d => d.date === today);
+                const currentDay = todayDay || itinerary.days[0];
+                return currentDay ? getLocationForDay(currentDay) : undefined;
+              })() : undefined}
+            />
 
             {/* Pipeline Card - compact square widgets at bottom */}
             <Card className="flex-shrink-0">

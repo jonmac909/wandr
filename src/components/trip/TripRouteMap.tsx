@@ -9,6 +9,7 @@ import type { Base } from '@/types/itinerary';
 interface TripRouteMapProps {
   bases: Base[];
   className?: string;
+  singleLocation?: string; // If provided, show only this location (for daily view)
 }
 
 // Simple coordinate lookup for common destinations
@@ -101,9 +102,17 @@ function pixelsToLatLng(pixelX: number, pixelY: number, zoom: number, mapSize: n
   };
 }
 
-export function TripRouteMap({ bases, className }: TripRouteMapProps) {
+export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { center: initialCenter, zoom: baseZoom } = calculateMapBounds(bases);
+
+  // If singleLocation is provided, use it instead of bases
+  const effectiveBases = singleLocation
+    ? [{ id: 'single', location: singleLocation, nights: 1 }] as Base[]
+    : bases;
+
+  const { center: initialCenter, zoom: baseZoom } = calculateMapBounds(effectiveBases);
+  // For single location, zoom in more
+  const effectiveBaseZoom = singleLocation ? 12 : baseZoom;
 
   const [zoomLevel, setZoomLevel] = useState(0);
   const [center, setCenter] = useState(initialCenter);
@@ -111,18 +120,26 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [lastCenter, setLastCenter] = useState(initialCenter);
 
-  const zoom = Math.max(1, Math.min(18, baseZoom + zoomLevel));
+  // Reset center when singleLocation changes
+  useEffect(() => {
+    const { center: newCenter } = calculateMapBounds(effectiveBases);
+    setCenter(newCenter);
+    setZoomLevel(0);
+  }, [singleLocation]);
 
-  const coords = bases
+  const zoom = Math.max(1, Math.min(18, effectiveBaseZoom + zoomLevel));
+
+  const coords = effectiveBases
     .map(b => ({ ...b, coords: getCityCoordinates(b.location) }))
     .filter(b => b.coords !== null);
 
   // Generate static map URL
   const markers = coords
-    .map((b, i) => `markers=color:red%7Clabel:${i + 1}%7C${b.coords!.lat},${b.coords!.lng}`)
+    .map((b, i) => `markers=color:red%7Clabel:${singleLocation ? '' : i + 1}%7C${b.coords!.lat},${b.coords!.lng}`)
     .join('&');
 
-  const path = coords.length > 1
+  // Only show path for multi-location (route) view
+  const path = !singleLocation && coords.length > 1
     ? `&path=color:0x4f46e5%7Cweight:2%7C${coords.map(b => `${b.coords!.lat},${b.coords!.lng}`).join('|')}`
     : '';
 
