@@ -875,36 +875,58 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         </Card>
                       </div>
 
-                      {/* Quick Glance Schedule */}
+                      {/* Quick Glance Schedule - grouped by location from actual days */}
                       <Card>
                         <CardContent className="p-4">
                           <h3 className="text-sm font-medium text-muted-foreground mb-3">Itinerary</h3>
                           <div className="space-y-2">
-                            {itinerary.route.bases.map((base, index) => {
-                              // Parse date string directly to avoid timezone issues
+                            {(() => {
+                              // Group consecutive days by location
+                              const groups: { location: string; startDate: string; endDate: string; dayCount: number }[] = [];
+
+                              itinerary.days.forEach((day) => {
+                                const location = getLocationForDay(day);
+                                const lastGroup = groups[groups.length - 1];
+
+                                if (lastGroup && lastGroup.location === location) {
+                                  lastGroup.endDate = day.date;
+                                  lastGroup.dayCount++;
+                                } else {
+                                  groups.push({
+                                    location,
+                                    startDate: day.date,
+                                    endDate: day.date,
+                                    dayCount: 1,
+                                  });
+                                }
+                              });
+
+                              // Format date string without timezone issues
                               const formatDateString = (dateStr: string) => {
                                 const [year, month, day] = dateStr.split('-').map(Number);
                                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                 return `${months[month - 1]} ${day}`;
                               };
 
-                              return (
+                              return groups.map((group, index) => (
                                 <div
-                                  key={base.id}
+                                  key={`${group.location}-${index}`}
                                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
                                 >
                                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
                                     {index + 1}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{base.location}</p>
+                                    <p className="font-medium truncate">{group.location}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {formatDateString(base.checkIn)} – {formatDateString(base.checkOut)}
+                                      {formatDateString(group.startDate)}
+                                      {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                      {' '}({group.dayCount} {group.dayCount === 1 ? 'day' : 'days'})
                                     </p>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              ));
+                            })()}
                           </div>
                         </CardContent>
                       </Card>

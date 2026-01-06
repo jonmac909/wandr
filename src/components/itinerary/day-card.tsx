@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Sun, Coffee, Moon, Bed, Plane,
-  MapPin, Clock, Star, Sparkles, AlertCircle,
+  Sun, Coffee, Moon, Bed, Plane, Hotel, Utensils, Compass, Camera,
+  MapPin, Clock, Star, Sparkles, AlertCircle, ShoppingBag, Music, Wrench, Bus,
   Pencil, Trash2, Check, X, ExternalLink, DollarSign, GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -75,22 +75,22 @@ const CATEGORY_COLORS: Record<string, string> = {
   'transit': 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
-// Human-readable labels for activity categories
-const CATEGORY_LABELS: Record<string, string> = {
-  'flight': 'Flight',
-  'hotel': 'Hotel',
-  'accommodation': 'Hotel',
-  'checkin': 'Check-in',
-  'food': 'Restaurant',
-  'restaurant': 'Restaurant',
-  'activity': 'Activity',
-  'experience': 'Experience',
-  'sightseeing': 'Sightseeing',
-  'relaxation': 'Rest',
-  'shopping': 'Shopping',
-  'nightlife': 'Nightlife',
-  'workshop': 'Workshop',
-  'transit': 'Transit',
+// Category icons for compact display
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'flight': <Plane className="w-3.5 h-3.5" />,
+  'hotel': <Hotel className="w-3.5 h-3.5" />,
+  'accommodation': <Hotel className="w-3.5 h-3.5" />,
+  'checkin': <Hotel className="w-3.5 h-3.5" />,
+  'food': <Utensils className="w-3.5 h-3.5" />,
+  'restaurant': <Utensils className="w-3.5 h-3.5" />,
+  'activity': <Compass className="w-3.5 h-3.5" />,
+  'experience': <Compass className="w-3.5 h-3.5" />,
+  'sightseeing': <Camera className="w-3.5 h-3.5" />,
+  'relaxation': <Bed className="w-3.5 h-3.5" />,
+  'shopping': <ShoppingBag className="w-3.5 h-3.5" />,
+  'nightlife': <Music className="w-3.5 h-3.5" />,
+  'workshop': <Wrench className="w-3.5 h-3.5" />,
+  'transit': <Bus className="w-3.5 h-3.5" />,
 };
 
 const PRIORITY_STYLES: Record<string, { bg: string; icon: React.ReactNode }> = {
@@ -478,27 +478,8 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, drag
         </div>
       )}
 
-      <div className={cn('flex items-start gap-3', draggable && 'pl-4')}>
-        {/* Time block icon */}
-        <div className="mt-0.5">
-          {BLOCK_ICONS[block.type]}
-        </div>
-
+      <div className={cn('flex items-start gap-2', draggable && 'pl-4')}>
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium uppercase tracking-wide opacity-70">
-              {block.activity?.category
-                ? CATEGORY_LABELS[block.activity.category] || block.activity.category
-                : block.type === 'rest-block' ? 'Rest' : 'Activity'}
-            </span>
-            {block.startTime && (
-              <span className="text-xs opacity-70">
-                {formatTime12h(block.startTime)}
-                {block.endTime && ` - ${formatTime12h(block.endTime)}`}
-              </span>
-            )}
-          </div>
 
           {/* Edit Form */}
           {isEditing ? (
@@ -700,71 +681,56 @@ interface ActivityDisplayProps {
 
 function ActivityDisplay({ activity, priority, date, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
   const isBooked = activity.reservationStatus === 'done';
+  const categoryIcon = CATEGORY_ICONS[activity.category] || <Compass className="w-3.5 h-3.5" />;
 
   return (
     <div>
-      <div className="font-medium">{activity.name}</div>
-      {activity.description && (
-        <p className="text-sm opacity-80 mt-0.5 line-clamp-2">{activity.description}</p>
-      )}
-      <div className="flex flex-wrap gap-2 mt-2 text-xs">
-        {activity.location?.name && (
-          <button
-            onClick={() => onOpenPlaceDetails?.(activity.location!.name)}
-            className="flex items-center gap-1 opacity-70 hover:opacity-100 hover:text-blue-600 transition-colors group"
-            title="View place details"
-          >
-            <MapPin className="w-3 h-3" />
-            <span className="group-hover:underline">{activity.location.name}</span>
-            <Star className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-          </button>
-        )}
+      {/* Compact header: icon + name + time on same line */}
+      <div className="flex items-center gap-1.5">
+        <span className="opacity-60 flex-shrink-0">{categoryIcon}</span>
+        <span className="font-medium">{activity.name}</span>
         {activity.duration && (
-          <span className="flex items-center gap-1 opacity-70">
-            <Clock className="w-3 h-3" />
+          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
             {formatDuration(activity.duration)}
           </span>
         )}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70">
+        {activity.location?.name && (
+          <button
+            onClick={() => onOpenPlaceDetails?.(activity.location!.name)}
+            className="flex items-center gap-1 hover:opacity-100 hover:text-blue-600 transition-colors"
+            title="View place details"
+          >
+            <MapPin className="w-3 h-3" />
+            <span className="hover:underline">{activity.location.name}</span>
+          </button>
+        )}
         {activity.cost && (
-          <span className="flex items-center gap-1 opacity-70">
+          <span className="flex items-center gap-1">
             <DollarSign className="w-3 h-3" />
             {activity.cost.amount}
           </span>
         )}
         {activity.bookingRequired && (
-          <div className="flex items-center gap-1">
-            <Badge
-              variant={isBooked ? 'default' : 'outline'}
-              className={cn(
-                'text-xs cursor-pointer transition-colors',
-                isBooked
-                  ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (editable && onToggleBooked) {
-                  onToggleBooked();
-                }
-              }}
-              title={editable ? (isBooked ? 'Click to mark as not booked' : 'Click to mark as booked') : undefined}
-            >
-              {isBooked ? 'Booked!' : 'Booking required'}
-            </Badge>
-            {!isBooked && (
-              <a
-                href={activity.bookingUrl || generateBookingUrl(activity, { date })}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-                title={`Book on ${getBookingProvider(activity.category).name}`}
-              >
-                <ExternalLink className="w-3 h-3" />
-                Book
-              </a>
+          <Badge
+            variant={isBooked ? 'default' : 'outline'}
+            className={cn(
+              'text-[10px] px-1.5 py-0 h-4 cursor-pointer transition-colors',
+              isBooked
+                ? 'bg-green-500 hover:bg-green-600 text-white'
+                : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
             )}
-          </div>
+            onClick={(e) => {
+              e.stopPropagation();
+              if (editable && onToggleBooked) {
+                onToggleBooked();
+              }
+            }}
+            title={editable ? (isBooked ? 'Click to mark as not booked' : 'Click to mark as booked') : undefined}
+          >
+            {isBooked ? '✓' : 'Book'}
+          </Badge>
         )}
       </div>
       {activity.tips && activity.tips.length > 0 && (
