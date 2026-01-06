@@ -876,11 +876,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2 py-2 pt-20 pb-24 md:pt-2 md:pb-2 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 pt-16 pb-20 md:pt-1 md:pb-1 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-1.5 items-stretch">
           {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
-          <aside className="hidden md:flex md:col-span-4 flex-col gap-2 min-h-0">
+          <aside className="hidden md:flex md:col-span-4 flex-col gap-1.5 min-h-0">
             {/* Map - shows all locations for overview, single location for schedule */}
             <TripRouteMap
               bases={itinerary.route.bases}
@@ -896,7 +896,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
             {/* Pipeline Card - compact square widgets at bottom */}
             <Card className="flex-shrink-0">
-              <CardContent className="p-2">
+              <CardContent className="p-1.5">
                 <div className="grid grid-cols-3 gap-2">
                   {/* Overview */}
                   <PipelineRow
@@ -985,7 +985,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
           {/* Right Column - Daily Itinerary */}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col">
-              <CardContent className="p-2 flex flex-col h-full overflow-hidden">
+              <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
                   {/* Overview - Trip Summary */}
@@ -1081,8 +1081,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           if (lastGroup && lastGroup.location === location) {
                             lastGroup.endDate = dateStr;
                             lastGroup.endDay = dayNum;
-                            // Nights = number of days at this location (you sleep each night you're there, except maybe last day)
-                            lastGroup.nights = lastGroup.endDay - lastGroup.startDay + 1;
+                            // Nights = days - 1 (you sleep each night except you leave on the last day)
+                            // But minimum 1 night if you're there at all
+                            lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
                           } else {
                             groups.push({
                               location,
@@ -1090,7 +1091,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               endDate: dateStr,
                               startDay: dayNum,
                               endDay: dayNum,
-                              nights: 1, // Even a single day means 1 night at that location
+                              nights: 1, // Single day = 1 night at that location
                             });
                           }
 
