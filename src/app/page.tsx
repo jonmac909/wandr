@@ -53,10 +53,11 @@ export default function Home() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 overflow-hidden min-h-0">
         <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
-          {/* Left Column: Calendar + Recent Trips (hidden on mobile) */}
+          {/* Left Column: Weather + Calendar + Recent Trips (hidden on mobile) */}
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 min-h-0 overflow-hidden">
+            <WeatherWidget location={featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={2} />
           </aside>
 
           {/* Center Column: Featured Trip + Housing (horizontal) + Transport (below) */}

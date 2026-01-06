@@ -711,20 +711,28 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {itinerary.route.bases.map(b => b.location.split(',')[0]).join(' → ')}
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs">
+                {/* Schedule - each base with nights */}
+                <div className="space-y-1.5 mb-3">
+                  {itinerary.route.bases.map((base, idx) => (
+                    <div key={base.id} className="flex items-center gap-2 text-xs">
+                      <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
+                      <span className="font-medium">{base.location.split(',')[0]}</span>
+                      <span className="text-muted-foreground">
+                        {base.nights} {base.nights === 1 ? 'night' : 'nights'}
+                      </span>
+                      {idx < itinerary.route.bases.length - 1 && (
+                        <span className="text-muted-foreground">→</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground border-t pt-3">
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>{itinerary.days.length} days</span>
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{itinerary.days.length} days total</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Hotel className="w-3.5 h-3.5 text-primary" />
-                    <span>{itinerary.route.bases.length} bases</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-primary" />
+                    <DollarSign className="w-3.5 h-3.5" />
                     <span>
                       {tripDna?.constraints?.budget?.dailySpend
                         ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`

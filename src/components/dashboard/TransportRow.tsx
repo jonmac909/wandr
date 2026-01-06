@@ -44,7 +44,7 @@ export function TransportRow({ transport }: TransportRowProps) {
   });
 
   return (
-    <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-3 py-2 first:pt-0 last:pb-0 hover:bg-muted/50 transition-colors rounded-lg">
       {/* Carrier icon and name */}
       <div className="flex items-center gap-3 w-28 flex-shrink-0">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>

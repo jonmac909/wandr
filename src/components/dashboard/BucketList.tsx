@@ -1,6 +1,7 @@
 'use client';
 
-import { MapPin, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Plus, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface BucketListItem {
@@ -11,7 +12,7 @@ interface BucketListItem {
 }
 
 interface BucketListProps {
-  items?: BucketListItem[];
+  initialItems?: BucketListItem[];
   maxItems?: number;
 }
 
@@ -23,8 +24,13 @@ const DEFAULT_ITEMS: BucketListItem[] = [
   { id: '4', destination: 'Iceland', country: 'Iceland', emoji: '🇮🇸' },
 ];
 
-export function BucketList({ items = DEFAULT_ITEMS, maxItems = 4 }: BucketListProps) {
+export function BucketList({ initialItems = DEFAULT_ITEMS, maxItems = 4 }: BucketListProps) {
+  const [items, setItems] = useState<BucketListItem[]>(initialItems);
   const displayItems = items.slice(0, maxItems);
+
+  const handleRemove = (id: string) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+  };
 
   return (
     <Card className="flex-1">
@@ -37,19 +43,31 @@ export function BucketList({ items = DEFAULT_ITEMS, maxItems = 4 }: BucketListPr
           </button>
         </div>
         <div className="space-y-2">
-          {displayItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-            >
-              <span className="text-base">{item.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{item.destination}</p>
-                <p className="text-[10px] text-muted-foreground">{item.country}</p>
+          {displayItems.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              No destinations yet. Add your dream trips!
+            </p>
+          ) : (
+            displayItems.map((item) => (
+              <div
+                key={item.id}
+                className="group flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <span className="text-base">{item.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{item.destination}</p>
+                  <p className="text-[10px] text-muted-foreground">{item.country}</p>
+                </div>
+                <button
+                  onClick={() => handleRemove(item.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 transition-all"
+                  title="Remove from bucket list"
+                >
+                  <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                </button>
               </div>
-              <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </CardContent>
     </Card>
