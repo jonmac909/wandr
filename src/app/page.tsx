@@ -15,6 +15,7 @@ import {
   PlanNewTripButton,
   TripDrawer,
   ImportModal,
+  BucketList,
 } from '@/components/dashboard';
 import { useDashboardData, getFeaturedTrip, getRecentTrips } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
@@ -67,11 +68,11 @@ export default function Home() {
             <TransportSection transport={transport.slice(0, 2)} />
           </section>
 
-          {/* Right Column: Stats + Map + Countries */}
+          {/* Right Column: Stats + Map + Bucket List */}
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 min-h-0 overflow-hidden">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={5} />
+            <BucketList />
           </aside>
         </div>
       </main>

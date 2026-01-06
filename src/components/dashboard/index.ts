@@ -22,6 +22,7 @@ export { WorldMap } from './WorldMap';
 export { CountryBreakdown } from './CountryBreakdown';
 export { WeatherWidget } from './WeatherWidget';
 export { PlanNewTripButton } from './PlanNewTripButton';
+export { BucketList } from './BucketList';
 
 // Overlays
 export { TripDrawer } from './TripDrawer';
