@@ -354,16 +354,46 @@ export default function TripPage() {
     tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
-  // Get location for a specific day based on the base/accommodation
+  // Get location for a specific day - infer from activities
   const getLocationForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
-    // First try to get location from the day's base
-    const base = itinerary.route.bases.find(b => b.id === day.baseId);
-    if (base?.location) return base.location;
+    // Try to get location from hotel/accommodation activity on this day
+    const hotelBlock = day.blocks.find(b =>
+      b.activity?.category === 'accommodation' ||
+      b.activity?.category === 'checkin' ||
+      b.activity?.category === 'hotel'
+    );
+    if (hotelBlock?.activity?.location?.name) {
+      // Extract city from hotel location (e.g., "Hotel Nikko Narita" -> look at location name)
+      return hotelBlock.activity.location.name;
+    }
+
+    // Try to extract destination from flight arrival on this day
+    const flightBlock = day.blocks.find(b => b.activity?.category === 'flight');
+    if (flightBlock?.activity?.name) {
+      // Parse flight name like "YVR → NRT" or "Vancouver to Tokyo"
+      const flightName = flightBlock.activity.name;
+      const arrowMatch = flightName.match(/→\s*(.+)$/);
+      if (arrowMatch) return arrowMatch[1].trim();
+      const toMatch = flightName.match(/to\s+(.+)$/i);
+      if (toMatch) return toMatch[1].trim();
+    }
+
+    // Try any activity with a location
+    for (const block of day.blocks) {
+      if (block.activity?.location?.name) {
+        return block.activity.location.name;
+      }
+    }
+
+    // Last resort: check the day's theme which often contains location
+    if (day.theme) {
+      return day.theme;
+    }
 
     // Fallback to trip destination
-    return itinerary.meta.destination || '';
+    return itinerary.meta.destination || `Day ${day.dayNumber}`;
   };
 
   // Regenerate packing list based on trip activities
