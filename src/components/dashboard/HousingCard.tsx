@@ -1,7 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Base } from '@/types/itinerary';
 
@@ -24,31 +24,35 @@ export function HousingCard({ base }: HousingCardProps) {
 
   return (
     <Card className="overflow-hidden hover:border-primary/30 transition-colors group">
-      {/* Large Photo on top */}
-      <div className="relative w-full h-28 overflow-hidden">
-        <img
-          src={`https://source.unsplash.com/400x300/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      </div>
-
-      {/* Info below */}
-      <CardContent className="p-3">
-        <h4 className="font-semibold text-sm mb-1 line-clamp-1">{name}</h4>
-        <p className="text-xs text-muted-foreground mb-1 line-clamp-1">{address}</p>
-        <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
-
-        <div className="flex items-center justify-between">
-          {price && (
-            <span className="text-sm font-bold">{price}</span>
-          )}
-          <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
-            <Check className="w-3 h-3" />
-            Paid
-          </Badge>
+      <div className="flex">
+        {/* Square Photo on LEFT */}
+        <div className="relative w-28 h-28 flex-shrink-0 overflow-hidden">
+          <img
+            src={`https://source.unsplash.com/300x300/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         </div>
-      </CardContent>
+
+        {/* Info on RIGHT */}
+        <div className="flex-1 p-3 flex flex-col justify-between">
+          <div>
+            <h4 className="font-semibold text-sm mb-1 line-clamp-2">{name}</h4>
+            <p className="text-xs text-muted-foreground mb-1 line-clamp-1">{address}</p>
+            <p className="text-xs text-muted-foreground">{dateRange}</p>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            {price && (
+              <span className="text-sm font-bold">{price}</span>
+            )}
+            <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
+              <Check className="w-3 h-3" />
+              Paid
+            </Badge>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }
