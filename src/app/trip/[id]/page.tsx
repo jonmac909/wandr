@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
+import { DashboardHeader } from '@/components/dashboard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -567,9 +568,12 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       )}
 
-      {/* Header */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur border-b z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* Main Navigation Header */}
+      <DashboardHeader activeTab="trips" />
+
+      {/* Trip Title Bar */}
+      <div className="sticky top-14 bg-background/95 backdrop-blur border-b z-10">
+        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
           <Link href="/" className="text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-5 h-5" />
           </Link>
@@ -627,11 +631,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </header>
+      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-4xl mx-auto">
-        <div className="sticky top-[53px] bg-background/95 backdrop-blur border-b z-10">
+        <div className="sticky top-[104px] bg-background/95 backdrop-blur border-b z-10">
           <TabsList className="w-full justify-start px-4 py-2 h-auto bg-transparent gap-1 overflow-x-auto">
             <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm">
               <Sparkles className="w-4 h-4" />
