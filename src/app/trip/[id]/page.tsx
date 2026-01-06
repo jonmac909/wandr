@@ -1111,6 +1111,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                             }
                                           }}
                                         >
+                                          {/* Day numbers */}
+                                          <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
+                                            {group.startDay === group.endDay
+                                              ? `Day ${group.startDay}`
+                                              : `Day ${group.startDay}-${group.endDay}`}
+                                          </div>
+                                          {/* Location and dates */}
                                           <div className="flex-1 min-w-0">
                                             {editingOverviewIndex === index ? (
                                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -1145,14 +1152,21 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                                 </Button>
                                               </div>
                                             ) : (
-                                              <p className="font-medium truncate">
-                                                {group.location}
-                                              </p>
+                                              <>
+                                                <p className="font-medium truncate">
+                                                  {group.location}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  {formatDateString(group.startDate)}
+                                                  {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                                </p>
+                                              </>
                                             )}
                                           </div>
+                                          {/* Nights and actions */}
                                           {editingOverviewIndex !== index && (
                                             <div className="flex items-center gap-2 flex-shrink-0">
-                                              <span className="text-sm text-muted-foreground">
+                                              <span className="text-xs text-muted-foreground">
                                                 {group.nights === 1 ? '1 night' : `${group.nights} nights`}
                                               </span>
                                               <Button
