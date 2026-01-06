@@ -431,10 +431,35 @@ export default function TripPage() {
     'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
   };
 
-  // Convert airport code to city name if needed
+  // Convert airport code to city name - ALWAYS return city name, never airport code
   const airportToCity = (location: string): string => {
-    const code = location.trim().toUpperCase();
-    return AIRPORT_TO_CITY[code] || location;
+    if (!location) return '';
+    const trimmed = location.trim();
+
+    // Check if it's a direct airport code match
+    const upperCode = trimmed.toUpperCase();
+    if (AIRPORT_TO_CITY[upperCode]) {
+      return AIRPORT_TO_CITY[upperCode];
+    }
+
+    // Check if location starts with airport code (e.g., "CNX, Thailand" or "CNX - Chiang Mai")
+    const firstPart = trimmed.split(/[,\-–]/)[0].trim().toUpperCase();
+    if (AIRPORT_TO_CITY[firstPart]) {
+      return AIRPORT_TO_CITY[firstPart];
+    }
+
+    // Check if any 3-letter airport code appears in the string
+    const codeMatch = trimmed.match(/\b([A-Z]{3})\b/i);
+    if (codeMatch) {
+      const matchedCode = codeMatch[1].toUpperCase();
+      if (AIRPORT_TO_CITY[matchedCode]) {
+        return AIRPORT_TO_CITY[matchedCode];
+      }
+    }
+
+    // Return original but strip any trailing country/region after comma
+    const cityPart = trimmed.split(',')[0].trim();
+    return cityPart;
   };
 
   // Format date for display (e.g., "Mon, Feb 10")
