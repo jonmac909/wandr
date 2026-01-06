@@ -975,7 +975,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                             <Card>
                               <CardContent className="p-4">
-                                <h3 className="text-sm font-medium text-muted-foreground mb-3">Itinerary</h3>
                                 <div className="space-y-2">
                                   {groups.map((group, index) => (
                                     <div
@@ -995,7 +994,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                         </p>
                                       </div>
                                       <div className="text-xs text-muted-foreground flex-shrink-0">
-                                        {group.nights > 0 ? `${group.nights} nights` : ''}
+                                        {group.nights === 1 ? '1 night' : group.nights > 1 ? `${group.nights} nights` : ''}
                                       </div>
                                     </div>
                                   ))}
@@ -1008,9 +1007,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </div>
                   )}
 
-                  {/* Schedule - Daily Itinerary (same as All but with different trigger) */}
+                  {/* Schedule - Daily Itinerary organized by Month > Week > Day */}
                   {(contentFilter === 'schedule' || contentFilter === 'all') && (
-                    <div className="space-y-4 pr-2">
+                    <div className="space-y-6 pr-2">
                       {(() => {
                         // Generate all days in the date range (no gaps)
                         const firstDate = itinerary.days[0]?.date;
@@ -1028,61 +1027,125 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         const daysByDate: Record<string, DayPlan> = {};
                         itinerary.days.forEach(d => { daysByDate[d.date] = d; });
 
-                        // Generate all days
-                        const allDays: (DayPlan | { date: string; dayNumber: number; isEmpty: true })[] = [];
+                        // Generate all days with month/week info
+                        type DayEntry = (DayPlan | { date: string; dayNumber: number; isEmpty: true }) & {
+                          monthKey: string;
+                          weekKey: string;
+                          weekOfMonth: number;
+                        };
+                        const allDays: DayEntry[] = [];
                         let dayNum = 1;
                         const current = new Date(start);
+                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
                         while (current <= end) {
                           const dateStr = current.toISOString().split('T')[0];
                           const existingDay = daysByDate[dateStr];
 
+                          const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                          // Calculate week of month (1-based)
+                          const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1);
+                          const weekOfMonth = Math.ceil((current.getDate() + firstOfMonth.getDay()) / 7);
+                          const weekKey = `${monthKey}-W${weekOfMonth}`;
+
                           if (existingDay) {
-                            allDays.push({ ...existingDay, dayNumber: dayNum });
+                            allDays.push({ ...existingDay, dayNumber: dayNum, monthKey, weekKey, weekOfMonth });
                           } else {
-                            allDays.push({ date: dateStr, dayNumber: dayNum, isEmpty: true });
+                            allDays.push({ date: dateStr, dayNumber: dayNum, isEmpty: true, monthKey, weekKey, weekOfMonth });
                           }
 
                           dayNum++;
                           current.setDate(current.getDate() + 1);
                         }
 
-                        return allDays.map((day) => {
-                          if ('isEmpty' in day) {
-                            // Render empty day placeholder
-                            const [year, month, dayOfMonth] = day.date.split('-').map(Number);
-                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                            const dateDisplay = `${months[month - 1]} ${dayOfMonth}`;
-
-                            return (
-                              <div key={day.date} className="p-4 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
-                                <div className="flex items-center gap-3 text-muted-foreground">
-                                  <span className="text-sm font-medium">Day {day.dayNumber}</span>
-                                  <span className="text-xs">{dateDisplay}</span>
-                                  <span className="text-xs ml-auto italic">No activities planned</span>
-                                </div>
-                              </div>
-                            );
+                        // Group by month, then by week
+                        const monthGroups: Record<string, { month: string; year: number; weeks: Record<string, DayEntry[]> }> = {};
+                        allDays.forEach(day => {
+                          const [year, month] = day.monthKey.split('-').map(Number);
+                          if (!monthGroups[day.monthKey]) {
+                            monthGroups[day.monthKey] = {
+                              month: monthNames[month - 1],
+                              year,
+                              weeks: {}
+                            };
                           }
+                          if (!monthGroups[day.monthKey].weeks[day.weekKey]) {
+                            monthGroups[day.monthKey].weeks[day.weekKey] = [];
+                          }
+                          monthGroups[day.monthKey].weeks[day.weekKey].push(day);
+                        });
+
+                        const sortedMonthKeys = Object.keys(monthGroups).sort();
+
+                        return sortedMonthKeys.map(monthKey => {
+                          const monthGroup = monthGroups[monthKey];
+                          const sortedWeekKeys = Object.keys(monthGroup.weeks).sort();
 
                           return (
-                            <DayCard
-                              key={day.id}
-                              day={day}
-                              isToday={day.date === new Date().toISOString().split('T')[0]}
-                              isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                              onToggle={() => setExpandedDay(
-                                expandedDay === day.dayNumber ? null : day.dayNumber
-                              )}
-                              onUpdateDay={handleUpdateDay}
-                              location={getLocationForDay(day)}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              onDrop={handleDrop}
-                              onDragOver={handleDragOver}
-                              isDragging={dragState.blockId !== null}
-                              dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
-                            />
+                            <div key={monthKey} className="space-y-4">
+                              {/* Month Header */}
+                              <div className="sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b">
+                                <h3 className="text-lg font-bold">{monthGroup.month} {monthGroup.year}</h3>
+                              </div>
+
+                              {/* Weeks within month */}
+                              {sortedWeekKeys.map(weekKey => {
+                                const weekDays = monthGroup.weeks[weekKey];
+                                const weekNum = weekDays[0]?.weekOfMonth;
+
+                                return (
+                                  <div key={weekKey} className="space-y-2">
+                                    {/* Week Header */}
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground pl-2">
+                                      <span className="font-medium">Week {weekNum}</span>
+                                      <div className="flex-1 h-px bg-border" />
+                                    </div>
+
+                                    {/* Days within week */}
+                                    <div className="space-y-2 pl-4">
+                                      {weekDays.map((day) => {
+                                        if ('isEmpty' in day && day.isEmpty) {
+                                          // Render empty day placeholder
+                                          const [, month, dayOfMonth] = day.date.split('-').map(Number);
+                                          const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                          const dateDisplay = `${shortMonths[month - 1]} ${dayOfMonth}`;
+
+                                          return (
+                                            <div key={day.date} className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
+                                              <div className="flex items-center gap-3 text-muted-foreground">
+                                                <span className="text-sm font-medium">Day {day.dayNumber}</span>
+                                                <span className="text-xs">{dateDisplay}</span>
+                                                <span className="text-xs ml-auto italic">No activities planned</span>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <DayCard
+                                            key={day.date}
+                                            day={day as DayPlan}
+                                            isToday={day.date === new Date().toISOString().split('T')[0]}
+                                            isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                                            onToggle={() => setExpandedDay(
+                                              expandedDay === day.dayNumber ? null : day.dayNumber
+                                            )}
+                                            onUpdateDay={handleUpdateDay}
+                                            location={getLocationForDay(day as DayPlan)}
+                                            onDragStart={handleDragStart}
+                                            onDragEnd={handleDragEnd}
+                                            onDrop={handleDrop}
+                                            onDragOver={handleDragOver}
+                                            isDragging={dragState.blockId !== null}
+                                            dragOverIndex={dragState.targetDayId === (day as DayPlan).id ? dragState.targetIndex : null}
+                                          />
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           );
                         });
                       })()}
