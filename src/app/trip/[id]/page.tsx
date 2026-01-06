@@ -202,10 +202,25 @@ export default function TripPage() {
   const handleUpdateOverviewLocation = (startDate: string, endDate: string, newLocation: string) => {
     if (!itinerary || !newLocation.trim()) return;
 
-    // Update all days in the range to have this location as their theme
+    // Update all days in the range:
+    // 1. Set a custom location override field
+    // 2. Update all activity locations to the new city
     const updatedDays = itinerary.days.map(day => {
       if (day.date >= startDate && day.date <= endDate) {
-        return { ...day, theme: newLocation.trim() };
+        // Update all activity locations to new city
+        const updatedBlocks = day.blocks.map(block => {
+          if (block.activity?.location) {
+            return {
+              ...block,
+              activity: {
+                ...block.activity,
+                location: { ...block.activity.location, name: newLocation.trim() }
+              }
+            };
+          }
+          return block;
+        });
+        return { ...day, blocks: updatedBlocks, customLocation: newLocation.trim() };
       }
       return day;
     });
@@ -475,6 +490,11 @@ export default function TripPage() {
   // Get the BASE CITY for a day - analyze the schedule to find where you SLEEP that night
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
+
+    // 0. Check if user manually edited this location
+    if ((day as DayPlan & { customLocation?: string }).customLocation) {
+      return (day as DayPlan & { customLocation?: string }).customLocation!;
+    }
 
     // 1. First check for accommodation activity - that's where you sleep
     const accommodationBlock = day.blocks.find(b =>
