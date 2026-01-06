@@ -707,9 +707,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </aside>
 
           {/* Right Column - Daily Itinerary */}
-          <section className="lg:col-span-8 min-h-0">
+          <section className="lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-8rem)] overflow-hidden">
             <Card className="h-full flex flex-col">
-              <CardContent className="p-4 flex flex-col h-full">
+              <CardContent className="p-4 flex flex-col h-full overflow-hidden">
                 {/* Header - only show when filtered (not overview or all) */}
                 {contentFilter !== 'all' && contentFilter !== 'overview' && (
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
