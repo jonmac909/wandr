@@ -147,31 +147,73 @@ export default function Home() {
             <div className="relative h-48 md:h-64 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
               {/* Map visualization */}
               {heroView === 'map' && (
-                <div className="absolute inset-0 p-6">
-                  {/* Simplified world map dots */}
-                  <div className="relative w-full h-full">
-                    {/* Past trip markers */}
-                    {trips.map((trip, i) => (
-                      <div
-                        key={trip.id}
-                        className="absolute w-3 h-3 rounded-full bg-primary/60 animate-pulse"
-                        style={{
-                          left: `${20 + (i * 15) % 60}%`,
-                          top: `${30 + (i * 20) % 40}%`,
-                        }}
-                        title={trip.itinerary?.meta.title || 'Trip'}
-                      />
-                    ))}
-                    {/* Upcoming trip star */}
-                    {upcomingTrips[0] && (
-                      <div
-                        className="absolute"
-                        style={{ left: '70%', top: '35%' }}
-                      >
-                        <div className="w-4 h-4 text-yellow-400">★</div>
-                        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-white/80 whitespace-nowrap">
-                          {upcomingTrips[0].itinerary?.meta.title}
-                        </span>
+                <div className="absolute inset-0">
+                  {/* World map SVG background */}
+                  <svg
+                    viewBox="0 0 1000 500"
+                    className="absolute inset-0 w-full h-full opacity-20"
+                    preserveAspectRatio="xMidYMid slice"
+                  >
+                    {/* Simplified continent outlines */}
+                    {/* North America */}
+                    <path d="M150,80 Q200,60 250,80 L280,120 Q300,180 250,220 L180,200 Q120,180 130,120 Z" fill="currentColor" className="text-white/40" />
+                    {/* South America */}
+                    <path d="M220,240 Q260,230 280,260 L290,350 Q270,400 230,380 L200,300 Q190,260 220,240 Z" fill="currentColor" className="text-white/40" />
+                    {/* Europe */}
+                    <path d="M450,80 Q520,60 550,90 L560,130 Q540,160 480,150 L440,120 Q430,90 450,80 Z" fill="currentColor" className="text-white/40" />
+                    {/* Africa */}
+                    <path d="M480,170 Q530,160 560,190 L570,280 Q540,340 490,320 L450,260 Q440,200 480,170 Z" fill="currentColor" className="text-white/40" />
+                    {/* Asia */}
+                    <path d="M580,70 Q700,50 800,90 L850,150 Q840,220 750,230 L650,210 Q580,180 570,120 Z" fill="currentColor" className="text-white/40" />
+                    {/* Australia */}
+                    <path d="M780,280 Q830,270 860,300 L870,340 Q850,370 800,360 L770,320 Q760,290 780,280 Z" fill="currentColor" className="text-white/40" />
+                  </svg>
+
+                  {/* Grid lines for visual interest */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="w-full h-full" style={{
+                      backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                      backgroundSize: '50px 50px'
+                    }} />
+                  </div>
+
+                  {/* Trip markers */}
+                  <div className="relative w-full h-full p-6">
+                    {trips.length > 0 ? (
+                      <>
+                        {/* Past trip markers */}
+                        {trips.map((trip, i) => (
+                          <div
+                            key={trip.id}
+                            className="absolute w-3 h-3 rounded-full bg-primary/80 animate-pulse shadow-lg shadow-primary/50"
+                            style={{
+                              left: `${20 + (i * 15) % 60}%`,
+                              top: `${30 + (i * 20) % 40}%`,
+                            }}
+                            title={trip.itinerary?.meta.title || 'Trip'}
+                          />
+                        ))}
+                        {/* Upcoming trip star */}
+                        {upcomingTrips[0] && (
+                          <div
+                            className="absolute"
+                            style={{ left: '70%', top: '35%' }}
+                          >
+                            <div className="w-5 h-5 text-yellow-400 text-xl">★</div>
+                            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-white/80 whitespace-nowrap bg-black/30 px-2 py-0.5 rounded">
+                              {upcomingTrips[0].itinerary?.meta.title}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Empty state */
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <Map className="w-10 h-10 mx-auto mb-2 text-white/40" />
+                          <p className="text-white/60 text-sm">Your travel map</p>
+                          <p className="text-white/40 text-xs">Plan a trip to add pins</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -253,43 +295,54 @@ export default function Home() {
                 Upcoming
               </h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {upcomingTrips.map((trip) => {
                 const daysUntil = getDaysUntil(trip);
+                const destination = trip.itinerary?.meta.destination || trip.itinerary?.route?.bases?.[0]?.location || 'travel';
+                // Use destination for Unsplash photo
+                const photoQuery = destination.split(',')[0].trim().toLowerCase();
                 return (
                   <Link key={trip.id} href={`/trip/${trip.id}`}>
-                    <Card className="group hover:border-primary/30 transition-all cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-                              <Plane className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold group-hover:text-primary transition-colors">
-                                {trip.itinerary?.meta.title || 'Untitled'}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {trip.itinerary?.meta.startDate} • {trip.itinerary?.meta.totalDays} days
-                              </p>
-                            </div>
+                    <Card className="group hover:border-primary/30 transition-all cursor-pointer overflow-hidden">
+                      {/* Photo header */}
+                      <div className="relative h-40 overflow-hidden">
+                        <img
+                          src={`https://source.unsplash.com/800x400/?${encodeURIComponent(photoQuery)},landmark`}
+                          alt={destination}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        {/* Countdown badge */}
+                        {daysUntil && (
+                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
+                            {daysUntil} days to go
                           </div>
-                          <div className="text-right">
-                            {daysUntil && (
-                              <Badge variant="secondary" className="mb-1">
-                                In {daysUntil} days
-                              </Badge>
-                            )}
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              {/* Would show task progress */}
-                            </div>
+                        )}
+                        {/* Title overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <h3 className="text-xl font-bold text-white mb-1">
+                            {trip.itinerary?.meta.title || 'Untitled Trip'}
+                          </h3>
+                          <div className="flex items-center gap-3 text-white/80 text-sm">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {trip.itinerary?.meta.startDate}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {trip.itinerary?.meta.totalDays} days
+                            </span>
                           </div>
                         </div>
-                        {/* Alert for urgent tasks */}
-                        <div className="mt-3 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
-                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                          <span>Book tickets before they sell out</span>
+                      </div>
+                      {/* Quick info bar */}
+                      <CardContent className="p-3 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            <span>{trip.itinerary?.route?.bases?.length || 0} destinations</span>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                         </div>
                       </CardContent>
                     </Card>
@@ -379,10 +432,20 @@ export default function Home() {
               </Button>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-              {trips.filter(t => t.itinerary).slice(0, 4).map((trip) => (
+              {trips.filter(t => t.itinerary).slice(0, 4).map((trip) => {
+                const dest = trip.itinerary?.meta.destination || trip.itinerary?.route?.bases?.[0]?.location || 'travel';
+                const photoQ = dest.split(',')[0].trim().toLowerCase();
+                return (
                 <Link key={trip.id} href={`/trip/${trip.id}`}>
-                  <Card className="flex-shrink-0 w-28 hover:border-primary/30 transition-all cursor-pointer overflow-hidden">
-                    <div className="h-16 gradient-primary" />
+                  <Card className="flex-shrink-0 w-36 hover:border-primary/30 transition-all cursor-pointer overflow-hidden group">
+                    <div className="h-24 relative overflow-hidden">
+                      <img
+                        src={`https://source.unsplash.com/300x200/?${encodeURIComponent(photoQ)},travel`}
+                        alt={dest}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    </div>
                     <CardContent className="p-2 text-center">
                       <h3 className="font-medium text-sm truncate">
                         {trip.itinerary?.meta.title?.split(' ')[0] || 'Trip'}
@@ -393,7 +456,8 @@ export default function Home() {
                     </CardContent>
                   </Card>
                 </Link>
-              ))}
+              );
+              })}
             </div>
           </section>
         )}
