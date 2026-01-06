@@ -43,9 +43,9 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
   return (
     <Link href={`/trip/${trip.id}`}>
       <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
-        <div className="flex">
+        <div className="flex h-[280px]">
           {/* Large Square Photo - Left side */}
-          <div className="relative w-[200px] h-[200px] flex-shrink-0 overflow-hidden bg-muted">
+          <div className="relative w-[280px] h-full flex-shrink-0 overflow-hidden bg-muted">
             <img
               src={imageUrl}
               alt={title}
