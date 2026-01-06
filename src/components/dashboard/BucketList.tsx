@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+
+const STORAGE_KEY = 'wandr-bucket-list';
 
 interface BucketListItem {
   id: string;
@@ -41,11 +43,34 @@ const DEFAULT_ITEMS: BucketListItem[] = [
 ];
 
 export function BucketList({ initialItems = DEFAULT_ITEMS, maxItems = 4 }: BucketListProps) {
-  const [items, setItems] = useState<BucketListItem[]>(initialItems);
+  const [items, setItems] = useState<BucketListItem[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newDestination, setNewDestination] = useState('');
   const [newCountry, setNewCountry] = useState('');
+  const [isLoaded, setIsLoaded] = useState(false);
   const displayItems = items.slice(0, maxItems);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setItems(JSON.parse(saved));
+      } catch {
+        setItems(initialItems);
+      }
+    } else {
+      setItems(initialItems);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage when items change
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+  }, [items, isLoaded]);
 
   const handleRemove = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
