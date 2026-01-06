@@ -12,8 +12,8 @@ export function WorldMap({ trips }: WorldMapProps) {
   const tripCount = trips.length;
 
   return (
-    <Card className="overflow-hidden h-full">
-      <CardContent className="p-0 h-full relative">
+    <Card className="overflow-hidden flex-shrink-0">
+      <CardContent className="p-0 relative h-[120px]">
         {/* World map image placeholder */}
         <img
           src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/1280px-World_map_blank_without_borders.svg.png"

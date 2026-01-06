@@ -46,7 +46,7 @@ export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: Recen
   const [firstTrip, ...remainingTrips] = otherTrips;
 
   return (
-    <Card className="h-full overflow-hidden">
+    <Card className="flex-1 overflow-hidden">
       <CardContent className="p-0 h-full flex flex-col">
         <div className="p-3 pb-2">
           <h3 className="font-semibold text-sm">Other Trips</h3>
