@@ -154,6 +154,7 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
             />
             {/* Upload image overlay */}
             <button
+              type="button"
               onClick={triggerImageUpload}
               className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"
             >

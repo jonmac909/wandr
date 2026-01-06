@@ -62,12 +62,35 @@ const CATEGORY_COLORS: Record<string, string> = {
   'flight': 'bg-blue-100 text-blue-800 border-blue-200',
   'hotel': 'bg-purple-100 text-purple-800 border-purple-200',
   'accommodation': 'bg-purple-100 text-purple-800 border-purple-200',
+  'checkin': 'bg-purple-100 text-purple-800 border-purple-200',
   'food': 'bg-orange-100 text-orange-800 border-orange-200',
   'restaurant': 'bg-orange-100 text-orange-800 border-orange-200',
   'activity': 'bg-amber-100 text-amber-800 border-amber-200',
   'experience': 'bg-amber-100 text-amber-800 border-amber-200',
   'sightseeing': 'bg-amber-100 text-amber-800 border-amber-200',
+  'relaxation': 'bg-green-100 text-green-800 border-green-200',
+  'shopping': 'bg-pink-100 text-pink-800 border-pink-200',
+  'nightlife': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'workshop': 'bg-teal-100 text-teal-800 border-teal-200',
   'transit': 'bg-gray-100 text-gray-800 border-gray-200',
+};
+
+// Human-readable labels for activity categories
+const CATEGORY_LABELS: Record<string, string> = {
+  'flight': 'Flight',
+  'hotel': 'Hotel',
+  'accommodation': 'Hotel',
+  'checkin': 'Check-in',
+  'food': 'Restaurant',
+  'restaurant': 'Restaurant',
+  'activity': 'Activity',
+  'experience': 'Experience',
+  'sightseeing': 'Sightseeing',
+  'relaxation': 'Rest',
+  'shopping': 'Shopping',
+  'nightlife': 'Nightlife',
+  'workshop': 'Workshop',
+  'transit': 'Transit',
 };
 
 const PRIORITY_STYLES: Record<string, { bg: string; icon: React.ReactNode }> = {
@@ -159,12 +182,6 @@ export function DayCard({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg',
-              isToday ? 'bg-primary text-primary-foreground' : 'bg-muted'
-            )}>
-              {day.dayNumber}
-            </div>
             <div>
               {editingTheme ? (
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -471,7 +488,9 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, drag
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-medium uppercase tracking-wide opacity-70">
-              {block.type.replace('-', ' ')}
+              {block.activity?.category
+                ? CATEGORY_LABELS[block.activity.category] || block.activity.category
+                : block.type === 'rest-block' ? 'Rest' : 'Activity'}
             </span>
             {block.startTime && (
               <span className="text-xs opacity-70">

@@ -33,6 +33,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Pipeline category colors matching the daily itinerary
+const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
+  'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
+  'Schedule': { bg: 'bg-cyan-50 border-cyan-200', iconBg: 'bg-cyan-100 text-cyan-600', text: 'text-cyan-800' },
+  'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
+  'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
+  'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
+  'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
+  'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
+  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
+  'Budget': { bg: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600', text: 'text-emerald-800' },
+};
+
 export default function TripPage() {
   const params = useParams();
   const router = useRouter();
@@ -340,16 +353,47 @@ export default function TripPage() {
     tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
-  // Get location for a specific day based on the base or activities
+  // Get location for a specific day based on flights
+  // Location persists until a flight changes it
   const getLocationForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
-    // Try to get location from the day's base
-    const base = itinerary.route.bases.find(b => b.id === day.baseId);
-    if (base?.location) return base.location;
+    // Find the most recent flight before or on this day
+    let currentLocation = itinerary.meta.destination || '';
 
-    // Fallback to destination from meta
-    return itinerary.meta.destination || '';
+    // Sort days by date and find location based on flight history
+    const sortedDays = [...itinerary.days].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    for (const d of sortedDays) {
+      // Check if this day or any previous day has a flight
+      const flightBlock = d.blocks.find(b => b.activity?.category === 'flight');
+      if (flightBlock?.activity) {
+        // Try to extract destination from flight name (e.g., "Flight to Danang" or "SFO → DAN")
+        const flightName = flightBlock.activity.name || '';
+        const toMatch = flightName.match(/(?:to|→|->)\s*([A-Za-z\s]+)/i);
+        if (toMatch) {
+          currentLocation = toMatch[1].trim();
+        } else if (flightBlock.activity.location?.name) {
+          // Fallback to activity location
+          currentLocation = flightBlock.activity.location.name;
+        }
+      }
+
+      // If we've reached the current day, return the location
+      if (d.id === day.id) {
+        break;
+      }
+    }
+
+    // If no location found from flights, try the day's base
+    if (!currentLocation) {
+      const base = itinerary.route.bases.find(b => b.id === day.baseId);
+      if (base?.location) return base.location;
+    }
+
+    return currentLocation;
   };
 
   // Regenerate packing list based on trip activities
@@ -611,25 +655,31 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </div>
 
-      {/* Mobile Bottom Tab Bar (iOS-style) */}
+      {/* Mobile Bottom Tab Bar (square widgets matching desktop) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
-        <div className="flex justify-around items-center py-2">
+        <div className="flex justify-around items-center p-2 gap-2">
           {[
-            { id: 'overview', label: 'Overview', icon: Sparkles },
-            { id: 'schedule', label: 'Schedule', icon: CalendarDays },
-            { id: 'docs', label: 'Docs', icon: FileText },
-          ].map(({ id, label, icon: Icon }) => (
+            { id: 'overview', label: 'Overview', icon: Sparkles, colors: PIPELINE_COLORS['Overview'] },
+            { id: 'schedule', label: 'Schedule', icon: Calendar, colors: PIPELINE_COLORS['Schedule'] },
+            { id: 'docs', label: 'Docs', icon: FileText, colors: PIPELINE_COLORS['Docs'] },
+          ].map(({ id, label, icon: Icon, colors }) => (
             <button
               key={id}
               onClick={() => setContentFilter(id)}
-              className={`flex flex-col items-center gap-1 px-6 py-1 rounded-lg transition-colors ${
+              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all aspect-square w-20 border ${
                 contentFilter === id
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : `${colors.bg} hover:opacity-80`
               }`}
             >
-              <Icon className="w-6 h-6" />
-              <span className="text-[10px] font-medium">{label}</span>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
+                contentFilter === id
+                  ? 'bg-primary-foreground/20'
+                  : colors.iconBg
+              }`}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className={`text-[10px] font-medium text-center ${contentFilter === id ? '' : colors.text}`}>{label}</span>
             </button>
           ))}
         </div>
@@ -659,7 +709,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   />
                   {/* Schedule - Daily Itinerary */}
                   <PipelineRow
-                    icon={<CalendarDays className="w-4 h-4" />}
+                    icon={<Calendar className="w-4 h-4" />}
                     label="Schedule"
                     count={itinerary.days.length}
                     status="complete"
@@ -1230,19 +1280,6 @@ interface PipelineRowProps {
   active?: boolean;
   onClick: () => void;
 }
-
-// Pipeline category colors matching the daily itinerary
-const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
-  'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
-  'Schedule': { bg: 'bg-cyan-50 border-cyan-200', iconBg: 'bg-cyan-100 text-cyan-600', text: 'text-cyan-800' },
-  'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
-  'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
-  'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
-  'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
-  'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
-  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
-  'Budget': { bg: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600', text: 'text-emerald-800' },
-};
 
 function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
   const colors = PIPELINE_COLORS[label] || { bg: 'bg-muted/50 border-transparent', iconBg: 'bg-muted text-muted-foreground', text: '' };
