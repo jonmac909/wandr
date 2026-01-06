@@ -474,36 +474,9 @@ export default function TripPage() {
 
   // Get the BASE CITY for a day (used for overview grouping - only groups by city changes)
   // This should return the actual city, NOT the day's theme/activity
+  // Returns ONE city only - the destination city for that day
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
-
-    // Check if this is a travel day with flights - show route
-    const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
-    if (flightBlocks.length > 0) {
-      const cities: string[] = [];
-      for (const flightBlock of flightBlocks) {
-        const flightName = flightBlock.activity?.name || '';
-        const arrowMatch = flightName.match(/^(.+?)\s*→\s*(.+)$/);
-        if (arrowMatch) {
-          const fromCity = airportToCity(arrowMatch[1].trim());
-          const toCity = airportToCity(arrowMatch[2].trim());
-          if (cities.length === 0) cities.push(fromCity);
-          cities.push(toCity);
-        } else {
-          const toMatch = flightName.match(/^(.+?)\s+to\s+(.+)$/i);
-          if (toMatch) {
-            const fromCity = airportToCity(toMatch[1].trim());
-            const toCity = airportToCity(toMatch[2].trim());
-            if (cities.length === 0) cities.push(fromCity);
-            cities.push(toCity);
-          }
-        }
-      }
-      if (cities.length > 0) {
-        const dedupedCities = cities.filter((city, i) => i === 0 || city !== cities[i - 1]);
-        return dedupedCities.join(' - ');
-      }
-    }
 
     // Find which base this day belongs to based on date
     for (const base of itinerary.route.bases) {
