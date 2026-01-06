@@ -48,7 +48,7 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
   const hasHousing = hotelCount > 0;
 
   // Count flights from movements and day activities
-  const movementFlights = itinerary.route?.movements?.filter(m => m.type === 'flight').length || 0;
+  const movementFlights = itinerary.route?.movements?.filter(m => m.transportType === 'flight').length || 0;
   const activityFlights = itinerary.days?.reduce((acc, d) =>
     acc + (d.blocks?.filter(b => b.activity?.category === 'flight').length || 0), 0) || 0;
   const flightCount = movementFlights + activityFlights;
