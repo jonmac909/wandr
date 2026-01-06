@@ -738,7 +738,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
                 <h3 className="font-semibold mb-3 flex-shrink-0">Trip Pipeline</h3>
-                <div className="grid grid-cols-2 gap-2 overflow-auto flex-1">
+                <div className="grid grid-cols-3 gap-2 overflow-auto flex-1">
                   {/* Flights */}
                   <PipelineRow
                     icon={<Plane className="w-4 h-4" />}
