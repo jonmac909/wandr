@@ -361,8 +361,7 @@ export default function TripPage() {
     // Try to get location from hotel/accommodation activity on this day
     const hotelBlock = day.blocks.find(b =>
       b.activity?.category === 'accommodation' ||
-      b.activity?.category === 'checkin' ||
-      b.activity?.category === 'hotel'
+      b.activity?.category === 'checkin'
     );
     if (hotelBlock?.activity?.location?.name) {
       // Extract city from hotel location (e.g., "Hotel Nikko Narita" -> look at location name)
