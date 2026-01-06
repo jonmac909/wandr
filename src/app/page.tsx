@@ -10,6 +10,7 @@ import {
   TransportSection,
   StatsPanel,
   WorldMap,
+  CountryBreakdown,
   WeatherWidget,
   PlanNewTripButton,
   TripDrawer,
@@ -55,7 +56,7 @@ export default function Home() {
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 overflow-hidden">
             <MonthCalendar trips={trips} />
             <div className="flex-1 min-h-0">
-              <RecentTripsSidebar trips={trips} maxTrips={3} />
+              <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
             </div>
           </aside>
 
@@ -66,18 +67,11 @@ export default function Home() {
             <TransportSection transport={transport.slice(0, 2)} />
           </section>
 
-          {/* Right Column: Stats + Weather + Map + Plan Button */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 overflow-hidden">
+          {/* Right Column: Stats + Map + Countries + Plan Button */}
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 overflow-auto">
             <StatsPanel stats={stats} />
-            <WeatherWidget
-              location={
-                featuredTrip?.itinerary?.meta?.destination ||
-                featuredTrip?.itinerary?.route?.bases?.[0]?.location
-              }
-            />
-            <div className="flex-1 min-h-0">
-              <WorldMap trips={trips} />
-            </div>
+            <WorldMap trips={trips} />
+            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={5} />
             <PlanNewTripButton />
           </aside>
         </div>

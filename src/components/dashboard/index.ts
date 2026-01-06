@@ -19,6 +19,7 @@ export { TransportRow } from './TransportRow';
 export { StatsPanel } from './StatsPanel';
 export { StatCard } from './StatCard';
 export { WorldMap } from './WorldMap';
+export { CountryBreakdown } from './CountryBreakdown';
 export { WeatherWidget } from './WeatherWidget';
 export { PlanNewTripButton } from './PlanNewTripButton';
 

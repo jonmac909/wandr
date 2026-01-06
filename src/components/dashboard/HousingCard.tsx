@@ -15,9 +15,7 @@ export function HousingCard({ base }: HousingCardProps) {
   const photoQuery = base.location.split(',')[0]?.trim().toLowerCase() || 'hotel';
 
   // Format dates
-  const checkIn = formatDate(base.checkIn);
-  const checkOut = formatDate(base.checkOut);
-  const dateRange = checkIn && checkOut ? `${checkIn} - ${checkOut}` : '';
+  const dateRange = formatDateRange(base.checkIn, base.checkOut);
 
   // Mock price (in real app, would come from accommodation data)
   const price = base.accommodation?.priceRange
@@ -25,41 +23,53 @@ export function HousingCard({ base }: HousingCardProps) {
     : null;
 
   return (
-    <Card className="overflow-hidden hover:border-primary/30 transition-colors">
-      <div className="flex">
-        {/* Thumbnail */}
-        <div className="w-16 h-16 flex-shrink-0 overflow-hidden">
-          <img
-            src={`https://source.unsplash.com/150x150/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
-            alt={name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Info */}
-        <CardContent className="flex-1 p-2">
-          <h4 className="font-semibold text-xs mb-0.5 line-clamp-1">{name}</h4>
-          <p className="text-xs text-muted-foreground line-clamp-1">{dateRange}</p>
-
-          <div className="flex items-center gap-1.5 mt-1">
-            {price && (
-              <span className="text-xs font-semibold">{price}</span>
-            )}
-            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 text-green-600 border-green-200 bg-green-50">
-              <Check className="w-2.5 h-2.5" />
-              Paid
-            </Badge>
-          </div>
-        </CardContent>
+    <Card className="overflow-hidden hover:border-primary/30 transition-colors group">
+      {/* Large Photo on top */}
+      <div className="relative w-full h-28 overflow-hidden">
+        <img
+          src={`https://source.unsplash.com/400x300/?${encodeURIComponent(photoQuery)},hotel,accommodation`}
+          alt={name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
       </div>
+
+      {/* Info below */}
+      <CardContent className="p-3">
+        <h4 className="font-semibold text-sm mb-1 line-clamp-1">{name}</h4>
+        <p className="text-xs text-muted-foreground mb-1 line-clamp-1">{address}</p>
+        <p className="text-xs text-muted-foreground mb-2">{dateRange}</p>
+
+        <div className="flex items-center justify-between">
+          {price && (
+            <span className="text-sm font-bold">{price}</span>
+          )}
+          <Badge variant="outline" className="gap-1 text-xs text-green-600 border-green-200 bg-green-50">
+            <Check className="w-3 h-3" />
+            Paid
+          </Badge>
+        </div>
+      </CardContent>
     </Card>
   );
 }
 
-function formatDate(dateStr: string): string {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+function formatDateRange(start: string, end: string): string {
+  if (!start) return '';
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+
+  const formatOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+
+  if (!endDate) {
+    return startDate.toLocaleDateString('en-US', formatOptions);
+  }
+
+  // Same month and year - show as "18-20 July 2024"
+  if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
+    return `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+  }
+
+  return `${startDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('en-US', formatOptions)}`;
 }
 
 function getPriceFromRange(range: string, nights: number): string {

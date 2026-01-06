@@ -8,56 +8,56 @@ import { RecentTripCard } from './RecentTripCard';
 
 interface RecentTripsSidebarProps {
   trips: StoredTrip[];
+  excludeTripId?: string;
   maxTrips?: number;
 }
 
-export function RecentTripsSidebar({ trips, maxTrips = 5 }: RecentTripsSidebarProps) {
-  // Filter to upcoming trips (with start date in future) and sort by soonest first
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcomingTrips = trips
+export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: RecentTripsSidebarProps) {
+  // Filter to trips with itineraries, excluding the featured trip, sorted by most recent update
+  const otherTrips = trips
     .filter(trip => {
-      const startDate = trip.itinerary?.meta?.startDate;
-      if (!startDate) return false;
-      return new Date(startDate) >= today;
+      // Exclude the featured trip
+      if (excludeTripId && trip.id === excludeTripId) return false;
+      // Must have an itinerary
+      return trip.itinerary !== null;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.itinerary?.meta?.startDate || 0);
-      const dateB = new Date(b.itinerary?.meta?.startDate || 0);
-      return dateA.getTime() - dateB.getTime(); // Soonest first
+      // Sort by most recently updated
+      const dateA = new Date(a.updatedAt);
+      const dateB = new Date(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
     })
     .slice(0, maxTrips);
 
-  if (upcomingTrips.length === 0) {
+  if (otherTrips.length === 0) {
     return (
       <Card className="h-full">
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-3 text-sm">Upcoming Trips</h3>
+          <h3 className="font-semibold mb-3 text-sm">Other Trips</h3>
           <p className="text-xs text-muted-foreground text-center py-4">
-            No upcoming trips. Plan your next adventure!
+            No other trips yet. Plan another adventure!
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const [featuredTrip, ...otherTrips] = upcomingTrips;
+  const [firstTrip, ...remainingTrips] = otherTrips;
 
   return (
     <Card className="h-full overflow-hidden">
       <CardContent className="p-0 h-full flex flex-col">
         <div className="p-3 pb-2">
-          <h3 className="font-semibold text-sm">Upcoming Trips</h3>
+          <h3 className="font-semibold text-sm">Other Trips</h3>
         </div>
 
-        {/* Featured first trip with large photo */}
-        <FeaturedUpcomingTrip trip={featuredTrip} />
+        {/* First trip with large photo */}
+        <FeaturedUpcomingTrip trip={firstTrip} />
 
         {/* Other trips listed smaller below */}
-        {otherTrips.length > 0 && (
+        {remainingTrips.length > 0 && (
           <div className="px-2 pb-2 space-y-0.5">
-            {otherTrips.map((trip) => (
+            {remainingTrips.map((trip) => (
               <RecentTripCard key={trip.id} trip={trip} />
             ))}
           </div>
