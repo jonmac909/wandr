@@ -786,17 +786,16 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="lg:col-span-8 min-h-0">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                  <h3 className="font-semibold">
-                    {contentFilter === 'all' ? 'Daily Itinerary' :
-                     contentFilter === 'flights' ? 'Flights' :
-                     contentFilter === 'hotels' ? 'Hotels' :
-                     contentFilter === 'restaurants' ? 'Food & Restaurants' :
-                     contentFilter === 'experiences' ? 'Activities' :
-                     contentFilter === 'packing' ? 'Packing List' : 'Daily Itinerary'}
-                  </h3>
-                  {contentFilter !== 'all' && (
+                {/* Header - only show when filtered */}
+                {contentFilter !== 'all' && (
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                    <h3 className="font-semibold">
+                      {contentFilter === 'flights' ? 'Flights' :
+                       contentFilter === 'hotels' ? 'Hotels' :
+                       contentFilter === 'restaurants' ? 'Food & Restaurants' :
+                       contentFilter === 'experiences' ? 'Activities' :
+                       contentFilter === 'packing' ? 'Packing List' : ''}
+                    </h3>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -805,8 +804,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     >
                       Show All
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
