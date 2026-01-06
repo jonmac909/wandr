@@ -65,6 +65,10 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`useDashboardData.ts`** - Aggregates trip data for dashboard
 - **`useTripStats.ts`** - Calculates trip statistics, date ranges
 
+### Database Hooks (`src/lib/db/use-trip-db.ts`)
+- **`useTrips()`** - Load all trips with `{ trips, loading, error, refresh }`
+- **`useTrip(tripId)`** - Load single trip with `{ trip, loading, error, refresh, updateTrip, deleteTrip }`
+
 ## Ground Rules
 
 - Start replies with 🔧 emoji
@@ -72,6 +76,7 @@ TimeBlock { activity: Activity, priority, isLocked }
 - Work in small, verifiable steps
 - Always check TypeScript errors before committing: `npx tsc --noEmit`
 - Deploy: push to GitHub (Netlify auto-deploys). If deploy doesn't trigger, use empty commit: `git commit --allow-empty -m "chore: trigger deploy" && git push`
+- **Always push to live after completing tasks** unless explicitly told not to
 
 ## Key Patterns
 
@@ -84,10 +89,11 @@ const date = new Date(y, m - 1, d);
 
 ### Location Detection
 The `getCityForDay()` function in trip page determines where user sleeps each night by checking:
-1. Accommodation activity location
-2. Last flight destination
-3. Any activity location
-4. Base data fallback
+1. Custom location override (`customLocation` field on DayPlan)
+2. Accommodation activity location
+3. Last flight destination
+4. Any activity location
+5. Base data fallback
 
 ### Content Filtering
 Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels'|'experiences'|'packing'|'docs'|'budget'`
