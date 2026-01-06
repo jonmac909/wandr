@@ -23,6 +23,7 @@ import {
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
 import { DashboardHeader } from '@/components/dashboard';
+import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -635,8 +636,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left Column - Trip Info + Pipeline */}
+          {/* Left Column - Route Map + Trip Info + Pipeline */}
           <aside className="lg:col-span-4 min-h-0 flex flex-col gap-3">
+            {/* Route Map */}
+            <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
+
             {/* Trip Info Card */}
             <Card className="flex-shrink-0">
               <CardContent className="p-4">
