@@ -473,26 +473,23 @@ export default function TripPage() {
   };
 
   // Get the BASE CITY for a day (used for overview grouping - only groups by city changes)
-  // This should return the actual city, NOT the day's theme/activity
-  // Returns ONE city only - the destination city for that day
+  // Returns the city where you SLEEP that night, not where you start the day
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
-    // Find which base this day belongs to based on date
+    // Find the base where this day is the checkIn date or between checkIn and day before checkOut
+    // (checkOut day means you leave, so you sleep there the night before, not that night)
     for (const base of itinerary.route.bases) {
-      if (day.date >= base.checkIn && day.date <= base.checkOut) {
-        // Use region (city name) first, then fall back to location
+      if (day.date >= base.checkIn && day.date < base.checkOut) {
         return base.region || airportToCity(base.location);
       }
     }
 
-    // Fallback: try to get from accommodation block
-    const hotelBlock = day.blocks.find(b =>
-      b.activity?.category === 'accommodation' ||
-      b.activity?.category === 'checkin'
-    );
-    if (hotelBlock?.activity?.location?.name) {
-      return airportToCity(hotelBlock.activity.location.name);
+    // For the last day (checkout day), find which base has checkIn on this date
+    for (const base of itinerary.route.bases) {
+      if (day.date === base.checkIn) {
+        return base.region || airportToCity(base.location);
+      }
     }
 
     // Final fallback to destination
