@@ -541,7 +541,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
   // Full itinerary view
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Food Recommendation Modal */}
       {foodModalDay && (
         <FoodRecommendationModal
@@ -638,10 +638,10 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 py-6 pt-28 lg:pt-6">
+      {/* Main Content Area - Fixed height, no page scroll */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 lg:pt-4 overflow-hidden flex flex-col">
         {/* Back link - desktop only */}
-        <div className="hidden lg:block mb-4">
+        <div className="hidden lg:block mb-2 flex-shrink-0">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-4 h-4" />
             Back to Dashboard
@@ -649,8 +649,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
 
         {/* Hero Section - Centered Title, Route, Stats */}
-        <div className="text-center mb-8 pb-6 border-b">
-          <div className="flex items-center justify-center gap-2 mb-2">
+        <div className="text-center mb-4 pb-4 border-b flex-shrink-0">
+          <div className="flex items-center justify-center gap-2 mb-1">
             {isEditing ? (
               <div className="flex items-center gap-2">
                 <Input
@@ -672,14 +672,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
               </div>
             ) : (
               <>
-                <h1 className="text-3xl font-bold">{itinerary.meta.title}</h1>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditing}>
-                  <Pencil className="w-4 h-4" />
+                <h1 className="text-2xl font-bold">{itinerary.meta.title}</h1>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditing}>
+                  <Pencil className="w-3.5 h-3.5" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreVertical className="w-3.5 h-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -706,7 +706,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </div>
 
           {/* Route */}
-          <p className="text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-2">
             {itinerary.route.bases.map(b => b.location.split(',')[0]).join(' → ')}
           </p>
 
@@ -731,14 +731,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </div>
         </div>
 
-        {/* Two Column Layout: Pipeline Left, Itinerary Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Two Column Layout: Pipeline Left, Itinerary Right - fills remaining space */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Column - Pipeline */}
-          <aside className="lg:col-span-4">
-            <Card className="sticky top-20">
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-4">Trip Pipeline</h3>
-                <div className="space-y-2">
+          <aside className="lg:col-span-4 min-h-0">
+            <Card className="h-full flex flex-col">
+              <CardContent className="p-4 flex flex-col h-full">
+                <h3 className="font-semibold mb-3 flex-shrink-0">Trip Pipeline</h3>
+                <div className="grid grid-cols-2 gap-2 overflow-auto flex-1">
                   {/* Flights */}
                   <PipelineRow
                     icon={<Plane className="w-4 h-4" />}
@@ -789,148 +789,155 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </aside>
 
           {/* Right Column - Daily Itinerary */}
-          <section className="lg:col-span-8">
-            {/* Filter Bar */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">
-                {contentFilter === 'all' ? 'Daily Itinerary' : contentFilter === 'flights' ? 'Flights' : contentFilter === 'hotels' ? 'Hotels' : contentFilter === 'restaurants' ? 'Restaurants' : 'Experiences'}
-              </h2>
-              <Select value={contentFilter} onValueChange={setContentFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="flights">Flights</SelectItem>
-                  <SelectItem value="hotels">Hotels</SelectItem>
-                  <SelectItem value="restaurants">Restaurants</SelectItem>
-                  <SelectItem value="experiences">Experiences</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* All - Daily Itinerary */}
-            {contentFilter === 'all' && (
-              <div className="space-y-4">
-                {itinerary.days.map((day) => (
-                  <DayCard
-                    key={day.id}
-                    day={day}
-                    isToday={day.date === new Date().toISOString().split('T')[0]}
-                    isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                    onToggle={() => setExpandedDay(
-                      expandedDay === day.dayNumber ? null : day.dayNumber
-                    )}
-                    onUpdateDay={handleUpdateDay}
-                    onFindFood={(d) => setFoodModalDay(d)}
-                    location={getLocationForDay(day)}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    isDragging={dragState.blockId !== null}
-                    dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
-                  />
-                ))}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
-                  <GripVertical className="w-3 h-3" />
-                  <span>Drag activities to reorder or move between days</span>
+          <section className="lg:col-span-8 min-h-0">
+            <Card className="h-full flex flex-col">
+              <CardContent className="p-4 flex flex-col h-full">
+                {/* Filter Bar */}
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                  <h3 className="font-semibold">
+                    {contentFilter === 'all' ? 'Daily Itinerary' : contentFilter === 'flights' ? 'Flights' : contentFilter === 'hotels' ? 'Hotels' : contentFilter === 'restaurants' ? 'Restaurants' : 'Experiences'}
+                  </h3>
+                  <Select value={contentFilter} onValueChange={setContentFilter}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <Filter className="w-3 h-3 mr-1" />
+                      <SelectValue placeholder="Filter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="flights">Flights</SelectItem>
+                      <SelectItem value="hotels">Hotels</SelectItem>
+                      <SelectItem value="restaurants">Restaurants</SelectItem>
+                      <SelectItem value="experiences">Experiences</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            )}
 
-            {/* Filtered View - Flights */}
-            {contentFilter === 'flights' && (
-              <div className="space-y-4">
-                {itinerary.days.flatMap(day =>
-                  day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
-                    <Card key={block.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                            <Plane className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{block.activity?.name}</h4>
-                            <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                            <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-                {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
-                  <div className="text-center py-12">
-                    <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                    <p className="text-muted-foreground">No flights in this trip</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Filtered View - Hotels */}
-            {contentFilter === 'hotels' && (
-              <div className="space-y-4">
-                {itinerary.route.bases.map(base => (
-                  <Card key={base.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                          <Hotel className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</h4>
-                          <p className="text-sm text-muted-foreground">{base.location}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {base.nights} night{base.nights > 1 ? 's' : ''}
-                            {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
-                          </p>
-                        </div>
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-auto min-h-0">
+                  {/* All - Daily Itinerary */}
+                  {contentFilter === 'all' && (
+                    <div className="space-y-4 pr-2">
+                      {itinerary.days.map((day) => (
+                        <DayCard
+                          key={day.id}
+                          day={day}
+                          isToday={day.date === new Date().toISOString().split('T')[0]}
+                          isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                          onToggle={() => setExpandedDay(
+                            expandedDay === day.dayNumber ? null : day.dayNumber
+                          )}
+                          onUpdateDay={handleUpdateDay}
+                          onFindFood={(d) => setFoodModalDay(d)}
+                          location={getLocationForDay(day)}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                          isDragging={dragState.blockId !== null}
+                          dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
+                        />
+                      ))}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
+                        <GripVertical className="w-3 h-3" />
+                        <span>Drag activities to reorder or move between days</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                    </div>
+                  )}
 
-            {/* Filtered View - Restaurants */}
-            {contentFilter === 'restaurants' && (
-              <div className="space-y-4">
-                <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
-              </div>
-            )}
-
-            {/* Filtered View - Experiences */}
-            {contentFilter === 'experiences' && (
-              <div className="space-y-4">
-                {itinerary.days.flatMap(day =>
-                  day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
-                    <Card key={block.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <Compass className="w-6 h-6 text-amber-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{block.activity?.name}</h4>
-                            <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                            <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
-                          </div>
+                  {/* Filtered View - Flights */}
+                  {contentFilter === 'flights' && (
+                    <div className="space-y-4 pr-2">
+                      {itinerary.days.flatMap(day =>
+                        day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
+                          <Card key={block.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                  <Plane className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{block.activity?.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                      {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
+                        <div className="text-center py-12">
+                          <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                          <p className="text-muted-foreground">No flights in this trip</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-                {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')) && (
-                  <div className="text-center py-12">
-                    <Compass className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                    <p className="text-muted-foreground">No experiences planned yet</p>
-                  </div>
-                )}
-              </div>
-            )}
+                      )}
+                    </div>
+                  )}
+
+                  {/* Filtered View - Hotels */}
+                  {contentFilter === 'hotels' && (
+                    <div className="space-y-4 pr-2">
+                      {itinerary.route.bases.map(base => (
+                        <Card key={base.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                <Hotel className="w-6 h-6 text-purple-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</h4>
+                                <p className="text-sm text-muted-foreground">{base.location}</p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {base.nights} night{base.nights > 1 ? 's' : ''}
+                                  {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Filtered View - Restaurants */}
+                  {contentFilter === 'restaurants' && (
+                    <div className="space-y-4 pr-2">
+                      <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
+                    </div>
+                  )}
+
+                  {/* Filtered View - Experiences */}
+                  {contentFilter === 'experiences' && (
+                    <div className="space-y-4 pr-2">
+                      {itinerary.days.flatMap(day =>
+                        day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
+                          <Card key={block.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                  <Compass className="w-6 h-6 text-amber-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{block.activity?.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                      {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')) && (
+                        <div className="text-center py-12">
+                          <Compass className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                          <p className="text-muted-foreground">No experiences planned yet</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </section>
         </div>
       </main>
@@ -969,13 +976,17 @@ function PipelineRow({ icon, label, count, total, status, active, onClick }: Pip
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full p-3 rounded-lg transition-all text-left ${
+      className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all aspect-square ${
         active
           ? 'bg-primary text-primary-foreground'
-          : 'hover:bg-muted/50'
+          : status === 'complete'
+          ? 'bg-green-50 border border-green-200 hover:bg-green-100'
+          : status === 'partial'
+          ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100'
+          : 'bg-muted/50 border border-transparent hover:bg-muted'
       }`}
     >
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
         active
           ? 'bg-primary-foreground/20'
           : status === 'complete'
@@ -984,18 +995,13 @@ function PipelineRow({ icon, label, count, total, status, active, onClick }: Pip
           ? 'bg-amber-100 text-amber-600'
           : 'bg-muted text-muted-foreground'
       }`}>
-        {status === 'complete' && !active ? <Check className="w-4 h-4" /> : icon}
+        {status === 'complete' && !active ? <Check className="w-5 h-5" /> : icon}
       </div>
-      <div className="flex-1 min-w-0">
-        <span className={`text-sm font-medium ${active ? '' : ''}`}>{label}</span>
-        {count !== undefined && (
-          <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-            {total ? `${count} of ${total} booked` : `${count} added`}
-          </p>
-        )}
-      </div>
-      {status === 'complete' && !active && (
-        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+      <span className={`text-xs font-medium text-center ${active ? '' : ''}`}>{label}</span>
+      {count !== undefined && (
+        <p className={`text-[10px] text-center ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+          {total ? `${count}/${total}` : `${count}`}
+        </p>
       )}
     </button>
   );

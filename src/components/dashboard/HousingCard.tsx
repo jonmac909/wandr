@@ -13,9 +13,9 @@ export function HousingCard({ base }: HousingCardProps) {
   const imageUrl = getAccommodationImage(name, 120, 120);
 
   return (
-    <div className="flex gap-2 group">
+    <div className="flex gap-3 group">
       {/* Square Photo with rounded corners */}
-      <div className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
+      <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
         <img
           src={imageUrl}
           alt={name}
@@ -25,11 +25,11 @@ export function HousingCard({ base }: HousingCardProps) {
 
       {/* Compact info */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="font-medium text-xs truncate">{name}</h4>
-        <p className="text-[10px] text-muted-foreground">{base.nights} nights</p>
-        <div className="flex items-center gap-1 mt-0.5">
-          <Check className="w-3 h-3 text-green-600" />
-          <span className="text-[10px] text-green-600 font-medium">Booked</span>
+        <h4 className="font-medium text-sm truncate">{name}</h4>
+        <p className="text-xs text-muted-foreground">{base.nights} nights</p>
+        <div className="flex items-center gap-1 mt-1">
+          <Check className="w-3.5 h-3.5 text-green-600" />
+          <span className="text-xs text-green-600 font-medium">Booked</span>
         </div>
       </div>
     </div>

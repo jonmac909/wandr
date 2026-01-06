@@ -51,17 +51,15 @@ export default function Home() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
           {/* Left Column: Calendar + Recent Trips (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 overflow-hidden">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 justify-end">
             <MonthCalendar trips={trips} />
-            <div className="flex-1 min-h-0">
-              <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
-            </div>
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
           </aside>
 
           {/* Center Column: Featured Trip + Housing (horizontal) + Transport (below) */}
-          <section className="lg:col-span-6 flex flex-col gap-3 overflow-hidden">
+          <section className="lg:col-span-6 flex flex-col gap-3 justify-end">
             <FeaturedTripCard trip={featuredTrip} />
             {/* Housing - horizontal layout */}
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
@@ -70,7 +68,7 @@ export default function Home() {
           </section>
 
           {/* Right Column: Weather + Stats + Map + Countries + Plan Button */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 overflow-hidden">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 justify-end">
             <WeatherWidget location={featuredTrip?.itinerary?.meta?.destination || featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
