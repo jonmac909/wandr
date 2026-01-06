@@ -1080,7 +1080,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               <Card>
                                 <CardContent className="p-3 text-center">
                                   <p className="text-2xl font-bold">{transportCount}</p>
-                                  <p className="text-xs text-muted-foreground">Transport</p>
+                                  <p className="text-xs text-muted-foreground">Flights</p>
                                 </CardContent>
                               </Card>
                             </div>
