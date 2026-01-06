@@ -481,19 +481,20 @@ export default function TripPage() {
     // (checkOut day means you leave, so you sleep there the night before, not that night)
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date < base.checkOut) {
-        return base.region || airportToCity(base.location);
+        // base.location has city names like "Chiang Mai", "Da Nang", etc.
+        return base.location;
       }
     }
 
     // For the last day (checkout day), find which base has checkIn on this date
     for (const base of itinerary.route.bases) {
       if (day.date === base.checkIn) {
-        return base.region || airportToCity(base.location);
+        return base.location;
       }
     }
 
     // Final fallback to destination
-    return airportToCity(itinerary.meta.destination || '');
+    return itinerary.meta.destination || '';
   };
 
   // Get location for a specific day - infer from activities
