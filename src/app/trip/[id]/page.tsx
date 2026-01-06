@@ -656,6 +656,15 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     active={contentFilter === 'overview'}
                     onClick={() => setContentFilter('overview')}
                   />
+                  {/* Schedule - Daily Itinerary */}
+                  <PipelineRow
+                    icon={<CalendarDays className="w-4 h-4" />}
+                    label="Schedule"
+                    count={itinerary.days.length}
+                    status="complete"
+                    active={contentFilter === 'schedule'}
+                    onClick={() => setContentFilter('schedule')}
+                  />
                   {/* Flights */}
                   <PipelineRow
                     icon={<Plane className="w-4 h-4" />}
@@ -663,7 +672,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
                     active={contentFilter === 'flights'}
-                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
+                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'overview' : 'flights')}
                   />
                   {/* Hotels */}
                   <PipelineRow
@@ -673,7 +682,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     total={itinerary.route.bases.length}
                     status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
                     active={contentFilter === 'hotels'}
-                    onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
+                    onClick={() => setContentFilter(contentFilter === 'hotels' ? 'overview' : 'hotels')}
                   />
                   {/* Restaurants */}
                   <PipelineRow
@@ -682,7 +691,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.foodLayer?.length || 0}
                     status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
                     active={contentFilter === 'restaurants'}
-                    onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
+                    onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'overview' : 'restaurants')}
                   />
                   {/* Experiences */}
                   <PipelineRow
@@ -691,7 +700,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
                     active={contentFilter === 'experiences'}
-                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
+                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'overview' : 'experiences')}
                   />
                   {/* Packing */}
                   <PipelineRow
@@ -699,7 +708,23 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Packing"
                     status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
                     active={contentFilter === 'packing'}
-                    onClick={() => setContentFilter(contentFilter === 'packing' ? 'all' : 'packing')}
+                    onClick={() => setContentFilter(contentFilter === 'packing' ? 'overview' : 'packing')}
+                  />
+                  {/* Docs */}
+                  <PipelineRow
+                    icon={<FileText className="w-4 h-4" />}
+                    label="Docs"
+                    status="pending"
+                    active={contentFilter === 'docs'}
+                    onClick={() => setContentFilter(contentFilter === 'docs' ? 'overview' : 'docs')}
+                  />
+                  {/* Budget */}
+                  <PipelineRow
+                    icon={<DollarSign className="w-4 h-4" />}
+                    label="Budget"
+                    status="pending"
+                    active={contentFilter === 'budget'}
+                    onClick={() => setContentFilter(contentFilter === 'budget' ? 'overview' : 'budget')}
                   />
                 </div>
               </CardContent>
@@ -710,15 +735,18 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-8rem)] overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full overflow-hidden">
-                {/* Header - only show when filtered (not overview or all) */}
-                {contentFilter !== 'all' && contentFilter !== 'overview' && (
+                {/* Header - only show when filtered (not overview or schedule) */}
+                {contentFilter !== 'overview' && contentFilter !== 'schedule' && (
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <h3 className="font-semibold">
                       {contentFilter === 'flights' ? 'Flights' :
                        contentFilter === 'hotels' ? 'Hotels' :
                        contentFilter === 'restaurants' ? 'Food & Restaurants' :
                        contentFilter === 'experiences' ? 'Activities' :
-                       contentFilter === 'packing' ? 'Packing List' : ''}
+                       contentFilter === 'packing' ? 'Packing List' :
+                       contentFilter === 'docs' ? 'Documents' :
+                       contentFilter === 'budget' ? 'Budget' :
+                       contentFilter === 'all' ? 'Daily Itinerary' : ''}
                     </h3>
                     <Button
                       variant="ghost"
@@ -853,17 +881,17 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         <Button
                           variant="outline"
                           className="w-full"
-                          onClick={() => setContentFilter('all')}
+                          onClick={() => setContentFilter('schedule')}
                         >
-                          <LayoutList className="w-4 h-4 mr-2" />
-                          View Daily Itinerary
+                          <CalendarDays className="w-4 h-4 mr-2" />
+                          View Daily Schedule
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* All - Daily Itinerary */}
-                  {contentFilter === 'all' && (
+                  {/* Schedule - Daily Itinerary (same as All but with different trigger) */}
+                  {(contentFilter === 'schedule' || contentFilter === 'all') && (
                     <div className="space-y-4 pr-2">
                       {itinerary.days.map((day) => (
                         <DayCard
@@ -989,6 +1017,119 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
                     </div>
                   )}
+
+                  {/* Documents View */}
+                  {contentFilter === 'docs' && (
+                    <div className="space-y-4 pr-2">
+                      <div className="text-center py-12">
+                        <FileText className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+                        <h3 className="font-semibold mb-2">Trip Documents</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Upload and organize your travel documents
+                        </p>
+                        <Button variant="outline">
+                          <FileText className="w-4 h-4 mr-2" />
+                          Upload Document
+                        </Button>
+                      </div>
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm font-medium mb-3">Suggested Documents</h4>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <Circle className="w-3 h-3" />
+                            <span>Flight confirmations</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <Circle className="w-3 h-3" />
+                            <span>Hotel reservations</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <Circle className="w-3 h-3" />
+                            <span>Passport / ID copies</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <Circle className="w-3 h-3" />
+                            <span>Travel insurance</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                            <Circle className="w-3 h-3" />
+                            <span>Activity tickets / bookings</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Budget View */}
+                  {contentFilter === 'budget' && (
+                    <div className="space-y-4 pr-2">
+                      <div className="text-center py-8">
+                        <DollarSign className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+                        <h3 className="font-semibold mb-2">Trip Budget</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Track your travel expenses
+                        </p>
+                      </div>
+
+                      {/* Budget Summary */}
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-sm text-muted-foreground">Total Budget</span>
+                            <span className="text-lg font-bold">$0.00</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-sm text-muted-foreground">Spent</span>
+                            <span className="text-lg font-bold text-green-600">$0.00</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Remaining</span>
+                            <span className="text-lg font-bold">$0.00</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Budget Categories */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-3">Categories</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <Plane className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm">Flights</span>
+                            </div>
+                            <span className="text-sm font-medium">$0</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <Hotel className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm">Accommodation</span>
+                            </div>
+                            <span className="text-sm font-medium">$0</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+                              <span className="text-sm">Food & Dining</span>
+                            </div>
+                            <span className="text-sm font-medium">$0</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-2">
+                              <Compass className="w-4 h-4 text-amber-500" />
+                              <span className="text-sm">Activities</span>
+                            </div>
+                            <span className="text-sm font-medium">$0</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button variant="outline" className="w-full">
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Add Expense
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1025,11 +1166,14 @@ interface PipelineRowProps {
 // Pipeline category colors matching the daily itinerary
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
   'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
+  'Schedule': { bg: 'bg-cyan-50 border-cyan-200', iconBg: 'bg-cyan-100 text-cyan-600', text: 'text-cyan-800' },
   'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
   'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
   'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
+  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
+  'Budget': { bg: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600', text: 'text-emerald-800' },
 };
 
 function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
