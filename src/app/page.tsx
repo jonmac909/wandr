@@ -55,26 +55,25 @@ export default function Home() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 min-h-0 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
-          {/* Left Column: Weather + Calendar + Recent Trips (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 h-full overflow-hidden">
-            <WeatherWidget location="West Kelowna, Canada" />
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Left Column: Calendar + Recent Trips */}
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4">
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={2} />
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={5} />
           </aside>
 
           {/* Center Column: Featured Trip + Housing + Transport */}
-          <section className="lg:col-span-6 flex flex-col gap-3 h-full overflow-hidden">
+          <section className="lg:col-span-6 flex flex-col gap-4">
             <FeaturedTripCard trip={featuredTrip} />
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-            <TransportSection transport={transport.slice(0, 2)} />
+            <TransportSection transport={transport.slice(0, 3)} />
           </section>
 
           {/* Right Column: Stats + Map + Bucket List */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 h-full overflow-hidden">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <BucketList maxItems={3} />
+            <BucketList maxItems={6} />
           </aside>
         </div>
       </main>

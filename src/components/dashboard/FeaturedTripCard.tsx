@@ -97,9 +97,9 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
 
   const cardContent = (
     <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
-      <div className="flex h-[280px]">
+      <div className="flex">
         {/* Large Square Photo - Left side */}
-        <div className="relative w-[280px] h-full flex-shrink-0 p-3">
+        <div className="relative w-[220px] min-w-[220px] aspect-square flex-shrink-0 p-3">
           <div className="relative w-full h-full rounded-xl overflow-hidden bg-muted">
             <img
               src={imageUrl}
