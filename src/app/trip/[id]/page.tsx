@@ -609,37 +609,38 @@ ${JSON.stringify(tripDna, null, 2)}`}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {/* Mobile Filter Pills */}
-        <div className="flex overflow-x-auto px-2 pb-2 gap-1">
+      </div>
+
+      {/* Mobile Bottom Tab Bar (iOS-style) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
+        <div className="flex justify-around items-center py-2">
           {[
-            { id: 'all', label: 'Overview', icon: Sparkles },
-            { id: 'flights', label: 'Flights', icon: Plane },
-            { id: 'hotels', label: 'Hotels', icon: Hotel },
-            { id: 'restaurants', label: 'Food', icon: UtensilsCrossed },
-            { id: 'experiences', label: 'Activities', icon: Compass },
+            { id: 'overview', label: 'Overview', icon: Sparkles },
+            { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+            { id: 'docs', label: 'Docs', icon: FileText },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setContentFilter(id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
+              className={`flex flex-col items-center gap-1 px-6 py-1 rounded-lg transition-colors ${
                 contentFilter === id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
+              <Icon className="w-6 h-6" />
+              <span className="text-[10px] font-medium">{label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 lg:pt-4 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-20 lg:pt-4 lg:pb-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
-          {/* Left Column - Route Map + Pipeline */}
-          <aside className="lg:col-span-4 flex flex-col gap-3 min-h-0">
+          {/* Left Column - Route Map + Pipeline (hidden on mobile) */}
+          <aside className="hidden lg:flex lg:col-span-4 flex-col gap-3 min-h-0">
             {/* Route Map */}
             <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
 
@@ -732,7 +733,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </aside>
 
           {/* Right Column - Daily Itinerary */}
-          <section className="lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-8rem)] overflow-hidden">
+          <section className="col-span-1 lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-14rem)] lg:max-h-[calc(100vh-8rem)] overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full overflow-hidden">
                 {/* Scrollable content area */}

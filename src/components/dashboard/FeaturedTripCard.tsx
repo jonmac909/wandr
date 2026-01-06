@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Home, Car, Sparkles, Check, Search, Pencil, X, Save } from 'lucide-react';
+import { Calendar, MapPin, Users, Home, Car, Sparkles, Check, Search, Pencil, X, Save, Camera } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDestination, setEditDestination] = useState('');
+  const [customImage, setCustomImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!trip || !trip.itinerary) {
     return (
@@ -41,7 +43,47 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
     itinerary.route?.bases?.[0]?.location?.split(',')[0] ||
     '';
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const imageUrl = getDestinationImage(photoQuery, 400, 400);
+  const defaultImageUrl = getDestinationImage(photoQuery, 400, 400);
+  // Use custom image from trip meta, local state, or default
+  const imageUrl = customImage || trip.itinerary?.meta?.coverImage || defaultImageUrl;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Image = event.target?.result as string;
+      setCustomImage(base64Image);
+
+      // Save to trip meta
+      if (trip.itinerary) {
+        const updatedItinerary = {
+          ...trip.itinerary,
+          meta: {
+            ...trip.itinerary.meta,
+            coverImage: base64Image,
+          },
+          updatedAt: new Date(),
+        };
+
+        const updatedTrip = {
+          ...trip,
+          itinerary: updatedItinerary,
+        };
+
+        await tripDb.save(updatedTrip);
+        onTripUpdate?.(updatedTrip);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerImageUpload = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
 
   // Status calculations
   const hotelCount = itinerary.route?.bases?.filter(b => b.accommodation?.name).length || 0;
@@ -104,18 +146,28 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
       <div className="flex">
         {/* Large Square Photo - Left side */}
         <div className="relative w-[220px] min-w-[220px] aspect-square flex-shrink-0 p-3">
-          <div className="relative w-full h-full rounded-xl overflow-hidden bg-muted">
+          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
             <img
               src={imageUrl}
               alt={title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            {/* Image carousel dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-white shadow" />
-              <div className="w-2 h-2 rounded-full bg-white/50" />
-              <div className="w-2 h-2 rounded-full bg-white/50" />
-            </div>
+            {/* Upload image overlay */}
+            <button
+              onClick={triggerImageUpload}
+              className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"
+            >
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
+                <Camera className="w-5 h-5 text-gray-700" />
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
           </div>
         </div>
 
