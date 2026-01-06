@@ -1231,56 +1231,40 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                         {/* Expanded dropdown with daily details */}
                                         {isExpanded && editingOverviewIndex !== index && (
                                           <div className="mt-2 space-y-2 pb-2 pl-3">
-                                            {/* Transport for this location group */}
-                                            {transportBlocks.length > 0 && (
-                                              <div className="space-y-1">
-                                                {transportBlocks.map((block) => (
-                                                  <div
-                                                    key={block.id}
-                                                    className="flex items-center gap-2 p-2 rounded bg-blue-50 text-sm"
-                                                  >
-                                                    {block.activity?.category === 'flight' ? (
-                                                      <Plane className="w-3.5 h-3.5 text-blue-600" />
-                                                    ) : (
-                                                      <Train className="w-3.5 h-3.5 text-cyan-600" />
-                                                    )}
-                                                    <span className="flex-1">{block.activity?.name}</span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {formatDisplayDate(block.date)}
-                                                    </span>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            )}
-
-                                            {/* Summary of days */}
+                                            {/* Each day with date, then events */}
                                             {daysInGroup.map((day) => {
-                                              const nonTransportActivities = day.blocks.filter(
-                                                b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit'
-                                              );
-                                              if (nonTransportActivities.length === 0 && !transportBlocks.some(t => t.date === day.date)) return null;
+                                              const allActivities = day.blocks.filter(b => b.activity);
+                                              if (allActivities.length === 0) return null;
 
                                               return (
                                                 <div key={day.id} className="p-2 rounded bg-muted/30 text-sm">
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                                                    <span className="font-medium">{formatDisplayDate(day.date)}</span>
+                                                  <div className="font-medium text-xs text-muted-foreground mb-1">
+                                                    {formatDisplayDate(day.date)}
                                                   </div>
-                                                  {nonTransportActivities.length > 0 && (
-                                                    <ul className="ml-5 text-xs text-muted-foreground space-y-0.5">
-                                                      {nonTransportActivities.slice(0, 3).map((block) => (
-                                                        <li key={block.id}>{block.activity?.name}</li>
-                                                      ))}
-                                                      {nonTransportActivities.length > 3 && (
-                                                        <li>+{nonTransportActivities.length - 3} more</li>
-                                                      )}
-                                                    </ul>
-                                                  )}
+                                                  <ul className="space-y-1">
+                                                    {allActivities.map((block) => (
+                                                      <li key={block.id} className="flex items-center gap-2">
+                                                        {block.activity?.category === 'flight' && (
+                                                          <Plane className="w-3 h-3 text-blue-600" />
+                                                        )}
+                                                        {block.activity?.category === 'transit' && (
+                                                          <Train className="w-3 h-3 text-cyan-600" />
+                                                        )}
+                                                        {block.activity?.category === 'accommodation' && (
+                                                          <Hotel className="w-3 h-3 text-purple-600" />
+                                                        )}
+                                                        {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
+                                                          <Circle className="w-2 h-2 text-muted-foreground" />
+                                                        )}
+                                                        <span className="text-xs">{block.activity?.name}</span>
+                                                      </li>
+                                                    ))}
+                                                  </ul>
                                                 </div>
                                               );
                                             })}
 
-                                            {daysInGroup.length === 0 && transportBlocks.length === 0 && (
+                                            {daysInGroup.every(d => d.blocks.filter(b => b.activity).length === 0) && (
                                               <p className="text-xs text-muted-foreground italic">No activities planned</p>
                                             )}
                                           </div>
