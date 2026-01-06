@@ -1001,7 +1001,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         const end = new Date(y2, m2 - 1, d2);
 
                         // Create a map of existing days by date
-                        const daysByDate = new Map(itinerary.days.map(d => [d.date, d]));
+                        const daysByDate = new Map<string, DayPlan>(itinerary.days.map(d => [d.date, d]));
 
                         // Generate all days
                         const allDays: (DayPlan | { date: string; dayNumber: number; isEmpty: true })[] = [];
