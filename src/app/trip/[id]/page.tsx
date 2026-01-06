@@ -880,40 +880,61 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         )}
                       </div>
 
-                      {/* Quick Glance Schedule - grouped by location from actual days */}
+                      {/* Quick Glance Schedule - grouped by location from full date range */}
                       {(() => {
-                        // Group consecutive days by location with day numbers
-                        const groups: { location: string; startDate: string; endDate: string; startDay: number; endDay: number }[] = [];
+                        // Get full date range
+                        const firstDate = itinerary.days[0]?.date;
+                        const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
+                        if (!firstDate || !lastDate) return null;
 
-                        itinerary.days.forEach((day, index) => {
-                          const location = getLocationForDay(day);
-                          const dayNum = index + 1;
+                        const [y1, m1, d1] = firstDate.split('-').map(Number);
+                        const [y2, m2, d2] = lastDate.split('-').map(Number);
+                        const start = new Date(y1, m1 - 1, d1);
+                        const end = new Date(y2, m2 - 1, d2);
+                        const totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                        // Create a map of existing days by date
+                        const daysByDate: Record<string, DayPlan> = {};
+                        itinerary.days.forEach(d => { daysByDate[d.date] = d; });
+
+                        // Group consecutive days by location with day numbers (including empty days)
+                        const groups: { location: string; startDate: string; endDate: string; startDay: number; endDay: number; nights: number }[] = [];
+                        let dayNum = 1;
+                        const current = new Date(start);
+                        let lastLocation = '';
+
+                        while (current <= end) {
+                          const dateStr = current.toISOString().split('T')[0];
+                          const existingDay = daysByDate[dateStr];
+
+                          // Get location for this day
+                          let location: string;
+                          if (existingDay) {
+                            location = getLocationForDay(existingDay);
+                          } else {
+                            // For empty days, use the last known location
+                            location = lastLocation || itinerary.meta.destination || 'Unknown';
+                          }
+
                           const lastGroup = groups[groups.length - 1];
-
                           if (lastGroup && lastGroup.location === location) {
-                            lastGroup.endDate = day.date;
+                            lastGroup.endDate = dateStr;
                             lastGroup.endDay = dayNum;
+                            lastGroup.nights = lastGroup.endDay - lastGroup.startDay;
                           } else {
                             groups.push({
                               location,
-                              startDate: day.date,
-                              endDate: day.date,
+                              startDate: dateStr,
+                              endDate: dateStr,
                               startDay: dayNum,
                               endDay: dayNum,
+                              nights: 0,
                             });
                           }
-                        });
 
-                        // Calculate actual trip duration from first to last date
-                        const firstDate = itinerary.days[0]?.date;
-                        const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
-                        let totalDays = itinerary.days.length;
-                        if (firstDate && lastDate) {
-                          const [y1, m1, d1] = firstDate.split('-').map(Number);
-                          const [y2, m2, d2] = lastDate.split('-').map(Number);
-                          const start = new Date(y1, m1 - 1, d1);
-                          const end = new Date(y2, m2 - 1, d2);
-                          totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                          lastLocation = location;
+                          dayNum++;
+                          current.setDate(current.getDate() + 1);
                         }
 
                         // Count unique destinations and flights
@@ -972,6 +993,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                           {formatDateString(group.startDate)}
                                           {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
                                         </p>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground flex-shrink-0">
+                                        {group.nights > 0 ? `${group.nights} nights` : ''}
                                       </div>
                                     </div>
                                   ))}
