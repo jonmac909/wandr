@@ -46,7 +46,7 @@ export default function TripPage() {
   const [editedTitle, setEditedTitle] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [foodModalDay, setFoodModalDay] = useState<DayPlan | null>(null);
-  const [contentFilter, setContentFilter] = useState<string>('all');
+  const [contentFilter, setContentFilter] = useState<string>('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -647,14 +647,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <Card className="flex-shrink-0">
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="grid grid-cols-3 gap-2 auto-rows-fr">
-                  {/* Schedule - Overview/All */}
+                  {/* Overview */}
                   <PipelineRow
-                    icon={<CalendarDays className="w-4 h-4" />}
-                    label="Schedule"
+                    icon={<Sparkles className="w-4 h-4" />}
+                    label="Overview"
                     count={itinerary.days.length}
                     status="complete"
-                    active={contentFilter === 'all'}
-                    onClick={() => setContentFilter('all')}
+                    active={contentFilter === 'overview'}
+                    onClick={() => setContentFilter('overview')}
                   />
                   {/* Flights */}
                   <PipelineRow
@@ -710,8 +710,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="lg:col-span-8 min-h-0">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
-                {/* Header - only show when filtered */}
-                {contentFilter !== 'all' && (
+                {/* Header - only show when filtered (not overview or all) */}
+                {contentFilter !== 'all' && contentFilter !== 'overview' && (
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <h3 className="font-semibold">
                       {contentFilter === 'flights' ? 'Flights' :
@@ -724,15 +724,144 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       variant="ghost"
                       size="sm"
                       className="text-xs"
-                      onClick={() => setContentFilter('all')}
+                      onClick={() => setContentFilter('overview')}
                     >
-                      Show All
+                      Back to Overview
                     </Button>
                   </div>
                 )}
 
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
+                  {/* Overview - Trip Summary */}
+                  {contentFilter === 'overview' && (
+                    <div className="space-y-4 pr-2">
+                      {/* Trip Header */}
+                      <div className="flex items-start justify-between">
+                        {isEditing ? (
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              value={editedTitle}
+                              onChange={(e) => setEditedTitle(e.target.value)}
+                              className="h-10 text-xl font-bold"
+                              placeholder="Trip name"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={handleSaveTitle}>
+                                <Save className="w-4 h-4 mr-1" />
+                                Save
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <h2 className="text-2xl font-bold">{itinerary.meta.title}</h2>
+                              <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                                <MapPin className="w-4 h-4" />
+                                <span>{itinerary.meta.destination}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={startEditing}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Trip Stats */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">{itinerary.days.length}</p>
+                            <p className="text-xs text-muted-foreground">Days</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">{itinerary.route.bases.length}</p>
+                            <p className="text-xs text-muted-foreground">Destinations</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">
+                              {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Flights</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Date Range */}
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                              <Calendar className="w-5 h-5 text-indigo-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {itinerary.meta.startDate && new Date(itinerary.meta.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {itinerary.meta.endDate && ` – ${new Date(itinerary.meta.endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`}
+                              </p>
+                              <p className="text-sm text-muted-foreground">{itinerary.days.length} days total</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Route / Bases */}
+                      <div>
+                        <h3 className="font-semibold mb-3">Route</h3>
+                        <div className="space-y-2">
+                          {itinerary.route.bases.map((base, index) => (
+                            <Card key={base.id}>
+                              <CardContent className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                                    {index + 1}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium">{base.location}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {base.nights} night{base.nights !== 1 ? 's' : ''}
+                                      {base.accommodation?.name && ` • ${base.accommodation.name}`}
+                                    </p>
+                                  </div>
+                                  {base.accommodation?.name && (
+                                    <Hotel className="w-4 h-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quick Actions */}
+                      <div className="pt-4 border-t">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setContentFilter('all')}
+                        >
+                          <LayoutList className="w-4 h-4 mr-2" />
+                          View Daily Itinerary
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* All - Daily Itinerary */}
                   {contentFilter === 'all' && (
                     <div className="space-y-4 pr-2">
@@ -895,7 +1024,7 @@ interface PipelineRowProps {
 
 // Pipeline category colors matching the daily itinerary
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
-  'Schedule': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
+  'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
   'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
   'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
