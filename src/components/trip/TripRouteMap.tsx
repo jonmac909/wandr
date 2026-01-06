@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import type { Base } from '@/types/itinerary';
 
 interface TripRouteMapProps {
@@ -54,270 +53,199 @@ function getCityCoordinates(location: string): { lat: number; lng: number } | nu
   return CITY_COORDINATES[cityName] || null;
 }
 
-// Calculate bounds and center from bases
-function calculateMapBounds(bases: Base[]) {
-  const coords = bases
-    .map(b => getCityCoordinates(b.location))
-    .filter((c): c is { lat: number; lng: number } => c !== null);
-
-  if (coords.length === 0) {
-    return { center: { lat: 20, lng: 100 }, zoom: 3 }; // Default to Asia
-  }
-
-  const lats = coords.map(c => c.lat);
-  const lngs = coords.map(c => c.lng);
-
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-
-  const centerLat = (minLat + maxLat) / 2;
-  const centerLng = (minLng + maxLng) / 2;
-
-  // Calculate zoom based on span
-  const latSpan = maxLat - minLat;
-  const lngSpan = maxLng - minLng;
-  const span = Math.max(latSpan, lngSpan);
-
-  let zoom = 4;
-  if (span < 5) zoom = 6;
-  else if (span < 15) zoom = 5;
-  else if (span < 30) zoom = 4;
-  else zoom = 3;
-
-  return { center: { lat: centerLat, lng: centerLng }, zoom };
-}
-
-// Convert pixels to lat/lng offset based on zoom level
-function pixelsToLatLng(pixelX: number, pixelY: number, zoom: number, mapSize: number) {
-  // At zoom 0, the entire world is 256 pixels
-  // Each zoom level doubles the pixels per degree
-  const scale = Math.pow(2, zoom);
-  const degreesPerPixel = 360 / (256 * scale);
-
-  return {
-    lat: -pixelY * degreesPerPixel * (mapSize / 300), // Negative because y increases downward
-    lng: pixelX * degreesPerPixel * (mapSize / 300),
-  };
-}
-
 export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // If singleLocation is provided, use it instead of bases
+  // Determine effective bases
   const effectiveBases = singleLocation
     ? [{ id: 'single', location: singleLocation, nights: 1 }] as Base[]
     : bases;
-
-  const { center: initialCenter, zoom: baseZoom } = calculateMapBounds(effectiveBases);
-  // For single location, zoom in more
-  const effectiveBaseZoom = singleLocation ? 12 : baseZoom;
-
-  const [zoomLevel, setZoomLevel] = useState(0);
-  const [center, setCenter] = useState(initialCenter);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [lastCenter, setLastCenter] = useState(initialCenter);
-
-  // Reset center when singleLocation changes
-  useEffect(() => {
-    const { center: newCenter } = calculateMapBounds(effectiveBases);
-    setCenter(newCenter);
-    setZoomLevel(0);
-  }, [singleLocation]);
-
-  const zoom = Math.max(1, Math.min(18, effectiveBaseZoom + zoomLevel));
 
   const coords = effectiveBases
     .map(b => ({ ...b, coords: getCityCoordinates(b.location) }))
     .filter(b => b.coords !== null);
 
-  // Generate static map URL
-  const markers = coords
-    .map((b, i) => `markers=color:red%7Clabel:${singleLocation ? '' : i + 1}%7C${b.coords!.lat},${b.coords!.lng}`)
-    .join('&');
-
-  // Only show path for multi-location (route) view
-  const path = !singleLocation && coords.length > 1
-    ? `&path=color:0x4f46e5%7Cweight:2%7C${coords.map(b => `${b.coords!.lat},${b.coords!.lng}`).join('|')}`
-    : '';
-
-  const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat},${center.lng}&zoom=${zoom}&size=300x300&scale=2&maptype=roadmap&${markers}${path}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
-
-  // Use OpenStreetMap static map as fallback (no API key needed)
-  // Using staticmaps.openstreetmap.de which is free and doesn't require API key
-  const markerString = coords
-    .map((b) => `${b.coords!.lat},${b.coords!.lng},red-pushpin`)
-    .join('|');
-
-  // OpenStreetMap static map service (free, no API key)
-  const staticMapUrl = coords.length > 0
-    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${center.lat},${center.lng}&zoom=${zoom}&size=600x600&maptype=osmarenderer&markers=${encodeURIComponent(markerString)}`
-    : '';
-
-  const hasApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  // Mouse/Touch handlers for panning
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setLastCenter(center);
-  }, [center]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
-
-    const deltaX = dragStart.x - e.clientX;
-    const deltaY = dragStart.y - e.clientY;
-
-    const offset = pixelsToLatLng(deltaX, deltaY, zoom, 300);
-
-    setCenter({
-      lat: Math.max(-85, Math.min(85, lastCenter.lat + offset.lat)),
-      lng: lastCenter.lng + offset.lng,
-    });
-  }, [isDragging, dragStart, lastCenter, zoom]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Touch handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-      setLastCenter(center);
-    }
-  }, [center]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-
-    const deltaX = dragStart.x - e.touches[0].clientX;
-    const deltaY = dragStart.y - e.touches[0].clientY;
-
-    const offset = pixelsToLatLng(deltaX, deltaY, zoom, 300);
-
-    setCenter({
-      lat: Math.max(-85, Math.min(85, lastCenter.lat + offset.lat)),
-      lng: lastCenter.lng + offset.lng,
-    });
-  }, [isDragging, dragStart, lastCenter, zoom]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Double click to zoom in at that point
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-
-    if (!containerRef.current) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    // Calculate offset from center (center is at mapSize/2)
-    const mapSize = rect.width;
-    const offsetX = clickX - mapSize / 2;
-    const offsetY = clickY - mapSize / 2;
-
-    // Convert click position to lat/lng offset
-    const offset = pixelsToLatLng(offsetX, offsetY, zoom, mapSize);
-
-    // Move center toward click point and zoom in
-    setCenter(prev => ({
-      lat: Math.max(-85, Math.min(85, prev.lat + offset.lat * 0.5)),
-      lng: prev.lng + offset.lng * 0.5,
-    }));
-    setZoomLevel(prev => Math.min(prev + 1, 6));
-  }, [zoom]);
-
-  // Reset to initial view
-  const handleReset = useCallback(() => {
-    setCenter(initialCenter);
-    setZoomLevel(0);
-  }, [initialCenter]);
-
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 1, 6));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 1, -2));
-
-  // Add global mouse up listener to handle drag ending outside component
+  // Initialize Google Maps
   useEffect(() => {
-    const handleGlobalMouseUp = () => setIsDragging(false);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    window.addEventListener('touchend', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-      window.removeEventListener('touchend', handleGlobalMouseUp);
-    };
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setError('No API key');
+      return;
+    }
+
+    setOptions({
+      key: apiKey,
+      v: 'weekly',
+    });
+
+    Promise.all([
+      importLibrary('maps'),
+      importLibrary('marker'),
+    ]).then(() => {
+      setIsLoaded(true);
+    }).catch((err: Error) => {
+      console.error('Google Maps failed to load:', err);
+      setError('Failed to load map');
+    });
   }, []);
+
+  // Create/update map when loaded or bases change
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current || coords.length === 0) return;
+
+    // Calculate bounds
+    const bounds = new google.maps.LatLngBounds();
+    coords.forEach(c => {
+      if (c.coords) {
+        bounds.extend(c.coords);
+      }
+    });
+
+    // Create map if not exists
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+        mapId: 'wandr-trip-map',
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'greedy',
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }],
+          },
+        ],
+      });
+    }
+
+    const map = mapInstanceRef.current;
+
+    // Clear existing markers
+    markersRef.current.forEach(m => m.map = null);
+    markersRef.current = [];
+
+    // Clear existing polyline
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+
+    // Add markers with numbered labels
+    coords.forEach((base, index) => {
+      if (!base.coords) return;
+
+      // Create custom marker element
+      const markerContent = document.createElement('div');
+      markerContent.className = 'flex items-center justify-center';
+      markerContent.innerHTML = `
+        <div style="
+          background: #4f46e5;
+          color: white;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 12px;
+          border: 2px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        ">${singleLocation ? '📍' : index + 1}</div>
+      `;
+
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: base.coords,
+        content: markerContent,
+        title: base.location,
+      });
+
+      // Add info window on click
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px; min-width: 120px;">
+            <strong style="font-size: 14px;">${base.location}</strong>
+            ${!singleLocation && base.nights ? `<br><span style="color: #666; font-size: 12px;">${base.nights} night${base.nights > 1 ? 's' : ''}</span>` : ''}
+          </div>
+        `,
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+      markersRef.current.push(marker);
+    });
+
+    // Draw route polyline (only for multi-location overview)
+    if (!singleLocation && coords.length > 1) {
+      const path = coords.map(c => c.coords!);
+      polylineRef.current = new google.maps.Polyline({
+        path,
+        geodesic: true,
+        strokeColor: '#4f46e5',
+        strokeOpacity: 0.8,
+        strokeWeight: 3,
+        map,
+      });
+    }
+
+    // Fit bounds
+    if (singleLocation && coords[0]?.coords) {
+      map.setCenter(coords[0].coords);
+      map.setZoom(13);
+    } else {
+      map.fitBounds(bounds, { top: 20, right: 20, bottom: 20, left: 20 });
+    }
+
+  }, [isLoaded, coords.length, singleLocation, JSON.stringify(coords.map(c => c.location))]);
 
   if (!bases || bases.length === 0) {
     return null;
   }
 
+  // Fallback to static map if no API key or error
+  if (error || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+    const markerString = coords
+      .map((b) => `${b.coords!.lat},${b.coords!.lng},red-pushpin`)
+      .join('|');
+    const staticMapUrl = coords.length > 0
+      ? `https://staticmap.openstreetmap.de/staticmap.php?center=${coords[0]?.coords?.lat || 20},${coords[0]?.coords?.lng || 100}&zoom=${singleLocation ? 12 : 4}&size=600x600&maptype=osmarenderer&markers=${encodeURIComponent(markerString)}`
+      : '';
+
+    return (
+      <Card className={className}>
+        <CardContent className="p-1 overflow-hidden relative h-full">
+          <div className="w-full h-full min-h-[180px] rounded-lg overflow-hidden">
+            <img
+              src={staticMapUrl}
+              alt="Trip route map"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={className}>
-      <CardContent className="p-1.5 overflow-hidden relative h-full">
+      <CardContent className="p-1 overflow-hidden relative h-full">
         <div
-          ref={containerRef}
-          className={`w-full h-full min-h-[180px] rounded-lg overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onDoubleClick={handleDoubleClick}
-        >
-          {/* Use Google Maps if API key available, otherwise use Mapbox static map */}
-          <img
-            src={hasApiKey ? mapUrl : staticMapUrl}
-            alt="Trip route map"
-            className="w-full h-full object-cover pointer-events-none select-none"
-            draggable={false}
-            onError={(e) => {
-              // Fallback to a simple world map image if both fail
-              (e.target as HTMLImageElement).src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/1280px-World_map_blank_without_borders.svg.png';
-            }}
-          />
-        </div>
-
-        {/* Map controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
-            onClick={handleZoomIn}
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
-            onClick={handleZoomOut}
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
-            onClick={handleReset}
-            title="Reset view"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-
+          ref={mapRef}
+          className="w-full h-full min-h-[180px] rounded-lg overflow-hidden"
+        />
+        {!isLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <div className="text-sm text-muted-foreground">Loading map...</div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
