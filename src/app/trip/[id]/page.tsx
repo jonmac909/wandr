@@ -594,8 +594,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      {/* Mobile Top Bar (hidden on desktop) */}
-      <div className="lg:hidden fixed top-14 left-0 right-0 bg-background/95 backdrop-blur border-b z-10">
+      {/* Mobile Top Bar (hidden on tablet and up) */}
+      <div className="md:hidden fixed top-14 left-0 right-0 bg-background/95 backdrop-blur border-b z-10">
         <div className="px-4 py-2 flex items-center justify-between">
           <Link href="/" className="text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-5 h-5" />
@@ -625,9 +625,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </div>
 
-      {/* Mobile Bottom Tab Bar (square widgets matching desktop) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
-        <div className="flex justify-around items-center px-2 pt-3 pb-4 gap-1">
+      {/* Mobile Bottom Tab Bar (square widgets matching desktop) - hidden on tablet and up */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
+        <div className="flex justify-center items-center px-3 pt-3 pb-5 gap-2">
           {[
             { id: 'overview', label: 'Overview', icon: Sparkles, colors: PIPELINE_COLORS['Overview'] },
             { id: 'schedule', label: 'Schedule', icon: Calendar, colors: PIPELINE_COLORS['Schedule'] },
@@ -637,40 +637,40 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <button
               key={id}
               onClick={() => setContentFilter(id)}
-              className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all aspect-square w-16 border ${
+              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all aspect-square flex-1 max-w-[72px] border ${
                 contentFilter === id
                   ? 'bg-primary text-primary-foreground border-primary'
                   : `${colors.bg} hover:opacity-80`
               }`}
             >
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
                 contentFilter === id
                   ? 'bg-primary-foreground/20'
                   : colors.iconBg
               }`}>
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4" />
               </div>
-              <span className={`text-[9px] font-medium text-center ${contentFilter === id ? '' : colors.text}`}>{label}</span>
+              <span className={`text-[10px] font-medium text-center ${contentFilter === id ? '' : colors.text}`}>{label}</span>
             </button>
           ))}
           {/* More dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all aspect-square w-16 border ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all aspect-square flex-1 max-w-[72px] border ${
                   ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : `${PIPELINE_COLORS['More'].bg} hover:opacity-80`
                 }`}
               >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
                   ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? 'bg-primary-foreground/20'
                     : PIPELINE_COLORS['More'].iconBg
                 }`}>
-                  <MoreHorizontal className="w-3.5 h-3.5" />
+                  <MoreHorizontal className="w-4 h-4" />
                 </div>
-                <span className={`text-[9px] font-medium text-center ${
+                <span className={`text-[10px] font-medium text-center ${
                   ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? ''
                     : PIPELINE_COLORS['More'].text
@@ -704,11 +704,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-28 lg:pt-4 lg:pb-4 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-28 md:pt-4 md:pb-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
-          {/* Left Column - Route Map + Pipeline (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:col-span-4 flex-col gap-3 min-h-0">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+          {/* Left Column - Route Map + Pipeline (hidden on mobile only) */}
+          <aside className="hidden md:flex md:col-span-4 flex-col gap-3 min-h-0">
             {/* Route Map */}
             <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
 
@@ -801,7 +801,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </aside>
 
           {/* Right Column - Daily Itinerary */}
-          <section className="col-span-1 lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-14rem)] lg:max-h-[calc(100vh-8rem)] overflow-hidden">
+          <section className="col-span-1 md:col-span-8 min-h-0 h-full max-h-[calc(100vh-14rem)] md:max-h-[calc(100vh-8rem)] overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full overflow-hidden">
                 {/* Scrollable content area */}
@@ -905,137 +905,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </div>
                         </CardContent>
                       </Card>
-
-                      {/* Accommodation Summary */}
-                      <div>
-                        <h3 className="font-semibold mb-3 flex items-center gap-2">
-                          <Hotel className="w-4 h-4" />
-                          Accommodation
-                        </h3>
-                        <div className="space-y-2">
-                          {itinerary.route.bases.map((base, index) => (
-                            <Card key={base.id}>
-                              <CardContent className="p-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-600">
-                                    {index + 1}
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="font-medium">{base.accommodation?.name || 'TBD'}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {base.location} • {base.nights} night{base.nights !== 1 ? 's' : ''}
-                                    </p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Flights Summary */}
-                      {itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
-                        <div>
-                          <h3 className="font-semibold mb-3 flex items-center gap-2">
-                            <Plane className="w-4 h-4" />
-                            Flights
-                          </h3>
-                          <div className="space-y-2">
-                            {itinerary.days.flatMap(day =>
-                              day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
-                                <Card key={block.id}>
-                                  <CardContent className="p-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <Plane className="w-4 h-4 text-blue-600" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className="font-medium">{block.activity?.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Activities Highlights */}
-                      {itinerary.days.some(d => d.blocks.some(b => b.activity && b.priority === 'must-see' && !['flight', 'transit', 'food'].includes(b.activity.category))) && (
-                        <div>
-                          <h3 className="font-semibold mb-3 flex items-center gap-2">
-                            <Compass className="w-4 h-4" />
-                            Must-Do Activities
-                          </h3>
-                          <div className="space-y-2">
-                            {itinerary.days.flatMap(day =>
-                              day.blocks.filter(b => b.activity && b.priority === 'must-see' && !['flight', 'transit', 'food'].includes(b.activity.category)).slice(0, 5).map(block => (
-                                <Card key={block.id}>
-                                  <CardContent className="p-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                                        <Sparkles className="w-4 h-4 text-amber-600" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className="font-medium">{block.activity?.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                          {block.activity?.location?.name && ` • ${block.activity.location.name}`}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Food Highlights */}
-                      {(itinerary.foodLayer?.length || 0) > 0 && (
-                        <div>
-                          <h3 className="font-semibold mb-3 flex items-center gap-2">
-                            <UtensilsCrossed className="w-4 h-4" />
-                            Food Spots
-                          </h3>
-                          <div className="space-y-2">
-                            {itinerary.foodLayer.slice(0, 4).map(food => (
-                              <Card key={food.id}>
-                                <CardContent className="p-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                      <UtensilsCrossed className="w-4 h-4 text-orange-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium">{food.name}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {food.cuisine}{food.mealTime && ` • ${food.mealTime}`}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Quick Actions */}
-                      <div className="pt-4 border-t">
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => setContentFilter('schedule')}
-                        >
-                          <CalendarDays className="w-4 h-4 mr-2" />
-                          View Daily Schedule
-                        </Button>
-                      </div>
                     </div>
                   )}
 
