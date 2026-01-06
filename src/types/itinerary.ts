@@ -249,6 +249,7 @@ export interface Itinerary {
     endDate: string;
     totalDays: number;
     estimatedBudget: BudgetBreakdown;
+    coverImage?: string; // Base64 encoded image or URL
   };
 
   // Route
