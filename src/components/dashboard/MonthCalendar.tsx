@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 interface MonthCalendarProps {
   trips: StoredTrip[];
   onDateClick?: (date: Date, trip?: TripDateRange) => void;
+  compact?: boolean;
 }
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -45,7 +46,7 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
   return days;
 }
 
-export function MonthCalendar({ trips, onDateClick }: MonthCalendarProps) {
+export function MonthCalendar({ trips, onDateClick, compact = false }: MonthCalendarProps) {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -92,39 +93,40 @@ export function MonthCalendar({ trips, onDateClick }: MonthCalendarProps) {
 
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent className={compact ? "p-2" : "p-4"}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">
+        <div className={cn("flex items-center justify-between", compact ? "mb-2" : "mb-4")}>
+          <h3 className={compact ? "font-medium text-sm" : "font-semibold"}>
             {MONTHS[currentMonth]} {currentYear}
           </h3>
           <div className="flex gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className={compact ? "h-6 w-6" : "h-7 w-7"}
               onClick={goToPreviousMonth}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className={compact ? "h-3 w-3" : "h-4 w-4"} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className={compact ? "h-6 w-6" : "h-7 w-7"}
               onClick={goToNextMonth}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className={compact ? "h-3 w-3" : "h-4 w-4"} />
             </Button>
           </div>
         </div>
 
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className={cn("grid grid-cols-7 gap-1", compact ? "mb-1" : "mb-2")}>
           {DAYS.map((day, i) => (
             <div
               key={day}
               className={cn(
-                "text-center text-xs font-medium py-1",
+                "text-center font-medium",
+                compact ? "text-[10px] py-0.5" : "text-xs py-1",
                 (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
               )}
             >
@@ -137,7 +139,7 @@ export function MonthCalendar({ trips, onDateClick }: MonthCalendarProps) {
         <div className="grid grid-cols-7 gap-1">
           {days.map((date, index) => {
             if (!date) {
-              return <div key={`empty-${index}`} className="h-8" />;
+              return <div key={`empty-${index}`} className={compact ? "h-6" : "h-8"} />;
             }
 
             const tripRange = isDateInTrip(date, tripRanges);
@@ -149,7 +151,8 @@ export function MonthCalendar({ trips, onDateClick }: MonthCalendarProps) {
                 key={date.toISOString()}
                 onClick={() => onDateClick?.(date, tripRange || undefined)}
                 className={cn(
-                  "h-8 w-full rounded-md text-sm font-medium transition-colors",
+                  "w-full rounded-md font-medium transition-colors",
+                  compact ? "h-6 text-xs" : "h-8 text-sm",
                   "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                   todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
                   !todayClass && tripRange && "bg-primary/20 text-primary",

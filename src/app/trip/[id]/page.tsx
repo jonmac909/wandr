@@ -876,7 +876,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-28 md:pt-4 md:pb-4 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-20 pb-24 md:pt-4 md:pb-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
           {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
@@ -1335,10 +1335,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                         return (
                           <>
-                            {/* Calendar Card - Same as dashboard */}
-                            <div className="flex-shrink-0 mb-3">
+                            {/* Calendar Card - Compact on mobile */}
+                            <div className="flex-shrink-0 mb-2">
                               <MonthCalendar
                                 trips={[currentTripForCalendar]}
+                                compact
                                 onDateClick={(date) => {
                                   const dateStr = date.toISOString().split('T')[0];
                                   scrollToDay(dateStr);
