@@ -10,6 +10,7 @@ import {
   TransportSection,
   StatsPanel,
   WorldMap,
+  WeatherWidget,
   PlanNewTripButton,
   TripDrawer,
   ImportModal,
@@ -63,9 +64,15 @@ export default function Home() {
             <TransportSection transport={transport} />
           </section>
 
-          {/* Right Column: Stats + Map + Plan Button */}
+          {/* Right Column: Stats + Weather + Map + Plan Button */}
           <aside className="lg:col-span-3 space-y-6">
             <StatsPanel stats={stats} />
+            <WeatherWidget
+              location={
+                featuredTrip?.itinerary?.meta?.destination ||
+                featuredTrip?.itinerary?.route?.bases?.[0]?.location
+              }
+            />
             <WorldMap trips={trips} />
             <PlanNewTripButton />
           </aside>
