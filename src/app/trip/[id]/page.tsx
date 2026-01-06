@@ -418,6 +418,16 @@ export default function TripPage() {
     return AIRPORT_TO_CITY[code] || location;
   };
 
+  // Format date for display (e.g., "Mon, Feb 10")
+  const formatDisplayDate = (dateStr: string): string => {
+    // Parse as local date (avoid timezone issues)
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+    return `${weekday}, ${monthName} ${day}`;
+  };
+
   // Get location for a specific day - infer from activities
   // For travel days with flights, show the route (e.g., "Kelowna - Vancouver - Tokyo")
   const getLocationForDay = (day: DayPlan): string => {
@@ -1329,7 +1339,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <div className="flex-1">
                                   <h4 className="font-medium">{block.activity?.name}</h4>
                                   <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                                  <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                                  <p className="text-xs text-muted-foreground mt-2">{formatDisplayDate(day.date)}</p>
                                 </div>
                               </div>
                             </CardContent>
@@ -1359,8 +1369,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <h4 className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</h4>
                                 <p className="text-sm text-muted-foreground">{base.location}</p>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  {base.nights} night{base.nights > 1 ? 's' : ''}
-                                  {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
+                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(base.checkOut)}
+                                  {' • '}{base.nights} night{base.nights > 1 ? 's' : ''}
                                 </p>
                               </div>
                             </div>
@@ -1391,7 +1401,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <div className="flex-1">
                                   <h4 className="font-medium">{block.activity?.name}</h4>
                                   <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                                  <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                                  <p className="text-xs text-muted-foreground mt-2">{formatDisplayDate(day.date)}</p>
                                 </div>
                               </div>
                             </CardContent>
