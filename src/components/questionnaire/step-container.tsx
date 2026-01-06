@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useQuestionnaireStore, QUESTIONNAIRE_STEPS } from '@/lib/questionnaire/store';
+import { DashboardHeader } from '@/components/dashboard';
 
 interface StepContainerProps {
   children: ReactNode;
@@ -38,20 +39,12 @@ export function StepContainer({
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header with close button */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b">
+      {/* Main Navigation Header */}
+      <DashboardHeader activeTab="trips" />
+
+      {/* Progress bar */}
+      <div className="sticky top-14 bg-background/95 backdrop-blur z-10 border-b">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          {/* Top row: Logo and close button */}
-          <div className="flex items-center justify-between mb-3">
-            <Link href="/" className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Wandr
-            </Link>
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <X className="w-5 h-5" />
-              </Button>
-            </Link>
-          </div>
           {/* Progress row */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">
@@ -70,7 +63,7 @@ export function StepContainer({
           </div>
           <Progress value={progress} className="h-1" />
         </div>
-      </header>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
