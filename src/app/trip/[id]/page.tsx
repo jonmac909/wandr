@@ -895,7 +895,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
             />
 
             {/* Pipeline Card - compact square widgets at bottom */}
-            <Card className="flex-shrink-0">
+            <Card className="flex-shrink-0 py-0">
               <CardContent className="p-1.5">
                 <div className="grid grid-cols-3 gap-2">
                   {/* Overview */}
@@ -984,7 +984,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
           {/* Right Column - Daily Itinerary */}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
-            <Card className="h-full flex flex-col">
+            <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
@@ -1116,19 +1116,19 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           <>
                             {/* Trip Stats */}
                             <div className="grid grid-cols-3 gap-2">
-                              <Card>
+                              <Card className="py-0">
                                 <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{totalDays}</p>
                                   <p className="text-xs text-muted-foreground">Days</p>
                                 </CardContent>
                               </Card>
-                              <Card>
+                              <Card className="py-0">
                                 <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{uniqueDestinations}</p>
                                   <p className="text-xs text-muted-foreground">Destinations</p>
                                 </CardContent>
                               </Card>
-                              <Card>
+                              <Card className="py-0">
                                 <CardContent className="p-2 text-center">
                                   <p className="text-2xl font-bold">{transportCount}</p>
                                   <p className="text-xs text-muted-foreground">Flights</p>
@@ -1136,7 +1136,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               </Card>
                             </div>
 
-                            <Card>
+                            <Card className="py-0">
                               <CardContent className="p-2">
                                 <div className="space-y-2">
                                   {groups.map((group, index) => {

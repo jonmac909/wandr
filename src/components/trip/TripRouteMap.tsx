@@ -220,7 +220,7 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
       : '';
 
     return (
-      <Card className={className}>
+      <Card className={`${className} py-0`}>
         <CardContent className="p-1 overflow-hidden relative h-full">
           <div className="w-full h-full min-h-[180px] rounded-lg overflow-hidden">
             <img
@@ -235,7 +235,7 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
   }
 
   return (
-    <Card className={className}>
+    <Card className={`${className} py-0`}>
       <CardContent className="p-1 overflow-hidden relative h-full">
         <div
           ref={mapRef}
