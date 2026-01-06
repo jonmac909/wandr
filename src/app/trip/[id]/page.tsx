@@ -636,14 +636,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
       {/* Main Content Area - Fixed height, no page scroll */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 lg:pt-4 overflow-hidden flex flex-col">
-        {/* Back link - desktop only */}
-        <div className="hidden lg:block mb-2 flex-shrink-0">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-        </div>
-
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Column - Route Map + Trip Info + Pipeline */}
