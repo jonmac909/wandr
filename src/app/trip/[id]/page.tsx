@@ -905,6 +905,18 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           }
                         });
 
+                        // Calculate actual trip duration from first to last date
+                        const firstDate = itinerary.days[0]?.date;
+                        const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
+                        let totalDays = itinerary.days.length;
+                        if (firstDate && lastDate) {
+                          const [y1, m1, d1] = firstDate.split('-').map(Number);
+                          const [y2, m2, d2] = lastDate.split('-').map(Number);
+                          const start = new Date(y1, m1 - 1, d1);
+                          const end = new Date(y2, m2 - 1, d2);
+                          totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        }
+
                         // Count unique destinations and flights
                         const uniqueDestinations = new Set(groups.map(g => g.location)).size;
                         const flightCount = itinerary.days.reduce((acc, d) =>
@@ -923,7 +935,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                             <div className="grid grid-cols-3 gap-3">
                               <Card>
                                 <CardContent className="p-3 text-center">
-                                  <p className="text-2xl font-bold">{itinerary.days.length}</p>
+                                  <p className="text-2xl font-bold">{totalDays}</p>
                                   <p className="text-xs text-muted-foreground">Days</p>
                                 </CardContent>
                               </Card>
