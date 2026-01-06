@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
-import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
+import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
@@ -1110,11 +1110,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                             }
                                           }}
                                         >
-                                          <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
-                                            {group.startDay === group.endDay
-                                              ? `Day ${group.startDay}`
-                                              : `Day ${group.startDay}-${group.endDay}`}
-                                          </div>
                                           <div className="flex-1 min-w-0">
                                             {editingOverviewIndex === index ? (
                                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -1149,20 +1144,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                                 </Button>
                                               </div>
                                             ) : (
-                                              <>
-                                                <p className="font-medium truncate flex items-center gap-2">
-                                                  {group.location}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                  {formatDateString(group.startDate)}
-                                                  {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
-                                                </p>
-                                              </>
+                                              <p className="font-medium truncate">
+                                                {group.location}
+                                              </p>
                                             )}
                                           </div>
                                           {editingOverviewIndex !== index && (
                                             <div className="flex items-center gap-2 flex-shrink-0">
-                                              <span className="text-xs text-muted-foreground">
+                                              <span className="text-sm text-muted-foreground">
                                                 {group.nights === 1 ? '1 night' : `${group.nights} nights`}
                                               </span>
                                               <Button
@@ -1184,7 +1173,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                                         {/* Expanded dropdown with daily details */}
                                         {isExpanded && editingOverviewIndex !== index && (
-                                          <div className="ml-16 mt-2 space-y-2 pb-2">
+                                          <div className="mt-2 space-y-2 pb-2 pl-3">
                                             {/* Transport for this location group */}
                                             {transportBlocks.length > 0 && (
                                               <div className="space-y-1">
@@ -1292,61 +1281,29 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Group days by month for calendar display
-                        const monthGroups: Record<string, DayEntry[]> = {};
-                        allDays.forEach(day => {
-                          const monthKey = day.date.substring(0, 7); // YYYY-MM
-                          if (!monthGroups[monthKey]) monthGroups[monthKey] = [];
-                          monthGroups[monthKey].push(day);
-                        });
-                        const sortedMonthKeys = Object.keys(monthGroups).sort();
+                        // Create a StoredTrip for MonthCalendar
+                        const currentTripForCalendar: StoredTrip = {
+                          id: tripId,
+                          tripDna: tripDna!,
+                          itinerary: itinerary,
+                          createdAt: itinerary.createdAt,
+                          updatedAt: itinerary.updatedAt,
+                          syncedAt: new Date(),
+                          status: 'active',
+                        };
 
                         return (
                           <>
-                            {/* Calendar Card - Compact horizontal scrollable */}
-                            <Card className="flex-shrink-0 mb-3">
-                              <CardContent className="p-3">
-                                <div className="flex gap-4 overflow-x-auto pb-1">
-                                  {sortedMonthKeys.map(monthKey => {
-                                    const [year, month] = monthKey.split('-').map(Number);
-                                    const monthName = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month - 1];
-                                    const daysInMonth = monthGroups[monthKey];
-
-                                    return (
-                                      <div key={monthKey} className="flex-shrink-0">
-                                        <p className="text-xs font-medium text-muted-foreground mb-1">{monthName} {year}</p>
-                                        <div className="flex gap-1">
-                                          {daysInMonth.map(day => {
-                                            const [, , dayOfMonth] = day.date.split('-').map(Number);
-                                            const isToday = day.date === today;
-                                            const isSelected = day.date === selectedCalendarDate;
-                                            const hasActivities = !('isEmpty' in day && day.isEmpty);
-
-                                            return (
-                                              <button
-                                                key={day.date}
-                                                onClick={() => scrollToDay(day.date)}
-                                                className={`w-7 h-7 text-xs rounded-md flex items-center justify-center transition-colors ${
-                                                  isToday
-                                                    ? 'bg-orange-500 text-white font-bold'
-                                                    : isSelected
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : hasActivities
-                                                    ? 'bg-muted hover:bg-muted/80'
-                                                    : 'hover:bg-muted/50 text-muted-foreground'
-                                                }`}
-                                              >
-                                                {dayOfMonth}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </CardContent>
-                            </Card>
+                            {/* Calendar Card - Same as dashboard */}
+                            <div className="flex-shrink-0 mb-3">
+                              <MonthCalendar
+                                trips={[currentTripForCalendar]}
+                                onDateClick={(date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  scrollToDay(dateStr);
+                                }}
+                              />
+                            </div>
 
                             {/* Day list */}
                             <div ref={scheduleContainerRef} className="flex-1 overflow-auto space-y-3 pr-2">
