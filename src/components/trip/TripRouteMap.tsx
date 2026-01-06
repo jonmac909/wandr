@@ -128,6 +128,17 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
 
   const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat},${center.lng}&zoom=${zoom}&size=300x300&scale=2&maptype=roadmap&${markers}${path}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
+  // Use OpenStreetMap static map as fallback (no API key needed)
+  // Using staticmaps.openstreetmap.de which is free and doesn't require API key
+  const markerString = coords
+    .map((b) => `${b.coords!.lat},${b.coords!.lng},red-pushpin`)
+    .join('|');
+
+  // OpenStreetMap static map service (free, no API key)
+  const staticMapUrl = coords.length > 0
+    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${center.lat},${center.lng}&zoom=${zoom}&size=600x600&maptype=osmarenderer&markers=${encodeURIComponent(markerString)}`
+    : '';
+
   const hasApiKey = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // Mouse/Touch handlers for panning
@@ -235,10 +246,10 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
 
   return (
     <Card className={className}>
-      <CardContent className="p-0 overflow-hidden relative">
+      <CardContent className="p-2 overflow-hidden relative">
         <div
           ref={containerRef}
-          className={`aspect-square ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`aspect-square rounded-lg overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -248,66 +259,21 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
           onTouchEnd={handleTouchEnd}
           onDoubleClick={handleDoubleClick}
         >
-          {hasApiKey ? (
-            <img
-              src={mapUrl}
-              alt="Trip route map"
-              className="w-full h-full object-cover pointer-events-none select-none"
-              draggable={false}
-            />
-          ) : (
-            // Fallback visual representation - square
-            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 relative">
-              {/* Route line visualization */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                {/* Simple curved path between points */}
-                {coords.length > 1 && (
-                  <path
-                    d={`M ${15 + (0 / (coords.length - 1)) * 70} 50 ${coords.slice(1).map((_, i) => `L ${15 + ((i + 1) / (coords.length - 1)) * 70} ${35 + (i % 2) * 30}`).join(' ')}`}
-                    fill="none"
-                    stroke="#4f46e5"
-                    strokeWidth="2"
-                    strokeDasharray="4,3"
-                  />
-                )}
-                {/* City markers */}
-                {coords.map((_, i) => {
-                  const x = coords.length === 1 ? 50 : 15 + (i / (coords.length - 1)) * 70;
-                  const y = coords.length === 1 ? 50 : 35 + (i % 2) * 30;
-                  return (
-                    <g key={i}>
-                      <circle cx={x} cy={y} r="6" fill="#4f46e5" />
-                      <circle cx={x} cy={y} r="3" fill="white" />
-                      <text x={x} y={y + 1.5} textAnchor="middle" className="text-[8px] fill-primary font-bold">{i + 1}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* City labels */}
-              <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 justify-center">
-                {bases.slice(0, 4).map((base, i) => (
-                  <div key={base.id} className="flex items-center gap-1 bg-white/90 rounded px-1.5 py-0.5 shadow-sm">
-                    <span className="w-4 h-4 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
-                      {i + 1}
-                    </span>
-                    <span className="text-[10px] font-medium truncate max-w-[50px]">
-                      {base.location.split(',')[0]}
-                    </span>
-                  </div>
-                ))}
-                {bases.length > 4 && (
-                  <div className="bg-white/90 rounded px-1.5 py-0.5 shadow-sm">
-                    <span className="text-[10px] text-muted-foreground">+{bases.length - 4}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Use Google Maps if API key available, otherwise use Mapbox static map */}
+          <img
+            src={hasApiKey ? mapUrl : staticMapUrl}
+            alt="Trip route map"
+            className="w-full h-full object-cover pointer-events-none select-none"
+            draggable={false}
+            onError={(e) => {
+              // Fallback to a simple world map image if both fail
+              (e.target as HTMLImageElement).src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/1280px-World_map_blank_without_borders.svg.png';
+            }}
+          />
         </div>
 
         {/* Map controls */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1">
+        <div className="absolute top-4 right-4 flex flex-col gap-1">
           <Button
             variant="secondary"
             size="icon"
@@ -335,12 +301,6 @@ export function TripRouteMap({ bases, className }: TripRouteMapProps) {
           </Button>
         </div>
 
-        {/* Drag hint */}
-        {!isDragging && (
-          <div className="absolute bottom-2 left-2 text-[10px] text-white/80 bg-black/40 px-1.5 py-0.5 rounded pointer-events-none">
-            Drag to pan • Double-click to zoom
-          </div>
-        )}
       </CardContent>
     </Card>
   );

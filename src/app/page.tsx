@@ -54,29 +54,29 @@ export default function Home() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 overflow-hidden min-h-0">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-          {/* Left Column: Weather + Calendar + Recent Trips (hidden on mobile) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 overflow-auto min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          {/* Left Column: Calendar + Recent Trips (hidden on mobile) */}
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3">
-            <WeatherWidget /> {/* Uses user's home location from profile */}
+            <WeatherWidget location="West Kelowna, Canada" />
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={2} />
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={4} />
           </aside>
 
-          {/* Center Column: Featured Trip + Housing (horizontal) + Transport (below) */}
+          {/* Center Column: Featured Trip + Housing + Transport */}
           <section className="lg:col-span-6 flex flex-col gap-3">
             <FeaturedTripCard trip={featuredTrip} />
             {/* Housing - horizontal layout */}
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
             {/* Transport - below housing */}
-            <TransportSection transport={transport.slice(0, 2)} />
+            <TransportSection transport={transport.slice(0, 3)} />
           </section>
 
-          {/* Right Column: Stats + Map + Bucket List */}
+          {/* Right Column: Stats + Map + Country Breakdown */}
           <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <BucketList />
+            <CountryBreakdown trips={trips} />
           </aside>
         </div>
       </main>
