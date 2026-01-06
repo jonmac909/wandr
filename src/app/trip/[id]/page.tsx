@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
-  Calendar, Package, Utensils, Map, Sparkles, Clock, Plane,
+  Calendar, Package, Utensils, Map, Sparkles, Clock, Plane, Train,
   ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
-  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal
+  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
@@ -37,7 +37,7 @@ import {
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
   'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
   'Schedule': { bg: 'bg-cyan-50 border-cyan-200', iconBg: 'bg-cyan-100 text-cyan-600', text: 'text-cyan-800' },
-  'Flights': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
+  'Transport': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
   'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
@@ -63,6 +63,8 @@ export default function TripPage() {
   const [contentFilter, setContentFilter] = useState<string>('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
+  const [editedLocation, setEditedLocation] = useState('');
 
   // Get all trips for the drawer
   const { trips } = useDashboardData();
@@ -180,6 +182,32 @@ export default function TripPage() {
 
     // Sync to cloud
     tripDb.updateItinerary(tripId, updatedItinerary);
+  };
+
+  // Update location name for a range of days (used in overview editing)
+  const handleUpdateOverviewLocation = (startDate: string, endDate: string, newLocation: string) => {
+    if (!itinerary || !newLocation.trim()) return;
+
+    // Update all days in the range to have this location as their theme
+    const updatedDays = itinerary.days.map(day => {
+      if (day.date >= startDate && day.date <= endDate) {
+        return { ...day, theme: newLocation.trim() };
+      }
+      return day;
+    });
+
+    const updatedItinerary = {
+      ...itinerary,
+      days: updatedDays,
+      updatedAt: new Date(),
+    };
+
+    setItinerary(updatedItinerary);
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    tripDb.updateItinerary(tripId, updatedItinerary);
+    setEditingOverviewIndex(null);
   };
 
   // Drag and drop handlers
@@ -379,8 +407,50 @@ export default function TripPage() {
   };
 
   // Get location for a specific day - infer from activities
+  // For travel days with flights, show the route (e.g., "Kelowna - Vancouver - Tokyo")
   const getLocationForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
+
+    // First check if there's a custom theme set (user edited location)
+    if (day.theme) {
+      return day.theme;
+    }
+
+    // Collect all flights for this day to build a route
+    const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
+    if (flightBlocks.length > 0) {
+      const cities: string[] = [];
+
+      for (const flightBlock of flightBlocks) {
+        const flightName = flightBlock.activity?.name || '';
+        // Parse "YVR → NRT" or "Vancouver to Tokyo"
+        const arrowMatch = flightName.match(/^(.+?)\s*→\s*(.+)$/);
+        if (arrowMatch) {
+          const fromCity = airportToCity(arrowMatch[1].trim());
+          const toCity = airportToCity(arrowMatch[2].trim());
+          if (cities.length === 0) {
+            cities.push(fromCity);
+          }
+          cities.push(toCity);
+        } else {
+          const toMatch = flightName.match(/^(.+?)\s+to\s+(.+)$/i);
+          if (toMatch) {
+            const fromCity = airportToCity(toMatch[1].trim());
+            const toCity = airportToCity(toMatch[2].trim());
+            if (cities.length === 0) {
+              cities.push(fromCity);
+            }
+            cities.push(toCity);
+          }
+        }
+      }
+
+      if (cities.length > 0) {
+        // Dedupe consecutive duplicates
+        const dedupedCities = cities.filter((city, i) => i === 0 || city !== cities[i - 1]);
+        return dedupedCities.join(' - ');
+      }
+    }
 
     // Try to get location from hotel/accommodation activity on this day
     const hotelBlock = day.blocks.find(b =>
@@ -388,19 +458,7 @@ export default function TripPage() {
       b.activity?.category === 'checkin'
     );
     if (hotelBlock?.activity?.location?.name) {
-      // Extract city from hotel location (e.g., "Hotel Nikko Narita" -> look at location name)
       return airportToCity(hotelBlock.activity.location.name);
-    }
-
-    // Try to extract destination from flight arrival on this day
-    const flightBlock = day.blocks.find(b => b.activity?.category === 'flight');
-    if (flightBlock?.activity?.name) {
-      // Parse flight name like "YVR → NRT" or "Vancouver to Tokyo"
-      const flightName = flightBlock.activity.name;
-      const arrowMatch = flightName.match(/→\s*(.+)$/);
-      if (arrowMatch) return airportToCity(arrowMatch[1].trim());
-      const toMatch = flightName.match(/to\s+(.+)$/i);
-      if (toMatch) return airportToCity(toMatch[1].trim());
     }
 
     // Try any activity with a location
@@ -408,11 +466,6 @@ export default function TripPage() {
       if (block.activity?.location?.name) {
         return airportToCity(block.activity.location.name);
       }
-    }
-
-    // Last resort: check the day's theme which often contains location
-    if (day.theme) {
-      return airportToCity(day.theme);
     }
 
     // Fallback to trip destination
@@ -711,29 +764,29 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <DropdownMenuTrigger asChild>
               <button
                 className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all aspect-square flex-1 max-w-[72px] border ${
-                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                  ['transport', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : `${PIPELINE_COLORS['More'].bg} hover:opacity-80`
                 }`}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
-                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                  ['transport', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? 'bg-primary-foreground/20'
                     : PIPELINE_COLORS['More'].iconBg
                 }`}>
                   <MoreHorizontal className="w-4 h-4" />
                 </div>
                 <span className={`text-[10px] font-medium text-center ${
-                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                  ['transport', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
                     ? ''
                     : PIPELINE_COLORS['More'].text
                 }`}>More</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 mb-2">
-              <DropdownMenuItem onClick={() => setContentFilter('flights')}>
+              <DropdownMenuItem onClick={() => setContentFilter('transport')}>
                 <Plane className="w-4 h-4 mr-2" />
-                Flights
+                Transport
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setContentFilter('hotels')}>
                 <Hotel className="w-4 h-4 mr-2" />
@@ -797,14 +850,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     active={contentFilter === 'schedule'}
                     onClick={() => setContentFilter('schedule')}
                   />
-                  {/* Flights */}
+                  {/* Transport (flights, trains, buses) */}
                   <PipelineRow
                     icon={<Plane className="w-4 h-4" />}
-                    label="Flights"
-                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
-                    status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
-                    active={contentFilter === 'flights'}
-                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'overview' : 'flights')}
+                    label="Transport"
+                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0)}
+                    status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) ? 'complete' : 'pending'}
+                    active={contentFilter === 'transport'}
+                    onClick={() => setContentFilter(contentFilter === 'transport' ? 'overview' : 'transport')}
                   />
                   {/* Hotels */}
                   <PipelineRow
@@ -954,7 +1007,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           if (lastGroup && lastGroup.location === location) {
                             lastGroup.endDate = dateStr;
                             lastGroup.endDay = dayNum;
-                            lastGroup.nights = lastGroup.endDay - lastGroup.startDay;
+                            // Nights = number of days at this location (you sleep each night you're there, except maybe last day)
+                            lastGroup.nights = lastGroup.endDay - lastGroup.startDay + 1;
                           } else {
                             groups.push({
                               location,
@@ -962,7 +1016,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               endDate: dateStr,
                               startDay: dayNum,
                               endDay: dayNum,
-                              nights: 0,
+                              nights: 1, // Even a single day means 1 night at that location
                             });
                           }
 
@@ -971,10 +1025,10 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Count unique destinations and flights
+                        // Count unique destinations and transport (flights + trains/buses)
                         const uniqueDestinations = new Set(groups.map(g => g.location)).size;
-                        const flightCount = itinerary.days.reduce((acc, d) =>
-                          acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0);
+                        const transportCount = itinerary.days.reduce((acc, d) =>
+                          acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0);
 
                         // Format date string without timezone issues
                         const formatDateString = (dateStr: string) => {
@@ -1001,8 +1055,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               </Card>
                               <Card>
                                 <CardContent className="p-3 text-center">
-                                  <p className="text-2xl font-bold">{flightCount}</p>
-                                  <p className="text-xs text-muted-foreground">Flights</p>
+                                  <p className="text-2xl font-bold">{transportCount}</p>
+                                  <p className="text-xs text-muted-foreground">Transport</p>
                                 </CardContent>
                               </Card>
                             </div>
@@ -1013,7 +1067,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   {groups.map((group, index) => (
                                     <div
                                       key={`${group.location}-${index}`}
-                                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                                      onClick={() => {
+                                        if (editingOverviewIndex !== index) {
+                                          setEditingOverviewIndex(index);
+                                          setEditedLocation(group.location);
+                                        }
+                                      }}
                                     >
                                       <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
                                         {group.startDay === group.endDay
@@ -1021,15 +1081,56 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                           : `Day ${group.startDay}-${group.endDay}`}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{group.location}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {formatDateString(group.startDate)}
-                                          {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
-                                        </p>
+                                        {editingOverviewIndex === index ? (
+                                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                            <Input
+                                              value={editedLocation}
+                                              onChange={(e) => setEditedLocation(e.target.value)}
+                                              className="h-7 text-sm"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation);
+                                                } else if (e.key === 'Escape') {
+                                                  setEditingOverviewIndex(null);
+                                                }
+                                              }}
+                                            />
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-7 w-7"
+                                              onClick={() => handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation)}
+                                            >
+                                              <Check className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-7 w-7"
+                                              onClick={() => setEditingOverviewIndex(null)}
+                                            >
+                                              <X className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <p className="font-medium truncate flex items-center gap-2">
+                                              {group.location}
+                                              <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50" />
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {formatDateString(group.startDate)}
+                                              {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                            </p>
+                                          </>
+                                        )}
                                       </div>
-                                      <div className="text-xs text-muted-foreground flex-shrink-0">
-                                        {group.nights === 1 ? '1 night' : group.nights > 1 ? `${group.nights} nights` : ''}
-                                      </div>
+                                      {editingOverviewIndex !== index && (
+                                        <div className="text-xs text-muted-foreground flex-shrink-0">
+                                          {group.nights === 1 ? '1 night' : `${group.nights} nights`}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -1041,9 +1142,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </div>
                   )}
 
-                  {/* Schedule - Daily Itinerary organized by Month > Week > Day */}
+                  {/* Schedule - Simple daily list */}
                   {(contentFilter === 'schedule' || contentFilter === 'all') && (
-                    <div className="space-y-6 pr-2">
+                    <div className="space-y-3 pr-2">
                       {(() => {
                         // Generate all days in the date range (no gaps)
                         const firstDate = itinerary.days[0]?.date;
@@ -1061,125 +1162,62 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         const daysByDate: Record<string, DayPlan> = {};
                         itinerary.days.forEach(d => { daysByDate[d.date] = d; });
 
-                        // Generate all days with month/week info
-                        type DayEntry = (DayPlan | { date: string; dayNumber: number; isEmpty: true }) & {
-                          monthKey: string;
-                          weekKey: string;
-                          weekOfMonth: number;
-                        };
+                        // Generate all days
+                        type DayEntry = (DayPlan & { dayNumber: number }) | { date: string; dayNumber: number; isEmpty: true };
                         const allDays: DayEntry[] = [];
                         let dayNum = 1;
                         const current = new Date(start);
-                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
                         while (current <= end) {
                           const dateStr = current.toISOString().split('T')[0];
                           const existingDay = daysByDate[dateStr];
 
-                          const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-                          // Calculate week of month (1-based)
-                          const firstOfMonth = new Date(current.getFullYear(), current.getMonth(), 1);
-                          const weekOfMonth = Math.ceil((current.getDate() + firstOfMonth.getDay()) / 7);
-                          const weekKey = `${monthKey}-W${weekOfMonth}`;
-
                           if (existingDay) {
-                            allDays.push({ ...existingDay, dayNumber: dayNum, monthKey, weekKey, weekOfMonth });
+                            allDays.push({ ...existingDay, dayNumber: dayNum });
                           } else {
-                            allDays.push({ date: dateStr, dayNumber: dayNum, isEmpty: true, monthKey, weekKey, weekOfMonth });
+                            allDays.push({ date: dateStr, dayNumber: dayNum, isEmpty: true });
                           }
 
                           dayNum++;
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Group by month, then by week
-                        const monthGroups: Record<string, { month: string; year: number; weeks: Record<string, DayEntry[]> }> = {};
-                        allDays.forEach(day => {
-                          const [year, month] = day.monthKey.split('-').map(Number);
-                          if (!monthGroups[day.monthKey]) {
-                            monthGroups[day.monthKey] = {
-                              month: monthNames[month - 1],
-                              year,
-                              weeks: {}
-                            };
-                          }
-                          if (!monthGroups[day.monthKey].weeks[day.weekKey]) {
-                            monthGroups[day.monthKey].weeks[day.weekKey] = [];
-                          }
-                          monthGroups[day.monthKey].weeks[day.weekKey].push(day);
-                        });
+                        return allDays.map((day) => {
+                          if ('isEmpty' in day && day.isEmpty) {
+                            // Render empty day placeholder
+                            const [, month, dayOfMonth] = day.date.split('-').map(Number);
+                            const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            const dateDisplay = `${shortMonths[month - 1]} ${dayOfMonth}`;
 
-                        const sortedMonthKeys = Object.keys(monthGroups).sort();
-
-                        return sortedMonthKeys.map(monthKey => {
-                          const monthGroup = monthGroups[monthKey];
-                          const sortedWeekKeys = Object.keys(monthGroup.weeks).sort();
+                            return (
+                              <div key={day.date} className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
+                                <div className="flex items-center gap-3 text-muted-foreground">
+                                  <span className="text-sm font-medium">Day {day.dayNumber}</span>
+                                  <span className="text-xs">{dateDisplay}</span>
+                                  <span className="text-xs ml-auto italic">No activities planned</span>
+                                </div>
+                              </div>
+                            );
+                          }
 
                           return (
-                            <div key={monthKey} className="space-y-4">
-                              {/* Month Header */}
-                              <div className="sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b">
-                                <h3 className="text-lg font-bold">{monthGroup.month} {monthGroup.year}</h3>
-                              </div>
-
-                              {/* Weeks within month */}
-                              {sortedWeekKeys.map(weekKey => {
-                                const weekDays = monthGroup.weeks[weekKey];
-                                const weekNum = weekDays[0]?.weekOfMonth;
-
-                                return (
-                                  <div key={weekKey} className="space-y-2">
-                                    {/* Week Header */}
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground pl-2">
-                                      <span className="font-medium">Week {weekNum}</span>
-                                      <div className="flex-1 h-px bg-border" />
-                                    </div>
-
-                                    {/* Days within week */}
-                                    <div className="space-y-2 pl-4">
-                                      {weekDays.map((day) => {
-                                        if ('isEmpty' in day && day.isEmpty) {
-                                          // Render empty day placeholder
-                                          const [, month, dayOfMonth] = day.date.split('-').map(Number);
-                                          const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                          const dateDisplay = `${shortMonths[month - 1]} ${dayOfMonth}`;
-
-                                          return (
-                                            <div key={day.date} className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
-                                              <div className="flex items-center gap-3 text-muted-foreground">
-                                                <span className="text-sm font-medium">Day {day.dayNumber}</span>
-                                                <span className="text-xs">{dateDisplay}</span>
-                                                <span className="text-xs ml-auto italic">No activities planned</span>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-
-                                        return (
-                                          <DayCard
-                                            key={day.date}
-                                            day={day as DayPlan}
-                                            isToday={day.date === new Date().toISOString().split('T')[0]}
-                                            isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                                            onToggle={() => setExpandedDay(
-                                              expandedDay === day.dayNumber ? null : day.dayNumber
-                                            )}
-                                            onUpdateDay={handleUpdateDay}
-                                            location={getLocationForDay(day as DayPlan)}
-                                            onDragStart={handleDragStart}
-                                            onDragEnd={handleDragEnd}
-                                            onDrop={handleDrop}
-                                            onDragOver={handleDragOver}
-                                            isDragging={dragState.blockId !== null}
-                                            dragOverIndex={dragState.targetDayId === (day as DayPlan).id ? dragState.targetIndex : null}
-                                          />
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                            <DayCard
+                              key={day.date}
+                              day={day as DayPlan}
+                              isToday={day.date === new Date().toISOString().split('T')[0]}
+                              isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                              onToggle={() => setExpandedDay(
+                                expandedDay === day.dayNumber ? null : day.dayNumber
+                              )}
+                              onUpdateDay={handleUpdateDay}
+                              location={getLocationForDay(day as DayPlan)}
+                              onDragStart={handleDragStart}
+                              onDragEnd={handleDragEnd}
+                              onDrop={handleDrop}
+                              onDragOver={handleDragOver}
+                              isDragging={dragState.blockId !== null}
+                              dragOverIndex={dragState.targetDayId === (day as DayPlan).id ? dragState.targetIndex : null}
+                            />
                           );
                         });
                       })()}
@@ -1190,16 +1228,21 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </div>
                   )}
 
-                  {/* Filtered View - Flights */}
-                  {contentFilter === 'flights' && (
+                  {/* Filtered View - Transport (flights + trains/buses) */}
+                  {contentFilter === 'transport' && (
                     <div className="space-y-4 pr-2">
                       {itinerary.days.flatMap(day =>
-                        day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
+                        day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').map(block => (
                           <Card key={block.id}>
                             <CardContent className="p-4">
                               <div className="flex items-start gap-3">
-                                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                  <Plane className="w-6 h-6 text-blue-600" />
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                  block.activity?.category === 'flight' ? 'bg-blue-100' : 'bg-cyan-100'
+                                }`}>
+                                  {block.activity?.category === 'flight'
+                                    ? <Plane className="w-6 h-6 text-blue-600" />
+                                    : <Train className="w-6 h-6 text-cyan-600" />
+                                  }
                                 </div>
                                 <div className="flex-1">
                                   <h4 className="font-medium">{block.activity?.name}</h4>
@@ -1211,10 +1254,10 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </Card>
                         ))
                       )}
-                      {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
+                      {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) && (
                         <div className="text-center py-12">
                           <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                          <p className="text-muted-foreground">No flights in this trip</p>
+                          <p className="text-muted-foreground">No transport in this trip</p>
                         </div>
                       )}
                     </div>
@@ -1367,7 +1410,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
                               <Plane className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm">Flights</span>
+                              <span className="text-sm">Transport</span>
                             </div>
                             <span className="text-sm font-medium">$0</span>
                           </div>
