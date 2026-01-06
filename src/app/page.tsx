@@ -54,30 +54,27 @@ export default function Home() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 overflow-auto min-h-0">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 min-h-0 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* Left Column: Weather + Calendar + Recent Trips (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 h-full overflow-hidden">
             <WeatherWidget location="West Kelowna, Canada" />
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={2} />
           </aside>
 
           {/* Center Column: Featured Trip + Housing + Transport */}
-          <section className="lg:col-span-6 flex flex-col gap-3">
+          <section className="lg:col-span-6 flex flex-col gap-3 h-full overflow-hidden">
             <FeaturedTripCard trip={featuredTrip} />
-            {/* Housing - horizontal layout */}
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-            {/* Transport - below housing */}
             <TransportSection transport={transport.slice(0, 2)} />
           </section>
 
-          {/* Right Column: Stats + Map + Bucket List + Country Breakdown */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3">
+          {/* Right Column: Stats + Map + Bucket List */}
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 h-full overflow-hidden">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
             <BucketList maxItems={3} />
-            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={3} />
           </aside>
         </div>
       </main>
