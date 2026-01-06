@@ -187,28 +187,33 @@ export function DayCard({
                   </Button>
                 </div>
               ) : (
-                <CardTitle className="text-lg flex items-center gap-2">
-                  {day.theme || `Day ${day.dayNumber}`}
-                  {isToday && (
-                    <Badge variant="default" className="text-xs">Today</Badge>
-                  )}
-                  {onUpdateDay && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setThemeValue(day.theme || '');
-                        setEditingTheme(true);
-                      }}
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </Button>
-                  )}
-                </CardTitle>
+                <>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {formattedDate}
+                    {isToday && (
+                      <Badge variant="default" className="text-xs">Today</Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {location || day.theme || 'No location set'}
+                    {onUpdateDay && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:opacity-100 ml-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setThemeValue(day.theme || '');
+                          setEditingTheme(true);
+                        }}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </p>
+                </>
               )}
-              <p className="text-sm text-muted-foreground">{formattedDate}</p>
             </div>
           </div>
           {day.weather && (

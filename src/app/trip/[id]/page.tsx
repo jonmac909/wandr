@@ -639,12 +639,12 @@ ${JSON.stringify(tripDna, null, 2)}`}
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
           {/* Left Column - Route Map + Pipeline */}
-          <aside className="lg:col-span-4 flex flex-col gap-3">
+          <aside className="lg:col-span-4 flex flex-col gap-3 min-h-0">
             {/* Route Map */}
             <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
 
             {/* Pipeline Card - Click to filter */}
-            <Card className="flex-shrink-0">
+            <Card className="flex-1">
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="grid grid-cols-3 gap-2 auto-rows-fr">
                   {/* Overview */}
@@ -735,30 +735,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="lg:col-span-8 min-h-0 h-full max-h-[calc(100vh-8rem)] overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full overflow-hidden">
-                {/* Header - only show when filtered (not overview or schedule) */}
-                {contentFilter !== 'overview' && contentFilter !== 'schedule' && (
-                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                    <h3 className="font-semibold">
-                      {contentFilter === 'flights' ? 'Flights' :
-                       contentFilter === 'hotels' ? 'Hotels' :
-                       contentFilter === 'restaurants' ? 'Food & Restaurants' :
-                       contentFilter === 'experiences' ? 'Activities' :
-                       contentFilter === 'packing' ? 'Packing List' :
-                       contentFilter === 'docs' ? 'Documents' :
-                       contentFilter === 'budget' ? 'Budget' :
-                       contentFilter === 'all' ? 'Daily Itinerary' : ''}
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => setContentFilter('overview')}
-                    >
-                      Back to Overview
-                    </Button>
-                  </div>
-                )}
-
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
                   {/* Overview - Trip Summary */}
@@ -848,33 +824,124 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         </CardContent>
                       </Card>
 
-                      {/* Route / Bases */}
+                      {/* Accommodation Summary */}
                       <div>
-                        <h3 className="font-semibold mb-3">Route</h3>
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                          <Hotel className="w-4 h-4" />
+                          Accommodation
+                        </h3>
                         <div className="space-y-2">
                           {itinerary.route.bases.map((base, index) => (
                             <Card key={base.id}>
                               <CardContent className="p-3">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-600">
                                     {index + 1}
                                   </div>
                                   <div className="flex-1">
-                                    <p className="font-medium">{base.location}</p>
+                                    <p className="font-medium">{base.accommodation?.name || 'TBD'}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {base.nights} night{base.nights !== 1 ? 's' : ''}
-                                      {base.accommodation?.name && ` • ${base.accommodation.name}`}
+                                      {base.location} • {base.nights} night{base.nights !== 1 ? 's' : ''}
                                     </p>
                                   </div>
-                                  {base.accommodation?.name && (
-                                    <Hotel className="w-4 h-4 text-muted-foreground" />
-                                  )}
                                 </div>
                               </CardContent>
                             </Card>
                           ))}
                         </div>
                       </div>
+
+                      {/* Flights Summary */}
+                      {itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <Plane className="w-4 h-4" />
+                            Flights
+                          </h3>
+                          <div className="space-y-2">
+                            {itinerary.days.flatMap(day =>
+                              day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
+                                <Card key={block.id}>
+                                  <CardContent className="p-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <Plane className="w-4 h-4 text-blue-600" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium">{block.activity?.name}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Activities Highlights */}
+                      {itinerary.days.some(d => d.blocks.some(b => b.activity && b.priority === 'must-see' && !['flight', 'transit', 'food'].includes(b.activity.category))) && (
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <Compass className="w-4 h-4" />
+                            Must-Do Activities
+                          </h3>
+                          <div className="space-y-2">
+                            {itinerary.days.flatMap(day =>
+                              day.blocks.filter(b => b.activity && b.priority === 'must-see' && !['flight', 'transit', 'food'].includes(b.activity.category)).slice(0, 5).map(block => (
+                                <Card key={block.id}>
+                                  <CardContent className="p-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                                        <Sparkles className="w-4 h-4 text-amber-600" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium">{block.activity?.name}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                          {block.activity?.location?.name && ` • ${block.activity.location.name}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Food Highlights */}
+                      {(itinerary.foodLayer?.length || 0) > 0 && (
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <UtensilsCrossed className="w-4 h-4" />
+                            Food Spots
+                          </h3>
+                          <div className="space-y-2">
+                            {itinerary.foodLayer.slice(0, 4).map(food => (
+                              <Card key={food.id}>
+                                <CardContent className="p-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                                      <UtensilsCrossed className="w-4 h-4 text-orange-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium">{food.name}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {food.cuisine}{food.mealTime && ` • ${food.mealTime}`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Quick Actions */}
                       <div className="pt-4 border-t">

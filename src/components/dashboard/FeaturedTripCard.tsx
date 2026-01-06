@@ -44,9 +44,16 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
   const imageUrl = getDestinationImage(photoQuery, 400, 400);
 
   // Status calculations
-  const hasHousing = itinerary.route?.bases?.some(b => b.accommodation?.name);
-  const hasTransport = itinerary.route?.movements?.length > 0 ||
-    itinerary.days?.some(d => d.blocks?.some(b => b.activity?.category === 'flight'));
+  const hotelCount = itinerary.route?.bases?.filter(b => b.accommodation?.name).length || 0;
+  const hasHousing = hotelCount > 0;
+
+  // Count flights from movements and day activities
+  const movementFlights = itinerary.route?.movements?.filter(m => m.type === 'flight').length || 0;
+  const activityFlights = itinerary.days?.reduce((acc, d) =>
+    acc + (d.blocks?.filter(b => b.activity?.category === 'flight').length || 0), 0) || 0;
+  const flightCount = movementFlights + activityFlights;
+  const hasTransport = flightCount > 0 || (itinerary.route?.movements?.length || 0) > 0;
+
   const activityCount = itinerary.days?.reduce((acc, d) =>
     acc + (d.blocks?.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit').length || 0), 0) || 0;
 
@@ -189,12 +196,13 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
 
           {/* Status rows */}
           <div className="space-y-2.5 border-t pt-4">
-            {/* Housing */}
+            {/* Accommodation */}
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Housing</span>
+              <span className="text-sm text-muted-foreground">Accommodation</span>
               <StatusBadge
                 status={hasHousing ? 'booked' : 'pending'}
                 icon={<Home className="w-3.5 h-3.5" />}
+                label={hasHousing ? `${hotelCount} hotel${hotelCount !== 1 ? 's' : ''}` : undefined}
               />
             </div>
 
@@ -204,6 +212,7 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
               <StatusBadge
                 status={hasTransport ? 'booked' : 'pending'}
                 icon={<Car className="w-3.5 h-3.5" />}
+                label={flightCount > 0 ? `${flightCount} flight${flightCount !== 1 ? 's' : ''}` : undefined}
               />
             </div>
 
@@ -245,7 +254,7 @@ function StatusBadge({ status, icon, label }: StatusBadgeProps) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
         <Check className="w-3 h-3" />
-        Booked
+        {label || 'Booked'}
       </span>
     );
   }

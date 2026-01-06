@@ -55,26 +55,32 @@ export default function Home() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 min-h-0 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Column: Weather + Calendar + Recent Trips */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 h-full">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 min-h-0">
             <WeatherWidget location="West Kelowna, Canada" />
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={5} />
+            <div className="flex-1 min-h-0">
+              <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={5} />
+            </div>
           </aside>
 
           {/* Center Column: Featured Trip + Housing + Transport */}
-          <section className="lg:col-span-6 flex flex-col gap-4 h-full">
+          <section className="lg:col-span-6 flex flex-col gap-4 min-h-0">
             <FeaturedTripCard trip={featuredTrip} />
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
-            <TransportSection transport={transport.slice(0, 3)} />
+            <div className="flex-1 min-h-0">
+              <TransportSection transport={transport.slice(0, 3)} />
+            </div>
           </section>
 
           {/* Right Column: Stats + Map + Bucket List */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 h-full">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 min-h-0">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <BucketList maxItems={6} />
+            <div className="flex-1 min-h-0">
+              <BucketList maxItems={6} />
+            </div>
           </aside>
         </div>
       </main>

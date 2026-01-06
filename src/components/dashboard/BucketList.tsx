@@ -100,8 +100,8 @@ export function BucketList({ initialItems = DEFAULT_ITEMS, maxItems = 4 }: Bucke
   };
 
   return (
-    <Card className="flex-1">
-      <CardContent className="p-3">
+    <Card className="h-full">
+      <CardContent className="p-3 h-full flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold">Bucket List</h3>
           {!isAdding && (
@@ -144,7 +144,7 @@ export function BucketList({ initialItems = DEFAULT_ITEMS, maxItems = 4 }: Bucke
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1 overflow-auto">
           {displayItems.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-4">
               No destinations yet. Add your dream trips!
