@@ -713,24 +713,39 @@ function ActivityDisplay({ activity, priority, date, onOpenPlaceDetails, onToggl
           </span>
         )}
         {activity.bookingRequired && (
-          <Badge
-            variant={isBooked ? 'default' : 'outline'}
-            className={cn(
-              'text-[10px] px-1.5 py-0 h-4 cursor-pointer transition-colors',
-              isBooked
-                ? 'bg-green-500 hover:bg-green-600 text-white'
-                : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
+          <div className="flex items-center gap-1">
+            {!isBooked && (
+              <a
+                href={generateBookingUrl(activity, { date })}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition-colors"
+                title={`Book on ${getBookingProvider(activity.category).name}`}
+              >
+                <ExternalLink className="w-2.5 h-2.5" />
+                Book
+              </a>
             )}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (editable && onToggleBooked) {
-                onToggleBooked();
-              }
-            }}
-            title={editable ? (isBooked ? 'Click to mark as not booked' : 'Click to mark as booked') : undefined}
-          >
-            {isBooked ? '✓' : 'Book'}
-          </Badge>
+            <Badge
+              variant={isBooked ? 'default' : 'outline'}
+              className={cn(
+                'text-[10px] px-1.5 py-0 h-4 cursor-pointer transition-colors',
+                isBooked
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (editable && onToggleBooked) {
+                  onToggleBooked();
+                }
+              }}
+              title={editable ? (isBooked ? 'Click to mark as not booked' : 'Click to mark as booked') : undefined}
+            >
+              {isBooked ? '✓ Booked' : '○'}
+            </Badge>
+          </div>
         )}
       </div>
       {activity.tips && activity.tips.length > 0 && (
