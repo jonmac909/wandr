@@ -1230,39 +1230,30 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                                         {/* Expanded dropdown with daily details */}
                                         {isExpanded && editingOverviewIndex !== index && (
-                                          <div className="mt-2 space-y-2 pb-2 pl-3">
-                                            {/* Each day with date, then events */}
-                                            {daysInGroup.map((day) => {
-                                              const allActivities = day.blocks.filter(b => b.activity);
-                                              if (allActivities.length === 0) return null;
-
-                                              return (
-                                                <div key={day.id} className="p-2 rounded bg-muted/30 text-sm">
-                                                  <div className="font-medium text-xs text-muted-foreground mb-1">
+                                          <div className="mt-2 space-y-1 pb-2 pl-3">
+                                            {/* All events as flat list with date on right */}
+                                            {daysInGroup.flatMap((day) =>
+                                              day.blocks.filter(b => b.activity).map((block) => (
+                                                <div key={block.id} className="flex items-center gap-2 text-sm">
+                                                  {block.activity?.category === 'flight' && (
+                                                    <Plane className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                                  )}
+                                                  {block.activity?.category === 'transit' && (
+                                                    <Train className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                                                  )}
+                                                  {block.activity?.category === 'accommodation' && (
+                                                    <Hotel className="w-3 h-3 text-purple-600 flex-shrink-0" />
+                                                  )}
+                                                  {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
+                                                    <Circle className="w-2 h-2 text-muted-foreground flex-shrink-0" />
+                                                  )}
+                                                  <span className="text-xs flex-1 truncate">{block.activity?.name}</span>
+                                                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
                                                     {formatDisplayDate(day.date)}
-                                                  </div>
-                                                  <ul className="space-y-1">
-                                                    {allActivities.map((block) => (
-                                                      <li key={block.id} className="flex items-center gap-2">
-                                                        {block.activity?.category === 'flight' && (
-                                                          <Plane className="w-3 h-3 text-blue-600" />
-                                                        )}
-                                                        {block.activity?.category === 'transit' && (
-                                                          <Train className="w-3 h-3 text-cyan-600" />
-                                                        )}
-                                                        {block.activity?.category === 'accommodation' && (
-                                                          <Hotel className="w-3 h-3 text-purple-600" />
-                                                        )}
-                                                        {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
-                                                          <Circle className="w-2 h-2 text-muted-foreground" />
-                                                        )}
-                                                        <span className="text-xs">{block.activity?.name}</span>
-                                                      </li>
-                                                    ))}
-                                                  </ul>
+                                                  </span>
                                                 </div>
-                                              );
-                                            })}
+                                              ))
+                                            )}
 
                                             {daysInGroup.every(d => d.blocks.filter(b => b.activity).length === 0) && (
                                               <p className="text-xs text-muted-foreground italic">No activities planned</p>
