@@ -708,7 +708,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     const pipelineItems = [
                       { id: 'flights' as const, label: 'Flights', icon: Plane, complete: hasFlights, count: itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0) },
                       { id: 'hotels' as const, label: 'Hotels', icon: Hotel, complete: hasHotels, count: itinerary.route.bases.filter(b => b.accommodation?.name).length },
-                      { id: 'packing' as const, label: 'Packing', icon: Package, complete: hasPacking, count: itinerary.packingLayer.capsuleWardrobe.length + itinerary.packingLayer.essentials.length },
+                      { id: 'packing' as const, label: 'Packing', icon: Package, complete: hasPacking, count: itinerary.packingLayer.capsuleWardrobe.length + itinerary.packingLayer.activitySpecific.length },
                       { id: 'restaurants' as const, label: 'Restaurants', icon: UtensilsCrossed, complete: hasRestaurants, count: itinerary.foodLayer.length },
                       { id: 'experiences' as const, label: 'Experiences', icon: Compass, complete: hasExperiences, count: itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').length, 0) },
                     ];
@@ -942,7 +942,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           <p className="text-sm text-muted-foreground">{base.location}</p>
                           <p className="text-xs text-muted-foreground mt-2">
                             {base.nights} night{base.nights > 1 ? 's' : ''}
-                            {base.accommodation?.pricePerNight && ` • $${base.accommodation.pricePerNight}/night`}
+                            {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
                           </p>
                         </div>
                       </div>
@@ -1057,8 +1057,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       <h4 className="font-medium">{base.accommodation?.name}</h4>
                       <p className="text-sm text-muted-foreground">{base.location}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {base.nights} night{base.nights > 1 ? 's' : ''} •
-                        {base.accommodation?.pricePerNight && ` $${base.accommodation.pricePerNight}/night`}
+                        {base.nights} night{base.nights > 1 ? 's' : ''}
+                        {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
                       </p>
                     </div>
                   </div>
