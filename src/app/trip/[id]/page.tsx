@@ -18,7 +18,8 @@ import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane, Train,
   ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
-  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown
+  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
+  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
@@ -1470,43 +1471,35 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                   {/* Documents View */}
                   {contentFilter === 'docs' && (
-                    <div className="space-y-4 pr-2">
-                      <div className="text-center py-12">
-                        <FileText className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-                        <h3 className="font-semibold mb-2">Trip Documents</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Upload and organize your travel documents
-                        </p>
-                        <Button variant="outline">
-                          <FileText className="w-4 h-4 mr-2" />
-                          Upload Document
-                        </Button>
-                      </div>
-                      <div className="border-t pt-4">
-                        <h4 className="text-sm font-medium mb-3">Suggested Documents</h4>
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                            <Circle className="w-3 h-3" />
-                            <span>Flight confirmations</span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                            <Circle className="w-3 h-3" />
-                            <span>Hotel reservations</span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                            <Circle className="w-3 h-3" />
-                            <span>Passport / ID copies</span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                            <Circle className="w-3 h-3" />
-                            <span>Travel insurance</span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                            <Circle className="w-3 h-3" />
-                            <span>Activity tickets / bookings</span>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="space-y-3 pr-2">
+                      {/* Document categories as cards */}
+                      {[
+                        { icon: Stethoscope, label: 'Health Insurance', desc: 'Medical coverage abroad', color: 'bg-red-100 text-red-600' },
+                        { icon: Shield, label: 'Travel Insurance', desc: 'Trip protection & cancellation', color: 'bg-green-100 text-green-600' },
+                        { icon: FileText, label: 'Passport / Visa', desc: 'ID and entry documents', color: 'bg-blue-100 text-blue-600' },
+                        { icon: Plane, label: 'Flight Confirmations', desc: 'Booking references & e-tickets', color: 'bg-sky-100 text-sky-600' },
+                        { icon: Hotel, label: 'Hotel Reservations', desc: 'Accommodation bookings', color: 'bg-purple-100 text-purple-600' },
+                        { icon: Car, label: 'Car Rental', desc: 'Vehicle bookings & licenses', color: 'bg-orange-100 text-orange-600' },
+                        { icon: Ticket, label: 'Activity Tickets', desc: 'Tours, attractions & events', color: 'bg-amber-100 text-amber-600' },
+                        { icon: CreditCard, label: 'Payment & Cards', desc: 'Credit cards & travel money', color: 'bg-emerald-100 text-emerald-600' },
+                      ].map((doc) => (
+                        <Card key={doc.label} className="cursor-pointer hover:bg-muted/30 transition-colors">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.color}`}>
+                                <doc.icon className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm">{doc.label}</h4>
+                                <p className="text-xs text-muted-foreground">{doc.desc}</p>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   )}
 
