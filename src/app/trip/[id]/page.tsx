@@ -18,7 +18,7 @@ import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane,
   ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
-  Check, Circle, Hotel, UtensilsCrossed, Compass, ChevronDown, Filter
+  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
@@ -30,19 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 export default function TripPage() {
   const params = useParams();
@@ -57,8 +44,6 @@ export default function TripPage() {
   const [editedTitle, setEditedTitle] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [foodModalDay, setFoodModalDay] = useState<DayPlan | null>(null);
-  const [itineraryView, setItineraryView] = useState<'daily' | 'calendar'>('daily');
-  const [activeModal, setActiveModal] = useState<'flights' | 'hotels' | 'food' | 'activities' | 'packing' | null>(null);
   const [contentFilter, setContentFilter] = useState<string>('all');
 
   // Drag and drop state
@@ -743,7 +728,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
               </CardContent>
             </Card>
 
-            {/* Pipeline Card */}
+            {/* Pipeline Card - Click to filter */}
             <Card className="flex-1 min-h-0 flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
                 <div className="grid grid-cols-3 gap-2 auto-rows-fr">
@@ -753,7 +738,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Flights"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
-                    onClick={() => setActiveModal('flights')}
+                    active={contentFilter === 'flights'}
+                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
                   />
                   {/* Hotels */}
                   <PipelineRow
@@ -762,7 +748,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
                     total={itinerary.route.bases.length}
                     status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
-                    onClick={() => setActiveModal('hotels')}
+                    active={contentFilter === 'hotels'}
+                    onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
                   />
                   {/* Restaurants */}
                   <PipelineRow
@@ -770,7 +757,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Food"
                     count={itinerary.foodLayer?.length || 0}
                     status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
-                    onClick={() => setActiveModal('food')}
+                    active={contentFilter === 'restaurants'}
+                    onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
                   />
                   {/* Experiences */}
                   <PipelineRow
@@ -778,14 +766,16 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Activities"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
-                    onClick={() => setActiveModal('activities')}
+                    active={contentFilter === 'experiences'}
+                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
                   />
                   {/* Packing */}
                   <PipelineRow
                     icon={<Package className="w-4 h-4" />}
-                    label="Packing List"
+                    label="Packing"
                     status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
-                    onClick={() => setActiveModal('packing')}
+                    active={contentFilter === 'packing'}
+                    onClick={() => setContentFilter(contentFilter === 'packing' ? 'all' : 'packing')}
                   />
                 </div>
               </CardContent>
@@ -796,24 +786,26 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="lg:col-span-8 min-h-0">
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
-                {/* Filter Bar */}
+                {/* Header */}
                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <h3 className="font-semibold">
-                    {contentFilter === 'all' ? 'Daily Itinerary' : contentFilter === 'flights' ? 'Flights' : contentFilter === 'hotels' ? 'Hotels' : contentFilter === 'restaurants' ? 'Restaurants' : 'Experiences'}
+                    {contentFilter === 'all' ? 'Daily Itinerary' :
+                     contentFilter === 'flights' ? 'Flights' :
+                     contentFilter === 'hotels' ? 'Hotels' :
+                     contentFilter === 'restaurants' ? 'Food & Restaurants' :
+                     contentFilter === 'experiences' ? 'Activities' :
+                     contentFilter === 'packing' ? 'Packing List' : 'Daily Itinerary'}
                   </h3>
-                  <Select value={contentFilter} onValueChange={setContentFilter}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs">
-                      <Filter className="w-3 h-3 mr-1" />
-                      <SelectValue placeholder="Filter..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="flights">Flights</SelectItem>
-                      <SelectItem value="hotels">Hotels</SelectItem>
-                      <SelectItem value="restaurants">Restaurants</SelectItem>
-                      <SelectItem value="experiences">Experiences</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {contentFilter !== 'all' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setContentFilter('all')}
+                    >
+                      Show All
+                    </Button>
+                  )}
                 </div>
 
                 {/* Scrollable content area */}
@@ -938,6 +930,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       )}
                     </div>
                   )}
+
+                  {/* Packing List View */}
+                  {contentFilter === 'packing' && (
+                    <div className="pr-2">
+                      <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -945,145 +944,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </div>
       </main>
 
-      {/* Full-Screen Category Modals */}
-      {/* Flights Modal */}
-      <Dialog open={activeModal === 'flights'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Plane className="w-6 h-6 text-blue-600" />
-              Flights
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto mt-4 space-y-4">
-            {itinerary.days.flatMap(day =>
-              day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
-                <Card key={block.id} className="border-blue-200 bg-blue-50/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <Plane className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{block.activity?.name}</h4>
-                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                        <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-            {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
-              <div className="text-center py-12">
-                <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No flights in this trip</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Hotels Modal */}
-      <Dialog open={activeModal === 'hotels'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Hotel className="w-6 h-6 text-purple-600" />
-              Hotels
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto mt-4 space-y-4">
-            {itinerary.route.bases.map(base => (
-              <Card key={base.id} className="border-purple-200 bg-purple-50/50">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Hotel className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</h4>
-                      <p className="text-sm text-muted-foreground">{base.location}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {base.nights} night{base.nights > 1 ? 's' : ''}
-                        {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Food Modal */}
-      <Dialog open={activeModal === 'food'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <UtensilsCrossed className="w-6 h-6 text-orange-600" />
-              Food & Restaurants
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto mt-4">
-            <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Activities Modal */}
-      <Dialog open={activeModal === 'activities'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Compass className="w-6 h-6 text-amber-600" />
-              Activities & Experiences
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto mt-4 space-y-4">
-            {itinerary.days.flatMap(day =>
-              day.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).map(block => (
-                <Card key={block.id} className="border-amber-200 bg-amber-50/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <Compass className="w-6 h-6 text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{block.activity?.name}</h4>
-                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                        <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-            {!itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) && (
-              <div className="text-center py-12">
-                <Compass className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No experiences planned yet</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Packing Modal */}
-      <Dialog open={activeModal === 'packing'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Package className="w-6 h-6 text-green-600" />
-              Packing List
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto mt-4">
-            <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -1105,7 +965,7 @@ const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string
   'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
-  'Packing List': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
+  'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
 };
 
 function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
