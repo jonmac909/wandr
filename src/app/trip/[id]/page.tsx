@@ -802,44 +802,38 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         )}
                       </div>
 
-                      {/* Trip Stats */}
-                      <div className="grid grid-cols-3 gap-3">
-                        <Card>
-                          <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold">{itinerary.days.length}</p>
-                            <p className="text-xs text-muted-foreground">Days</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold">{itinerary.route.bases.length}</p>
-                            <p className="text-xs text-muted-foreground">Destinations</p>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="p-3 text-center">
-                            <p className="text-2xl font-bold">
-                              {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Flights</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      {/* Date Range */}
+                      {/* Quick Glance Schedule */}
                       <Card>
                         <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                              <Calendar className="w-5 h-5 text-indigo-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {itinerary.meta.startDate && new Date(itinerary.meta.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                {itinerary.meta.endDate && ` – ${new Date(itinerary.meta.endDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`}
-                              </p>
-                              <p className="text-sm text-muted-foreground">{itinerary.days.length} days total</p>
-                            </div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {itinerary.days.length} days · {itinerary.route.bases.length} {itinerary.route.bases.length === 1 ? 'destination' : 'destinations'}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {itinerary.route.bases.map((base, index) => {
+                              const checkIn = new Date(base.checkIn);
+                              const checkOut = new Date(base.checkOut);
+                              const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                              return (
+                                <div
+                                  key={base.id}
+                                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                    {index + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{base.location}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {formatDate(checkIn)} – {formatDate(checkOut)} · {base.nights} {base.nights === 1 ? 'night' : 'nights'}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </CardContent>
                       </Card>
