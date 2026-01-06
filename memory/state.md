@@ -1,6 +1,6 @@
 # Current State
 
-> Quick reference for current process state. Update after each phase change.
+> Quick reference for current development state. Updated January 2025.
 
 ---
 
@@ -8,11 +8,11 @@
 
 | Field | Value |
 |-------|-------|
-| **Phase** | 📝 Planning |
-| **Current Task** | Project setup |
+| **Phase** | 🚀 Active Development |
+| **Current Task** | Cleanup complete |
 | **Blockers** | None |
-| **Last Commit** | (none yet) |
-| **Tests** | 0 passing, 0 failing |
+| **Last Commit** | Codebase cleanup |
+| **Deploy** | Netlify (auto-deploy from main) |
 
 ---
 
@@ -25,37 +25,43 @@
 | 🟢 | TDD Green | Make test pass |
 | 🧹 | Refactor | Improve code, keep tests green |
 | 🔍 | Investigating | Debug or explore |
+| 🚀 | Active Dev | Building features |
 | ⚠️ | Warning | Issue needs attention |
 | ✅ | Complete | Task done |
 
 ---
 
-## Quick Actions
+## Working Features
 
-**To start TDD:**
-1. Update this file: Phase = 🔴
-2. Pick first test from `goal.md`
-3. Follow `process/tdd.md`
-
-**To record a decision:**
-1. Add to `docs/decisions.md`
-2. Update `goal.md` decisions table
-
-**To save a learning:**
-1. Create `memory/learnings/[topic].md`
-2. Note what you learned and why it matters
+| Feature | Status |
+|---------|--------|
+| Dashboard | ✅ Working |
+| Trip view | ✅ Working |
+| Questionnaire | ✅ Working |
+| Supabase sync | ✅ Working |
+| Import (CSV/JSON) | ✅ Working |
+| Packing list | ✅ Working |
 
 ---
 
 ## Session Handoff
 
-> Fill this in before ending a session to help next session pick up.
-
-**What was accomplished:**
-- [List items]
+**What was accomplished (Jan 2025):**
+- Full code review completed
+- Deleted `/skills/` folder (irrelevant marketing content)
+- Removed localStorage writes from ImportModal (now IndexedDB + Supabase only)
+- Updated `docs/architecture.md` with actual Wandr architecture
+- Updated `memory/goal.md` with project status
+- Updated `.gitignore` comment
+- Cleaned up unused imports
 
 **What's next:**
-- [List items]
+- AI itinerary generation via Claude
+- Export to PDF/calendar
+- Authentication (multi-user)
+- Budget tracking
 
 **Important context:**
-- [Anything the next session needs to know]
+- Storage architecture: Supabase (cloud) → IndexedDB (cache) → localStorage (fallback only)
+- Deploy: Netlify auto-deploys from `main` branch
+- Sample trip "ASIA 2026" is seeded in Supabase

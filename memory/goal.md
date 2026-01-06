@@ -1,85 +1,108 @@
 # Current Goal
 
-> Cross-context memory file. Update this as work progresses.
+> Cross-context memory file. Updated January 2025.
 
 ---
 
 ## Objective
 
-[What we're building right now - update this!]
+Build **Wandr** - an AI-powered personal travel planning PWA that helps users create detailed trip itineraries with:
+- Day-by-day schedules with time blocks
+- Accommodation tracking
+- Transportation planning
+- Restaurant recommendations
+- Packing lists
+- Cross-device sync via Supabase
 
 ---
 
 ## Current State
 
 ```
-TDD Phase: 📝 (Planning)
-Current Task: Project setup
+TDD Phase: 🚀 (Active Development)
+Current Task: Cleanup and polish
 Blockers: None
 ```
 
 ---
 
-## Task List
+## Completed Features
 
-### Setup
-- [ ] Initialize Next.js app
-- [ ] Configure testing (Jest/Vitest)
-- [ ] Set up database connection
-- [ ] Configure environment variables
+### Core
+- [x] Next.js 16 App Router setup
+- [x] Tailwind + shadcn/ui styling
+- [x] TypeScript throughout
+- [x] Trip DNA types and questionnaire
+- [x] Itinerary data model
+- [x] IndexedDB persistence (Dexie.js)
+- [x] Supabase cloud sync
+- [x] PWA manifest
 
-### Feature 1: [Name]
-- [ ] Test: [description]
-- [ ] Test: [description]
-- [ ] Test: [description]
+### Dashboard
+- [x] Featured trip card
+- [x] Recent trips sidebar
+- [x] Trip stats panel
+- [x] World map visualization
+- [x] Weather widget
+- [x] Month calendar
+- [x] Bucket list
+- [x] Profile settings
+- [x] Import modal (CSV + JSON)
+
+### Trip View
+- [x] Route map component
+- [x] Pipeline view (flights, hotels, food, activities)
+- [x] Day cards with time blocks
+- [x] Drag-drop activity reordering
+- [x] Food recommendations
+- [x] Packing list generator
+- [x] Trip editing (title, activities)
+
+### Questionnaire
+- [x] 6-step flow (profile, vibe, constraints, interests, logistics, review)
+- [x] Zustand state management
+- [x] Progress indicator
+- [x] Form validation
 
 ---
 
-## Test List
+## Next Tasks
 
-> Write tests as English sentences before coding.
-
-```markdown
-# Tests for [Current Feature]
-
-## Happy Path
-- [Test description]
-- [Test description]
-
-## Edge Cases
-- [Test description]
-
-## Error Handling
-- [Test description]
-```
+- [ ] AI itinerary generation (Claude integration)
+- [ ] Export to PDF/calendar
+- [ ] Multi-user authentication
+- [ ] Collaborative trip planning
+- [ ] Budget tracking
 
 ---
 
-## Decisions Made
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 (App Router) |
+| Styling | Tailwind + shadcn/ui |
+| State | Zustand |
+| Local DB | Dexie.js (IndexedDB) |
+| Cloud DB | Supabase |
+| Maps | Google Maps API |
+| Deploy | Netlify |
+
+---
+
+## Key Decisions
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
-| Using ACP + DEO structure | Combines process rigor with execution reliability | 2025-12-31 |
-| [Add decisions as you make them] | | |
-
----
-
-## Blockers
-
-- None currently
-
----
-
-## Context Markers Active
-
-> Track which docs have been read in current context.
-
-- [ ] 🏗️ architecture.md
-- [ ] 🧪 testing standards
-- [ ] 📋 requirements
+| Supabase over Firebase | PostgreSQL, better DX, free tier | Jan 2025 |
+| Netlify over Vercel | Already set up, works well | Jan 2025 |
+| IndexedDB + Supabase | Offline-first with cloud sync | Jan 2025 |
+| No auth yet | Single-user MVP first | Jan 2025 |
 
 ---
 
 ## Notes
 
-[Any additional context for the next session]
+- Sample trip "ASIA 2026" seeded to Supabase for testing
+- Cloud sync working: trips persist across devices
+- Marketing skills folder removed (was from template)

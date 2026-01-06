@@ -54,9 +54,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
       });
       tripDna.id = id;
 
-      localStorage.setItem(`trip-dna-${id}`, JSON.stringify(tripDna));
-      localStorage.setItem(`itinerary-${id}`, JSON.stringify(parsed));
-
+      // Save to IndexedDB + Supabase (cloud sync)
       await tripDb.save({
         id,
         tripDna,
@@ -102,9 +100,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
       });
       tripDna.id = itinerary.id;
 
-      localStorage.setItem(`trip-dna-${itinerary.id}`, JSON.stringify(tripDna));
-      localStorage.setItem(`itinerary-${itinerary.id}`, JSON.stringify(itinerary));
-
+      // Save to IndexedDB + Supabase (cloud sync)
       await tripDb.save({
         id: itinerary.id,
         tripDna,

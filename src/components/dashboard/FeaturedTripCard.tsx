@@ -92,11 +92,8 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
       itinerary: updatedItinerary,
     };
 
-    // Save to IndexedDB/cloud
+    // Save to IndexedDB + Supabase (cloud sync)
     await tripDb.save(updatedTrip);
-
-    // Also update localStorage for backwards compatibility
-    localStorage.setItem(`itinerary-${trip.id}`, JSON.stringify(updatedItinerary));
 
     onTripUpdate?.(updatedTrip);
     setIsEditing(false);
