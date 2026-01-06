@@ -430,6 +430,56 @@ export default function TripPage() {
     return `${weekday}, ${monthName} ${day}`;
   };
 
+  // Get the BASE CITY for a day (used for overview grouping - only groups by city changes)
+  // This should return the actual city, NOT the day's theme/activity
+  const getCityForDay = (day: DayPlan): string => {
+    if (!itinerary) return '';
+
+    // Check if this is a travel day with flights - show route
+    const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
+    if (flightBlocks.length > 0) {
+      const cities: string[] = [];
+      for (const flightBlock of flightBlocks) {
+        const flightName = flightBlock.activity?.name || '';
+        const arrowMatch = flightName.match(/^(.+?)\s*→\s*(.+)$/);
+        if (arrowMatch) {
+          const fromCity = airportToCity(arrowMatch[1].trim());
+          const toCity = airportToCity(arrowMatch[2].trim());
+          if (cities.length === 0) cities.push(fromCity);
+          cities.push(toCity);
+        } else {
+          const toMatch = flightName.match(/^(.+?)\s+to\s+(.+)$/i);
+          if (toMatch) {
+            const fromCity = airportToCity(toMatch[1].trim());
+            const toCity = airportToCity(toMatch[2].trim());
+            if (cities.length === 0) cities.push(fromCity);
+            cities.push(toCity);
+          }
+        }
+      }
+      if (cities.length > 0) {
+        const dedupedCities = cities.filter((city, i) => i === 0 || city !== cities[i - 1]);
+        return dedupedCities.join(' - ');
+      }
+    }
+
+    // Find which base this day belongs to based on date
+    for (const base of itinerary.route.bases) {
+      if (day.date >= base.checkIn && day.date < base.checkOut) {
+        return airportToCity(base.location);
+      }
+    }
+
+    // Fallback: check last base (might be checkout day)
+    const lastBase = itinerary.route.bases[itinerary.route.bases.length - 1];
+    if (lastBase && day.date === lastBase.checkOut) {
+      return airportToCity(lastBase.location);
+    }
+
+    // Final fallback to destination
+    return itinerary.meta.destination || '';
+  };
+
   // Get location for a specific day - infer from activities
   // For travel days with flights, show the route (e.g., "Kelowna - Vancouver - Tokyo")
   const getLocationForDay = (day: DayPlan): string => {
@@ -1018,10 +1068,10 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           const dateStr = current.toISOString().split('T')[0];
                           const existingDay = daysByDate[dateStr];
 
-                          // Get location for this day
+                          // Get CITY for this day (not theme/activity - only actual city changes)
                           let location: string;
                           if (existingDay) {
-                            location = getLocationForDay(existingDay);
+                            location = getCityForDay(existingDay);
                           } else {
                             // For empty days, use the last known location
                             location = lastLocation || itinerary.meta.destination || 'Unknown';
