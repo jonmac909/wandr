@@ -58,7 +58,7 @@ export default function TripPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [foodModalDay, setFoodModalDay] = useState<DayPlan | null>(null);
   const [itineraryView, setItineraryView] = useState<'daily' | 'calendar'>('daily');
-  const [activeModal, setActiveModal] = useState<'flights' | 'hotels' | 'packing' | 'restaurants' | 'experiences' | null>(null);
+  const [activeModal, setActiveModal] = useState<'flights' | 'hotels' | 'food' | 'activities' | 'packing' | null>(null);
   const [contentFilter, setContentFilter] = useState<string>('all');
 
   // Drag and drop state
@@ -738,15 +738,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <Card className="h-full flex flex-col">
               <CardContent className="p-4 flex flex-col h-full">
                 <h3 className="font-semibold mb-3 flex-shrink-0">Trip Pipeline</h3>
-                <div className="grid grid-cols-3 gap-2 overflow-auto flex-1">
+                <div className="grid grid-cols-3 gap-2 auto-rows-fr">
                   {/* Flights */}
                   <PipelineRow
                     icon={<Plane className="w-4 h-4" />}
                     label="Flights"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
-                    active={contentFilter === 'flights'}
-                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
+                    onClick={() => setActiveModal('flights')}
                   />
                   {/* Hotels */}
                   <PipelineRow
@@ -755,8 +754,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
                     total={itinerary.route.bases.length}
                     status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
-                    active={contentFilter === 'hotels'}
-                    onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
+                    onClick={() => setActiveModal('hotels')}
                   />
                   {/* Restaurants */}
                   <PipelineRow
@@ -764,8 +762,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Food"
                     count={itinerary.foodLayer?.length || 0}
                     status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
-                    active={contentFilter === 'restaurants'}
-                    onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
+                    onClick={() => setActiveModal('food')}
                   />
                   {/* Experiences */}
                   <PipelineRow
@@ -773,8 +770,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Activities"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
                     status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
-                    active={contentFilter === 'experiences'}
-                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
+                    onClick={() => setActiveModal('activities')}
                   />
                   {/* Packing */}
                   <PipelineRow
@@ -943,12 +939,136 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </main>
 
       {/* Full-Screen Category Modals */}
+      {/* Flights Modal */}
+      <Dialog open={activeModal === 'flights'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Plane className="w-6 h-6 text-blue-600" />
+              Flights
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto mt-4 space-y-4">
+            {itinerary.days.flatMap(day =>
+              day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
+                <Card key={block.id} className="border-blue-200 bg-blue-50/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <Plane className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{block.activity?.name}</h4>
+                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+            {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
+              <div className="text-center py-12">
+                <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground">No flights in this trip</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hotels Modal */}
+      <Dialog open={activeModal === 'hotels'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Hotel className="w-6 h-6 text-purple-600" />
+              Hotels
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto mt-4 space-y-4">
+            {itinerary.route.bases.map(base => (
+              <Card key={base.id} className="border-purple-200 bg-purple-50/50">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Hotel className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</h4>
+                      <p className="text-sm text-muted-foreground">{base.location}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {base.nights} night{base.nights > 1 ? 's' : ''}
+                        {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Food Modal */}
+      <Dialog open={activeModal === 'food'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <UtensilsCrossed className="w-6 h-6 text-orange-600" />
+              Food & Restaurants
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto mt-4">
+            <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activities Modal */}
+      <Dialog open={activeModal === 'activities'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Compass className="w-6 h-6 text-amber-600" />
+              Activities & Experiences
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto mt-4 space-y-4">
+            {itinerary.days.flatMap(day =>
+              day.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).map(block => (
+                <Card key={block.id} className="border-amber-200 bg-amber-50/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <Compass className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium">{block.activity?.name}</h4>
+                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">Day {day.dayNumber} • {day.date}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+            {!itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) && (
+              <div className="text-center py-12">
+                <Compass className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground">No experiences planned yet</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Packing Modal */}
       <Dialog open={activeModal === 'packing'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <Package className="w-6 h-6" />
+              <Package className="w-6 h-6 text-green-600" />
               Packing List
             </DialogTitle>
           </DialogHeader>

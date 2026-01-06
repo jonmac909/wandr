@@ -13,13 +13,16 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ activeTab = 'trips', onOpenDrawer }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
+        {/* Centered Logo */}
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Wandr
           </h1>
         </Link>
+
+        {/* Left spacer for balance */}
+        <div className="w-24" />
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">

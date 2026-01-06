@@ -676,20 +676,6 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, drag
         </div>
       </div>
 
-      {/* Priority indicator - bottom right (clickable to cycle) */}
-      {block.activity && !isEditing && (
-        <button
-          onClick={editable ? cyclePriority : undefined}
-          className={cn(
-            'absolute bottom-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white transition-transform',
-            priorityStyle.bg,
-            editable && 'hover:scale-110 cursor-pointer'
-          )}
-          title={`${block.priority === 'must-see' ? 'must do' : block.priority.replace('-', ' ')}${editable ? ' (click to change)' : ''}`}
-        >
-          {priorityStyle.icon}
-        </button>
-      )}
     </div>
     </>
   );

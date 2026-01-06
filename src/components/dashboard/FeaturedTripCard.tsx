@@ -45,28 +45,30 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
       <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
         <div className="flex h-[280px]">
           {/* Large Square Photo - Left side */}
-          <div className="relative w-[280px] h-full flex-shrink-0 overflow-hidden bg-muted">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            {/* Image carousel dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-white shadow" />
-              <div className="w-2 h-2 rounded-full bg-white/50" />
-              <div className="w-2 h-2 rounded-full bg-white/50" />
+          <div className="relative w-[280px] h-full flex-shrink-0 p-3">
+            <div className="relative w-full h-full rounded-xl overflow-hidden bg-muted">
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              {/* Image carousel dots */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-white shadow" />
+                <div className="w-2 h-2 rounded-full bg-white/50" />
+                <div className="w-2 h-2 rounded-full bg-white/50" />
+              </div>
             </div>
           </div>
 
           {/* Trip Details - Right side */}
-          <CardContent className="flex-1 p-4">
+          <CardContent className="flex-1 p-4 pl-0 overflow-hidden min-w-0">
             {/* Title */}
             <h2 className="text-2xl font-bold mb-3">{title}</h2>
 
             {/* Destination */}
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-4 h-4 flex-shrink-0" />
               <span>{destination}</span>
             </div>
 

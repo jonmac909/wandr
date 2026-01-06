@@ -50,30 +50,28 @@ export default function Home() {
         onOpenDrawer={() => setDrawerOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 overflow-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start align-top">
           {/* Left Column: Calendar + Recent Trips (hidden on mobile) */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 justify-end">
+          <aside className="hidden lg:block lg:col-span-3 space-y-3">
             <MonthCalendar trips={trips} />
-            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={3} />
+            <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={5} />
           </aside>
 
           {/* Center Column: Featured Trip + Housing (horizontal) + Transport (below) */}
-          <section className="lg:col-span-6 flex flex-col gap-3 justify-end">
+          <section className="lg:col-span-6 space-y-3">
             <FeaturedTripCard trip={featuredTrip} />
             {/* Housing - horizontal layout */}
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
             {/* Transport - below housing */}
-            <TransportSection transport={transport.slice(0, 2)} />
+            <TransportSection transport={transport.slice(0, 3)} />
           </section>
 
-          {/* Right Column: Weather + Stats + Map + Countries + Plan Button */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-3 justify-end">
-            <WeatherWidget location={featuredTrip?.itinerary?.meta?.destination || featuredTrip?.itinerary?.route?.bases?.[0]?.location} />
+          {/* Right Column: Stats + Map + Countries */}
+          <aside className="hidden lg:block lg:col-span-3 space-y-3">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
-            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={3} />
-            <PlanNewTripButton />
+            <CountryBreakdown countries={stats.countryBreakdown} maxCountries={7} />
           </aside>
         </div>
       </main>

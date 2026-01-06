@@ -10,12 +10,16 @@ interface HousingCardProps {
 
 export function HousingCard({ base }: HousingCardProps) {
   const name = base.accommodation?.name || base.location.split(',')[0];
-  const imageUrl = getAccommodationImage(name, 120, 120);
+  const location = base.location;
+  const imageUrl = getAccommodationImage(name, 200, 120);
+
+  // Format price if available
+  const price = base.accommodation?.priceRange || null;
 
   return (
-    <div className="flex gap-3 group">
-      {/* Square Photo with rounded corners */}
-      <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
+    <div className="flex flex-col group">
+      {/* Landscape image */}
+      <div className="relative w-full h-24 rounded-lg overflow-hidden bg-muted mb-2">
         <img
           src={imageUrl}
           alt={name}
@@ -23,13 +27,19 @@ export function HousingCard({ base }: HousingCardProps) {
         />
       </div>
 
-      {/* Compact info */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="font-medium text-sm truncate">{name}</h4>
-        <p className="text-xs text-muted-foreground">{base.nights} nights</p>
-        <div className="flex items-center gap-1 mt-1">
-          <Check className="w-3.5 h-3.5 text-green-600" />
-          <span className="text-xs text-green-600 font-medium">Booked</span>
+      {/* Details */}
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-sm truncate">{name}</h4>
+        <p className="text-xs text-muted-foreground truncate">{location}</p>
+        <p className="text-xs text-muted-foreground mt-1">{base.nights} nights</p>
+
+        {/* Price and status */}
+        <div className="flex items-center gap-2 mt-2">
+          {price && <span className="text-sm font-medium">{price}</span>}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+            <Check className="w-3 h-3" />
+            Paid
+          </span>
         </div>
       </div>
     </div>
