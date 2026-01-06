@@ -497,70 +497,10 @@ export default function TripPage() {
     return itinerary.meta.destination || '';
   };
 
-  // Get location for a specific day - infer from activities
-  // For travel days with flights, show the route (e.g., "Kelowna - Vancouver - Tokyo")
+  // Get location for a specific day - uses the base city (where you sleep)
   const getLocationForDay = (day: DayPlan): string => {
-    if (!itinerary) return '';
-
-    // First check if there's a custom theme set (user edited location)
-    if (day.theme) {
-      return day.theme;
-    }
-
-    // Collect all flights for this day to build a route
-    const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
-    if (flightBlocks.length > 0) {
-      const cities: string[] = [];
-
-      for (const flightBlock of flightBlocks) {
-        const flightName = flightBlock.activity?.name || '';
-        // Parse "YVR → NRT" or "Vancouver to Tokyo"
-        const arrowMatch = flightName.match(/^(.+?)\s*→\s*(.+)$/);
-        if (arrowMatch) {
-          const fromCity = airportToCity(arrowMatch[1].trim());
-          const toCity = airportToCity(arrowMatch[2].trim());
-          if (cities.length === 0) {
-            cities.push(fromCity);
-          }
-          cities.push(toCity);
-        } else {
-          const toMatch = flightName.match(/^(.+?)\s+to\s+(.+)$/i);
-          if (toMatch) {
-            const fromCity = airportToCity(toMatch[1].trim());
-            const toCity = airportToCity(toMatch[2].trim());
-            if (cities.length === 0) {
-              cities.push(fromCity);
-            }
-            cities.push(toCity);
-          }
-        }
-      }
-
-      if (cities.length > 0) {
-        // Dedupe consecutive duplicates
-        const dedupedCities = cities.filter((city, i) => i === 0 || city !== cities[i - 1]);
-        return dedupedCities.join(' - ');
-      }
-    }
-
-    // Try to get location from hotel/accommodation activity on this day
-    const hotelBlock = day.blocks.find(b =>
-      b.activity?.category === 'accommodation' ||
-      b.activity?.category === 'checkin'
-    );
-    if (hotelBlock?.activity?.location?.name) {
-      return airportToCity(hotelBlock.activity.location.name);
-    }
-
-    // Try any activity with a location
-    for (const block of day.blocks) {
-      if (block.activity?.location?.name) {
-        return airportToCity(block.activity.location.name);
-      }
-    }
-
-    // Fallback to trip destination
-    return itinerary.meta.destination || `Day ${day.dayNumber}`;
+    // Just use getCityForDay - it returns the city from base.location
+    return getCityForDay(day);
   };
 
   // Regenerate packing list based on trip activities
