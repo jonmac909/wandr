@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary, DayPlan, FoodRecommendation } from '@/types/itinerary';
@@ -65,9 +65,21 @@ export default function TripPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+  const scheduleContainerRef = useRef<HTMLDivElement>(null);
+  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Get all trips for the drawer
   const { trips } = useDashboardData();
+
+  // Scroll to day when calendar date is clicked
+  const scrollToDay = useCallback((dateStr: string) => {
+    setSelectedCalendarDate(dateStr);
+    const dayElement = dayRefs.current[dateStr];
+    if (dayElement && scheduleContainerRef.current) {
+      dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   // Drag and drop state
   const [dragState, setDragState] = useState<{
@@ -1142,9 +1154,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     </div>
                   )}
 
-                  {/* Schedule - Simple daily list */}
+                  {/* Schedule - Calendar + Daily list */}
                   {(contentFilter === 'schedule' || contentFilter === 'all') && (
-                    <div className="space-y-3 pr-2">
+                    <div className="flex flex-col h-full">
                       {(() => {
                         // Generate all days in the date range (no gaps)
                         const firstDate = itinerary.days[0]?.date;
@@ -1157,6 +1169,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         const [y2, m2, d2] = lastDate.split('-').map(Number);
                         const start = new Date(y1, m1 - 1, d1);
                         const end = new Date(y2, m2 - 1, d2);
+                        const today = new Date().toISOString().split('T')[0];
 
                         // Create a map of existing days by date
                         const daysByDate: Record<string, DayPlan> = {};
@@ -1182,49 +1195,118 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        return allDays.map((day) => {
-                          if ('isEmpty' in day && day.isEmpty) {
-                            // Render empty day placeholder
-                            const [, month, dayOfMonth] = day.date.split('-').map(Number);
-                            const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                            const dateDisplay = `${shortMonths[month - 1]} ${dayOfMonth}`;
-
-                            return (
-                              <div key={day.date} className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
-                                <div className="flex items-center gap-3 text-muted-foreground">
-                                  <span className="text-sm font-medium">Day {day.dayNumber}</span>
-                                  <span className="text-xs">{dateDisplay}</span>
-                                  <span className="text-xs ml-auto italic">No activities planned</span>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <DayCard
-                              key={day.date}
-                              day={day as DayPlan}
-                              isToday={day.date === new Date().toISOString().split('T')[0]}
-                              isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                              onToggle={() => setExpandedDay(
-                                expandedDay === day.dayNumber ? null : day.dayNumber
-                              )}
-                              onUpdateDay={handleUpdateDay}
-                              location={getLocationForDay(day as DayPlan)}
-                              onDragStart={handleDragStart}
-                              onDragEnd={handleDragEnd}
-                              onDrop={handleDrop}
-                              onDragOver={handleDragOver}
-                              isDragging={dragState.blockId !== null}
-                              dragOverIndex={dragState.targetDayId === (day as DayPlan).id ? dragState.targetIndex : null}
-                            />
-                          );
+                        // Group days by month for calendar display
+                        const monthGroups: Record<string, DayEntry[]> = {};
+                        allDays.forEach(day => {
+                          const monthKey = day.date.substring(0, 7); // YYYY-MM
+                          if (!monthGroups[monthKey]) monthGroups[monthKey] = [];
+                          monthGroups[monthKey].push(day);
                         });
+                        const sortedMonthKeys = Object.keys(monthGroups).sort();
+
+                        return (
+                          <>
+                            {/* Calendar Card - Compact horizontal scrollable */}
+                            <Card className="flex-shrink-0 mb-3">
+                              <CardContent className="p-3">
+                                <div className="flex gap-4 overflow-x-auto pb-1">
+                                  {sortedMonthKeys.map(monthKey => {
+                                    const [year, month] = monthKey.split('-').map(Number);
+                                    const monthName = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month - 1];
+                                    const daysInMonth = monthGroups[monthKey];
+
+                                    return (
+                                      <div key={monthKey} className="flex-shrink-0">
+                                        <p className="text-xs font-medium text-muted-foreground mb-1">{monthName} {year}</p>
+                                        <div className="flex gap-1">
+                                          {daysInMonth.map(day => {
+                                            const [, , dayOfMonth] = day.date.split('-').map(Number);
+                                            const isToday = day.date === today;
+                                            const isSelected = day.date === selectedCalendarDate;
+                                            const hasActivities = !('isEmpty' in day && day.isEmpty);
+
+                                            return (
+                                              <button
+                                                key={day.date}
+                                                onClick={() => scrollToDay(day.date)}
+                                                className={`w-7 h-7 text-xs rounded-md flex items-center justify-center transition-colors ${
+                                                  isToday
+                                                    ? 'bg-orange-500 text-white font-bold'
+                                                    : isSelected
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : hasActivities
+                                                    ? 'bg-muted hover:bg-muted/80'
+                                                    : 'hover:bg-muted/50 text-muted-foreground'
+                                                }`}
+                                              >
+                                                {dayOfMonth}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* Day list */}
+                            <div ref={scheduleContainerRef} className="flex-1 overflow-auto space-y-3 pr-2">
+                              {allDays.map((day) => {
+                                if ('isEmpty' in day && day.isEmpty) {
+                                  // Render empty day placeholder
+                                  const [, month, dayOfMonth] = day.date.split('-').map(Number);
+                                  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                  const dateDisplay = `${shortMonths[month - 1]} ${dayOfMonth}`;
+
+                                  return (
+                                    <div
+                                      key={day.date}
+                                      ref={(el) => { dayRefs.current[day.date] = el; }}
+                                      className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20"
+                                    >
+                                      <div className="flex items-center gap-3 text-muted-foreground">
+                                        <span className="text-sm font-medium">Day {day.dayNumber}</span>
+                                        <span className="text-xs">{dateDisplay}</span>
+                                        <span className="text-xs ml-auto italic">No activities planned</span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div
+                                    key={day.date}
+                                    ref={(el) => { dayRefs.current[day.date] = el; }}
+                                  >
+                                    <DayCard
+                                      day={day as DayPlan}
+                                      isToday={day.date === today}
+                                      isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                                      onToggle={() => setExpandedDay(
+                                        expandedDay === day.dayNumber ? null : day.dayNumber
+                                      )}
+                                      onUpdateDay={handleUpdateDay}
+                                      location={getLocationForDay(day as DayPlan)}
+                                      onDragStart={handleDragStart}
+                                      onDragEnd={handleDragEnd}
+                                      onDrop={handleDrop}
+                                      onDragOver={handleDragOver}
+                                      isDragging={dragState.blockId !== null}
+                                      dragOverIndex={dragState.targetDayId === (day as DayPlan).id ? dragState.targetIndex : null}
+                                    />
+                                  </div>
+                                );
+                              })}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
+                                <GripVertical className="w-3 h-3" />
+                                <span>Drag activities to reorder or move between days</span>
+                              </div>
+                            </div>
+                          </>
+                        );
                       })()}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
-                        <GripVertical className="w-3 h-3" />
-                        <span>Drag activities to reorder or move between days</span>
-                      </div>
                     </div>
                   )}
 
