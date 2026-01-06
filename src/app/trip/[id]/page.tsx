@@ -478,23 +478,33 @@ export default function TripPage() {
     if (!itinerary) return '';
 
     // Find the base where this day is the checkIn date or between checkIn and day before checkOut
-    // (checkOut day means you leave, so you sleep there the night before, not that night)
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date < base.checkOut) {
-        // base.location has city names like "Chiang Mai", "Da Nang", etc.
         return base.location;
       }
     }
 
-    // For the last day (checkout day), find which base has checkIn on this date
+    // Check if this day is the checkIn date of any base
     for (const base of itinerary.route.bases) {
       if (day.date === base.checkIn) {
         return base.location;
       }
     }
 
-    // Final fallback to destination
-    return itinerary.meta.destination || '';
+    // For travel days before first base, find the next base (where you'll arrive)
+    const sortedBases = [...itinerary.route.bases].sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+    for (const base of sortedBases) {
+      if (day.date < base.checkIn) {
+        return base.location;
+      }
+    }
+
+    // For days after last checkout, use last base
+    if (sortedBases.length > 0) {
+      return sortedBases[sortedBases.length - 1].location;
+    }
+
+    return '';
   };
 
   // Get location for a specific day - uses the base city (where you sleep)
