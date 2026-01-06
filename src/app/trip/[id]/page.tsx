@@ -639,81 +639,166 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-4xl mx-auto px-4 py-6 pt-28 lg:pt-6">
-        {/* Back link and title header - desktop only */}
-        <div className="hidden lg:flex lg:items-center lg:justify-between mb-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 pt-28 lg:pt-6">
+        {/* Back link - desktop only */}
+        <div className="hidden lg:block mb-4">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Hero Section - Centered Title, Route, Stats */}
+        <div className="text-center mb-8 pb-6 border-b">
+          <div className="flex items-center justify-center gap-2 mb-2">
             {isEditing ? (
               <div className="flex items-center gap-2">
                 <Input
                   value={editedTitle}
                   onChange={(e) => setEditedTitle(e.target.value)}
-                  className="h-8 w-64"
+                  className="h-10 w-80 text-center text-2xl font-bold"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveTitle();
                     if (e.key === 'Escape') setIsEditing(false);
                   }}
                 />
-                <Button variant="ghost" size="sm" onClick={handleSaveTitle}>
+                <Button variant="ghost" size="icon" onClick={handleSaveTitle}>
                   <Save className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">{itinerary.meta.title}</h1>
+              <>
+                <h1 className="text-3xl font-bold">{itinerary.meta.title}</h1>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditing}>
                   <Pencil className="w-4 h-4" />
                 </Button>
-              </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleFixFlightDurations}>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Fix Flight Durations
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFixAirportCodes}>
+                      <Plane className="w-4 h-4 mr-2" />
+                      Fix Airport Codes
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Trip
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleFixFlightDurations}>
-                  <Clock className="w-4 h-4 mr-2" />
-                  Fix Flight Durations
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleFixAirportCodes}>
-                  <Plane className="w-4 h-4 mr-2" />
-                  Fix Airport Codes
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Trip
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          </div>
+
+          {/* Route */}
+          <p className="text-muted-foreground mb-4">
+            {itinerary.route.bases.map(b => b.location.split(',')[0]).join(' → ')}
+          </p>
+
+          {/* Stats Row */}
+          <div className="flex items-center justify-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span className="font-medium">{itinerary.days.length} days</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Hotel className="w-4 h-4 text-primary" />
+              <span className="font-medium">{itinerary.route.bases.length} bases</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-primary" />
+              <span className="font-medium">
+                {tripDna?.constraints?.budget?.dailySpend
+                  ? `$${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day`
+                  : 'Budget TBD'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div>
+        {/* Pipeline Progress - Horizontal across top */}
+        <div className="mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-2 overflow-x-auto">
+                {/* Flights */}
+                <PipelineChip
+                  icon={<Plane className="w-4 h-4" />}
+                  label="Flights"
+                  count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
+                  status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
+                  active={contentFilter === 'flights'}
+                  onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
+                />
+                {/* Hotels */}
+                <PipelineChip
+                  icon={<Hotel className="w-4 h-4" />}
+                  label="Hotels"
+                  count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
+                  total={itinerary.route.bases.length}
+                  status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
+                  active={contentFilter === 'hotels'}
+                  onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
+                />
+                {/* Restaurants */}
+                <PipelineChip
+                  icon={<UtensilsCrossed className="w-4 h-4" />}
+                  label="Food"
+                  count={itinerary.foodLayer?.length || 0}
+                  status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
+                  active={contentFilter === 'restaurants'}
+                  onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
+                />
+                {/* Experiences */}
+                <PipelineChip
+                  icon={<Compass className="w-4 h-4" />}
+                  label="Activities"
+                  count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
+                  status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
+                  active={contentFilter === 'experiences'}
+                  onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
+                />
+                {/* Packing */}
+                <PipelineChip
+                  icon={<Package className="w-4 h-4" />}
+                  label="Packing"
+                  status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
+                  onClick={() => setActiveModal('packing')}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content - Full Width Itinerary */}
+        <div className="max-w-4xl mx-auto">
             {/* Filter Bar */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Trip Overview</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">
+                {contentFilter === 'all' ? 'Daily Itinerary' : contentFilter === 'flights' ? 'Flights' : contentFilter === 'hotels' ? 'Hotels' : contentFilter === 'restaurants' ? 'Restaurants' : 'Experiences'}
+              </h2>
               <Select value={contentFilter} onValueChange={setContentFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[160px]">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by..." />
+                  <SelectValue placeholder="Filter..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Items</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="flights">Flights</SelectItem>
                   <SelectItem value="hotels">Hotels</SelectItem>
                   <SelectItem value="restaurants">Restaurants</SelectItem>
@@ -722,88 +807,39 @@ ${JSON.stringify(tripDna, null, 2)}`}
               </Select>
             </div>
 
-            {/* Main Content - Overview with optional filtering */}
+            {/* All - Daily Itinerary */}
             {contentFilter === 'all' && (
-              <>
-                {/* Trip Overview Summary */}
-                <TripOverview itinerary={itinerary} />
-
-                {/* Day-by-day Itinerary */}
-                <div className="mt-8 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Daily Itinerary</h3>
-                    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-                      <button
-                        onClick={() => setItineraryView('daily')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          itineraryView === 'daily'
-                            ? 'bg-background shadow-sm text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <LayoutList className="w-4 h-4" />
-                        Daily
-                      </button>
-                      <button
-                        onClick={() => setItineraryView('calendar')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          itineraryView === 'calendar'
-                            ? 'bg-background shadow-sm text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <CalendarDays className="w-4 h-4" />
-                        Calendar
-                      </button>
-                    </div>
-                  </div>
-
-                  {itineraryView === 'daily' ? (
-                    <div className="space-y-4">
-                      {itinerary.days.map((day) => (
-                        <DayCard
-                          key={day.id}
-                          day={day}
-                          isToday={day.date === new Date().toISOString().split('T')[0]}
-                          isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                          onToggle={() => setExpandedDay(
-                            expandedDay === day.dayNumber ? null : day.dayNumber
-                          )}
-                          onUpdateDay={handleUpdateDay}
-                          onFindFood={(d) => setFoodModalDay(d)}
-                          location={getLocationForDay(day)}
-                          onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                          onDrop={handleDrop}
-                          onDragOver={handleDragOver}
-                          isDragging={dragState.blockId !== null}
-                          dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
-                        />
-                      ))}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
-                        <GripVertical className="w-3 h-3" />
-                        <span>Drag activities to reorder or move between days</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-center text-muted-foreground py-12">
-                          <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p className="font-medium">Calendar View Coming Soon</p>
-                          <p className="text-sm">See your trip at a glance with drag-and-drop activities</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+              <div className="space-y-4">
+                {itinerary.days.map((day) => (
+                  <DayCard
+                    key={day.id}
+                    day={day}
+                    isToday={day.date === new Date().toISOString().split('T')[0]}
+                    isExpanded={expandedDay === null || expandedDay === day.dayNumber}
+                    onToggle={() => setExpandedDay(
+                      expandedDay === day.dayNumber ? null : day.dayNumber
+                    )}
+                    onUpdateDay={handleUpdateDay}
+                    onFindFood={(d) => setFoodModalDay(d)}
+                    location={getLocationForDay(day)}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    isDragging={dragState.blockId !== null}
+                    dragOverIndex={dragState.targetDayId === day.id ? dragState.targetIndex : null}
+                  />
+                ))}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center pt-4">
+                  <GripVertical className="w-3 h-3" />
+                  <span>Drag activities to reorder or move between days</span>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Filtered View - Flights */}
             {contentFilter === 'flights' && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground mb-4">Showing all flights in your trip</p>
                 {itinerary.days.flatMap(day =>
                   day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
                     <Card key={block.id}>
@@ -834,7 +870,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
             {/* Filtered View - Hotels */}
             {contentFilter === 'hotels' && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground mb-4">Showing all accommodations in your trip</p>
                 {itinerary.route.bases.map(base => (
                   <Card key={base.id}>
                     <CardContent className="p-4">
@@ -860,7 +895,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
             {/* Filtered View - Restaurants */}
             {contentFilter === 'restaurants' && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground mb-4">Showing all restaurants and food recommendations</p>
                 <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
               </div>
             )}
@@ -868,7 +902,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
             {/* Filtered View - Experiences */}
             {contentFilter === 'experiences' && (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground mb-4">Showing all experiences and activities</p>
                 {itinerary.days.flatMap(day =>
                   day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
                     <Card key={block.id}>
@@ -1051,5 +1084,45 @@ ${JSON.stringify(tripDna, null, 2)}`}
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+// Pipeline Chip Component (horizontal layout)
+interface PipelineChipProps {
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
+  total?: number;
+  status: 'complete' | 'partial' | 'pending';
+  active?: boolean;
+  onClick: () => void;
+}
+
+function PipelineChip({ icon, label, count, total, status, active, onClick }: PipelineChipProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+        active
+          ? 'bg-primary text-primary-foreground'
+          : status === 'complete'
+          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+          : status === 'partial'
+          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+      }`}
+    >
+      <div className="flex items-center justify-center">
+        {status === 'complete' && !active ? <Check className="w-4 h-4" /> : icon}
+      </div>
+      <span className="text-sm font-medium">{label}</span>
+      {count !== undefined && (
+        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+          active ? 'bg-primary-foreground/20' : 'bg-background/50'
+        }`}>
+          {total ? `${count}/${total}` : count}
+        </span>
+      )}
+    </button>
   );
 }
