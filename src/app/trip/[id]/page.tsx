@@ -31,11 +31,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -731,62 +731,65 @@ ${JSON.stringify(tripDna, null, 2)}`}
           </div>
         </div>
 
-        {/* Pipeline Progress - Horizontal across top */}
-        <div className="mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-2 overflow-x-auto">
-                {/* Flights */}
-                <PipelineChip
-                  icon={<Plane className="w-4 h-4" />}
-                  label="Flights"
-                  count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
-                  status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
-                  active={contentFilter === 'flights'}
-                  onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
-                />
-                {/* Hotels */}
-                <PipelineChip
-                  icon={<Hotel className="w-4 h-4" />}
-                  label="Hotels"
-                  count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
-                  total={itinerary.route.bases.length}
-                  status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
-                  active={contentFilter === 'hotels'}
-                  onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
-                />
-                {/* Restaurants */}
-                <PipelineChip
-                  icon={<UtensilsCrossed className="w-4 h-4" />}
-                  label="Food"
-                  count={itinerary.foodLayer?.length || 0}
-                  status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
-                  active={contentFilter === 'restaurants'}
-                  onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
-                />
-                {/* Experiences */}
-                <PipelineChip
-                  icon={<Compass className="w-4 h-4" />}
-                  label="Activities"
-                  count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
-                  status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
-                  active={contentFilter === 'experiences'}
-                  onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
-                />
-                {/* Packing */}
-                <PipelineChip
-                  icon={<Package className="w-4 h-4" />}
-                  label="Packing"
-                  status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
-                  onClick={() => setActiveModal('packing')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Two Column Layout: Pipeline Left, Itinerary Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - Pipeline */}
+          <aside className="lg:col-span-4">
+            <Card className="sticky top-20">
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-4">Trip Pipeline</h3>
+                <div className="space-y-2">
+                  {/* Flights */}
+                  <PipelineRow
+                    icon={<Plane className="w-4 h-4" />}
+                    label="Flights"
+                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
+                    status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) ? 'complete' : 'pending'}
+                    active={contentFilter === 'flights'}
+                    onClick={() => setContentFilter(contentFilter === 'flights' ? 'all' : 'flights')}
+                  />
+                  {/* Hotels */}
+                  <PipelineRow
+                    icon={<Hotel className="w-4 h-4" />}
+                    label="Hotels"
+                    count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
+                    total={itinerary.route.bases.length}
+                    status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
+                    active={contentFilter === 'hotels'}
+                    onClick={() => setContentFilter(contentFilter === 'hotels' ? 'all' : 'hotels')}
+                  />
+                  {/* Restaurants */}
+                  <PipelineRow
+                    icon={<UtensilsCrossed className="w-4 h-4" />}
+                    label="Food"
+                    count={itinerary.foodLayer?.length || 0}
+                    status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
+                    active={contentFilter === 'restaurants'}
+                    onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'all' : 'restaurants')}
+                  />
+                  {/* Experiences */}
+                  <PipelineRow
+                    icon={<Compass className="w-4 h-4" />}
+                    label="Activities"
+                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
+                    status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
+                    active={contentFilter === 'experiences'}
+                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'all' : 'experiences')}
+                  />
+                  {/* Packing */}
+                  <PipelineRow
+                    icon={<Package className="w-4 h-4" />}
+                    label="Packing List"
+                    status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
+                    onClick={() => setActiveModal('packing')}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </aside>
 
-        {/* Main Content - Full Width Itinerary */}
-        <div className="max-w-4xl mx-auto">
+          {/* Right Column - Daily Itinerary */}
+          <section className="lg:col-span-8">
             {/* Filter Bar */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">
@@ -928,167 +931,31 @@ ${JSON.stringify(tripDna, null, 2)}`}
                 )}
               </div>
             )}
+          </section>
         </div>
       </main>
 
-      {/* Category Modals/Sheets */}
-      {/* Flights Modal */}
-      <Sheet open={activeModal === 'flights'} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[600px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Plane className="w-5 h-5" />
-              Flights
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {itinerary.days.flatMap(day =>
-              day.blocks.filter(b => b.activity?.category === 'flight').map(block => (
-                <Card key={block.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <Plane className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{block.activity?.name}</h4>
-                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                        {block.activity?.duration && (
-                          <p className="text-xs text-muted-foreground mt-1">Duration: {Math.floor(block.activity.duration / 60)}h {block.activity.duration % 60}m</p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-            {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight')) && (
-              <div className="text-center py-12">
-                <Plane className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No flights added yet</p>
-                <Button variant="outline" className="mt-4">Add Flight</Button>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Hotels Modal */}
-      <Sheet open={activeModal === 'hotels'} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[600px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Hotel className="w-5 h-5" />
-              Hotels & Accommodation
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {itinerary.route.bases.filter(b => b.accommodation?.name).map(base => (
-              <Card key={base.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Hotel className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{base.accommodation?.name}</h4>
-                      <p className="text-sm text-muted-foreground">{base.location}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {base.nights} night{base.nights > 1 ? 's' : ''}
-                        {base.accommodation?.priceRange && ` • ${base.accommodation.priceRange}`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {!itinerary.route.bases.some(b => b.accommodation?.name) && (
-              <div className="text-center py-12">
-                <Hotel className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No hotels added yet</p>
-                <Button variant="outline" className="mt-4">Add Hotel</Button>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
+      {/* Full-Screen Category Modals */}
       {/* Packing Modal */}
-      <Sheet open={activeModal === 'packing'} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[600px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
+      <Dialog open={activeModal === 'packing'} onOpenChange={(open: boolean) => !open && setActiveModal(null)}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Package className="w-6 h-6" />
               Packing List
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto mt-4">
             <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
           </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Restaurants Modal */}
-      <Sheet open={activeModal === 'restaurants'} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[600px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <UtensilsCrossed className="w-5 h-5" />
-              Restaurants & Food
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
-            <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Experiences Modal */}
-      <Sheet open={activeModal === 'experiences'} onOpenChange={(open) => !open && setActiveModal(null)}>
-        <SheetContent side="right" className="w-[500px] sm:w-[600px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Compass className="w-5 h-5" />
-              Experiences & Activities
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-4">
-            {itinerary.days.flatMap(day =>
-              day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
-                <Card key={block.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <Compass className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{block.activity?.name}</h4>
-                        <p className="text-sm text-muted-foreground">{block.activity?.description}</p>
-                        {block.activity?.location && (
-                          <p className="text-xs text-muted-foreground mt-1">{block.activity.location.name || block.activity.location.address}</p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-            {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')) && (
-              <div className="text-center py-12">
-                <Compass className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No experiences added yet</p>
-                <Button variant="outline" className="mt-4">Add Experience</Button>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// Pipeline Chip Component (horizontal layout)
-interface PipelineChipProps {
+// Pipeline Row Component (vertical sidebar layout)
+interface PipelineRowProps {
   icon: React.ReactNode;
   label: string;
   count?: number;
@@ -1098,30 +965,37 @@ interface PipelineChipProps {
   onClick: () => void;
 }
 
-function PipelineChip({ icon, label, count, total, status, active, onClick }: PipelineChipProps) {
+function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
+      className={`flex items-center gap-3 w-full p-3 rounded-lg transition-all text-left ${
         active
           ? 'bg-primary text-primary-foreground'
-          : status === 'complete'
-          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-          : status === 'partial'
-          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          : 'hover:bg-muted/50'
       }`}
     >
-      <div className="flex items-center justify-center">
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+        active
+          ? 'bg-primary-foreground/20'
+          : status === 'complete'
+          ? 'bg-green-100 text-green-600'
+          : status === 'partial'
+          ? 'bg-amber-100 text-amber-600'
+          : 'bg-muted text-muted-foreground'
+      }`}>
         {status === 'complete' && !active ? <Check className="w-4 h-4" /> : icon}
       </div>
-      <span className="text-sm font-medium">{label}</span>
-      {count !== undefined && (
-        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-          active ? 'bg-primary-foreground/20' : 'bg-background/50'
-        }`}>
-          {total ? `${count}/${total}` : count}
-        </span>
+      <div className="flex-1 min-w-0">
+        <span className={`text-sm font-medium ${active ? '' : ''}`}>{label}</span>
+        {count !== undefined && (
+          <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+            {total ? `${count} of ${total} booked` : `${count} added`}
+          </p>
+        )}
+      </div>
+      {status === 'complete' && !active && (
+        <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
       )}
     </button>
   );
