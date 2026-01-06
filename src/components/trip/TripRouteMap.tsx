@@ -263,7 +263,7 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
 
   return (
     <Card className={className}>
-      <CardContent className="p-2 overflow-hidden relative h-full">
+      <CardContent className="p-1.5 overflow-hidden relative h-full">
         <div
           ref={containerRef}
           className={`w-full h-full min-h-[180px] rounded-lg overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
