@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Clock, MapPin, Users, Home, Car, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Users, Home, Car, Sparkles, Check, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 
 interface FeaturedTripCardProps {
@@ -32,11 +31,6 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
     '';
   const photoQuery = destination.split(',')[0]?.trim().toLowerCase() || 'travel';
 
-  // Calculate days until trip
-  const daysUntil = itinerary.meta?.startDate
-    ? Math.ceil((new Date(itinerary.meta.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
-
   // Status calculations
   const hasHousing = itinerary.route?.bases?.some(b => b.accommodation?.name);
   const hasTransport = itinerary.route?.movements?.length > 0 ||
@@ -47,99 +41,131 @@ export function FeaturedTripCard({ trip }: FeaturedTripCardProps) {
   return (
     <Link href={`/trip/${trip.id}`}>
       <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
-        {/* Photo header */}
-        <div className="relative h-48 overflow-hidden">
-          <img
-            src={`https://source.unsplash.com/800x400/?${encodeURIComponent(photoQuery)},landmark`}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-          {/* Countdown badge */}
-          {daysUntil !== null && daysUntil > 0 && (
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
-              {daysUntil} days to go
+        <div className="flex flex-col md:flex-row">
+          {/* Large Photo - Left side */}
+          <div className="relative w-full md:w-[280px] h-[200px] md:h-[280px] flex-shrink-0 overflow-hidden">
+            <img
+              src={`https://source.unsplash.com/600x600/?${encodeURIComponent(photoQuery)},landmark,travel`}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            {/* Image carousel dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-white shadow" />
+              <div className="w-2 h-2 rounded-full bg-white/50" />
+              <div className="w-2 h-2 rounded-full bg-white/50" />
             </div>
-          )}
-
-          {/* Image carousel dots */}
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-white" />
-            <div className="w-2 h-2 rounded-full bg-white/50" />
-            <div className="w-2 h-2 rounded-full bg-white/50" />
           </div>
-        </div>
 
-        {/* Trip info */}
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-4">
-            {/* Left side - Trip details */}
-            <div className="flex-1">
-              <h2 className="text-xl font-bold mb-2">{title}</h2>
+          {/* Trip Details - Right side */}
+          <CardContent className="flex-1 p-5">
+            {/* Title */}
+            <h2 className="text-2xl font-bold mb-3">{title}</h2>
 
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
-                <MapPin className="w-4 h-4" />
-                <span>{destination}</span>
-              </div>
+            {/* Destination */}
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <MapPin className="w-4 h-4" />
+              <span>{destination}</span>
+            </div>
 
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {formatDateRange(itinerary.meta?.startDate, itinerary.meta?.endDate)}
-                </span>
-                {itinerary.meta?.totalDays && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {itinerary.meta.totalDays} days
-                  </span>
-                )}
-              </div>
+            {/* Dates */}
+            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+              <Calendar className="w-4 h-4" />
+              <span>{formatDateRange(itinerary.meta?.startDate, itinerary.meta?.endDate)}</span>
+            </div>
 
-              {/* Companion (if available from tripDna) */}
-              {trip.tripDna?.travelerProfile?.partyType && trip.tripDna.travelerProfile.partyType !== 'solo' && (
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-sm text-muted-foreground">Companion</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-3 h-3 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium capitalize">
-                      {trip.tripDna.travelerProfile.partyType}
-                    </span>
+            {/* Companion */}
+            {trip.tripDna?.travelerProfile?.partyType && (
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-sm text-muted-foreground">Companion</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary" />
                   </div>
+                  <span className="text-sm font-medium capitalize">
+                    {trip.tripDna.travelerProfile.partyType === 'solo' ? 'Solo' : trip.tripDna.travelerProfile.partyType}
+                  </span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Right side - Status badges */}
-            <div className="flex flex-col gap-2 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">Housing</span>
-                <Badge variant={hasHousing ? 'default' : 'outline'} className="gap-1">
-                  <Home className="w-3 h-3" />
-                  {hasHousing ? 'Booked' : 'Pending'}
-                </Badge>
+            {/* Status rows */}
+            <div className="space-y-2.5 border-t pt-4">
+              {/* Housing */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Housing</span>
+                <StatusBadge
+                  status={hasHousing ? 'booked' : 'pending'}
+                  icon={<Home className="w-3.5 h-3.5" />}
+                />
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">Transport</span>
-                <Badge variant={hasTransport ? 'default' : 'outline'} className="gap-1">
-                  <Car className="w-3 h-3" />
-                  {hasTransport ? 'Booked' : 'Pending'}
-                </Badge>
+
+              {/* Transport */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Transport</span>
+                <StatusBadge
+                  status={hasTransport ? 'booked' : 'pending'}
+                  icon={<Car className="w-3.5 h-3.5" />}
+                />
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">Activities</span>
-                <Badge variant="outline" className="gap-1 text-primary border-primary">
-                  <Sparkles className="w-3 h-3" />
-                  {activityCount > 0 ? `${activityCount} planned` : 'Find Activity'}
-                </Badge>
+
+              {/* Activities */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Activities</span>
+                <StatusBadge
+                  status={activityCount > 0 ? 'partial' : 'find'}
+                  icon={<Sparkles className="w-3.5 h-3.5" />}
+                  label={activityCount > 0 ? `${activityCount} planned` : 'Find Activity'}
+                />
               </div>
             </div>
-          </div>
-        </CardContent>
+          </CardContent>
+        </div>
       </Card>
     </Link>
+  );
+}
+
+interface StatusBadgeProps {
+  status: 'booked' | 'pending' | 'partial' | 'find';
+  icon: React.ReactNode;
+  label?: string;
+}
+
+function StatusBadge({ status, icon, label }: StatusBadgeProps) {
+  if (status === 'booked') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        <Check className="w-3 h-3" />
+        Booked
+      </span>
+    );
+  }
+
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+        {icon}
+        Pending
+      </span>
+    );
+  }
+
+  if (status === 'partial') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+        {icon}
+        {label}
+      </span>
+    );
+  }
+
+  // find
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 transition-colors">
+      <Search className="w-3 h-3" />
+      {label || 'Find Activity'}
+    </span>
   );
 }
 
@@ -147,7 +173,7 @@ function formatDateRange(start?: string, end?: string): string {
   if (!start) return '';
 
   const startDate = new Date(start);
-  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
 
   if (!end) {
     return startDate.toLocaleDateString('en-US', options);
@@ -157,8 +183,8 @@ function formatDateRange(start?: string, end?: string): string {
 
   // Same month and year
   if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
-    return `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+    return `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
   }
 
-  return `${startDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('en-US', options)}`;
+  return `${startDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })} - ${endDate.toLocaleDateString('en-US', options)}`;
 }
