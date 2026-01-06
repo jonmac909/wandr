@@ -508,7 +508,8 @@ export default function TripPage() {
     // Find which base this day belongs to based on date
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date <= base.checkOut) {
-        return airportToCity(base.location);
+        // Use region (city name) first, then fall back to location
+        return base.region || airportToCity(base.location);
       }
     }
 
