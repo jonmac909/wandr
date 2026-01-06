@@ -737,15 +737,15 @@ ${JSON.stringify(tripDna, null, 2)}`}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-28 md:pt-4 md:pb-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
-          {/* Left Column - Route Map + Pipeline (hidden on mobile only) */}
+          {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
           <aside className="hidden md:flex md:col-span-4 flex-col gap-3 min-h-0">
-            {/* Route Map */}
-            <TripRouteMap bases={itinerary.route.bases} className="flex-shrink-0" />
+            {/* Route Map - expanded to fill available space */}
+            <TripRouteMap bases={itinerary.route.bases} className="flex-1 min-h-[200px]" />
 
-            {/* Pipeline Card - Click to filter */}
-            <Card className="flex-1">
-              <CardContent className="p-4 flex flex-col h-full">
-                <div className="grid grid-cols-3 gap-2 auto-rows-fr">
+            {/* Pipeline Card - compact square widgets at bottom */}
+            <Card className="flex-shrink-0">
+              <CardContent className="p-3">
+                <div className="grid grid-cols-3 gap-2">
                   {/* Overview */}
                   <PipelineRow
                     icon={<Sparkles className="w-4 h-4" />}
