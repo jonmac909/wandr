@@ -18,7 +18,7 @@ import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane,
   ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
-  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin
+  Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
@@ -44,6 +44,7 @@ const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string
   'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
   'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
   'Budget': { bg: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600', text: 'text-emerald-800' },
+  'More': { bg: 'bg-gray-50 border-gray-200', iconBg: 'bg-gray-100 text-gray-600', text: 'text-gray-800' },
 };
 
 export default function TripPage() {
@@ -626,36 +627,84 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
       {/* Mobile Bottom Tab Bar (square widgets matching desktop) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
-        <div className="flex justify-around items-center p-2 gap-2">
+        <div className="flex justify-around items-center px-2 pt-3 pb-4 gap-1">
           {[
             { id: 'overview', label: 'Overview', icon: Sparkles, colors: PIPELINE_COLORS['Overview'] },
             { id: 'schedule', label: 'Schedule', icon: Calendar, colors: PIPELINE_COLORS['Schedule'] },
+            { id: 'restaurants', label: 'Food', icon: UtensilsCrossed, colors: PIPELINE_COLORS['Food'] },
             { id: 'docs', label: 'Docs', icon: FileText, colors: PIPELINE_COLORS['Docs'] },
           ].map(({ id, label, icon: Icon, colors }) => (
             <button
               key={id}
               onClick={() => setContentFilter(id)}
-              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all aspect-square w-20 border ${
+              className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all aspect-square w-16 border ${
                 contentFilter === id
                   ? 'bg-primary text-primary-foreground border-primary'
                   : `${colors.bg} hover:opacity-80`
               }`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 ${
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${
                 contentFilter === id
                   ? 'bg-primary-foreground/20'
                   : colors.iconBg
               }`}>
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
               </div>
-              <span className={`text-[10px] font-medium text-center ${contentFilter === id ? '' : colors.text}`}>{label}</span>
+              <span className={`text-[9px] font-medium text-center ${contentFilter === id ? '' : colors.text}`}>{label}</span>
             </button>
           ))}
+          {/* More dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all aspect-square w-16 border ${
+                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : `${PIPELINE_COLORS['More'].bg} hover:opacity-80`
+                }`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-0.5 ${
+                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                    ? 'bg-primary-foreground/20'
+                    : PIPELINE_COLORS['More'].iconBg
+                }`}>
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </div>
+                <span className={`text-[9px] font-medium text-center ${
+                  ['flights', 'hotels', 'experiences', 'packing', 'budget'].includes(contentFilter)
+                    ? ''
+                    : PIPELINE_COLORS['More'].text
+                }`}>More</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 mb-2">
+              <DropdownMenuItem onClick={() => setContentFilter('flights')}>
+                <Plane className="w-4 h-4 mr-2" />
+                Flights
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContentFilter('hotels')}>
+                <Hotel className="w-4 h-4 mr-2" />
+                Hotels
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContentFilter('experiences')}>
+                <Compass className="w-4 h-4 mr-2" />
+                Activities
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContentFilter('packing')}>
+                <Package className="w-4 h-4 mr-2" />
+                Packing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContentFilter('budget')}>
+                <DollarSign className="w-4 h-4 mr-2" />
+                Budget
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-20 lg:pt-4 lg:pb-4 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4 pt-24 pb-28 lg:pt-4 lg:pb-4 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
           {/* Left Column - Route Map + Pipeline (hidden on mobile) */}
@@ -802,15 +851,34 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         )}
                       </div>
 
+                      {/* Trip Stats */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">{itinerary.days.length}</p>
+                            <p className="text-xs text-muted-foreground">Days</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">{itinerary.route.bases.length}</p>
+                            <p className="text-xs text-muted-foreground">Destinations</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-3 text-center">
+                            <p className="text-2xl font-bold">
+                              {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight').length, 0)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Flights</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
                       {/* Quick Glance Schedule */}
                       <Card>
                         <CardContent className="p-4">
-                          <div className="flex items-center gap-2 mb-4">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {itinerary.days.length} days · {itinerary.route.bases.length} {itinerary.route.bases.length === 1 ? 'destination' : 'destinations'}
-                            </span>
-                          </div>
+                          <h3 className="text-sm font-medium text-muted-foreground mb-3">Itinerary</h3>
                           <div className="space-y-2">
                             {itinerary.route.bases.map((base, index) => {
                               const checkIn = new Date(base.checkIn);
@@ -828,7 +896,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{base.location}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {formatDate(checkIn)} – {formatDate(checkOut)} · {base.nights} {base.nights === 1 ? 'night' : 'nights'}
+                                      {formatDate(checkIn)} – {formatDate(checkOut)}
                                     </p>
                                   </div>
                                 </div>
