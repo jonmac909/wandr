@@ -353,47 +353,16 @@ export default function TripPage() {
     tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
-  // Get location for a specific day based on flights
-  // Location persists until a flight changes it
+  // Get location for a specific day based on the base/accommodation
   const getLocationForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
-    // Find the most recent flight before or on this day
-    let currentLocation = itinerary.meta.destination || '';
+    // First try to get location from the day's base
+    const base = itinerary.route.bases.find(b => b.id === day.baseId);
+    if (base?.location) return base.location;
 
-    // Sort days by date and find location based on flight history
-    const sortedDays = [...itinerary.days].sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    for (const d of sortedDays) {
-      // Check if this day or any previous day has a flight
-      const flightBlock = d.blocks.find(b => b.activity?.category === 'flight');
-      if (flightBlock?.activity) {
-        // Try to extract destination from flight name (e.g., "Flight to Danang" or "SFO → DAN")
-        const flightName = flightBlock.activity.name || '';
-        const toMatch = flightName.match(/(?:to|→|->)\s*([A-Za-z\s]+)/i);
-        if (toMatch) {
-          currentLocation = toMatch[1].trim();
-        } else if (flightBlock.activity.location?.name) {
-          // Fallback to activity location
-          currentLocation = flightBlock.activity.location.name;
-        }
-      }
-
-      // If we've reached the current day, return the location
-      if (d.id === day.id) {
-        break;
-      }
-    }
-
-    // If no location found from flights, try the day's base
-    if (!currentLocation) {
-      const base = itinerary.route.bases.find(b => b.id === day.baseId);
-      if (base?.location) return base.location;
-    }
-
-    return currentLocation;
+    // Fallback to trip destination
+    return itinerary.meta.destination || '';
   };
 
   // Regenerate packing list based on trip activities
