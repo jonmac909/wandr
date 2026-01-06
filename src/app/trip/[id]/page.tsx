@@ -354,6 +354,30 @@ export default function TripPage() {
     tripDb.updateItinerary(tripId, updatedItinerary);
   };
 
+  // Airport code to city name mapping
+  const AIRPORT_TO_CITY: Record<string, string> = {
+    'NRT': 'Tokyo', 'HND': 'Tokyo', 'KIX': 'Osaka', 'ITM': 'Osaka',
+    'BKK': 'Bangkok', 'DMK': 'Bangkok', 'SIN': 'Singapore',
+    'HKG': 'Hong Kong', 'ICN': 'Seoul', 'GMP': 'Seoul',
+    'TPE': 'Taipei', 'DPS': 'Bali', 'HKT': 'Phuket',
+    'HAN': 'Hanoi', 'SGN': 'Ho Chi Minh City', 'KUL': 'Kuala Lumpur',
+    'MNL': 'Manila', 'CGK': 'Jakarta', 'CDG': 'Paris', 'ORY': 'Paris',
+    'LHR': 'London', 'LGW': 'London', 'STN': 'London',
+    'JFK': 'New York', 'EWR': 'New York', 'LGA': 'New York',
+    'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'YVR': 'Vancouver',
+    'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland',
+    'DXB': 'Dubai', 'FCO': 'Rome', 'BCN': 'Barcelona',
+    'AMS': 'Amsterdam', 'BER': 'Berlin', 'TXL': 'Berlin',
+    'YLW': 'Kelowna', 'CNX': 'Chiang Mai', 'REP': 'Siem Reap',
+    'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
+  };
+
+  // Convert airport code to city name if needed
+  const airportToCity = (location: string): string => {
+    const code = location.trim().toUpperCase();
+    return AIRPORT_TO_CITY[code] || location;
+  };
+
   // Get location for a specific day - infer from activities
   const getLocationForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
@@ -365,7 +389,7 @@ export default function TripPage() {
     );
     if (hotelBlock?.activity?.location?.name) {
       // Extract city from hotel location (e.g., "Hotel Nikko Narita" -> look at location name)
-      return hotelBlock.activity.location.name;
+      return airportToCity(hotelBlock.activity.location.name);
     }
 
     // Try to extract destination from flight arrival on this day
@@ -374,21 +398,21 @@ export default function TripPage() {
       // Parse flight name like "YVR → NRT" or "Vancouver to Tokyo"
       const flightName = flightBlock.activity.name;
       const arrowMatch = flightName.match(/→\s*(.+)$/);
-      if (arrowMatch) return arrowMatch[1].trim();
+      if (arrowMatch) return airportToCity(arrowMatch[1].trim());
       const toMatch = flightName.match(/to\s+(.+)$/i);
-      if (toMatch) return toMatch[1].trim();
+      if (toMatch) return airportToCity(toMatch[1].trim());
     }
 
     // Try any activity with a location
     for (const block of day.blocks) {
       if (block.activity?.location?.name) {
-        return block.activity.location.name;
+        return airportToCity(block.activity.location.name);
       }
     }
 
     // Last resort: check the day's theme which often contains location
     if (day.theme) {
-      return day.theme;
+      return airportToCity(day.theme);
     }
 
     // Fallback to trip destination
