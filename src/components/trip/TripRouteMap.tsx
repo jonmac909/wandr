@@ -114,6 +114,16 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
           zoomControl: true,
           gestureHandling: 'greedy',
         });
+
+        // Check for authentication errors after map renders (causes "Oops!" message)
+        setTimeout(() => {
+          const errorDiv = mapRef.current?.querySelector('.gm-err-container, .gm-style-cc');
+          const hasError = mapRef.current?.querySelector('.gm-err-container');
+          if (hasError) {
+            console.error('Google Maps authentication error detected');
+            setError('Map authentication failed');
+          }
+        }, 1000);
       }
 
       const map = mapInstanceRef.current;
