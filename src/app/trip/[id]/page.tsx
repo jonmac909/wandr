@@ -909,7 +909,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<Sparkles className="w-4 h-4" />}
                     label="Overview"
-                    count={getTotalTripDays()}
+                    countLabel={`${itinerary.days.length}/${getTotalTripDays()}`}
                     active={contentFilter === 'overview'}
                     onClick={() => setContentFilter('overview')}
                   />
@@ -917,7 +917,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<Calendar className="w-4 h-4" />}
                     label="Schedule"
-                    count={getTotalTripDays()}
+                    countLabel={`${itinerary.days.length}/${getTotalTripDays()}`}
                     active={contentFilter === 'schedule'}
                     onClick={() => setContentFilter('schedule')}
                   />
@@ -1656,11 +1656,12 @@ interface PipelineRowProps {
   icon: React.ReactNode;
   label: string;
   count?: number;
+  countLabel?: string; // For custom labels like "41/50"
   active?: boolean;
   onClick: () => void;
 }
 
-function PipelineRow({ icon, label, count, active, onClick }: PipelineRowProps) {
+function PipelineRow({ icon, label, count, countLabel, active, onClick }: PipelineRowProps) {
   const colors = PIPELINE_COLORS[label] || { bg: 'bg-muted/50 border-transparent', iconBg: 'bg-muted text-muted-foreground', text: '' };
 
   return (
@@ -1680,9 +1681,9 @@ function PipelineRow({ icon, label, count, active, onClick }: PipelineRowProps) 
         {icon}
       </div>
       <span className={`text-xs font-medium text-center ${active ? '' : colors.text}`}>{label}</span>
-      {count !== undefined && (
+      {(count !== undefined || countLabel) && (
         <p className={`text-[10px] text-center ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-          {count}
+          {countLabel || count}
         </p>
       )}
     </button>
