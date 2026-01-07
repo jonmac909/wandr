@@ -177,10 +177,14 @@ export function useChat({
         );
 
         // Execute tool calls if any and get continuation from Claude
-        if (toolCalls.length > 0) {
+        // Filter out server-managed tools (web_search is handled by Claude automatically)
+        const SERVER_MANAGED_TOOLS = ['web_search'];
+        const clientToolCalls = toolCalls.filter(tc => !SERVER_MANAGED_TOOLS.includes(tc.name));
+
+        if (clientToolCalls.length > 0) {
           const toolResults: Array<{ toolCallId: string; result: unknown }> = [];
 
-          for (const toolCall of toolCalls) {
+          for (const toolCall of clientToolCalls) {
             const result = await executeToolCall(
               toolCall.name as ToolName,
               toolCall.input,
@@ -210,7 +214,7 @@ export function useChat({
                   role: 'assistant',
                   content: [
                     ...(assistantContent ? [{ type: 'text', text: assistantContent }] : []),
-                    ...toolCalls.map((tc) => ({
+                    ...clientToolCalls.map((tc) => ({
                       type: 'tool_use',
                       id: tc.id,
                       name: tc.name,
