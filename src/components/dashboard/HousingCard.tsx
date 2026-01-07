@@ -18,8 +18,8 @@ export function HousingCard({ base }: HousingCardProps) {
 
   return (
     <div className="flex flex-col group">
-      {/* Square image */}
-      <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted mb-1.5">
+      {/* Small square image */}
+      <div className="relative w-full h-16 rounded-lg overflow-hidden bg-muted mb-1">
         <img
           src={imageUrl}
           alt={name}

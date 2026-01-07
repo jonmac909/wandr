@@ -17,11 +17,11 @@ export function StatCard({ label, value, trend, suffix, className }: StatCardPro
   const isNegative = trend && trend < 0;
 
   return (
-    <Card className={cn("", className)}>
-      <CardContent className="p-3">
-        <p className="text-xs text-muted-foreground mb-1 truncate">{label}</p>
+    <Card className={cn("py-0", className)}>
+      <CardContent className="p-2">
+        <p className="text-[10px] text-muted-foreground mb-0.5 truncate">{label}</p>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold">{value}</span>
+          <span className="text-xl font-bold">{value}</span>
           {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
           {trend !== undefined && trend !== 0 && (
             <span

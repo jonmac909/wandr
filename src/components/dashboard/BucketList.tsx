@@ -100,10 +100,10 @@ export function BucketList({ initialItems = DEFAULT_ITEMS, maxItems = 4 }: Bucke
   };
 
   return (
-    <Card className="h-full">
-      <CardContent className="p-3 h-full flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold">Bucket List</h3>
+    <Card className="h-full py-0">
+      <CardContent className="p-2 h-full flex flex-col">
+        <div className="flex items-center justify-between mb-1.5">
+          <h3 className="text-xs font-semibold">Bucket List</h3>
           {!isAdding && (
             <button
               onClick={() => setIsAdding(true)}
