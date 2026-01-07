@@ -98,110 +98,105 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
   useEffect(() => {
     if (!isLoaded || !mapRef.current || coords.length === 0) return;
 
-    // Calculate bounds
-    const bounds = new google.maps.LatLngBounds();
-    coords.forEach(c => {
-      if (c.coords) {
-        bounds.extend(c.coords);
+    try {
+      // Calculate bounds
+      const bounds = new google.maps.LatLngBounds();
+      coords.forEach(c => {
+        if (c.coords) {
+          bounds.extend(c.coords);
+        }
+      });
+
+      // Create map if not exists
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+        });
       }
-    });
 
-    // Create map if not exists
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
-        mapId: 'wandr-trip-map',
-        disableDefaultUI: true,
-        zoomControl: true,
-        gestureHandling: 'greedy',
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }],
+      const map = mapInstanceRef.current;
+
+      // Clear existing markers (standard markers use setMap(null))
+      markersRef.current.forEach(m => {
+        if ('setMap' in m) {
+          (m as unknown as google.maps.Marker).setMap(null);
+        } else {
+          m.map = null;
+        }
+      });
+      markersRef.current = [];
+
+      // Clear existing polyline
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+
+      // Add markers with numbered labels (using standard Marker for compatibility)
+      coords.forEach((base, index) => {
+        if (!base.coords) return;
+
+        const marker = new google.maps.Marker({
+          map,
+          position: base.coords,
+          label: singleLocation ? undefined : {
+            text: String(index + 1),
+            color: 'white',
+            fontWeight: 'bold',
           },
-        ],
-      });
-    }
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: '#4f46e5',
+            fillOpacity: 1,
+            strokeColor: 'white',
+            strokeWeight: 2,
+          },
+          title: base.location,
+        });
 
-    const map = mapInstanceRef.current;
+        // Add info window on click
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="padding: 8px; min-width: 120px;">
+              <strong style="font-size: 14px;">${base.location}</strong>
+              ${!singleLocation && base.nights ? `<br><span style="color: #666; font-size: 12px;">${base.nights} night${base.nights > 1 ? 's' : ''}</span>` : ''}
+            </div>
+          `,
+        });
 
-    // Clear existing markers
-    markersRef.current.forEach(m => m.map = null);
-    markersRef.current = [];
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
 
-    // Clear existing polyline
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
-    }
-
-    // Add markers with numbered labels
-    coords.forEach((base, index) => {
-      if (!base.coords) return;
-
-      // Create custom marker element
-      const markerContent = document.createElement('div');
-      markerContent.className = 'flex items-center justify-center';
-      markerContent.innerHTML = `
-        <div style="
-          background: #4f46e5;
-          color: white;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          font-size: 12px;
-          border: 2px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        ">${singleLocation ? '📍' : index + 1}</div>
-      `;
-
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: base.coords,
-        content: markerContent,
-        title: base.location,
+        markersRef.current.push(marker as unknown as google.maps.marker.AdvancedMarkerElement);
       });
 
-      // Add info window on click
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px; min-width: 120px;">
-            <strong style="font-size: 14px;">${base.location}</strong>
-            ${!singleLocation && base.nights ? `<br><span style="color: #666; font-size: 12px;">${base.nights} night${base.nights > 1 ? 's' : ''}</span>` : ''}
-          </div>
-        `,
-      });
+      // Draw route polyline (only for multi-location overview)
+      if (!singleLocation && coords.length > 1) {
+        const path = coords.map(c => c.coords!);
+        polylineRef.current = new google.maps.Polyline({
+          path,
+          geodesic: true,
+          strokeColor: '#4f46e5',
+          strokeOpacity: 0.8,
+          strokeWeight: 3,
+          map,
+        });
+      }
 
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
-
-      markersRef.current.push(marker);
-    });
-
-    // Draw route polyline (only for multi-location overview)
-    if (!singleLocation && coords.length > 1) {
-      const path = coords.map(c => c.coords!);
-      polylineRef.current = new google.maps.Polyline({
-        path,
-        geodesic: true,
-        strokeColor: '#4f46e5',
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        map,
-      });
-    }
-
-    // Fit bounds
-    if (singleLocation && coords[0]?.coords) {
-      map.setCenter(coords[0].coords);
-      map.setZoom(13);
-    } else {
-      map.fitBounds(bounds, { top: 20, right: 20, bottom: 20, left: 20 });
+      // Fit bounds
+      if (singleLocation && coords[0]?.coords) {
+        map.setCenter(coords[0].coords);
+        map.setZoom(13);
+      } else {
+        map.fitBounds(bounds, { top: 20, right: 20, bottom: 20, left: 20 });
+      }
+    } catch (err) {
+      console.error('Error creating map:', err);
+      setError('Failed to create map');
     }
 
   }, [isLoaded, coords.length, singleLocation, JSON.stringify(coords.map(c => c.location))]);
