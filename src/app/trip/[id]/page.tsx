@@ -474,7 +474,7 @@ export default function TripPage() {
     'dubai': '🇦🇪', 'uae': '🇦🇪', 'doha': '🇶🇦', 'qatar': '🇶🇦', 'abu dhabi': '🇦🇪',
   };
 
-  // Get flag emoji for a location
+  // Get flag emoji for a single location
   const getFlagForLocation = (location: string): string => {
     if (!location) return '';
     const lower = location.toLowerCase().trim();
@@ -488,6 +488,17 @@ export default function TripPage() {
     }
 
     return '';
+  };
+
+  // Get flags for multi-country destination string (e.g., "Thailand, Vietnam, Japan, Hawaii")
+  // Returns string with flag before each country: "🇹🇭 Thailand, 🇻🇳 Vietnam, 🇯🇵 Japan, 🇺🇸 Hawaii"
+  const getFlagsForDestination = (destination: string): string => {
+    if (!destination) return '';
+    const parts = destination.split(',').map(p => p.trim());
+    return parts.map(part => {
+      const flag = getFlagForLocation(part);
+      return flag ? `${flag} ${part}` : part;
+    }).join(', ');
   };
 
   // Convert airport code to city name - ALWAYS return city name, never airport code
@@ -972,14 +983,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-1.5 items-stretch">
           {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
           <aside className="hidden md:flex md:col-span-4 flex-col gap-1.5 min-h-0">
-            {/* Trip Header - above map */}
-            <div className="flex-shrink-0 px-1">
-              <h1 className="text-2xl font-bold">{itinerary.meta.title}</h1>
-              <p className="text-sm text-muted-foreground">
-                {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
-              </p>
-            </div>
-
             {/* Map - shows all locations for overview, single location for schedule */}
             <TripRouteMap
               bases={itinerary.route.bases}
@@ -1075,6 +1078,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
+                {/* Persistent Trip Header - Shows on all views */}
+                <div className="flex-shrink-0 pb-2 mb-2 border-b">
+                  <h2 className="text-xl font-bold">{itinerary.meta.title}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {getFlagsForDestination(itinerary.meta.destination)}
+                  </p>
+                </div>
+
                 {/* Calendar Card - Shows on all views EXCEPT overview */}
                 {contentFilter !== 'overview' && (
                   <div className="flex-shrink-0 mb-2">
@@ -1140,33 +1151,24 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </div>
                         ) : (
                           <>
-                            <div>
-                              <h2 className="text-2xl font-bold">{itinerary.meta.title}</h2>
-                              <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                <MapPin className="w-4 h-4" />
-                                <span>{getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}</span>
-                              </div>
-                              {/* Trip dates */}
-                              {(itinerary.meta.startDate || itinerary.days[0]?.date) && (
-                                <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    {(() => {
-                                      const startDate = itinerary.meta.startDate || itinerary.days[0]?.date;
-                                      const endDate = itinerary.meta.endDate || itinerary.days[itinerary.days.length - 1]?.date;
-                                      if (!startDate) return '';
-                                      const [y1, m1, d1] = startDate.split('-').map(Number);
-                                      const start = new Date(y1, m1 - 1, d1);
-                                      const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                      if (!endDate || startDate === endDate) return startStr;
-                                      const [y2, m2, d2] = endDate.split('-').map(Number);
-                                      const end = new Date(y2, m2 - 1, d2);
-                                      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                      return `${startStr} - ${endStr}`;
-                                    })()}
-                                  </span>
-                                </div>
-                              )}
+                            {/* Trip dates and edit button - title/destination in persistent header above */}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              <span>
+                                {(() => {
+                                  const startDate = itinerary.meta.startDate || itinerary.days[0]?.date;
+                                  const endDate = itinerary.meta.endDate || itinerary.days[itinerary.days.length - 1]?.date;
+                                  if (!startDate) return '';
+                                  const [y1, m1, d1] = startDate.split('-').map(Number);
+                                  const start = new Date(y1, m1 - 1, d1);
+                                  const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                  if (!endDate || startDate === endDate) return startStr;
+                                  const [y2, m2, d2] = endDate.split('-').map(Number);
+                                  const end = new Date(y2, m2 - 1, d2);
+                                  const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                  return `${startStr} - ${endStr}`;
+                                })()}
+                              </span>
                             </div>
                             <Button
                               variant="ghost"
