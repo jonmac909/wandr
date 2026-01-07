@@ -16,7 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane, Train,
-  ChevronLeft, Home, Trash2, Pencil, Save, X, MoreVertical, RefreshCw,
+  ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
   Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus
@@ -30,7 +30,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -794,36 +793,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      {/* Mobile Top Bar (hidden on tablet and up) */}
-      <div className="md:hidden fixed top-14 left-0 right-0 bg-background/95 backdrop-blur border-b z-10">
-        <div className="px-4 py-2 flex items-center justify-between">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="font-semibold text-sm truncate flex-1 text-center mx-4">{itinerary.meta.title}</h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={startEditing}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Rename Trip
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Trip
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       {/* Mobile Bottom Tab Bar (square widgets matching desktop) - hidden on tablet and up */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
@@ -904,7 +873,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
       </div>
 
       {/* Main Content Area - Fixed height, no page scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2 pt-16 pb-20 md:pt-1 md:pb-1 overflow-hidden flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 pt-1 pb-20 md:pb-1 overflow-hidden flex flex-col">
         {/* Two Column Layout: Trip Info + Pipeline Left, Itinerary Right - fills remaining space */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-1.5 items-stretch">
           {/* Left Column - Route Map (top, expanded) + Pipeline widgets (bottom, square grid) */}
