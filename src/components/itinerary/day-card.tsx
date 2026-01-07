@@ -235,13 +235,13 @@ export function DayCard({
                 </div>
               ) : (
                 <>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2">
                     {formattedDate}
                     {isToday && (
-                      <Badge variant="default" className="text-xs">Today</Badge>
+                      <Badge variant="default" className="text-[10px] px-1.5 py-0">Today</Badge>
                     )}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     {location || day.theme || 'No location set'}
                     {onUpdateDay && (
@@ -291,7 +291,7 @@ export function DayCard({
             }
           }}
         >
-          <div className="space-y-3">
+          <div className="space-y-2">
             {day.blocks.map((block, index) => (
               <div
                 key={block.id}
@@ -460,7 +460,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
       )}
     <div
       className={cn(
-        'p-3 rounded-lg border group/block relative transition-all',
+        'p-2 rounded-lg border group/block relative transition-all',
         blockStyle,
         block.isLocked && 'ring-1 ring-primary',
         draggable && 'cursor-grab active:cursor-grabbing'
@@ -721,21 +721,21 @@ function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDet
   return (
     <div>
       {/* Compact header: icon + name + time on same line */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         <span className="opacity-60 flex-shrink-0">{categoryIcon}</span>
-        <span className="font-medium">{activity.name}</span>
+        <span className="font-medium text-sm">{activity.name}</span>
         {/* Show nights for hotels, duration for everything else */}
         {isAccommodation && hotelNights ? (
-          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+          <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
             {hotelNights} night{hotelNights > 1 ? 's' : ''}
           </span>
         ) : activity.duration && !isAccommodation && (
-          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+          <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
             {formatDuration(activity.duration)}
           </span>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
         {activity.location?.name && (
           <button
             onClick={() => onOpenPlaceDetails?.(activity.location!.name)}
