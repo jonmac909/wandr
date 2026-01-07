@@ -1102,11 +1102,44 @@ ${JSON.stringify(tripDna, null, 2)}`}
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
                 {/* Persistent Trip Header - shows on all views */}
-                <div className="flex-shrink-0 pb-2 mb-2 border-b text-center">
-                  <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {getFlagsForDestination(itinerary.meta.destination)}
-                  </p>
+                <div className="flex-shrink-0 pb-2 mb-2 border-b text-center md:text-left">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        className="h-9 text-lg font-bold"
+                        placeholder="Trip name"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-center md:justify-start">
+                        <Button variant="outline" size="sm" onClick={handleSaveTitle}>
+                          <Save className="w-4 h-4 mr-1" />
+                          Save
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group">
+                      <div className="flex items-center justify-center md:justify-start gap-2">
+                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={startEditing}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {getFlagsForDestination(itinerary.meta.destination)}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Calendar Card - Shows on all views EXCEPT overview */}
@@ -1151,30 +1184,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Overview - Trip Summary */}
                   {contentFilter === 'overview' && (
                     <div className="space-y-3 pr-1">
-                      {/* Trip Header */}
-                      <div className="flex items-start justify-between">
-                        {isEditing ? (
-                          <div className="flex-1 space-y-2">
-                            <Input
-                              value={editedTitle}
-                              onChange={(e) => setEditedTitle(e.target.value)}
-                              className="h-10 text-xl font-bold"
-                              placeholder="Trip name"
-                              autoFocus
-                            />
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={handleSaveTitle}>
-                                <Save className="w-4 h-4 mr-1" />
-                                Save
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-
                       {/* Quick Glance Schedule - grouped by location from full date range */}
                       {(() => {
                         // Get full date range - use tripDna start date if available (includes departure day)
