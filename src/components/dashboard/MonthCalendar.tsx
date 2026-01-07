@@ -25,6 +25,7 @@ const MONTHS = [
 
 /**
  * Get days in month grid (including padding days from prev/next month)
+ * Always returns 42 cells (6 rows) for consistent height
  */
 function getMonthDays(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1);
@@ -44,6 +45,11 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
   // Add days of month
   for (let day = 1; day <= daysInMonth; day++) {
     days.push(new Date(year, month, day));
+  }
+
+  // Pad to always have 42 cells (6 rows) for consistent height
+  while (days.length < 42) {
+    days.push(null);
   }
 
   return days;
@@ -233,7 +239,7 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
                   compact ? "h-7 text-[10px]" : "h-8 text-sm",
                   "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                   todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
-                  !todayClass && tripRange && "bg-primary/20 text-primary",
+                  !todayClass && tripRange && "bg-muted text-foreground",
                   !todayClass && !tripRange && weekendClass && "text-primary",
                   !todayClass && !tripRange && !weekendClass && "text-foreground"
                 )}
