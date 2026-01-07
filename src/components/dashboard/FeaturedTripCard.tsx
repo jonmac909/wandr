@@ -1,26 +1,138 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Home, Car, Sparkles, Check, Search, Pencil, X, Save, Camera } from 'lucide-react';
+import { Calendar, MapPin, Plane, Hotel, Camera, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { tripDb } from '@/lib/db/indexed-db';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
+import { cn } from '@/lib/utils';
 
 interface FeaturedTripCardProps {
   trip: StoredTrip | null;
   onTripUpdate?: (trip: StoredTrip) => void;
 }
 
+// Country flag mapping
+const COUNTRY_FLAGS: Record<string, string> = {
+  'thailand': '🇹🇭',
+  'japan': '🇯🇵',
+  'vietnam': '🇻🇳',
+  'korea': '🇰🇷',
+  'south korea': '🇰🇷',
+  'singapore': '🇸🇬',
+  'malaysia': '🇲🇾',
+  'indonesia': '🇮🇩',
+  'bali': '🇮🇩',
+  'philippines': '🇵🇭',
+  'taiwan': '🇹🇼',
+  'china': '🇨🇳',
+  'hong kong': '🇭🇰',
+  'india': '🇮🇳',
+  'cambodia': '🇰🇭',
+  'laos': '🇱🇦',
+  'myanmar': '🇲🇲',
+  'nepal': '🇳🇵',
+  'sri lanka': '🇱🇰',
+  'maldives': '🇲🇻',
+  'usa': '🇺🇸',
+  'united states': '🇺🇸',
+  'hawaii': '🇺🇸',
+  'canada': '🇨🇦',
+  'mexico': '🇲🇽',
+  'uk': '🇬🇧',
+  'united kingdom': '🇬🇧',
+  'england': '🇬🇧',
+  'france': '🇫🇷',
+  'italy': '🇮🇹',
+  'spain': '🇪🇸',
+  'germany': '🇩🇪',
+  'netherlands': '🇳🇱',
+  'portugal': '🇵🇹',
+  'greece': '🇬🇷',
+  'australia': '🇦🇺',
+  'new zealand': '🇳🇿',
+  'uae': '🇦🇪',
+  'dubai': '🇦🇪',
+};
+
+function getFlagForLocation(location: string): string {
+  const lower = location.toLowerCase();
+  for (const [country, flag] of Object.entries(COUNTRY_FLAGS)) {
+    if (lower.includes(country)) return flag;
+  }
+  return '🌍';
+}
+
+function getCountryFromLocation(location: string): string {
+  const lower = location.toLowerCase();
+  for (const country of Object.keys(COUNTRY_FLAGS)) {
+    if (lower.includes(country)) {
+      return country.charAt(0).toUpperCase() + country.slice(1);
+    }
+  }
+  return location.split(',').pop()?.trim() || location;
+}
+
 export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDestination, setEditDestination] = useState('');
   const [customImage, setCustomImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Calculate trip stats
+  const stats = useMemo(() => {
+    if (!trip?.itinerary) return null;
+
+    const { itinerary } = trip;
+    const days = itinerary.days || [];
+    const bases = itinerary.route?.bases || [];
+
+    // Get all unique locations/cities
+    const allLocations = new Set<string>();
+    bases.forEach(b => {
+      if (b.location) allLocations.add(b.location.split(',')[0].trim());
+    });
+
+    // Get countries from bases
+    const countries = new Map<string, string>();
+    bases.forEach(b => {
+      if (b.location) {
+        const country = getCountryFromLocation(b.location);
+        const flag = getFlagForLocation(b.location);
+        if (!countries.has(country)) {
+          countries.set(country, flag);
+        }
+      }
+    });
+
+    // Count flights
+    const flightCount = days.reduce((acc, d) =>
+      acc + (d.blocks?.filter(b => b.activity?.category === 'flight').length || 0), 0);
+
+    // Count hotels
+    const hotelCount = bases.filter(b => b.accommodation?.name).length;
+
+    // Calculate total days
+    const startDate = itinerary.meta?.startDate;
+    const endDate = itinerary.meta?.endDate;
+    let totalDays = days.length;
+    if (startDate && endDate) {
+      const [y1, m1, d1] = startDate.split('-').map(Number);
+      const [y2, m2, d2] = endDate.split('-').map(Number);
+      const start = new Date(y1, m1 - 1, d1);
+      const end = new Date(y2, m2 - 1, d2);
+      totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    return {
+      totalDays,
+      countries: Array.from(countries.entries()),
+      cityCount: allLocations.size,
+      flightCount,
+      hotelCount,
+    };
+  }, [trip]);
 
   if (!trip || !trip.itinerary) {
     return (
@@ -38,13 +150,10 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
 
   const { itinerary } = trip;
   const title = itinerary.meta?.title || 'Untitled Trip';
-  // Get destination from meta, or first base location (just the city name)
   const destination = itinerary.meta?.destination ||
-    itinerary.route?.bases?.[0]?.location?.split(',')[0] ||
-    '';
+    itinerary.route?.bases?.[0]?.location?.split(',')[0] || '';
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const defaultImageUrl = getDestinationImage(photoQuery, 400, 400);
-  // Use custom image from trip meta, local state, or default
+  const defaultImageUrl = getDestinationImage(photoQuery, 600, 400);
   const imageUrl = customImage || trip.itinerary?.meta?.coverImage || defaultImageUrl;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +165,6 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
       const base64Image = event.target?.result as string;
       setCustomImage(base64Image);
 
-      // Save to trip meta
       if (trip.itinerary) {
         const updatedItinerary = {
           ...trip.itinerary,
@@ -85,273 +193,108 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
     fileInputRef.current?.click();
   };
 
-  // Status calculations
-  const hotelCount = itinerary.route?.bases?.filter(b => b.accommodation?.name).length || 0;
-  const hasHousing = hotelCount > 0;
+  // Format date range nicely
+  const formatDateRange = (start?: string, end?: string): string => {
+    if (!start) return '';
+    const [y1, m1, d1] = start.split('-').map(Number);
+    const startDate = new Date(y1, m1 - 1, d1);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  // Count flights from movements and day activities
-  const movementFlights = itinerary.route?.movements?.filter(m => m.transportType === 'flight').length || 0;
-  const activityFlights = itinerary.days?.reduce((acc, d) =>
-    acc + (d.blocks?.filter(b => b.activity?.category === 'flight').length || 0), 0) || 0;
-  const flightCount = movementFlights + activityFlights;
-  const hasTransport = flightCount > 0 || (itinerary.route?.movements?.length || 0) > 0;
+    if (!end) return `${months[m1 - 1]} ${d1}`;
 
-  const activityCount = itinerary.days?.reduce((acc, d) =>
-    acc + (d.blocks?.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit').length || 0), 0) || 0;
-
-  const startEditing = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setEditTitle(title);
-    setEditDestination(destination);
-    setIsEditing(true);
+    const [y2, m2, d2] = end.split('-').map(Number);
+    if (m1 === m2 && y1 === y2) {
+      return `${months[m1 - 1]} ${d1}-${d2}`;
+    }
+    return `${months[m1 - 1]} ${d1} – ${months[m2 - 1]} ${d2}`;
   };
 
-  const cancelEditing = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsEditing(false);
-  };
+  return (
+    <Link href={`/trip/${trip.id}`} className="block group">
+      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+        {/* Hero image with gradient overlay */}
+        <div className="relative h-48 overflow-hidden">
+          <img
+            src={imageUrl}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-  const saveChanges = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+          {/* Upload button */}
+          <button
+            type="button"
+            onClick={triggerImageUpload}
+            className="absolute top-3 right-3 p-2 rounded-full bg-white/20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/30"
+          >
+            <Camera className="w-4 h-4 text-white" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
 
-    if (!trip.itinerary) return;
-
-    const updatedItinerary = {
-      ...trip.itinerary,
-      meta: {
-        ...trip.itinerary.meta,
-        title: editTitle.trim() || title,
-        destination: editDestination.trim() || destination,
-      },
-      updatedAt: new Date(),
-    };
-
-    const updatedTrip = {
-      ...trip,
-      itinerary: updatedItinerary,
-    };
-
-    // Save to IndexedDB + Supabase (cloud sync)
-    await tripDb.save(updatedTrip);
-
-    onTripUpdate?.(updatedTrip);
-    setIsEditing(false);
-  };
-
-  const cardContent = (
-    <Card className="group overflow-hidden hover:border-primary/30 transition-all cursor-pointer">
-      <div className="flex">
-        {/* Large Square Photo - Left side */}
-        <div className="relative w-[220px] min-w-[220px] aspect-square flex-shrink-0 p-3">
-          <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            {/* Upload image overlay */}
-            <button
-              type="button"
-              onClick={triggerImageUpload}
-              className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"
-            >
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
-                <Camera className="w-5 h-5 text-gray-700" />
-              </div>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
+          {/* Title and date overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h2 className="text-2xl font-bold text-white mb-1">{title}</h2>
+            <div className="flex items-center gap-2 text-white/90 text-sm">
+              <Calendar className="w-4 h-4" />
+              <span>{formatDateRange(itinerary.meta?.startDate, itinerary.meta?.endDate)}</span>
+              <span className="text-white/60">•</span>
+              <span>{stats?.totalDays} days</span>
+            </div>
           </div>
         </div>
 
-        {/* Trip Details - Right side */}
-        <CardContent className="flex-1 p-4 pl-0 overflow-hidden min-w-0">
-          {/* Title with edit button */}
-          <div className="flex items-start justify-between mb-3">
-            {isEditing ? (
-              <div className="flex-1 space-y-2" onClick={e => e.stopPropagation()}>
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="h-8 text-lg font-bold"
-                  placeholder="Trip name"
-                  autoFocus
-                />
-                <Input
-                  value={editDestination}
-                  onChange={(e) => setEditDestination(e.target.value)}
-                  className="h-7 text-sm"
-                  placeholder="Destination"
-                />
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={saveChanges}>
-                    <Save className="w-3 h-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEditing}>
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold">{title}</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={startEditing}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-              </>
-            )}
-          </div>
-
-          {/* Destination */}
-          {!isEditing && (
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <MapPin className="w-4 h-4 flex-shrink-0" />
-              <span>{destination}</span>
-            </div>
-          )}
-
-          {/* Dates */}
-          <div className="flex items-center gap-2 text-muted-foreground mb-4">
-            <Calendar className="w-4 h-4" />
-            <span>{formatDateRange(itinerary.meta?.startDate, itinerary.meta?.endDate)}</span>
-          </div>
-
-          {/* Companion */}
-          {trip.tripDna?.travelerProfile?.partyType && (
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-sm text-muted-foreground">Companion</span>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-primary" />
-                </div>
-                <span className="text-sm font-medium capitalize">
-                  {trip.tripDna.travelerProfile.partyType === 'solo' ? 'Solo' : trip.tripDna.travelerProfile.partyType}
-                </span>
+        {/* Stats section */}
+        <CardContent className="p-4">
+          {/* Countries with flags */}
+          {stats && stats.countries.length > 0 && (
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2">
+                {stats.countries.map(([country, flag]) => (
+                  <span
+                    key={country}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted"
+                  >
+                    <span className="text-base">{flag}</span>
+                    {country}
+                  </span>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Status rows */}
-          <div className="space-y-2.5 border-t pt-4">
-            {/* Accommodation */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Accommodation</span>
-              <StatusBadge
-                status={hasHousing ? 'booked' : 'pending'}
-                icon={<Home className="w-3.5 h-3.5" />}
-                label={hasHousing ? `${hotelCount} hotel${hotelCount !== 1 ? 's' : ''}` : undefined}
-              />
+          {/* Quick stats row */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-4">
+              {stats && stats.cityCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" />
+                  <span>{stats.cityCount} {stats.cityCount === 1 ? 'city' : 'cities'}</span>
+                </div>
+              )}
+              {stats && stats.flightCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Plane className="w-4 h-4" />
+                  <span>{stats.flightCount} {stats.flightCount === 1 ? 'flight' : 'flights'}</span>
+                </div>
+              )}
+              {stats && stats.hotelCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Hotel className="w-4 h-4" />
+                  <span>{stats.hotelCount} {stats.hotelCount === 1 ? 'hotel' : 'hotels'}</span>
+                </div>
+              )}
             </div>
-
-            {/* Transport */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Transport</span>
-              <StatusBadge
-                status={hasTransport ? 'booked' : 'pending'}
-                icon={<Car className="w-3.5 h-3.5" />}
-                label={flightCount > 0 ? `${flightCount} flight${flightCount !== 1 ? 's' : ''}` : undefined}
-              />
-            </div>
-
-            {/* Activities */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Activities</span>
-              <StatusBadge
-                status={activityCount > 0 ? 'partial' : 'find'}
-                icon={<Sparkles className="w-3.5 h-3.5" />}
-                label={activityCount > 0 ? `${activityCount} planned` : 'Find Activity'}
-              />
-            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </div>
         </CardContent>
-      </div>
-    </Card>
-  );
-
-  // If editing, don't wrap in Link
-  if (isEditing) {
-    return cardContent;
-  }
-
-  return (
-    <Link href={`/trip/${trip.id}`}>
-      {cardContent}
+      </Card>
     </Link>
   );
-}
-
-interface StatusBadgeProps {
-  status: 'booked' | 'pending' | 'partial' | 'find';
-  icon: React.ReactNode;
-  label?: string;
-}
-
-function StatusBadge({ status, icon, label }: StatusBadgeProps) {
-  if (status === 'booked') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-        <Check className="w-3 h-3" />
-        {label || 'Booked'}
-      </span>
-    );
-  }
-
-  if (status === 'pending') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-        {icon}
-        Pending
-      </span>
-    );
-  }
-
-  if (status === 'partial') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-        {icon}
-        {label}
-      </span>
-    );
-  }
-
-  // find
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 transition-colors">
-      <Search className="w-3 h-3" />
-      {label || 'Find Activity'}
-    </span>
-  );
-}
-
-function formatDateRange(start?: string, end?: string): string {
-  if (!start) return '';
-
-  const startDate = new Date(start);
-  const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-
-  if (!end) {
-    return startDate.toLocaleDateString('en-US', options);
-  }
-
-  const endDate = new Date(end);
-
-  // Same month and year
-  if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
-    return `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
-  }
-
-  return `${startDate.toLocaleDateString('en-US', { day: 'numeric', month: 'long' })} - ${endDate.toLocaleDateString('en-US', options)}`;
 }
