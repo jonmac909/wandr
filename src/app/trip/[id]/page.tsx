@@ -2090,28 +2090,42 @@ interface PipelineRowProps {
   onClick: () => void;
 }
 
+// Active state colors matching category colors
+const ACTIVE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
+  'Overview': { bg: 'bg-red-500 border-red-600', iconBg: 'bg-red-400/30', text: 'text-white' },
+  'Schedule': { bg: 'bg-red-500 border-red-600', iconBg: 'bg-red-400/30', text: 'text-white' },
+  'Transport': { bg: 'bg-blue-500 border-blue-600', iconBg: 'bg-blue-400/30', text: 'text-white' },
+  'Hotels': { bg: 'bg-purple-500 border-purple-600', iconBg: 'bg-purple-400/30', text: 'text-white' },
+  'Food': { bg: 'bg-orange-500 border-orange-600', iconBg: 'bg-orange-400/30', text: 'text-white' },
+  'Activities': { bg: 'bg-yellow-500 border-yellow-600', iconBg: 'bg-yellow-400/30', text: 'text-white' },
+  'Packing': { bg: 'bg-amber-500 border-amber-600', iconBg: 'bg-amber-400/30', text: 'text-white' },
+  'Docs': { bg: 'bg-lime-500 border-lime-600', iconBg: 'bg-lime-400/30', text: 'text-white' },
+  'Budget': { bg: 'bg-indigo-500 border-indigo-600', iconBg: 'bg-indigo-400/30', text: 'text-white' },
+};
+
 function PipelineRow({ icon, label, count, countLabel, active, onClick }: PipelineRowProps) {
   const colors = PIPELINE_COLORS[label] || { bg: 'bg-muted/50 border-transparent', iconBg: 'bg-muted text-muted-foreground', text: '' };
+  const activeColors = ACTIVE_COLORS[label] || { bg: 'bg-primary border-primary', iconBg: 'bg-primary-foreground/20', text: 'text-white' };
 
   return (
     <button
       onClick={onClick}
       className={`flex flex-col items-center justify-center p-3 rounded-xl transition-all aspect-square border ${
         active
-          ? 'bg-primary text-primary-foreground border-primary'
+          ? activeColors.bg
           : `${colors.bg} hover:opacity-80`
       }`}
     >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
         active
-          ? 'bg-primary-foreground/20'
+          ? activeColors.iconBg
           : colors.iconBg
       }`}>
         {icon}
       </div>
-      <span className={`text-xs font-medium text-center ${active ? '' : colors.text}`}>{label}</span>
+      <span className={`text-xs font-medium text-center ${active ? activeColors.text : colors.text}`}>{label}</span>
       {(count !== undefined || countLabel) && (
-        <p className={`text-[10px] text-center ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+        <p className={`text-[10px] text-center ${active ? 'text-white/70' : 'text-muted-foreground'}`}>
           {countLabel || count}
         </p>
       )}
