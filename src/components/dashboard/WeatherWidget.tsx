@@ -59,10 +59,10 @@ export function WeatherWidget({ location: propLocation }: WeatherWidgetProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-4">
+      <Card className="py-0">
+        <CardContent className="p-2">
           <div className="animate-pulse flex items-center gap-3">
-            <div className="w-12 h-12 bg-muted rounded-full" />
+            <div className="w-10 h-10 bg-muted rounded-full" />
             <div className="flex-1 space-y-2">
               <div className="h-4 bg-muted rounded w-24" />
               <div className="h-3 bg-muted rounded w-32" />
@@ -75,10 +75,10 @@ export function WeatherWidget({ location: propLocation }: WeatherWidgetProps) {
 
   if (error || !weather) {
     return (
-      <Card>
-        <CardContent className="p-4">
+      <Card className="py-0">
+        <CardContent className="p-2">
           <div className="flex items-center gap-3 text-muted-foreground">
-            <ThermometerSun className="w-8 h-8" />
+            <ThermometerSun className="w-6 h-6" />
             <div>
               <p className="text-sm font-medium">Weather unavailable</p>
               <p className="text-xs">{location}</p>
@@ -90,8 +90,8 @@ export function WeatherWidget({ location: propLocation }: WeatherWidgetProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="py-0">
+      <CardContent className="p-2">
         <div className="flex items-center justify-between">
           {/* Left side - Icon and temperature */}
           <div className="flex items-center gap-3">

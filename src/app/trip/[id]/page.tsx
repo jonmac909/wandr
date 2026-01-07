@@ -900,7 +900,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<Sparkles className="w-4 h-4" />}
                     label="Overview"
                     count={itinerary.days.length}
-                    status="complete"
                     active={contentFilter === 'overview'}
                     onClick={() => setContentFilter('overview')}
                   />
@@ -909,7 +908,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<Calendar className="w-4 h-4" />}
                     label="Schedule"
                     count={itinerary.days.length}
-                    status="complete"
                     active={contentFilter === 'schedule'}
                     onClick={() => setContentFilter('schedule')}
                   />
@@ -918,7 +916,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<Plane className="w-4 h-4" />}
                     label="Transport"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0)}
-                    status={itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) ? 'complete' : 'pending'}
                     active={contentFilter === 'transport'}
                     onClick={() => setContentFilter(contentFilter === 'transport' ? 'overview' : 'transport')}
                   />
@@ -927,8 +924,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<Hotel className="w-4 h-4" />}
                     label="Hotels"
                     count={itinerary.route.bases.filter(b => b.accommodation?.name).length}
-                    total={itinerary.route.bases.length}
-                    status={itinerary.route.bases.every(b => b.accommodation?.name) ? 'complete' : itinerary.route.bases.some(b => b.accommodation?.name) ? 'partial' : 'pending'}
                     active={contentFilter === 'hotels'}
                     onClick={() => setContentFilter(contentFilter === 'hotels' ? 'overview' : 'hotels')}
                   />
@@ -937,7 +932,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<UtensilsCrossed className="w-4 h-4" />}
                     label="Food"
                     count={itinerary.foodLayer?.length || 0}
-                    status={(itinerary.foodLayer?.length || 0) > 0 ? 'complete' : 'pending'}
                     active={contentFilter === 'restaurants'}
                     onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'overview' : 'restaurants')}
                   />
@@ -946,7 +940,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     icon={<Compass className="w-4 h-4" />}
                     label="Activities"
                     count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
-                    status={itinerary.days.some(d => d.blocks.some(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category))) ? 'complete' : 'pending'}
                     active={contentFilter === 'experiences'}
                     onClick={() => setContentFilter(contentFilter === 'experiences' ? 'overview' : 'experiences')}
                   />
@@ -954,7 +947,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<Package className="w-4 h-4" />}
                     label="Packing"
-                    status={!isPackingListEmpty(itinerary.packingLayer) ? 'complete' : 'pending'}
                     active={contentFilter === 'packing'}
                     onClick={() => setContentFilter(contentFilter === 'packing' ? 'overview' : 'packing')}
                   />
@@ -962,7 +954,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<FileText className="w-4 h-4" />}
                     label="Docs"
-                    status="pending"
                     active={contentFilter === 'docs'}
                     onClick={() => setContentFilter(contentFilter === 'docs' ? 'overview' : 'docs')}
                   />
@@ -970,7 +961,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<DollarSign className="w-4 h-4" />}
                     label="Budget"
-                    status="pending"
                     active={contentFilter === 'budget'}
                     onClick={() => setContentFilter(contentFilter === 'budget' ? 'overview' : 'budget')}
                   />
@@ -1648,13 +1638,11 @@ interface PipelineRowProps {
   icon: React.ReactNode;
   label: string;
   count?: number;
-  total?: number;
-  status: 'complete' | 'partial' | 'pending';
   active?: boolean;
   onClick: () => void;
 }
 
-function PipelineRow({ icon, label, count, total, status, active, onClick }: PipelineRowProps) {
+function PipelineRow({ icon, label, count, active, onClick }: PipelineRowProps) {
   const colors = PIPELINE_COLORS[label] || { bg: 'bg-muted/50 border-transparent', iconBg: 'bg-muted text-muted-foreground', text: '' };
 
   return (
@@ -1671,12 +1659,12 @@ function PipelineRow({ icon, label, count, total, status, active, onClick }: Pip
           ? 'bg-primary-foreground/20'
           : colors.iconBg
       }`}>
-        {status === 'complete' && !active ? <Check className="w-5 h-5" /> : icon}
+        {icon}
       </div>
       <span className={`text-xs font-medium text-center ${active ? '' : colors.text}`}>{label}</span>
       {count !== undefined && (
         <p className={`text-[10px] text-center ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-          {total ? `${count}/${total}` : `${count}`}
+          {count}
         </p>
       )}
     </button>
