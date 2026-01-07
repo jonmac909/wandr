@@ -438,17 +438,22 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
   const detectActualCategory = (): string | undefined => {
     if (!block.activity) return undefined;
     const cat = block.activity.category;
-    const name = block.activity.name.toLowerCase();
+    const name = block.activity.name;
+    const nameLower = name.toLowerCase();
 
     // If already correctly categorized as flight, keep it
     if (cat === 'flight') return 'flight';
 
-    // Detect flights from name patterns (e.g., "NRT → CNX", "Tokyo to Bangkok", "Flight to...")
+    // Detect flights from name patterns
     if (cat === 'transit') {
       const isLikelyFlight =
-        /\b(flight|fly|air|✈️)\b/i.test(name) ||
-        /[A-Z]{3}\s*[→–-]\s*[A-Z]{3}/.test(block.activity.name) || // Airport codes like NRT → CNX
-        /\bto\b.*\b(via|stop|layover|connecting)\b/i.test(name);
+        /\b(flight|fly|air|✈️|zipair|ana|jal|thai|emirates|qatar|singapore)\b/i.test(nameLower) ||
+        /[A-Z]{3}\s*[→–-]\s*[A-Z]{3}/.test(name) || // Pure airport codes: NRT → CNX
+        /[A-Z]{3}\s*→/.test(name) || // Starts with airport code: NRT →
+        /→\s*[A-Z]{3}/.test(name) || // Ends with airport code: → CNX
+        /\b[A-Z]{3}\b.*→.*\b[A-Z]{3}\b/.test(name) || // Has airport codes with arrow: "Tokyo NRT → Chiang Mai CNX"
+        /\(\d+\s*stops?\)|\(direct\)|\(nonstop\)/i.test(nameLower) || // Has (1 stop) or (direct)
+        /\bto\b.*\b(via|stop|layover|connecting)\b/i.test(nameLower);
       if (isLikelyFlight) return 'flight';
     }
 
