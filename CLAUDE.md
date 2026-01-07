@@ -80,8 +80,10 @@ TimeBlock { activity: Activity, priority, isLocked }
 - Be succinct - avoid verbose explanations
 - Work in small, verifiable steps
 - Always check TypeScript errors before committing: `npx tsc --noEmit`
-- Deploy: push to GitHub (Netlify auto-deploys). If deploy doesn't trigger, use empty commit: `git commit --allow-empty -m "chore: trigger deploy" && git push`
-- **Always push to live after completing tasks** unless explicitly told not to
+- **Live site: https://jjtraveler.com** - User tests here, NOT localhost
+- **ALWAYS push to live after completing tasks** - `git add -A && git commit -m "..." && git push`
+- Netlify auto-deploys from GitHub main branch (~1-2 min)
+- If deploy doesn't trigger: `git commit --allow-empty -m "chore: trigger deploy" && git push`
 
 ## Key Patterns
 
