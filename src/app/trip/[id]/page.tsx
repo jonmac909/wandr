@@ -43,8 +43,8 @@ const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Activities': { bg: 'bg-yellow-50 border-yellow-200', iconBg: 'bg-yellow-100 text-yellow-600', text: 'text-yellow-800' },
   'Packing': { bg: 'bg-amber-100 border-amber-300', iconBg: 'bg-amber-200 text-amber-700', text: 'text-amber-800' },
-  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
-  'Budget': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-700', text: 'text-amber-900' },
+  'Docs': { bg: 'bg-lime-50 border-lime-200', iconBg: 'bg-lime-100 text-lime-600', text: 'text-lime-800' },
+  'Budget': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
   'More': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
 };
 
@@ -1302,14 +1302,41 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         // Format the trip date range
                         const tripDateRange = `${formatDateString(firstDate)} – ${formatDateString(lastDate)}`;
 
+                        // Count flights
+                        const allFlights = itinerary.days.flatMap(d =>
+                          d.blocks.filter(b => b.activity?.category === 'flight')
+                        );
+                        const totalFlights = allFlights.length;
+
                         return (
                           <>
+                            {/* Stats Cards Grid */}
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                              <Card className="py-0">
+                                <CardContent className="p-3 text-center">
+                                  <p className="text-2xl font-bold text-primary">{totalDays}</p>
+                                  <p className="text-xs text-muted-foreground">days</p>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">{tripDateRange}</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="py-0">
+                                <CardContent className="p-3 text-center">
+                                  <p className="text-2xl font-bold text-primary">{uniqueCountries}</p>
+                                  <p className="text-xs text-muted-foreground">{uniqueCountries === 1 ? 'country' : 'countries'}</p>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">{uniqueCities} {uniqueCities === 1 ? 'city' : 'cities'}</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="py-0">
+                                <CardContent className="p-3 text-center">
+                                  <p className="text-2xl font-bold text-primary">{totalFlights}</p>
+                                  <p className="text-xs text-muted-foreground">{totalFlights === 1 ? 'flight' : 'flights'}</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {/* Destinations Card */}
                             <Card className="py-0">
                               <CardContent className="p-2">
-                                {/* Trip summary header */}
-                                <div className="text-sm text-muted-foreground mb-3 pb-2 border-b">
-                                  {totalDays} days • {tripDateRange} • {uniqueCountries} {uniqueCountries === 1 ? 'country' : 'countries'} • {uniqueCities} {uniqueCities === 1 ? 'city' : 'cities'}
-                                </div>
                                 <div className="space-y-2">
                                   {groups.map((group, index) => {
                                     // Get days within this group's date range
