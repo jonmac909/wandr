@@ -15,65 +15,108 @@ interface FeaturedTripCardProps {
   onTripUpdate?: (trip: StoredTrip) => void;
 }
 
-// Country flag mapping
-const COUNTRY_FLAGS: Record<string, string> = {
-  'thailand': '🇹🇭',
-  'japan': '🇯🇵',
-  'vietnam': '🇻🇳',
-  'korea': '🇰🇷',
-  'south korea': '🇰🇷',
-  'singapore': '🇸🇬',
-  'malaysia': '🇲🇾',
-  'indonesia': '🇮🇩',
-  'bali': '🇮🇩',
-  'philippines': '🇵🇭',
-  'taiwan': '🇹🇼',
-  'china': '🇨🇳',
-  'hong kong': '🇭🇰',
-  'india': '🇮🇳',
-  'cambodia': '🇰🇭',
-  'laos': '🇱🇦',
-  'myanmar': '🇲🇲',
-  'nepal': '🇳🇵',
-  'sri lanka': '🇱🇰',
-  'maldives': '🇲🇻',
-  'usa': '🇺🇸',
-  'united states': '🇺🇸',
-  'hawaii': '🇺🇸',
-  'canada': '🇨🇦',
-  'mexico': '🇲🇽',
-  'uk': '🇬🇧',
-  'united kingdom': '🇬🇧',
-  'england': '🇬🇧',
-  'france': '🇫🇷',
-  'italy': '🇮🇹',
-  'spain': '🇪🇸',
-  'germany': '🇩🇪',
-  'netherlands': '🇳🇱',
-  'portugal': '🇵🇹',
-  'greece': '🇬🇷',
-  'australia': '🇦🇺',
-  'new zealand': '🇳🇿',
-  'uae': '🇦🇪',
-  'dubai': '🇦🇪',
+// City to country mapping for flag lookup
+const CITY_TO_COUNTRY: Record<string, { country: string; flag: string }> = {
+  // Japan
+  'tokyo': { country: 'Japan', flag: '🇯🇵' },
+  'narita': { country: 'Japan', flag: '🇯🇵' },
+  'osaka': { country: 'Japan', flag: '🇯🇵' },
+  'kyoto': { country: 'Japan', flag: '🇯🇵' },
+  'onsen': { country: 'Japan', flag: '🇯🇵' },
+  'hakone': { country: 'Japan', flag: '🇯🇵' },
+  'nara': { country: 'Japan', flag: '🇯🇵' },
+  'hiroshima': { country: 'Japan', flag: '🇯🇵' },
+  'fukuoka': { country: 'Japan', flag: '🇯🇵' },
+  'sapporo': { country: 'Japan', flag: '🇯🇵' },
+  // Thailand
+  'bangkok': { country: 'Thailand', flag: '🇹🇭' },
+  'chiang mai': { country: 'Thailand', flag: '🇹🇭' },
+  'phuket': { country: 'Thailand', flag: '🇹🇭' },
+  'krabi': { country: 'Thailand', flag: '🇹🇭' },
+  'koh samui': { country: 'Thailand', flag: '🇹🇭' },
+  'koh phangan': { country: 'Thailand', flag: '🇹🇭' },
+  'koh tao': { country: 'Thailand', flag: '🇹🇭' },
+  'phi phi': { country: 'Thailand', flag: '🇹🇭' },
+  'pattaya': { country: 'Thailand', flag: '🇹🇭' },
+  'ayutthaya': { country: 'Thailand', flag: '🇹🇭' },
+  // Vietnam
+  'hanoi': { country: 'Vietnam', flag: '🇻🇳' },
+  'ho chi minh': { country: 'Vietnam', flag: '🇻🇳' },
+  'saigon': { country: 'Vietnam', flag: '🇻🇳' },
+  'da nang': { country: 'Vietnam', flag: '🇻🇳' },
+  'hoi an': { country: 'Vietnam', flag: '🇻🇳' },
+  'nha trang': { country: 'Vietnam', flag: '🇻🇳' },
+  'hue': { country: 'Vietnam', flag: '🇻🇳' },
+  'ha long': { country: 'Vietnam', flag: '🇻🇳' },
+  'sapa': { country: 'Vietnam', flag: '🇻🇳' },
+  // USA / Hawaii
+  'honolulu': { country: 'Hawaii', flag: '🇺🇸' },
+  'hawaii': { country: 'Hawaii', flag: '🇺🇸' },
+  'oahu': { country: 'Hawaii', flag: '🇺🇸' },
+  'maui': { country: 'Hawaii', flag: '🇺🇸' },
+  'waikiki': { country: 'Hawaii', flag: '🇺🇸' },
+  'kona': { country: 'Hawaii', flag: '🇺🇸' },
+  'new york': { country: 'USA', flag: '🇺🇸' },
+  'los angeles': { country: 'USA', flag: '🇺🇸' },
+  'san francisco': { country: 'USA', flag: '🇺🇸' },
+  'las vegas': { country: 'USA', flag: '🇺🇸' },
+  // Other SE Asia
+  'singapore': { country: 'Singapore', flag: '🇸🇬' },
+  'bali': { country: 'Indonesia', flag: '🇮🇩' },
+  'ubud': { country: 'Indonesia', flag: '🇮🇩' },
+  'jakarta': { country: 'Indonesia', flag: '🇮🇩' },
+  'kuala lumpur': { country: 'Malaysia', flag: '🇲🇾' },
+  'penang': { country: 'Malaysia', flag: '🇲🇾' },
+  'langkawi': { country: 'Malaysia', flag: '🇲🇾' },
+  'manila': { country: 'Philippines', flag: '🇵🇭' },
+  'cebu': { country: 'Philippines', flag: '🇵🇭' },
+  'boracay': { country: 'Philippines', flag: '🇵🇭' },
+  'taipei': { country: 'Taiwan', flag: '🇹🇼' },
+  'hong kong': { country: 'Hong Kong', flag: '🇭🇰' },
+  'seoul': { country: 'South Korea', flag: '🇰🇷' },
+  'busan': { country: 'South Korea', flag: '🇰🇷' },
+  'siem reap': { country: 'Cambodia', flag: '🇰🇭' },
+  'phnom penh': { country: 'Cambodia', flag: '🇰🇭' },
+  'luang prabang': { country: 'Laos', flag: '🇱🇦' },
+  'vientiane': { country: 'Laos', flag: '🇱🇦' },
+  // Europe
+  'london': { country: 'UK', flag: '🇬🇧' },
+  'paris': { country: 'France', flag: '🇫🇷' },
+  'rome': { country: 'Italy', flag: '🇮🇹' },
+  'barcelona': { country: 'Spain', flag: '🇪🇸' },
+  'amsterdam': { country: 'Netherlands', flag: '🇳🇱' },
+  'berlin': { country: 'Germany', flag: '🇩🇪' },
+  'lisbon': { country: 'Portugal', flag: '🇵🇹' },
+  'athens': { country: 'Greece', flag: '🇬🇷' },
+  // Canada
+  'vancouver': { country: 'Canada', flag: '🇨🇦' },
+  'toronto': { country: 'Canada', flag: '🇨🇦' },
+  'kelowna': { country: 'Canada', flag: '🇨🇦' },
+  // Australia/NZ
+  'sydney': { country: 'Australia', flag: '🇦🇺' },
+  'melbourne': { country: 'Australia', flag: '🇦🇺' },
+  'auckland': { country: 'New Zealand', flag: '🇳🇿' },
+  // Other
+  'dubai': { country: 'UAE', flag: '🇦🇪' },
+  'mumbai': { country: 'India', flag: '🇮🇳' },
+  'delhi': { country: 'India', flag: '🇮🇳' },
+  'maldives': { country: 'Maldives', flag: '🇲🇻' },
+  'male': { country: 'Maldives', flag: '🇲🇻' },
 };
 
-function getFlagForLocation(location: string): string {
-  const lower = location.toLowerCase();
-  for (const [country, flag] of Object.entries(COUNTRY_FLAGS)) {
-    if (lower.includes(country)) return flag;
-  }
-  return '🌍';
-}
+function getFlagAndCountry(location: string): { country: string; flag: string } {
+  const lower = location.toLowerCase().trim();
 
-function getCountryFromLocation(location: string): string {
-  const lower = location.toLowerCase();
-  for (const country of Object.keys(COUNTRY_FLAGS)) {
-    if (lower.includes(country)) {
-      return country.charAt(0).toUpperCase() + country.slice(1);
+  // Check exact city match first
+  for (const [city, data] of Object.entries(CITY_TO_COUNTRY)) {
+    if (lower.includes(city)) {
+      return data;
     }
   }
-  return location.split(',').pop()?.trim() || location;
+
+  // Fallback - try to extract from location string
+  const cityName = location.split(',')[0].trim();
+  return { country: cityName, flag: '🌍' };
 }
 
 export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) {
@@ -94,12 +137,11 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
       if (b.location) allLocations.add(b.location.split(',')[0].trim());
     });
 
-    // Get countries from bases
+    // Get countries from bases using city-to-country lookup
     const countries = new Map<string, string>();
     bases.forEach(b => {
       if (b.location) {
-        const country = getCountryFromLocation(b.location);
-        const flag = getFlagForLocation(b.location);
+        const { country, flag } = getFlagAndCountry(b.location);
         if (!countries.has(country)) {
           countries.set(country, flag);
         }
@@ -212,15 +254,15 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
   return (
     <Link href={`/trip/${trip.id}`} className="block group">
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md">
-        {/* Hero image with gradient overlay */}
-        <div className="relative h-48 overflow-hidden">
+        {/* Hero image with gradient overlay - rounded square */}
+        <div className="relative aspect-square max-h-48 overflow-hidden rounded-xl m-3 mb-0">
           <img
             src={imageUrl}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-xl"
           />
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-xl" />
 
           {/* Upload button */}
           <button
