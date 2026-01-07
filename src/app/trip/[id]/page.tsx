@@ -572,13 +572,34 @@ export default function TripPage() {
     return `${y}-${m}-${d}`;
   };
 
+  // Normalize location names - merge equivalent places and convert airport codes
+  const normalizeLocation = (location: string): string => {
+    if (!location) return '';
+    const trimmed = location.trim();
+    const lower = trimmed.toLowerCase();
+
+    // Airport code conversions
+    if (trimmed.toUpperCase() === 'YLW') return 'Kelowna';
+    if (trimmed.toUpperCase() === 'HNL') return 'Honolulu';
+    if (trimmed.toUpperCase() === 'OGG') return 'Maui';
+
+    // Merge equivalent locations (Oahu = Honolulu, they're the same place)
+    if (lower === 'oahu' || lower.includes('oahu')) return 'Honolulu';
+    if (lower === 'waikiki' || lower.includes('waikiki')) return 'Honolulu';
+
+    // Use airportToCity for any remaining codes
+    const converted = airportToCity(trimmed);
+    return converted;
+  };
+
   // Get the BASE CITY for a day - analyze the schedule to find where you SLEEP that night
+  // Always normalizes the result (converts airport codes, merges Oahu/Honolulu, etc.)
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
 
     // 0. Check if user manually edited this location
     if ((day as DayPlan & { customLocation?: string }).customLocation) {
-      return (day as DayPlan & { customLocation?: string }).customLocation!;
+      return normalizeLocation((day as DayPlan & { customLocation?: string }).customLocation!);
     }
 
     // 1. First check for accommodation activity - that's where you sleep
@@ -587,7 +608,7 @@ export default function TripPage() {
       b.activity?.category === 'checkin'
     );
     if (accommodationBlock?.activity?.location?.name) {
-      return accommodationBlock.activity.location.name;
+      return normalizeLocation(accommodationBlock.activity.location.name);
     }
 
     // 2. Check for flight - use the DESTINATION (where you arrive/sleep that day)
@@ -603,42 +624,44 @@ export default function TripPage() {
         'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
         'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
         'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
+        'YLW': 'Kelowna', 'YYC': 'Calgary', 'YEG': 'Edmonton',
         'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'JFK': 'New York',
         'LHR': 'London', 'CDG': 'Paris', 'FCO': 'Rome',
         'DAN': 'Da Nang', 'DAD': 'Da Nang', 'SGN': 'Ho Chi Minh',
         'HAN': 'Hanoi', 'REP': 'Siem Reap', 'KUL': 'Kuala Lumpur',
+        'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
       };
 
       // Try to find airport codes like "YVR-NRT" or "BKK-CNX" anywhere in the string
       const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
       if (codeMatch) {
-        return airportToCityMap[codeMatch[2]] || codeMatch[2];
+        return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
       }
 
       // Try to parse destination from flight name formats:
       // "Bangkok → Chiang Mai" or "City A - City B" (but not times like 9:50am-1:00pm)
       const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
       if (cityMatch && !cityMatch[2].match(/\d/)) {
-        return cityMatch[2].trim();
+        return normalizeLocation(cityMatch[2].trim());
       }
 
       // Fallback to location if can't parse
       if (lastFlight?.activity?.location?.name) {
-        return lastFlight.activity.location.name;
+        return normalizeLocation(lastFlight.activity.location.name);
       }
     }
 
     // 3. Check any activity's location - they should all be in same city for that day
     for (const block of day.blocks) {
       if (block.activity?.location?.name) {
-        return block.activity.location.name;
+        return normalizeLocation(block.activity.location.name);
       }
     }
 
     // 4. Fallback to base data if no activities have location
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date < base.checkOut) {
-        return base.location;
+        return normalizeLocation(base.location);
       }
     }
 

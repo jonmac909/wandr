@@ -100,6 +100,12 @@ The `getCityForDay()` function in trip page determines where user sleeps each ni
 4. Any activity location
 5. Base data fallback
 
+**IMPORTANT Location Rules:**
+- **NEVER display airport codes** (YLW, HNL, etc.) - always convert to city names (Kelowna, Honolulu)
+- **Merge equivalent locations**: Oahu = Honolulu = Waikiki (they're the same place)
+- The `normalizeLocation()` function handles these conversions
+- Airport code mappings are in `AIRPORT_TO_CITY` constant and `airportToCityMap` inside `getCityForDay()`
+
 ### Content Filtering
 Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels'|'experiences'|'packing'|'docs'|'budget'`
 
