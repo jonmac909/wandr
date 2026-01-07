@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary, DayPlan, FoodRecommendation } from '@/types/itinerary';
@@ -22,7 +22,7 @@ import {
   Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus
 } from 'lucide-react';
 import Link from 'next/link';
-import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
+import { tripDb } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -66,21 +66,12 @@ export default function TripPage() {
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
   const [expandedOverviewIndex, setExpandedOverviewIndex] = useState<number | null>(null);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Get all trips for the drawer
   const { trips } = useDashboardData();
 
-  // Scroll to day when calendar date is clicked
-  const scrollToDay = useCallback((dateStr: string) => {
-    setSelectedCalendarDate(dateStr);
-    const dayElement = dayRefs.current[dateStr];
-    if (dayElement && scheduleContainerRef.current) {
-      dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
 
   // Drag and drop state
   const [dragState, setDragState] = useState<{
@@ -973,7 +964,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
-
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
                   {/* Overview - Trip Summary */}
@@ -1320,33 +1310,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Create a StoredTrip for MonthCalendar
-                        const currentTripForCalendar: StoredTrip = {
-                          id: tripId,
-                          tripDna: tripDna!,
-                          itinerary: itinerary,
-                          createdAt: itinerary.createdAt,
-                          updatedAt: itinerary.updatedAt,
-                          syncedAt: new Date(),
-                          status: 'active',
-                        };
-
                         return (
                           <>
-                            {/* Calendar Card - Compact on mobile with activity dots */}
-                            <div className="flex-shrink-0 mb-2">
-                              <MonthCalendar
-                                trips={[currentTripForCalendar]}
-                                compact
-                                itinerary={itinerary}
-                                contentFilter={contentFilter}
-                                onDateClick={(date) => {
-                                  const dateStr = date.toISOString().split('T')[0];
-                                  scrollToDay(dateStr);
-                                }}
-                              />
-                            </div>
-
                             {/* Day list */}
                             <div ref={scheduleContainerRef} className="flex-1 overflow-auto space-y-2 pr-1">
                               {allDays.map((day) => {
