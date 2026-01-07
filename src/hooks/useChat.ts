@@ -85,6 +85,7 @@ export function useChat({
         let assistantContent = '';
         const toolCalls: ToolCall[] = [];
         let currentToolCall: Partial<ToolCall> | null = null;
+        let currentToolInputJson = '';
 
         const decoder = new TextDecoder();
         let buffer = '';
@@ -130,25 +131,35 @@ export function useChat({
                 );
               }
 
-              // Handle tool use
+              // Handle tool use start
               if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
                 currentToolCall = {
                   id: event.content_block.id,
                   name: event.content_block.name,
                   input: {},
                 };
+                currentToolInputJson = '';
               }
 
+              // Accumulate tool input JSON chunks
               if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
-                // Accumulate tool input JSON
-                if (currentToolCall) {
-                  // This is simplified - in practice you'd need to parse the partial JSON
+                if (currentToolCall && event.delta.partial_json) {
+                  currentToolInputJson += event.delta.partial_json;
                 }
               }
 
+              // Tool block complete - parse accumulated JSON
               if (event.type === 'content_block_stop' && currentToolCall) {
+                try {
+                  if (currentToolInputJson) {
+                    currentToolCall.input = JSON.parse(currentToolInputJson);
+                  }
+                } catch {
+                  console.error('Failed to parse tool input JSON:', currentToolInputJson);
+                }
                 toolCalls.push(currentToolCall as ToolCall);
                 currentToolCall = null;
+                currentToolInputJson = '';
               }
             } catch {
               // Ignore JSON parse errors from partial data
@@ -165,8 +176,10 @@ export function useChat({
           )
         );
 
-        // Execute tool calls if any
+        // Execute tool calls if any and get continuation from Claude
         if (toolCalls.length > 0) {
+          const toolResults: Array<{ toolCallId: string; result: unknown }> = [];
+
           for (const toolCall of toolCalls) {
             const result = await executeToolCall(
               toolCall.name as ToolName,
@@ -174,10 +187,79 @@ export function useChat({
               { itinerary: currentItinerary.current, tripId }
             );
 
+            toolResults.push({
+              toolCallId: toolCall.id,
+              result: result.result,
+            });
+
             // Update itinerary if modified
             if (result.updatedItinerary) {
               currentItinerary.current = result.updatedItinerary;
               onItineraryUpdate?.(result.updatedItinerary);
+            }
+          }
+
+          // Send tool results back to Claude for continuation
+          const continuationResponse = await fetch('/api/chat', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [
+                ...apiMessages,
+                {
+                  role: 'assistant',
+                  content: [
+                    ...(assistantContent ? [{ type: 'text', text: assistantContent }] : []),
+                    ...toolCalls.map((tc) => ({
+                      type: 'tool_use',
+                      id: tc.id,
+                      name: tc.name,
+                      input: tc.input,
+                    })),
+                  ],
+                },
+              ],
+              toolResults,
+              itinerary: currentItinerary.current,
+            }),
+          });
+
+          if (continuationResponse.ok) {
+            const contReader = continuationResponse.body?.getReader();
+            if (contReader) {
+              let contBuffer = '';
+              let contContent = '';
+
+              while (true) {
+                const { done, value } = await contReader.read();
+                if (done) break;
+
+                contBuffer += decoder.decode(value, { stream: true });
+                const contLines = contBuffer.split('\n');
+                contBuffer = contLines.pop() || '';
+
+                for (const line of contLines) {
+                  if (!line.startsWith('data: ')) continue;
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
+
+                  try {
+                    const event = JSON.parse(data);
+                    if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+                      contContent += event.delta.text || '';
+                      setMessages((prev) =>
+                        prev.map((m) =>
+                          m.id === assistantMessageId
+                            ? { ...m, content: assistantContent + '\n\n' + contContent }
+                            : m
+                        )
+                      );
+                    }
+                  } catch {
+                    // Ignore parse errors
+                  }
+                }
+              }
             }
           }
         }
