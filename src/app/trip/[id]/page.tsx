@@ -1174,37 +1174,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               </Button>
                             </div>
                           </div>
-                        ) : (
-                          <>
-                            {/* Trip dates and edit button - title/destination in persistent header above */}
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                {(() => {
-                                  const startDate = itinerary.meta.startDate || itinerary.days[0]?.date;
-                                  const endDate = itinerary.meta.endDate || itinerary.days[itinerary.days.length - 1]?.date;
-                                  if (!startDate) return '';
-                                  const [y1, m1, d1] = startDate.split('-').map(Number);
-                                  const start = new Date(y1, m1 - 1, d1);
-                                  const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                  if (!endDate || startDate === endDate) return startStr;
-                                  const [y2, m2, d2] = endDate.split('-').map(Number);
-                                  const end = new Date(y2, m2 - 1, d2);
-                                  const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                  return `${startStr} - ${endStr}`;
-                                })()}
-                              </span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={startEditing}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Quick Glance Schedule - grouped by location from full date range */}
