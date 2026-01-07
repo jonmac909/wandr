@@ -478,7 +478,26 @@ export default function TripPage() {
     return `${weekday}, ${monthName} ${day}`;
   };
 
-  // Calculate checkout date from checkin + nights (fixes bad checkOut data)
+  // Calculate actual nights from consecutive base check-ins (base.nights data may be wrong)
+  const getActualNights = (baseIndex: number): number => {
+    if (!itinerary?.route?.bases) return 1;
+    const bases = itinerary.route.bases;
+    const base = bases[baseIndex];
+    const nextBase = bases[baseIndex + 1];
+
+    if (nextBase?.checkIn && base?.checkIn) {
+      const [y1, m1, d1] = base.checkIn.split('-').map(Number);
+      const [y2, m2, d2] = nextBase.checkIn.split('-').map(Number);
+      const checkInDate = new Date(y1, m1 - 1, d1);
+      const nextCheckInDate = new Date(y2, m2 - 1, d2);
+      const diffDays = Math.round((nextCheckInDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) return diffDays;
+    }
+
+    return base?.nights || 1;
+  };
+
+  // Calculate checkout date from checkin + nights
   const getCheckOutDate = (checkIn: string, nights: number): string => {
     const [year, month, day] = checkIn.split('-').map(Number);
     const date = new Date(year, month - 1, day);
@@ -1491,7 +1510,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Filtered View - Hotels */}
                   {contentFilter === 'hotels' && (
                     <div className="space-y-2 pr-1">
-                      {itinerary.route.bases.map(base => (
+                      {itinerary.route.bases.map((base, index) => {
+                        const nights = getActualNights(index);
+                        return (
                         <Card key={base.id} data-date={base.checkIn}>
                           <CardContent className="p-3">
                             <div className="flex items-start gap-3">
@@ -1502,14 +1523,15 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <h4 className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</h4>
                                 <p className="text-xs text-muted-foreground truncate">{base.location}</p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, base.nights))}
-                                  {' • '}{base.nights} night{base.nights > 1 ? 's' : ''}
+                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
+                                  {' • '}{nights} night{nights > 1 ? 's' : ''}
                                 </p>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
