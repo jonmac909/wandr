@@ -1055,14 +1055,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     active={contentFilter === 'hotels'}
                     onClick={() => setContentFilter(contentFilter === 'hotels' ? 'overview' : 'hotels')}
                   />
-                  {/* Activities */}
-                  <PipelineRow
-                    icon={<Compass className="w-4 h-4" />}
-                    label="Activities"
-                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
-                    active={contentFilter === 'experiences'}
-                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'overview' : 'experiences')}
-                  />
                   {/* Food */}
                   <PipelineRow
                     icon={<UtensilsCrossed className="w-4 h-4" />}
@@ -1070,6 +1062,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     count={itinerary.foodLayer?.length || 0}
                     active={contentFilter === 'restaurants'}
                     onClick={() => setContentFilter(contentFilter === 'restaurants' ? 'overview' : 'restaurants')}
+                  />
+                  {/* Activities */}
+                  <PipelineRow
+                    icon={<Compass className="w-4 h-4" />}
+                    label="Activities"
+                    count={itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category)).length, 0)}
+                    active={contentFilter === 'experiences'}
+                    onClick={() => setContentFilter(contentFilter === 'experiences' ? 'overview' : 'experiences')}
                   />
                   {/* Packing */}
                   <PipelineRow
