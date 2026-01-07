@@ -1,12 +1,12 @@
-// Streaming chat API route for Claude chatbot with OAuth
+// Streaming chat API route for Claude chatbot
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildChatSystemPrompt } from '@/lib/ai/chat-prompts';
 import { getToolsForAPI } from '@/lib/ai/chat-tools';
 import type { Itinerary } from '@/types/itinerary';
 
-// OAuth token from environment variable
-const CLAUDE_TOKEN = process.env.CLAUDE_OAUTH_TOKEN || '';
+// API key from environment variable (standard Anthropic API key, not OAuth)
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 interface ChatRequestBody {
   messages: Array<{
@@ -21,14 +21,11 @@ interface ChatRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequestBody = await request.json();
-    const { messages, itinerary, oauthToken } = body;
+    const { messages, itinerary } = body;
 
-    // Use hardcoded token or fallback to provided token
-    const token = CLAUDE_TOKEN || oauthToken;
-
-    if (!token) {
+    if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'No API token available.' },
+        { error: 'Anthropic API key not configured on server.' },
         { status: 401 }
       );
     }
@@ -39,14 +36,13 @@ export async function POST(request: NextRequest) {
     // Get tool definitions
     const tools = getToolsForAPI();
 
-    // Make streaming request to Claude API with OAuth
+    // Make streaming request to Claude API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'oauth-2025-04-20',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5-20251101',
@@ -77,11 +73,11 @@ export async function POST(request: NextRequest) {
         // Keep default message
       }
 
-      // Check for specific OAuth errors
+      // Check for specific API errors
       if (response.status === 401) {
-        errorMessage = 'Invalid OAuth token. Please update your Claude API token in Settings.';
+        errorMessage = 'Invalid API key. Please check server configuration.';
       } else if (response.status === 403) {
-        errorMessage = 'OAuth token not authorized for API access. Make sure you have a Claude Pro/Max subscription.';
+        errorMessage = 'API key not authorized. Please check permissions.';
       }
 
       return NextResponse.json({ error: errorMessage }, { status: response.status });
@@ -108,14 +104,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { messages, toolResults, itinerary, oauthToken } = body;
+    const { messages, toolResults, itinerary } = body;
 
-    // Use hardcoded token or fallback to provided token
-    const token = CLAUDE_TOKEN || oauthToken;
-
-    if (!token) {
+    if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'No API token available.' },
+        { error: 'Anthropic API key not configured on server.' },
         { status: 401 }
       );
     }
@@ -140,9 +133,8 @@ export async function PUT(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'oauth-2025-04-20',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-5-20251101',
