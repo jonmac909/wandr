@@ -1310,8 +1310,36 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
+                        // Create a StoredTrip for MonthCalendar
+                        const currentTripForCalendar = {
+                          id: tripId,
+                          tripDna: tripDna!,
+                          itinerary: itinerary,
+                          createdAt: itinerary.createdAt,
+                          updatedAt: itinerary.updatedAt,
+                          syncedAt: new Date(),
+                          status: 'active' as const,
+                        };
+
                         return (
                           <>
+                            {/* Calendar Card - Compact with activity dots */}
+                            <div className="flex-shrink-0 mb-2">
+                              <MonthCalendar
+                                trips={[currentTripForCalendar]}
+                                compact
+                                itinerary={itinerary}
+                                contentFilter={contentFilter}
+                                onDateClick={(date) => {
+                                  const dateStr = date.toISOString().split('T')[0];
+                                  const dayElement = dayRefs.current[dateStr];
+                                  if (dayElement) {
+                                    dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  }
+                                }}
+                              />
+                            </div>
+
                             {/* Day list */}
                             <div ref={scheduleContainerRef} className="flex-1 overflow-auto space-y-2 pr-1">
                               {allDays.map((day) => {
