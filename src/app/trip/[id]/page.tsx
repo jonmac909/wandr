@@ -510,12 +510,30 @@ export default function TripPage() {
     if (flightBlocks.length > 0) {
       // Get the last flight's destination (where you end up)
       const lastFlight = flightBlocks[flightBlocks.length - 1];
-      // Parse destination from flight name (e.g., "Bangkok → Chiang Mai" or "BKK-CNX")
       const flightName = lastFlight?.activity?.name || '';
-      const destMatch = flightName.match(/[→\-–>]\s*(.+)$/);
-      if (destMatch) {
-        return destMatch[1].trim();
+
+      // Try to parse destination from flight name formats:
+      // "Bangkok → Chiang Mai" or "City A - City B"
+      const cityMatch = flightName.match(/([A-Za-z\s]+)\s*[→–]\s*([A-Za-z\s]+)/);
+      if (cityMatch) {
+        return cityMatch[2].trim();
       }
+
+      // "YVR-NRT" or "BKK-CNX" (airport codes) - get second code
+      const codeMatch = flightName.match(/\b([A-Z]{3})\s*[-–→]\s*([A-Z]{3})\b/);
+      if (codeMatch) {
+        // Map common airport codes to city names
+        const airportToCityMap: Record<string, string> = {
+          'NRT': 'Tokyo Narita', 'HND': 'Tokyo Haneda', 'KIX': 'Osaka',
+          'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
+          'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
+          'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
+          'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'JFK': 'New York',
+          'LHR': 'London', 'CDG': 'Paris', 'FCO': 'Rome',
+        };
+        return airportToCityMap[codeMatch[2]] || codeMatch[2];
+      }
+
       // Fallback to location if can't parse
       if (lastFlight?.activity?.location?.name) {
         return lastFlight.activity.location.name;
