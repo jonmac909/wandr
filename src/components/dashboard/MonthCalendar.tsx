@@ -176,39 +176,39 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
   return (
     <Card className="py-0">
       <CardContent className={compact ? "p-1.5" : "p-2"}>
-        {/* Header */}
-        <div className={cn("flex items-center justify-between", compact ? "mb-2" : "mb-4")}>
-          <h3 className={cn("text-left", compact ? "font-medium text-sm" : "font-semibold")}>
+        {/* Header - aligned with grid */}
+        <div className={cn("flex items-center justify-between", compact ? "mb-1.5" : "mb-3")}>
+          <h3 className={cn("font-medium", compact ? "text-xs" : "text-sm")}>
             {MONTHS[currentMonth]} {currentYear}
           </h3>
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             <Button
               variant="ghost"
               size="icon"
-              className={compact ? "h-6 w-6" : "h-7 w-7"}
+              className={compact ? "h-5 w-5" : "h-6 w-6"}
               onClick={goToPreviousMonth}
             >
-              <ChevronLeft className={compact ? "h-3 w-3" : "h-4 w-4"} />
+              <ChevronLeft className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className={compact ? "h-6 w-6" : "h-7 w-7"}
+              className={compact ? "h-5 w-5" : "h-6 w-6"}
               onClick={goToNextMonth}
             >
-              <ChevronRight className={compact ? "h-3 w-3" : "h-4 w-4"} />
+              <ChevronRight className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
             </Button>
           </div>
         </div>
 
-        {/* Day headers */}
-        <div className={cn("grid grid-cols-7 gap-1", compact ? "mb-1" : "mb-2")}>
+        {/* Day headers - consistent font size with month title */}
+        <div className={cn("grid grid-cols-7 gap-1", compact ? "mb-1" : "mb-1.5")}>
           {DAYS.map((day, i) => (
             <div
               key={day}
               className={cn(
                 "text-center font-medium",
-                compact ? "text-[10px] py-0.5" : "text-xs py-1",
+                compact ? "text-[9px] py-0.5" : "text-[11px] py-0.5",
                 (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
               )}
             >
