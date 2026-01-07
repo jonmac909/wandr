@@ -1871,24 +1871,24 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   return (
                                     <div
                                       key={block.id}
-                                      className="p-3 rounded-lg border bg-yellow-100 text-yellow-800 border-yellow-200"
+                                      className="p-2 rounded-lg border bg-yellow-100 text-yellow-800 border-yellow-200"
                                     >
-                                      {/* Line 1: icon + name + duration */}
-                                      <div className="flex items-center gap-1.5">
+                                      {/* Line 1: icon + name + duration - matching DayCard */}
+                                      <div className="flex items-center gap-1">
                                         <span className="opacity-60 flex-shrink-0">
                                           <Compass className="w-3.5 h-3.5" />
                                         </span>
-                                        <span className="font-medium">{activity.name}</span>
+                                        <span className="font-medium text-sm">{activity.name}</span>
                                         {activity.duration && (
-                                          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+                                          <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
                                             {activity.duration >= 60
                                               ? `${Math.floor(activity.duration / 60)}h${activity.duration % 60 > 0 ? ` ${activity.duration % 60}m` : ''}`
                                               : `${activity.duration}m`}
                                           </span>
                                         )}
                                       </div>
-                                      {/* Line 2: location, cost, book, status */}
-                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70 mt-1">
+                                      {/* Line 2: location, cost, book, status - matching DayCard */}
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
                                         {activity.location?.name && (
                                           <span className="flex items-center gap-1">
                                             <MapPin className="w-3 h-3" />
