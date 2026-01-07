@@ -718,12 +718,17 @@ function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDet
   const categoryIcon = CATEGORY_ICONS[activity.category] || <Compass className="w-3.5 h-3.5" />;
   const isAccommodation = ['accommodation', 'hotel', 'checkin'].includes(activity.category);
 
+  // Strip "(X nights)" from hotel names since we show it separately on the right
+  const displayName = isAccommodation
+    ? activity.name.replace(/\s*\(\d+\s*nights?\)\s*/gi, '').trim()
+    : activity.name;
+
   return (
     <div>
       {/* Compact header: icon + name + time on same line */}
       <div className="flex items-center gap-1">
         <span className="opacity-60 flex-shrink-0">{categoryIcon}</span>
-        <span className="font-medium text-sm">{activity.name}</span>
+        <span className="font-medium text-sm">{displayName}</span>
         {/* Show nights for hotels, duration for everything else */}
         {isAccommodation && hotelNights ? (
           <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
