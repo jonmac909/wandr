@@ -478,6 +478,17 @@ export default function TripPage() {
     return `${weekday}, ${monthName} ${day}`;
   };
 
+  // Calculate checkout date from checkin + nights (fixes bad checkOut data)
+  const getCheckOutDate = (checkIn: string, nights: number): string => {
+    const [year, month, day] = checkIn.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + nights);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // Get the BASE CITY for a day - analyze the schedule to find where you SLEEP that night
   const getCityForDay = (day: DayPlan): string => {
     if (!itinerary) return '';
@@ -1490,7 +1501,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <h4 className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</h4>
                                 <p className="text-xs text-muted-foreground truncate">{base.location}</p>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(base.checkOut)}
+                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, base.nights))}
                                   {' • '}{base.nights} night{base.nights > 1 ? 's' : ''}
                                 </p>
                               </div>
