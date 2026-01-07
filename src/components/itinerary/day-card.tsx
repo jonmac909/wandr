@@ -139,7 +139,10 @@ export function DayCard({
   const [editingTheme, setEditingTheme] = useState(false);
   const [themeValue, setThemeValue] = useState(day.theme || '');
 
-  const formattedDate = new Date(day.date).toLocaleDateString('en-US', {
+  // Parse date safely to avoid timezone issues (don't use new Date(string))
+  const [year, month, dayNum] = day.date.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, dayNum);
+  const formattedDate = dateObj.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
