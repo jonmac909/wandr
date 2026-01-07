@@ -143,9 +143,9 @@ When adding flights, use this EXACT format for the activity name:
 5. Add +1 or +2 if arriving next day(s)
 6. Use category "flight" NOT "transit"
 7. Location should be just the destination city name (e.g., "Tokyo" not "Tokyo Narita Airport")
-8. **Set duration** to actual flight time in minutes (e.g., 600 for 10hr flight)
-9. **Set cost** with amount and currency (e.g., { amount: 4225, currency: "USD" })
-10. **Set tips** array with flight details (e.g., ["10hr flight, flat seats"] or ["1 stop via Bangkok"])
+8. **ALWAYS set duration** to actual flight time in minutes (e.g., 600 for 10hr flight) - REQUIRED
+9. **ALWAYS set cost** with amount and currency - if user provides price, use it; if unknown, ask user or estimate based on route (e.g., { amount: 500, currency: "USD" }) - REQUIRED
+10. **ALWAYS set tips** array with flight details like duration and stops (e.g., ["10hr 15min, 1 stop via Bangkok"]) - REQUIRED
 
 ### Food Layer
 - \`add_restaurant\`: Add a restaurant recommendation
