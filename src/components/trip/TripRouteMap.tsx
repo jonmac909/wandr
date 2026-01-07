@@ -115,15 +115,33 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
           gestureHandling: 'greedy',
         });
 
-        // Check for authentication errors after map renders (causes "Oops!" message)
-        setTimeout(() => {
-          const errorDiv = mapRef.current?.querySelector('.gm-err-container, .gm-style-cc');
+        // Use MutationObserver to detect "Oops!" error element
+        const observer = new MutationObserver((mutations) => {
           const hasError = mapRef.current?.querySelector('.gm-err-container');
           if (hasError) {
             console.error('Google Maps authentication error detected');
             setError('Map authentication failed');
+            observer.disconnect();
           }
-        }, 1000);
+        });
+
+        if (mapRef.current) {
+          observer.observe(mapRef.current, { childList: true, subtree: true });
+        }
+
+        // Also check immediately and after delays as backup
+        const checkForError = () => {
+          const hasError = mapRef.current?.querySelector('.gm-err-container');
+          if (hasError) {
+            console.error('Google Maps authentication error detected');
+            setError('Map authentication failed');
+            observer.disconnect();
+          }
+        };
+
+        setTimeout(checkForError, 500);
+        setTimeout(checkForError, 1500);
+        setTimeout(checkForError, 3000);
       }
 
       const map = mapInstanceRef.current;
