@@ -25,7 +25,6 @@ import Link from 'next/link';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
-import { TripCalendar } from '@/components/trip/TripCalendar';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
   DropdownMenu,
@@ -974,11 +973,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
-                {/* Trip Calendar - shows activity dots based on filter */}
-                <TripCalendar
-                  itinerary={itinerary}
-                  contentFilter={contentFilter}
-                />
 
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
@@ -1339,11 +1333,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                         return (
                           <>
-                            {/* Calendar Card - Compact on mobile */}
+                            {/* Calendar Card - Compact on mobile with activity dots */}
                             <div className="flex-shrink-0 mb-2">
                               <MonthCalendar
                                 trips={[currentTripForCalendar]}
                                 compact
+                                itinerary={itinerary}
+                                contentFilter={contentFilter}
                                 onDateClick={(date) => {
                                   const dateStr = date.toISOString().split('T')[0];
                                   scrollToDay(dateStr);

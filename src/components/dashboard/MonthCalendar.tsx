@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { StoredTrip } from '@/lib/db/indexed-db';
+import type { Itinerary, DayPlan } from '@/types/itinerary';
 import { getTripDateRanges, isDateInTrip, TripDateRange } from '@/hooks/useTripStats';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,8 @@ interface MonthCalendarProps {
   trips: StoredTrip[];
   onDateClick?: (date: Date, trip?: TripDateRange) => void;
   compact?: boolean;
+  itinerary?: Itinerary;
+  contentFilter?: string;
 }
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -46,7 +49,7 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
   return days;
 }
 
-export function MonthCalendar({ trips, onDateClick, compact = false }: MonthCalendarProps) {
+export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, contentFilter }: MonthCalendarProps) {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -57,6 +60,79 @@ export function MonthCalendar({ trips, onDateClick, compact = false }: MonthCale
     () => getMonthDays(currentYear, currentMonth),
     [currentYear, currentMonth]
   );
+
+  // Build a map of dates to their activity categories (for colored dots)
+  const dateActivities = useMemo(() => {
+    if (!itinerary) return {};
+    const map: Record<string, Set<string>> = {};
+
+    itinerary.days?.forEach((day: DayPlan) => {
+      if (!day.date) return;
+      const dateKey = day.date;
+      if (!map[dateKey]) map[dateKey] = new Set();
+
+      day.blocks?.forEach(block => {
+        const cat = block.activity?.category?.toLowerCase();
+        if (cat) {
+          if (cat === 'flight' || cat === 'transit') {
+            map[dateKey].add('transport');
+          } else if (cat === 'food' || cat === 'restaurant') {
+            map[dateKey].add('food');
+          } else if (cat === 'accommodation' || cat === 'hotel') {
+            map[dateKey].add('hotel');
+          } else {
+            map[dateKey].add('activity');
+          }
+        }
+      });
+    });
+
+    // Add hotel check-in dates from bases
+    itinerary.route?.bases?.forEach(base => {
+      if (base.checkIn) {
+        const dateKey = base.checkIn.split('T')[0];
+        if (!map[dateKey]) map[dateKey] = new Set();
+        map[dateKey].add('hotel');
+      }
+    });
+
+    return map;
+  }, [itinerary]);
+
+  // Filter which categories to show based on contentFilter
+  const getVisibleCategories = (dateKey: string): string[] => {
+    const cats = dateActivities[dateKey];
+    if (!cats) return [];
+
+    const allCats = Array.from(cats);
+
+    switch (contentFilter) {
+      case 'transport':
+        return allCats.filter(c => c === 'transport');
+      case 'hotels':
+        return allCats.filter(c => c === 'hotel');
+      case 'restaurants':
+        return allCats.filter(c => c === 'food');
+      case 'experiences':
+        return allCats.filter(c => c === 'activity');
+      default:
+        return allCats; // Show all for overview/schedule
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'transport': return 'bg-blue-500';
+      case 'hotel': return 'bg-purple-500';
+      case 'food': return 'bg-orange-500';
+      case 'activity': return 'bg-yellow-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  const formatDateKey = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
@@ -139,20 +215,22 @@ export function MonthCalendar({ trips, onDateClick, compact = false }: MonthCale
         <div className="grid grid-cols-7 gap-1">
           {days.map((date, index) => {
             if (!date) {
-              return <div key={`empty-${index}`} className={compact ? "h-6" : "h-8"} />;
+              return <div key={`empty-${index}`} className={compact ? "h-7" : "h-8"} />;
             }
 
             const tripRange = isDateInTrip(date, tripRanges);
             const todayClass = isToday(date);
             const weekendClass = isWeekend(date);
+            const dateKey = formatDateKey(date);
+            const visibleCats = itinerary ? getVisibleCategories(dateKey) : [];
 
             return (
               <button
                 key={date.toISOString()}
                 onClick={() => onDateClick?.(date, tripRange || undefined)}
                 className={cn(
-                  "w-full rounded-md font-medium transition-colors",
-                  compact ? "h-6 text-xs" : "h-8 text-sm",
+                  "w-full rounded-md font-medium transition-colors relative flex flex-col items-center justify-center",
+                  compact ? "h-7 text-[10px]" : "h-8 text-sm",
                   "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                   todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
                   !todayClass && tripRange && "bg-primary/20 text-primary",
@@ -161,7 +239,18 @@ export function MonthCalendar({ trips, onDateClick, compact = false }: MonthCale
                 )}
                 title={tripRange?.tripTitle}
               >
-                {date.getDate()}
+                <span>{date.getDate()}</span>
+                {/* Activity dots */}
+                {visibleCats.length > 0 && (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {visibleCats.slice(0, 3).map((cat, i) => (
+                      <span
+                        key={i}
+                        className={cn("w-1 h-1 rounded-full", getCategoryColor(cat))}
+                      />
+                    ))}
+                  </div>
+                )}
               </button>
             );
           })}
