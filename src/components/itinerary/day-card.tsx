@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DayPlan, TimeBlock, Activity, ActivityPriority, TimeBlockType } from '@/types/itinerary';
+import { DayPlan, TimeBlock, Activity, ActivityPriority, TimeBlockType, Base } from '@/types/itinerary';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ interface DayCardProps {
   onUpdateDay?: (updatedDay: DayPlan) => void;
   onDeleteActivity?: (blockId: string) => void;
   location?: string;
+  bases?: Base[]; // For looking up hotel nights
   // Drag and drop
   onDragStart?: (blockId: string, dayId: string) => void;
   onDragEnd?: () => void;
@@ -129,6 +130,7 @@ export function DayCard({
   onToggle,
   onUpdateDay,
   location,
+  bases,
   onDragStart,
   onDragEnd,
   onDrop,
@@ -147,6 +149,15 @@ export function DayCard({
     month: 'short',
     day: 'numeric',
   });
+
+  // Get nights for a hotel by matching accommodation name to bases
+  const getHotelNights = (accommodationName: string): number | null => {
+    if (!bases) return null;
+    const base = bases.find(b =>
+      b.accommodation?.name?.toLowerCase() === accommodationName.toLowerCase()
+    );
+    return base?.nights || null;
+  };
 
   const handleSaveTheme = () => {
     if (onUpdateDay) {
@@ -285,6 +296,7 @@ export function DayCard({
                   key={block.id}
                   block={block}
                   date={day.date}
+                  hotelNights={block.activity?.name ? getHotelNights(block.activity.name) : null}
                   onUpdate={(updates) => handleUpdateBlock(block.id, updates)}
                   onDelete={() => handleDeleteBlock(block.id)}
                   editable={!!onUpdateDay}
@@ -315,6 +327,7 @@ export function DayCard({
 interface TimeBlockCardProps {
   block: TimeBlock;
   date?: string; // ISO date string for booking URLs
+  hotelNights?: number | null; // For accommodation blocks
   onUpdate?: (updates: Partial<TimeBlock>) => void;
   onDelete?: () => void;
   editable?: boolean;
@@ -336,7 +349,7 @@ interface EditFormState {
   priority: ActivityPriority;
 }
 
-function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, draggable = false, onDragStart, onDragEnd }: TimeBlockCardProps) {
+function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable = false, draggable = false, onDragStart, onDragEnd }: TimeBlockCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState>({
@@ -627,6 +640,7 @@ function TimeBlockCard({ block, date, onUpdate, onDelete, editable = false, drag
               activity={block.activity}
               priority={block.priority}
               date={date}
+              hotelNights={hotelNights}
               onOpenPlaceDetails={openPlaceDetails}
               editable={editable}
               onToggleBooked={() => {
@@ -677,14 +691,16 @@ interface ActivityDisplayProps {
   activity: Activity;
   priority: string;
   date?: string; // ISO date string for booking URLs
+  hotelNights?: number | null; // For accommodation blocks
   onOpenPlaceDetails?: (location: string) => void;
   onToggleBooked?: () => void;
   editable?: boolean;
 }
 
-function ActivityDisplay({ activity, priority, date, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
+function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
   const isBooked = activity.reservationStatus === 'done';
   const categoryIcon = CATEGORY_ICONS[activity.category] || <Compass className="w-3.5 h-3.5" />;
+  const isAccommodation = ['accommodation', 'hotel', 'checkin'].includes(activity.category);
 
   return (
     <div>
@@ -692,7 +708,12 @@ function ActivityDisplay({ activity, priority, date, onOpenPlaceDetails, onToggl
       <div className="flex items-center gap-1.5">
         <span className="opacity-60 flex-shrink-0">{categoryIcon}</span>
         <span className="font-medium">{activity.name}</span>
-        {activity.duration && (
+        {/* Show nights for hotels, duration for everything else */}
+        {isAccommodation && hotelNights ? (
+          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+            {hotelNights} night{hotelNights > 1 ? 's' : ''}
+          </span>
+        ) : activity.duration && !isAccommodation && (
           <span className="text-xs opacity-50 ml-auto flex-shrink-0">
             {formatDuration(activity.duration)}
           </span>

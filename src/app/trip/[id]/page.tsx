@@ -1418,6 +1418,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                       )}
                                       onUpdateDay={handleUpdateDay}
                                       location={getLocationForDay(day as DayPlan)}
+                                      bases={itinerary.route.bases}
                                       onDragStart={handleDragStart}
                                       onDragEnd={handleDragEnd}
                                       onDrop={handleDrop}
