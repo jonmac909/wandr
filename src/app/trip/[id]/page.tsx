@@ -20,12 +20,14 @@ import {
   ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
-  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink
+  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink,
+  MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
+import { ChatSheet } from '@/components/chat/ChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
   DropdownMenu,
@@ -64,6 +66,7 @@ export default function TripPage() {
   const [contentFilter, setContentFilter] = useState<string>('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
   const [expandedOverviewIndex, setExpandedOverviewIndex] = useState<number | null>(null);
@@ -1947,6 +1950,31 @@ ${JSON.stringify(tripDna, null, 2)}`}
         open={profileOpen}
         onOpenChange={setProfileOpen}
       />
+
+      {/* Chat Sheet */}
+      {itinerary && (
+        <ChatSheet
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+          tripId={tripId}
+          itinerary={itinerary}
+          onItineraryUpdate={(updated) => {
+            setItinerary(updated);
+            localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updated));
+            tripDb.updateItinerary(tripId, updated);
+          }}
+          onOpenSettings={() => setProfileOpen(true)}
+        />
+      )}
+
+      {/* Chat FAB */}
+      <Button
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+        onClick={() => setChatOpen(true)}
+        title="Trip Assistant"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </Button>
     </div>
   );
 }
