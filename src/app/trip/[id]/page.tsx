@@ -1639,18 +1639,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     }).length;
                     const today = new Date().toISOString().split('T')[0];
 
-                    // Filter days to only include those with hotel/accommodation blocks
-                    const daysWithHotels = itinerary.days
-                      .filter(day => day.blocks.some(b =>
-                        b.activity?.category === 'checkin'
-                      ))
-                      .map(day => ({
-                        ...day,
-                        blocks: day.blocks.filter(b =>
-                          b.activity?.category === 'checkin'
-                        )
-                      }));
-
                     return (
                     <div className="space-y-2 pr-1">
                       {/* Summary stats bar */}
@@ -1675,19 +1663,80 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </span>
                         )}
                       </div>
-                      {/* Use DayCard with filtered blocks - same as schedule view */}
-                      {daysWithHotels.map(day => (
-                        <DayCard
-                          key={day.id}
-                          day={day}
-                          isToday={day.date === today}
-                          isExpanded={true}
-                          onUpdateDay={handleUpdateDay}
-                          location={getLocationForDay(day)}
-                          bases={itinerary.route.bases}
-                        />
-                      ))}
-                      {daysWithHotels.length === 0 && (
+                      {/* Hotels from route.bases - wrapped in Card like DayCard */}
+                      {itinerary.route.bases.map((base, index) => {
+                        const nights = getActualNights(index);
+                        const isToday = base.checkIn === today;
+                        // Find accommodation block to get booking status
+                        const accommodationBlock = itinerary.days
+                          .flatMap(d => d.blocks)
+                          .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
+                        const isBooked = accommodationBlock?.activity?.reservationStatus === 'done';
+
+                        return (
+                          <Card key={base.id} className={isToday ? 'ring-2 ring-primary shadow-lg' : ''}>
+                            <CardContent className="p-3">
+                              {/* Date header - matching DayCard */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <div className="text-base font-medium">{formatDisplayDate(base.checkIn)}</div>
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <MapPin className="w-3 h-3" />
+                                    {getFlagForLocation(base.location)} {base.location}
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Hotel card - matching DayCard TimeBlockCard style */}
+                              <div className="p-2 rounded-lg border bg-purple-100 text-purple-800 border-purple-200">
+                                <div className="flex items-center gap-1">
+                                  <span className="opacity-60 flex-shrink-0">
+                                    <Hotel className="w-3.5 h-3.5" />
+                                  </span>
+                                  <span className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</span>
+                                  <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
+                                    {nights} night{nights > 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {base.location}
+                                  </span>
+                                  <span>
+                                    {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
+                                  </span>
+                                  {base.accommodation?.name && (
+                                    <div className="flex items-center gap-1">
+                                      {!isBooked && (
+                                        <a
+                                          href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(base.location)}&checkin=${base.checkIn}&checkout=${getCheckOutDate(base.checkIn, nights)}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200 transition-colors"
+                                        >
+                                          <ExternalLink className="w-2.5 h-2.5" />
+                                          Book
+                                        </a>
+                                      )}
+                                      <span
+                                        className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
+                                          isBooked
+                                            ? 'bg-green-500 border-green-500 text-white'
+                                            : 'bg-transparent border-orange-400'
+                                        }`}
+                                      >
+                                        {isBooked && <Check className="w-2.5 h-2.5" />}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                      {itinerary.route.bases.length === 0 && (
                         <div className="text-center py-8">
                           <Hotel className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                           <p className="text-sm text-muted-foreground">No hotels in this trip</p>
