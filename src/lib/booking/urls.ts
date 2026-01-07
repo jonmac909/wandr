@@ -158,8 +158,8 @@ function formatDateForSkyscanner(isoDate: string): string {
 }
 
 /**
- * Generate a Skyscanner flights search URL
- * Format: https://www.skyscanner.com/transport/flights/ORIGIN/DEST/YYMMDD/
+ * Generate a Google Flights search URL
+ * Format: https://www.google.com/travel/flights?q=flights+from+ORIGIN+to+DEST
  */
 export function generateFlightUrl(options: BookingUrlOptions): string {
   const { origin, destination, date } = options;
@@ -167,39 +167,29 @@ export function generateFlightUrl(options: BookingUrlOptions): string {
   const originCode = origin ? extractAirportCode(origin) : null;
   const destCode = destination ? extractAirportCode(destination) : null;
 
-  // If we have both codes, use Skyscanner's direct URL format
-  if (originCode && destCode) {
-    let url = `https://www.skyscanner.com/transport/flights/${originCode.toLowerCase()}/${destCode.toLowerCase()}`;
-    if (date) {
-      // Skyscanner uses YYMMDD format
-      const formattedDate = formatDateForSkyscanner(date);
-      if (formattedDate) {
-        url += `/${formattedDate}`;
-      }
-    }
-    url += '/?adultsv2=2&cabinclass=economy&childrenv2=&ref=home&rtn=0&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false';
-    return url;
-  }
+  // Build Google Flights URL
+  const baseUrl = 'https://www.google.com/travel/flights';
+  const params = new URLSearchParams();
 
-  // If we only have destination, use Skyscanner search
+  // Build search query
+  let query = 'flights';
+  if (originCode) {
+    query += ` from ${originCode}`;
+  }
   if (destCode) {
-    let url = `https://www.skyscanner.com/transport/flights/anywhere/${destCode.toLowerCase()}`;
-    if (date) {
-      const formattedDate = formatDateForSkyscanner(date);
-      if (formattedDate) {
-        url += `/${formattedDate}`;
-      }
-    }
-    url += '/';
-    return url;
+    query += ` to ${destCode}`;
+  }
+  if (date) {
+    // Format date as "Feb 15" for Google
+    const [year, month, day] = date.split('T')[0].split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const formatted = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    query += ` on ${formatted}`;
   }
 
-  // Fallback to Skyscanner explore if no codes found
-  if (destination || origin) {
-    return `https://www.skyscanner.com/transport/flights-from/anywhere/`;
-  }
+  params.set('q', query);
 
-  return 'https://www.skyscanner.com/flights';
+  return `${baseUrl}?${params.toString()}`;
 }
 
 /**
@@ -401,7 +391,7 @@ export function getBookingProvider(category: ActivityCategory): { name: string; 
   switch (category) {
     case 'flight':
     case 'transit':
-      return { name: 'Skyscanner', icon: '✈️' };
+      return { name: 'Google Flights', icon: '✈️' };
     case 'accommodation':
     case 'checkin':
       return { name: 'TripAdvisor', icon: '🏨' };
