@@ -52,28 +52,28 @@ const BLOCK_ICONS: Record<string, React.ReactNode> = {
 
 const BLOCK_COLORS: Record<string, string> = {
   'morning-anchor': 'bg-amber-100 text-amber-800 border-amber-200',
-  'midday-flex': 'bg-blue-100 text-blue-800 border-blue-200',
-  'evening-vibe': 'bg-purple-100 text-purple-800 border-purple-200',
-  'rest-block': 'bg-green-100 text-green-800 border-green-200',
-  'transit': 'bg-gray-100 text-gray-800 border-gray-200',
+  'midday-flex': 'bg-orange-100 text-orange-800 border-orange-200',
+  'evening-vibe': 'bg-rose-100 text-rose-800 border-rose-200',
+  'rest-block': 'bg-stone-100 text-stone-800 border-stone-200',
+  'transit': 'bg-stone-100 text-stone-800 border-stone-200',
 };
 
-// Category-based colors matching the pipeline
+// Category-based colors - warm neutral tones (browns, pinks, oranges)
 const CATEGORY_COLORS: Record<string, string> = {
-  'flight': 'bg-blue-100 text-blue-800 border-blue-200',
-  'hotel': 'bg-purple-100 text-purple-800 border-purple-200',
-  'accommodation': 'bg-purple-100 text-purple-800 border-purple-200',
-  'checkin': 'bg-purple-100 text-purple-800 border-purple-200',
-  'food': 'bg-orange-100 text-orange-800 border-orange-200',
-  'restaurant': 'bg-orange-100 text-orange-800 border-orange-200',
+  'flight': 'bg-orange-100 text-orange-800 border-orange-200',
+  'hotel': 'bg-rose-100 text-rose-800 border-rose-200',
+  'accommodation': 'bg-rose-100 text-rose-800 border-rose-200',
+  'checkin': 'bg-rose-100 text-rose-800 border-rose-200',
+  'food': 'bg-amber-100 text-amber-800 border-amber-200',
+  'restaurant': 'bg-amber-100 text-amber-800 border-amber-200',
   'activity': 'bg-amber-100 text-amber-800 border-amber-200',
   'experience': 'bg-amber-100 text-amber-800 border-amber-200',
   'sightseeing': 'bg-amber-100 text-amber-800 border-amber-200',
-  'relaxation': 'bg-green-100 text-green-800 border-green-200',
+  'relaxation': 'bg-stone-100 text-stone-800 border-stone-200',
   'shopping': 'bg-pink-100 text-pink-800 border-pink-200',
-  'nightlife': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  'workshop': 'bg-teal-100 text-teal-800 border-teal-200',
-  'transit': 'bg-gray-100 text-gray-800 border-gray-200',
+  'nightlife': 'bg-rose-100 text-rose-800 border-rose-200',
+  'workshop': 'bg-orange-100 text-orange-800 border-orange-200',
+  'transit': 'bg-stone-100 text-stone-800 border-stone-200',
 };
 
 // Category icons for compact display
@@ -739,7 +739,7 @@ function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDet
         {activity.location?.name && (
           <button
             onClick={() => onOpenPlaceDetails?.(activity.location!.name)}
-            className="flex items-center gap-1 hover:opacity-100 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-1 hover:opacity-100 hover:text-amber-700 transition-colors"
             title="View place details"
           >
             <MapPin className="w-3 h-3" />
@@ -760,7 +760,7 @@ function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDet
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition-colors"
+                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200 transition-colors"
                 title={`Book on ${getBookingProvider(activity.category).name}`}
               >
                 <ExternalLink className="w-2.5 h-2.5" />

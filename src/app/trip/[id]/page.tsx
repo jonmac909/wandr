@@ -34,18 +34,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Pipeline category colors matching the daily itinerary
+// Pipeline category colors - warm neutral tones (browns, pinks, oranges)
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
-  'Overview': { bg: 'bg-indigo-50 border-indigo-200', iconBg: 'bg-indigo-100 text-indigo-600', text: 'text-indigo-800' },
-  'Schedule': { bg: 'bg-cyan-50 border-cyan-200', iconBg: 'bg-cyan-100 text-cyan-600', text: 'text-cyan-800' },
-  'Transport': { bg: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100 text-blue-600', text: 'text-blue-800' },
-  'Hotels': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
+  'Overview': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
+  'Schedule': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
+  'Transport': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
+  'Hotels': { bg: 'bg-rose-50 border-rose-200', iconBg: 'bg-rose-100 text-rose-600', text: 'text-rose-800' },
   'Food': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Activities': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
-  'Packing': { bg: 'bg-green-50 border-green-200', iconBg: 'bg-green-100 text-green-600', text: 'text-green-800' },
-  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
-  'Budget': { bg: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100 text-emerald-600', text: 'text-emerald-800' },
-  'More': { bg: 'bg-gray-50 border-gray-200', iconBg: 'bg-gray-100 text-gray-600', text: 'text-gray-800' },
+  'Packing': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
+  'Docs': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
+  'Budget': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
+  'More': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
 };
 
 export default function TripPage() {
@@ -435,6 +435,58 @@ export default function TripPage() {
     'DXB': 'Dubai', 'DOH': 'Doha', 'AUH': 'Abu Dhabi',
     // Hawaii
     'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
+  };
+
+  // City/country to flag emoji mapping
+  const LOCATION_FLAGS: Record<string, string> = {
+    // Japan
+    'tokyo': '🇯🇵', 'osaka': '🇯🇵', 'kyoto': '🇯🇵', 'nagoya': '🇯🇵', 'sapporo': '🇯🇵',
+    'fukuoka': '🇯🇵', 'okinawa': '🇯🇵', 'hiroshima': '🇯🇵', 'nara': '🇯🇵', 'japan': '🇯🇵',
+    // Thailand
+    'bangkok': '🇹🇭', 'chiang mai': '🇹🇭', 'phuket': '🇹🇭', 'koh samui': '🇹🇭',
+    'krabi': '🇹🇭', 'pattaya': '🇹🇭', 'thailand': '🇹🇭',
+    // Vietnam
+    'hanoi': '🇻🇳', 'ho chi minh': '🇻🇳', 'saigon': '🇻🇳', 'da nang': '🇻🇳',
+    'hoi an': '🇻🇳', 'nha trang': '🇻🇳', 'phu quoc': '🇻🇳', 'hue': '🇻🇳', 'vietnam': '🇻🇳',
+    // Southeast Asia
+    'singapore': '🇸🇬', 'kuala lumpur': '🇲🇾', 'malaysia': '🇲🇾', 'manila': '🇵🇭',
+    'philippines': '🇵🇭', 'jakarta': '🇮🇩', 'bali': '🇮🇩', 'indonesia': '🇮🇩',
+    'siem reap': '🇰🇭', 'phnom penh': '🇰🇭', 'cambodia': '🇰🇭',
+    'yangon': '🇲🇲', 'myanmar': '🇲🇲', 'vientiane': '🇱🇦', 'luang prabang': '🇱🇦', 'laos': '🇱🇦',
+    // East Asia
+    'hong kong': '🇭🇰', 'seoul': '🇰🇷', 'korea': '🇰🇷', 'taipei': '🇹🇼', 'taiwan': '🇹🇼',
+    'beijing': '🇨🇳', 'shanghai': '🇨🇳', 'china': '🇨🇳',
+    // Europe
+    'paris': '🇫🇷', 'france': '🇫🇷', 'london': '🇬🇧', 'uk': '🇬🇧', 'england': '🇬🇧',
+    'rome': '🇮🇹', 'italy': '🇮🇹', 'barcelona': '🇪🇸', 'madrid': '🇪🇸', 'spain': '🇪🇸',
+    'amsterdam': '🇳🇱', 'netherlands': '🇳🇱', 'berlin': '🇩🇪', 'munich': '🇩🇪', 'germany': '🇩🇪',
+    'vienna': '🇦🇹', 'austria': '🇦🇹', 'zurich': '🇨🇭', 'geneva': '🇨🇭', 'switzerland': '🇨🇭',
+    'lisbon': '🇵🇹', 'portugal': '🇵🇹', 'prague': '🇨🇿', 'czech': '🇨🇿',
+    // North America
+    'new york': '🇺🇸', 'los angeles': '🇺🇸', 'san francisco': '🇺🇸', 'usa': '🇺🇸',
+    'vancouver': '🇨🇦', 'toronto': '🇨🇦', 'montreal': '🇨🇦', 'kelowna': '🇨🇦', 'canada': '🇨🇦',
+    'seattle': '🇺🇸', 'honolulu': '🇺🇸', 'hawaii': '🇺🇸', 'maui': '🇺🇸',
+    // Oceania
+    'sydney': '🇦🇺', 'melbourne': '🇦🇺', 'brisbane': '🇦🇺', 'australia': '🇦🇺',
+    'auckland': '🇳🇿', 'new zealand': '🇳🇿',
+    // Middle East
+    'dubai': '🇦🇪', 'uae': '🇦🇪', 'doha': '🇶🇦', 'qatar': '🇶🇦', 'abu dhabi': '🇦🇪',
+  };
+
+  // Get flag emoji for a location
+  const getFlagForLocation = (location: string): string => {
+    if (!location) return '';
+    const lower = location.toLowerCase().trim();
+
+    // Direct match
+    if (LOCATION_FLAGS[lower]) return LOCATION_FLAGS[lower];
+
+    // Check if any key is contained in the location
+    for (const [key, flag] of Object.entries(LOCATION_FLAGS)) {
+      if (lower.includes(key)) return flag;
+    }
+
+    return '';
   };
 
   // Convert airport code to city name - ALWAYS return city name, never airport code
@@ -1301,7 +1353,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                             ) : (
                                               <>
                                                 <p className="font-medium truncate">
-                                                  {group.location}
+                                                  {getFlagForLocation(group.location)} {group.location}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                   {formatDateString(group.startDate)}
@@ -1341,13 +1393,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                               day.blocks.filter(b => b.activity).map((block) => (
                                                 <div key={block.id} className="flex items-center gap-2 text-sm">
                                                   {block.activity?.category === 'flight' && (
-                                                    <Plane className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                                    <Plane className="w-3 h-3 text-orange-600 flex-shrink-0" />
                                                   )}
                                                   {block.activity?.category === 'transit' && (
-                                                    <Train className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                                                    <Train className="w-3 h-3 text-amber-600 flex-shrink-0" />
                                                   )}
                                                   {block.activity?.category === 'accommodation' && (
-                                                    <Hotel className="w-3 h-3 text-purple-600 flex-shrink-0" />
+                                                    <Hotel className="w-3 h-3 text-rose-600 flex-shrink-0" />
                                                   )}
                                                   {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
                                                     <Circle className="w-2 h-2 text-muted-foreground flex-shrink-0" />
@@ -1452,10 +1504,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                     <DayCard
                                       day={day as DayPlan}
                                       isToday={day.date === today}
-                                      isExpanded={expandedDay === null || expandedDay === day.dayNumber}
-                                      onToggle={() => setExpandedDay(
-                                        expandedDay === day.dayNumber ? null : day.dayNumber
-                                      )}
+                                      isExpanded={true}
                                       onUpdateDay={handleUpdateDay}
                                       location={getLocationForDay(day as DayPlan)}
                                       bases={itinerary.route.bases}
@@ -1481,51 +1530,148 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   )}
 
                   {/* Filtered View - Transport (flights + trains/buses) */}
-                  {contentFilter === 'transport' && (
-                    <div className="space-y-2 pr-1">
-                      {itinerary.days.flatMap(day =>
-                        day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').map(block => {
-                          const isFlight = block.activity?.category === 'flight';
-                          const colorClasses = isFlight
-                            ? 'bg-blue-100 text-blue-800 border-blue-200'
-                            : 'bg-cyan-100 text-cyan-800 border-cyan-200';
+                  {contentFilter === 'transport' && (() => {
+                    // Calculate transport stats
+                    const allTransport = itinerary.days.flatMap(d =>
+                      d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')
+                    );
+                    const flightCount = allTransport.filter(b => b.activity?.category === 'flight').length;
+                    const transitCount = allTransport.filter(b => b.activity?.category === 'transit').length;
+                    const notBooked = allTransport.filter(b => b.activity?.reservationStatus !== 'done').length;
+
+                    return (
+                    <div className="space-y-4 pr-1">
+                      {/* Trip Header with Stats */}
+                      <div className="pb-3 border-b">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                          <span className="text-sm text-muted-foreground">
+                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                          </span>
+                        </div>
+                        {/* Summary stats */}
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          {flightCount > 0 && (
+                            <span className="flex items-center gap-1 text-orange-600">
+                              <Plane className="w-3.5 h-3.5" />
+                              {flightCount} flight{flightCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {transitCount > 0 && (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <Train className="w-3.5 h-3.5" />
+                              {transitCount} train{transitCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {notBooked > 0 && (
+                            <span className="flex items-center gap-1 text-orange-600">
+                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                              {notBooked} to book
+                            </span>
+                          )}
+                          {notBooked === 0 && allTransport.length > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <Check className="w-3.5 h-3.5" />
+                              All booked
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Group transport by day - same as schedule view */}
+                      {itinerary.days
+                        .filter(day => day.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit'))
+                        .map(day => {
+                          const transportBlocks = day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit');
                           return (
-                            <div
-                              key={block.id}
-                              data-date={day.date}
-                              className={`p-3 rounded-lg border ${colorClasses}`}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                {isFlight
-                                  ? <Plane className="w-3.5 h-3.5 opacity-60" />
-                                  : <Train className="w-3.5 h-3.5 opacity-60" />
-                                }
-                                <span className="font-medium text-sm flex-1 truncate">{block.activity?.name}</span>
-                                {block.activity && (
-                                  <a
-                                    href={generateBookingUrl(block.activity, { date: day.date })}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex-shrink-0 ml-2"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <Button size="sm" variant="ghost" className="h-6 text-xs gap-1 px-2 hover:bg-white/50">
-                                      <ExternalLink className="w-3 h-3" />
-                                      Book
-                                    </Button>
-                                  </a>
-                                )}
+                            <div key={day.id} data-date={day.date}>
+                              {/* Day header - same as schedule */}
+                              <div className="mb-2">
+                                <h3 className="text-lg font-semibold">{formatDisplayDate(day.date)}</h3>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  <span>{getLocationForDay(day)}</span>
+                                </div>
                               </div>
-                              <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
-                                {block.activity?.description && (
-                                  <span className="truncate">{block.activity.description}</span>
-                                )}
-                                <span>{formatDisplayDate(day.date)}</span>
+                              {/* Transport cards - same style as schedule DayCard */}
+                              <div className="space-y-2">
+                                {transportBlocks.map(block => {
+                                  const activity = block.activity!;
+                                  const isFlight = activity.category === 'flight';
+                                  const colorClasses = isFlight
+                                    ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                    : 'bg-amber-100 text-amber-800 border-amber-200';
+                                  const isBooked = activity.reservationStatus === 'done';
+
+                                  return (
+                                    <div
+                                      key={block.id}
+                                      className={`p-3 rounded-lg border ${colorClasses}`}
+                                    >
+                                      {/* Line 1: icon + name + duration */}
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="opacity-60 flex-shrink-0">
+                                          {isFlight ? <Plane className="w-3.5 h-3.5" /> : <Train className="w-3.5 h-3.5" />}
+                                        </span>
+                                        <span className="font-medium">{activity.name}</span>
+                                        {activity.duration && (
+                                          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+                                            {activity.duration >= 60
+                                              ? `${Math.floor(activity.duration / 60)}h${activity.duration % 60 > 0 ? ` ${activity.duration % 60}m` : ''}`
+                                              : `${activity.duration}m`}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* Line 2: location, cost, book, status */}
+                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70 mt-1">
+                                        {activity.location?.name && (
+                                          <span className="flex items-center gap-1">
+                                            <MapPin className="w-3 h-3" />
+                                            {activity.location.name}
+                                          </span>
+                                        )}
+                                        {activity.cost && (
+                                          <span className="flex items-center gap-1">
+                                            <DollarSign className="w-3 h-3" />
+                                            {activity.cost.amount}
+                                          </span>
+                                        )}
+                                        {activity.bookingRequired && (
+                                          <div className="flex items-center gap-1">
+                                            {!isBooked && (
+                                              <a
+                                                href={generateBookingUrl(activity, { date: day.date })}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200 transition-colors"
+                                              >
+                                                <ExternalLink className="w-2.5 h-2.5" />
+                                                Book
+                                              </a>
+                                            )}
+                                            <span
+                                              className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
+                                                isBooked
+                                                  ? 'bg-green-500 border-green-500 text-white'
+                                                  : 'bg-transparent border-orange-400'
+                                              }`}
+                                            >
+                                              {isBooked && <Check className="w-2.5 h-2.5" />}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {/* Line 3: description/notes */}
+                                      {activity.description && (
+                                        <div className="mt-1 text-xs opacity-70 italic">{activity.description}</div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           );
-                        })
-                      )}
+                        })}
                       {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) && (
                         <div className="text-center py-8">
                           <Plane className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
@@ -1533,83 +1679,292 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Filtered View - Hotels */}
-                  {contentFilter === 'hotels' && (
-                    <div className="space-y-2 pr-1">
+                  {contentFilter === 'hotels' && (() => {
+                    // Calculate hotel stats
+                    const hotelCount = itinerary.route.bases.length;
+                    const totalNights = itinerary.route.bases.reduce((sum, _, idx) => sum + getActualNights(idx), 0);
+                    const notBooked = itinerary.route.bases.filter(base => {
+                      const block = itinerary.days.flatMap(d => d.blocks)
+                        .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
+                      return block?.activity?.reservationStatus !== 'done';
+                    }).length;
+
+                    return (
+                    <div className="space-y-4 pr-1">
+                      {/* Trip Header with Stats */}
+                      <div className="pb-3 border-b">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                          <span className="text-sm text-muted-foreground">
+                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                          </span>
+                        </div>
+                        {/* Summary stats */}
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          <span className="flex items-center gap-1 text-rose-600">
+                            <Hotel className="w-3.5 h-3.5" />
+                            {hotelCount} hotel{hotelCount !== 1 ? 's' : ''}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {totalNights} night{totalNights !== 1 ? 's' : ''}
+                          </span>
+                          {notBooked > 0 && (
+                            <span className="flex items-center gap-1 text-orange-600">
+                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                              {notBooked} to book
+                            </span>
+                          )}
+                          {notBooked === 0 && hotelCount > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <Check className="w-3.5 h-3.5" />
+                              All booked
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Hotels grouped by check-in date */}
                       {itinerary.route.bases.map((base, index) => {
                         const nights = getActualNights(index);
+                        // Find accommodation block to get booking status
+                        const accommodationBlock = itinerary.days
+                          .flatMap(d => d.blocks)
+                          .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
+                        const isBooked = accommodationBlock?.activity?.reservationStatus === 'done';
+
                         return (
-                          <div
-                            key={base.id}
-                            data-date={base.checkIn}
-                            className="p-3 rounded-lg border bg-purple-100 text-purple-800 border-purple-200"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <Hotel className="w-3.5 h-3.5 opacity-60" />
-                              <span className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</span>
-                              <span className="text-xs opacity-50 ml-auto flex-shrink-0">
-                                {nights} night{nights > 1 ? 's' : ''}
-                              </span>
+                          <div key={base.id} data-date={base.checkIn}>
+                            {/* Date header - same as schedule */}
+                            <div className="mb-2">
+                              <h3 className="text-lg font-semibold">{formatDisplayDate(base.checkIn)}</h3>
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span>{getFlagForLocation(base.location)} {base.location}</span>
+                              </div>
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {base.location}
-                              </span>
-                              <span>
-                                {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
-                              </span>
+                            {/* Hotel card - same style as schedule */}
+                            <div className="p-3 rounded-lg border bg-rose-100 text-rose-800 border-rose-200">
+                              {/* Line 1: icon + name + nights */}
+                              <div className="flex items-center gap-1.5">
+                                <span className="opacity-60 flex-shrink-0">
+                                  <Hotel className="w-3.5 h-3.5" />
+                                </span>
+                                <span className="font-medium">{base.accommodation?.name || 'Accommodation TBD'}</span>
+                                <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+                                  {nights} night{nights > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              {/* Line 2: location, dates, book, status */}
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70 mt-1">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {base.location}
+                                </span>
+                                <span>
+                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
+                                </span>
+                                {base.accommodation?.name && (
+                                  <div className="flex items-center gap-1">
+                                    {!isBooked && (
+                                      <a
+                                        href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(base.location)}&checkin=${base.checkIn}&checkout=${getCheckOutDate(base.checkIn, nights)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-rose-200 text-rose-800 border border-rose-300 hover:bg-rose-300 transition-colors"
+                                      >
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                        Book
+                                      </a>
+                                    )}
+                                    <span
+                                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
+                                        isBooked
+                                          ? 'bg-green-500 border-green-500 text-white'
+                                          : 'bg-transparent border-orange-400'
+                                      }`}
+                                    >
+                                      {isBooked && <Check className="w-2.5 h-2.5" />}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Filtered View - Restaurants */}
                   {contentFilter === 'restaurants' && (
                     <div className="space-y-2 pr-1">
+                      {/* Compact Trip Header */}
+                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
+                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                        <span className="text-sm text-muted-foreground">
+                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                        </span>
+                      </div>
                       <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
                     </div>
                   )}
 
                   {/* Filtered View - Experiences */}
-                  {contentFilter === 'experiences' && (
-                    <div className="space-y-2 pr-1">
-                      {itinerary.days.flatMap(day =>
-                        day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
-                          <div
-                            key={block.id}
-                            data-date={day.date}
-                            className="p-3 rounded-lg border bg-amber-100 text-amber-800 border-amber-200"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <Compass className="w-3.5 h-3.5 opacity-60" />
-                              <span className="font-medium text-sm flex-1 truncate">{block.activity?.name}</span>
+                  {contentFilter === 'experiences' && (() => {
+                    // Calculate experience stats
+                    const allExperiences = itinerary.days.flatMap(d =>
+                      d.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin')
+                    );
+                    const activityCount = allExperiences.length;
+                    const notBooked = allExperiences.filter(b => b.activity?.bookingRequired && b.activity?.reservationStatus !== 'done').length;
+                    const needsBooking = allExperiences.filter(b => b.activity?.bookingRequired).length;
+
+                    return (
+                    <div className="space-y-4 pr-1">
+                      {/* Trip Header with Stats */}
+                      <div className="pb-3 border-b">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                          <span className="text-sm text-muted-foreground">
+                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                          </span>
+                        </div>
+                        {/* Summary stats */}
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          <span className="flex items-center gap-1 text-amber-600">
+                            <Compass className="w-3.5 h-3.5" />
+                            {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}
+                          </span>
+                          {notBooked > 0 && (
+                            <span className="flex items-center gap-1 text-orange-600">
+                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                              {notBooked} to book
+                            </span>
+                          )}
+                          {notBooked === 0 && needsBooking > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <Check className="w-3.5 h-3.5" />
+                              All booked
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Group experiences by day - same as schedule view */}
+                      {itinerary.days
+                        .filter(day => day.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin'))
+                        .map(day => {
+                          const experienceBlocks = day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin');
+                          return (
+                            <div key={day.id} data-date={day.date}>
+                              {/* Day header - same as schedule */}
+                              <div className="mb-2">
+                                <h3 className="text-lg font-semibold">{formatDisplayDate(day.date)}</h3>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  <span>{getLocationForDay(day)}</span>
+                                </div>
+                              </div>
+                              {/* Experience cards - same style as schedule */}
+                              <div className="space-y-2">
+                                {experienceBlocks.map(block => {
+                                  const activity = block.activity!;
+                                  const isBooked = activity.reservationStatus === 'done';
+
+                                  return (
+                                    <div
+                                      key={block.id}
+                                      className="p-3 rounded-lg border bg-amber-100 text-amber-800 border-amber-200"
+                                    >
+                                      {/* Line 1: icon + name + duration */}
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="opacity-60 flex-shrink-0">
+                                          <Compass className="w-3.5 h-3.5" />
+                                        </span>
+                                        <span className="font-medium">{activity.name}</span>
+                                        {activity.duration && (
+                                          <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+                                            {activity.duration >= 60
+                                              ? `${Math.floor(activity.duration / 60)}h${activity.duration % 60 > 0 ? ` ${activity.duration % 60}m` : ''}`
+                                              : `${activity.duration}m`}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* Line 2: location, cost, book, status */}
+                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs opacity-70 mt-1">
+                                        {activity.location?.name && (
+                                          <span className="flex items-center gap-1">
+                                            <MapPin className="w-3 h-3" />
+                                            {activity.location.name}
+                                          </span>
+                                        )}
+                                        {activity.cost && (
+                                          <span className="flex items-center gap-1">
+                                            <DollarSign className="w-3 h-3" />
+                                            {activity.cost.amount}
+                                          </span>
+                                        )}
+                                        {activity.bookingRequired && (
+                                          <div className="flex items-center gap-1">
+                                            {!isBooked && (
+                                              <a
+                                                href={generateBookingUrl(activity, { date: day.date })}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-amber-200 text-amber-800 border border-amber-300 hover:bg-amber-300 transition-colors"
+                                              >
+                                                <ExternalLink className="w-2.5 h-2.5" />
+                                                Book
+                                              </a>
+                                            )}
+                                            <span
+                                              className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
+                                                isBooked
+                                                  ? 'bg-green-500 border-green-500 text-white'
+                                                  : 'bg-transparent border-orange-400'
+                                              }`}
+                                            >
+                                              {isBooked && <Check className="w-2.5 h-2.5" />}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {/* Line 3: description/notes */}
+                                      {activity.description && (
+                                        <div className="mt-1 text-xs opacity-70 italic">{activity.description}</div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                            <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
-                              {block.activity?.description && (
-                                <span className="truncate">{block.activity.description}</span>
-                              )}
-                              <span>{formatDisplayDate(day.date)}</span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                      {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')) && (
+                          );
+                        })}
+                      {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin')) && (
                         <div className="text-center py-8">
                           <Compass className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                           <p className="text-sm text-muted-foreground">No experiences planned yet</p>
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Packing List View */}
                   {contentFilter === 'packing' && (
                     <div className="pr-1">
+                      {/* Compact Trip Header */}
+                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
+                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                        <span className="text-sm text-muted-foreground">
+                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                        </span>
+                      </div>
                       <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
                     </div>
                   )}
@@ -1617,16 +1972,23 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Documents View */}
                   {contentFilter === 'docs' && (
                     <div className="space-y-2 pr-1">
+                      {/* Compact Trip Header */}
+                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
+                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                        <span className="text-sm text-muted-foreground">
+                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                        </span>
+                      </div>
                       {/* Document categories as cards */}
                       {[
-                        { icon: Stethoscope, label: 'Health Insurance', desc: 'Medical coverage abroad', color: 'bg-red-100 text-red-600' },
-                        { icon: Shield, label: 'Travel Insurance', desc: 'Trip protection & cancellation', color: 'bg-green-100 text-green-600' },
-                        { icon: FileText, label: 'Passport / Visa', desc: 'ID and entry documents', color: 'bg-blue-100 text-blue-600' },
-                        { icon: Plane, label: 'Flight Confirmations', desc: 'Booking references & e-tickets', color: 'bg-sky-100 text-sky-600' },
-                        { icon: Hotel, label: 'Hotel Reservations', desc: 'Accommodation bookings', color: 'bg-purple-100 text-purple-600' },
-                        { icon: Car, label: 'Car Rental', desc: 'Vehicle bookings & licenses', color: 'bg-orange-100 text-orange-600' },
+                        { icon: Stethoscope, label: 'Health Insurance', desc: 'Medical coverage abroad', color: 'bg-rose-100 text-rose-600' },
+                        { icon: Shield, label: 'Travel Insurance', desc: 'Trip protection & cancellation', color: 'bg-stone-100 text-stone-600' },
+                        { icon: FileText, label: 'Passport / Visa', desc: 'ID and entry documents', color: 'bg-amber-100 text-amber-600' },
+                        { icon: Plane, label: 'Flight Confirmations', desc: 'Booking references & e-tickets', color: 'bg-orange-100 text-orange-600' },
+                        { icon: Hotel, label: 'Hotel Reservations', desc: 'Accommodation bookings', color: 'bg-rose-100 text-rose-600' },
+                        { icon: Car, label: 'Car Rental', desc: 'Vehicle bookings & licenses', color: 'bg-amber-100 text-amber-600' },
                         { icon: Ticket, label: 'Activity Tickets', desc: 'Tours, attractions & events', color: 'bg-amber-100 text-amber-600' },
-                        { icon: CreditCard, label: 'Payment & Cards', desc: 'Credit cards & travel money', color: 'bg-emerald-100 text-emerald-600' },
+                        { icon: CreditCard, label: 'Payment & Cards', desc: 'Credit cards & travel money', color: 'bg-stone-100 text-stone-600' },
                       ].map((doc) => (
                         <Card key={doc.label} className="cursor-pointer hover:bg-muted/30 transition-colors">
                           <CardContent className="p-3">
@@ -1651,9 +2013,15 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Budget View */}
                   {contentFilter === 'budget' && (
                     <div className="space-y-3 pr-1">
-                      <div className="text-center py-6">
-                        <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
-                        <h3 className="font-semibold text-sm mb-1">Trip Budget</h3>
+                      {/* Compact Trip Header */}
+                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
+                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
+                        <span className="text-sm text-muted-foreground">
+                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                        </span>
+                      </div>
+                      <div className="text-center py-4">
+                        <DollarSign className="w-10 h-10 mx-auto text-muted-foreground/30 mb-2" />
                         <p className="text-xs text-muted-foreground">
                           Track your travel expenses
                         </p>
@@ -1683,14 +2051,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
-                              <Plane className="w-4 h-4 text-blue-500" />
+                              <Plane className="w-4 h-4 text-orange-500" />
                               <span className="text-sm">Transport</span>
                             </div>
                             <span className="text-sm font-medium">$0</span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
-                              <Hotel className="w-4 h-4 text-purple-500" />
+                              <Hotel className="w-4 h-4 text-rose-500" />
                               <span className="text-sm">Accommodation</span>
                             </div>
                             <span className="text-sm font-medium">$0</span>
