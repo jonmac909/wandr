@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ChatMessage, ToolCall } from '@/types/chat';
 import type { Itinerary } from '@/types/itinerary';
-import { getStoredToken } from '@/components/chat/TokenSettings';
 import { executeToolCall } from '@/lib/ai/tool-handlers';
 import type { ToolName } from '@/types/chat';
 
@@ -30,7 +29,8 @@ export function useChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasToken, setHasToken] = useState(false);
+  // Token is now hardcoded on server, always available
+  const hasToken = true;
 
   const currentItinerary = useRef(itinerary);
 
@@ -39,20 +39,8 @@ export function useChat({
     currentItinerary.current = itinerary;
   }, [itinerary]);
 
-  // Check for token on mount
-  useEffect(() => {
-    const token = getStoredToken();
-    setHasToken(!!token);
-  }, []);
-
   const sendMessage = useCallback(
     async (content: string) => {
-      const token = getStoredToken();
-      if (!token) {
-        setError('Please add your Claude API token in Settings');
-        return;
-      }
-
       setError(null);
       setIsLoading(true);
 
@@ -80,7 +68,6 @@ export function useChat({
             messages: apiMessages,
             tripId,
             itinerary: currentItinerary.current,
-            oauthToken: token,
           }),
         });
 

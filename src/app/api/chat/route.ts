@@ -5,6 +5,9 @@ import { buildChatSystemPrompt } from '@/lib/ai/chat-prompts';
 import { getToolsForAPI } from '@/lib/ai/chat-tools';
 import type { Itinerary } from '@/types/itinerary';
 
+// OAuth token from environment variable
+const CLAUDE_TOKEN = process.env.CLAUDE_OAUTH_TOKEN || '';
+
 interface ChatRequestBody {
   messages: Array<{
     role: 'user' | 'assistant';
@@ -12,7 +15,7 @@ interface ChatRequestBody {
   }>;
   tripId: string;
   itinerary: Itinerary;
-  oauthToken: string;
+  oauthToken?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -20,10 +23,12 @@ export async function POST(request: NextRequest) {
     const body: ChatRequestBody = await request.json();
     const { messages, itinerary, oauthToken } = body;
 
-    // Validate OAuth token
-    if (!oauthToken) {
+    // Use hardcoded token or fallback to provided token
+    const token = CLAUDE_TOKEN || oauthToken;
+
+    if (!token) {
       return NextResponse.json(
-        { error: 'OAuth token is required. Please add your Claude API token in Settings.' },
+        { error: 'No API token available.' },
         { status: 401 }
       );
     }
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${oauthToken}`,
+        'Authorization': `Bearer ${token}`,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'oauth-2025-04-20',
       },
@@ -105,9 +110,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { messages, toolResults, itinerary, oauthToken } = body;
 
-    if (!oauthToken) {
+    // Use hardcoded token or fallback to provided token
+    const token = CLAUDE_TOKEN || oauthToken;
+
+    if (!token) {
       return NextResponse.json(
-        { error: 'OAuth token is required' },
+        { error: 'No API token available.' },
         { status: 401 }
       );
     }
@@ -132,7 +140,7 @@ export async function PUT(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${oauthToken}`,
+        'Authorization': `Bearer ${token}`,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'oauth-2025-04-20',
       },
