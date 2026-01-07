@@ -1756,9 +1756,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                   {/* Filtered View - Experiences */}
                   {contentFilter === 'experiences' && (() => {
-                    // Calculate experience stats - activities that are not flights, transit, food, or checkin
+                    // Calculate experience stats - activities that are not flights, transit, food, or accommodation
                     const isExperience = (category?: string) =>
-                      category && category !== 'flight' && category !== 'transit' && category !== 'food' && category !== 'checkin';
+                      category && category !== 'flight' && category !== 'transit' && category !== 'food' && category !== 'checkin' && category !== 'accommodation';
 
                     const allExperiences = itinerary.days.flatMap(d =>
                       d.blocks.filter(b => isExperience(b.activity?.category))
