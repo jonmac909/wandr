@@ -444,7 +444,8 @@ export default function TripPage() {
     'fukuoka': '🇯🇵', 'okinawa': '🇯🇵', 'hiroshima': '🇯🇵', 'nara': '🇯🇵', 'japan': '🇯🇵',
     // Thailand
     'bangkok': '🇹🇭', 'chiang mai': '🇹🇭', 'phuket': '🇹🇭', 'koh samui': '🇹🇭',
-    'krabi': '🇹🇭', 'pattaya': '🇹🇭', 'thailand': '🇹🇭',
+    'krabi': '🇹🇭', 'pattaya': '🇹🇭', 'koh yao': '🇹🇭', 'koh lanta': '🇹🇭',
+    'koh phi phi': '🇹🇭', 'koh tao': '🇹🇭', 'koh phangan': '🇹🇭', 'thailand': '🇹🇭',
     // Vietnam
     'hanoi': '🇻🇳', 'ho chi minh': '🇻🇳', 'saigon': '🇻🇳', 'da nang': '🇻🇳',
     'hoi an': '🇻🇳', 'nha trang': '🇻🇳', 'phu quoc': '🇻🇳', 'hue': '🇻🇳', 'vietnam': '🇻🇳',
@@ -1135,7 +1136,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                               <h2 className="text-2xl font-bold">{itinerary.meta.title}</h2>
                               <div className="flex items-center gap-2 text-muted-foreground mt-1">
                                 <MapPin className="w-4 h-4" />
-                                <span>{itinerary.meta.destination}</span>
+                                <span>{getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}</span>
                               </div>
                               {/* Trip dates */}
                               {(itinerary.meta.startDate || itinerary.days[0]?.date) && (
