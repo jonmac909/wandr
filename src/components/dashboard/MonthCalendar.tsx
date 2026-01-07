@@ -261,6 +261,28 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
             );
           })}
         </div>
+
+        {/* Dot legend - only show when itinerary is provided */}
+        {itinerary && (
+          <div className={cn("flex items-center justify-center gap-3 border-t pt-1.5", compact ? "mt-1.5" : "mt-2")}>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Transport</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Hotels</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Activities</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Food</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
