@@ -58,22 +58,23 @@ const BLOCK_COLORS: Record<string, string> = {
   'transit': 'bg-stone-100 text-stone-800 border-stone-200',
 };
 
-// Category-based colors - warm neutral tones (browns, pinks, oranges)
+// Category-based colors - matching sidebar widget colors
+// Transport: blue, Hotels: purple, Food: orange, Activities: yellow
 const CATEGORY_COLORS: Record<string, string> = {
-  'flight': 'bg-orange-100 text-orange-800 border-orange-200',
-  'hotel': 'bg-rose-100 text-rose-800 border-rose-200',
-  'accommodation': 'bg-rose-100 text-rose-800 border-rose-200',
-  'checkin': 'bg-rose-100 text-rose-800 border-rose-200',
-  'food': 'bg-amber-100 text-amber-800 border-amber-200',
-  'restaurant': 'bg-amber-100 text-amber-800 border-amber-200',
-  'activity': 'bg-amber-100 text-amber-800 border-amber-200',
-  'experience': 'bg-amber-100 text-amber-800 border-amber-200',
-  'sightseeing': 'bg-amber-100 text-amber-800 border-amber-200',
+  'flight': 'bg-blue-100 text-blue-800 border-blue-200',
+  'hotel': 'bg-purple-100 text-purple-800 border-purple-200',
+  'accommodation': 'bg-purple-100 text-purple-800 border-purple-200',
+  'checkin': 'bg-purple-100 text-purple-800 border-purple-200',
+  'food': 'bg-orange-100 text-orange-800 border-orange-200',
+  'restaurant': 'bg-orange-100 text-orange-800 border-orange-200',
+  'activity': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'experience': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'sightseeing': 'bg-yellow-100 text-yellow-800 border-yellow-200',
   'relaxation': 'bg-stone-100 text-stone-800 border-stone-200',
-  'shopping': 'bg-pink-100 text-pink-800 border-pink-200',
-  'nightlife': 'bg-rose-100 text-rose-800 border-rose-200',
-  'workshop': 'bg-orange-100 text-orange-800 border-orange-200',
-  'transit': 'bg-stone-100 text-stone-800 border-stone-200',
+  'shopping': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'nightlife': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'workshop': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  'transit': 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
 // Category icons for compact display
