@@ -1101,11 +1101,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
-                {/* Persistent Trip Header - Minimal, shows on all views */}
-                <div className="flex-shrink-0 flex items-center justify-between pb-1 mb-1 border-b">
+                {/* Persistent Trip Header - shows on all views */}
+                <div className="flex-shrink-0 flex items-center justify-between pb-2 mb-2 border-b">
                   <div className="flex items-center gap-2 min-w-0">
-                    <h2 className="text-base font-bold truncate">{itinerary.meta.title}</h2>
-                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                    <h2 className="text-lg font-bold truncate">{itinerary.meta.title}</h2>
+                    <span className="text-sm text-muted-foreground truncate hidden sm:inline">
                       {getFlagsForDestination(itinerary.meta.destination)}
                     </span>
                   </div>
@@ -1284,10 +1284,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Count unique destinations and transport (flights + trains/buses)
-                        const uniqueDestinations = new Set(groups.map(g => g.location)).size;
-                        const transportCount = itinerary.days.reduce((acc, d) =>
-                          acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0);
+                        // Count unique cities (destinations)
+                        const uniqueCities = new Set(groups.map(g => g.location)).size;
+
+                        // Count unique countries by looking at flags
+                        const uniqueCountries = new Set(
+                          groups.map(g => getFlagForLocation(g.location)).filter(f => f)
+                        ).size;
 
                         // Format date string without timezone issues
                         const formatDateString = (dateStr: string) => {
@@ -1296,32 +1299,17 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           return `${months[month - 1]} ${day}`;
                         };
 
+                        // Format the trip date range
+                        const tripDateRange = `${formatDateString(firstDate)} – ${formatDateString(lastDate)}`;
+
                         return (
                           <>
-                            {/* Trip Stats */}
-                            <div className="grid grid-cols-3 gap-2">
-                              <Card className="py-0">
-                                <CardContent className="p-2 text-center">
-                                  <p className="text-2xl font-bold">{totalDays}</p>
-                                  <p className="text-xs text-muted-foreground">Days</p>
-                                </CardContent>
-                              </Card>
-                              <Card className="py-0">
-                                <CardContent className="p-2 text-center">
-                                  <p className="text-2xl font-bold">{uniqueDestinations}</p>
-                                  <p className="text-xs text-muted-foreground">Destinations</p>
-                                </CardContent>
-                              </Card>
-                              <Card className="py-0">
-                                <CardContent className="p-2 text-center">
-                                  <p className="text-2xl font-bold">{transportCount}</p>
-                                  <p className="text-xs text-muted-foreground">Flights</p>
-                                </CardContent>
-                              </Card>
-                            </div>
-
                             <Card className="py-0">
                               <CardContent className="p-2">
+                                {/* Trip summary header */}
+                                <div className="text-sm text-muted-foreground mb-3 pb-2 border-b">
+                                  {totalDays} days • {tripDateRange} • {uniqueCountries} {uniqueCountries === 1 ? 'country' : 'countries'} • {uniqueCities} {uniqueCities === 1 ? 'city' : 'cities'}
+                                </div>
                                 <div className="space-y-2">
                                   {groups.map((group, index) => {
                                     // Get days within this group's date range
