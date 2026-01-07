@@ -178,7 +178,7 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
       <CardContent className={compact ? "p-1.5" : "p-2"}>
         {/* Header */}
         <div className={cn("flex items-center justify-between", compact ? "mb-2" : "mb-4")}>
-          <h3 className={compact ? "font-medium text-sm" : "font-semibold"}>
+          <h3 className={cn("text-left", compact ? "font-medium text-sm" : "font-semibold")}>
             {MONTHS[currentMonth]} {currentYear}
           </h3>
           <div className="flex gap-1">
