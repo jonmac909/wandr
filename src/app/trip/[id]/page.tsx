@@ -34,17 +34,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Pipeline category colors - warm neutral tones (browns, pinks, oranges)
+// Pipeline category colors - all distinct warm neutral tones
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
   'Overview': { bg: 'bg-red-50 border-red-200', iconBg: 'bg-red-100 text-red-600', text: 'text-red-800' },
   'Schedule': { bg: 'bg-gray-50 border-gray-200', iconBg: 'bg-gray-100 text-gray-600', text: 'text-gray-800' },
   'Transport': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
-  'Hotels': { bg: 'bg-rose-50 border-rose-200', iconBg: 'bg-rose-100 text-rose-600', text: 'text-rose-800' },
+  'Hotels': { bg: 'bg-pink-50 border-pink-200', iconBg: 'bg-pink-100 text-pink-600', text: 'text-pink-800' },
   'Food': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Activities': { bg: 'bg-yellow-50 border-yellow-200', iconBg: 'bg-yellow-100 text-yellow-600', text: 'text-yellow-800' },
-  'Packing': { bg: 'bg-orange-50 border-orange-300', iconBg: 'bg-orange-200 text-orange-700', text: 'text-orange-800' },
-  'Docs': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
-  'Budget': { bg: 'bg-stone-100 border-stone-300', iconBg: 'bg-stone-200 text-stone-700', text: 'text-stone-800' },
+  'Packing': { bg: 'bg-amber-100 border-amber-300', iconBg: 'bg-amber-200 text-amber-700', text: 'text-amber-800' },
+  'Docs': { bg: 'bg-slate-50 border-slate-200', iconBg: 'bg-slate-100 text-slate-600', text: 'text-slate-800' },
+  'Budget': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-700', text: 'text-amber-900' },
   'More': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
 };
 
@@ -1554,41 +1554,32 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                     return (
                     <div className="space-y-4 pr-1">
-                      {/* Trip Header with Stats */}
-                      <div className="pb-3 border-b">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                          <span className="text-sm text-muted-foreground">
-                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                      {/* Summary stats bar */}
+                      <div className="flex items-center gap-3 text-sm pb-2 border-b">
+                        {flightCount > 0 && (
+                          <span className="flex items-center gap-1 text-orange-600">
+                            <Plane className="w-3.5 h-3.5" />
+                            {flightCount} flight{flightCount !== 1 ? 's' : ''}
                           </span>
-                        </div>
-                        {/* Summary stats */}
-                        <div className="flex items-center gap-3 mt-2 text-sm">
-                          {flightCount > 0 && (
-                            <span className="flex items-center gap-1 text-orange-600">
-                              <Plane className="w-3.5 h-3.5" />
-                              {flightCount} flight{flightCount !== 1 ? 's' : ''}
-                            </span>
-                          )}
-                          {transitCount > 0 && (
-                            <span className="flex items-center gap-1 text-amber-600">
-                              <Train className="w-3.5 h-3.5" />
-                              {transitCount} train{transitCount !== 1 ? 's' : ''}
-                            </span>
-                          )}
-                          {notBooked > 0 && (
-                            <span className="flex items-center gap-1 text-orange-600">
-                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
-                              {notBooked} to book
-                            </span>
-                          )}
-                          {notBooked === 0 && allTransport.length > 0 && (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <Check className="w-3.5 h-3.5" />
-                              All booked
-                            </span>
-                          )}
-                        </div>
+                        )}
+                        {transitCount > 0 && (
+                          <span className="flex items-center gap-1 text-amber-600">
+                            <Train className="w-3.5 h-3.5" />
+                            {transitCount} train{transitCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {notBooked > 0 && (
+                          <span className="flex items-center gap-1 text-orange-600">
+                            <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                            {notBooked} to book
+                          </span>
+                        )}
+                        {notBooked === 0 && allTransport.length > 0 && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <Check className="w-3.5 h-3.5" />
+                            All booked
+                          </span>
+                        )}
                       </div>
                       {/* Group transport by day - same as schedule view */}
                       {itinerary.days
@@ -1708,36 +1699,27 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                     return (
                     <div className="space-y-4 pr-1">
-                      {/* Trip Header with Stats */}
-                      <div className="pb-3 border-b">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                          <span className="text-sm text-muted-foreground">
-                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                      {/* Summary stats bar */}
+                      <div className="flex items-center gap-3 text-sm pb-2 border-b">
+                        <span className="flex items-center gap-1 text-rose-600">
+                          <Hotel className="w-3.5 h-3.5" />
+                          {hotelCount} hotel{hotelCount !== 1 ? 's' : ''}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {totalNights} night{totalNights !== 1 ? 's' : ''}
+                        </span>
+                        {notBooked > 0 && (
+                          <span className="flex items-center gap-1 text-orange-600">
+                            <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                            {notBooked} to book
                           </span>
-                        </div>
-                        {/* Summary stats */}
-                        <div className="flex items-center gap-3 mt-2 text-sm">
-                          <span className="flex items-center gap-1 text-rose-600">
-                            <Hotel className="w-3.5 h-3.5" />
-                            {hotelCount} hotel{hotelCount !== 1 ? 's' : ''}
+                        )}
+                        {notBooked === 0 && hotelCount > 0 && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <Check className="w-3.5 h-3.5" />
+                            All booked
                           </span>
-                          <span className="text-muted-foreground">
-                            {totalNights} night{totalNights !== 1 ? 's' : ''}
-                          </span>
-                          {notBooked > 0 && (
-                            <span className="flex items-center gap-1 text-orange-600">
-                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
-                              {notBooked} to book
-                            </span>
-                          )}
-                          {notBooked === 0 && hotelCount > 0 && (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <Check className="w-3.5 h-3.5" />
-                              All booked
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                       {/* Hotels grouped by check-in date */}
                       {itinerary.route.bases.map((base, index) => {
@@ -1816,13 +1798,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Filtered View - Restaurants */}
                   {contentFilter === 'restaurants' && (
                     <div className="space-y-2 pr-1">
-                      {/* Compact Trip Header */}
-                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
-                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                        <span className="text-sm text-muted-foreground">
-                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
-                        </span>
-                      </div>
                       <FoodLayerView foods={itinerary.foodLayer} onDeleteFood={handleDeleteFoodRecommendation} />
                     </div>
                   )}
@@ -1839,33 +1814,24 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                     return (
                     <div className="space-y-4 pr-1">
-                      {/* Trip Header with Stats */}
-                      <div className="pb-3 border-b">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                          <span className="text-sm text-muted-foreground">
-                            {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
+                      {/* Summary stats bar */}
+                      <div className="flex items-center gap-3 text-sm pb-2 border-b">
+                        <span className="flex items-center gap-1 text-amber-600">
+                          <Compass className="w-3.5 h-3.5" />
+                          {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}
+                        </span>
+                        {notBooked > 0 && (
+                          <span className="flex items-center gap-1 text-orange-600">
+                            <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
+                            {notBooked} to book
                           </span>
-                        </div>
-                        {/* Summary stats */}
-                        <div className="flex items-center gap-3 mt-2 text-sm">
-                          <span className="flex items-center gap-1 text-amber-600">
-                            <Compass className="w-3.5 h-3.5" />
-                            {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}
+                        )}
+                        {notBooked === 0 && needsBooking > 0 && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <Check className="w-3.5 h-3.5" />
+                            All booked
                           </span>
-                          {notBooked > 0 && (
-                            <span className="flex items-center gap-1 text-orange-600">
-                              <span className="w-2 h-2 rounded-full border-2 border-orange-400" />
-                              {notBooked} to book
-                            </span>
-                          )}
-                          {notBooked === 0 && needsBooking > 0 && (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <Check className="w-3.5 h-3.5" />
-                              All booked
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                       {/* Group experiences by day - same as schedule view */}
                       {itinerary.days
@@ -1971,13 +1937,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Packing List View */}
                   {contentFilter === 'packing' && (
                     <div className="pr-1">
-                      {/* Compact Trip Header */}
-                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
-                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                        <span className="text-sm text-muted-foreground">
-                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
-                        </span>
-                      </div>
                       <PackingListView packingList={itinerary.packingLayer} onRegenerate={handleRegeneratePackingList} />
                     </div>
                   )}
@@ -1985,13 +1944,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Documents View */}
                   {contentFilter === 'docs' && (
                     <div className="space-y-2 pr-1">
-                      {/* Compact Trip Header */}
-                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
-                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                        <span className="text-sm text-muted-foreground">
-                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
-                        </span>
-                      </div>
                       {/* Document categories as cards */}
                       {[
                         { icon: Stethoscope, label: 'Health Insurance', desc: 'Medical coverage abroad', color: 'bg-rose-100 text-rose-600' },
@@ -2026,13 +1978,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Budget View */}
                   {contentFilter === 'budget' && (
                     <div className="space-y-3 pr-1">
-                      {/* Compact Trip Header */}
-                      <div className="flex items-center gap-2 pb-2 border-b mb-2">
-                        <h2 className="text-lg font-bold">{itinerary.meta.title}</h2>
-                        <span className="text-sm text-muted-foreground">
-                          {getFlagForLocation(itinerary.meta.destination)} {itinerary.meta.destination}
-                        </span>
-                      </div>
                       <div className="text-center py-4">
                         <DollarSign className="w-10 h-10 mx-auto text-muted-foreground/30 mb-2" />
                         <p className="text-xs text-muted-foreground">
