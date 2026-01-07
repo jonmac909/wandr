@@ -629,6 +629,25 @@ export default function TripPage() {
     alert(`Fixed ${result.fixedCount} airport code(s)!${detailsMsg}`);
   };
 
+  // Calculate total trip days from date range (not just days with activities)
+  const getTotalTripDays = (): number => {
+    if (!itinerary?.days?.length) return 0;
+
+    // Use tripDna start date if available (includes departure day)
+    const tripStartDate = tripDna?.constraints?.dates?.startDate;
+    const firstDate = tripStartDate || itinerary.days[0]?.date;
+    const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
+
+    if (!firstDate || !lastDate) return itinerary.days.length;
+
+    const [y1, m1, d1] = firstDate.split('-').map(Number);
+    const [y2, m2, d2] = lastDate.split('-').map(Number);
+    const start = new Date(y1, m1 - 1, d1);
+    const end = new Date(y2, m2 - 1, d2);
+
+    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
   // Auto-generate packing list if empty
   useEffect(() => {
     if (itinerary && isPackingListEmpty(itinerary.packingLayer)) {
@@ -890,7 +909,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<Sparkles className="w-4 h-4" />}
                     label="Overview"
-                    count={itinerary.days.length}
+                    count={getTotalTripDays()}
                     active={contentFilter === 'overview'}
                     onClick={() => setContentFilter('overview')}
                   />
@@ -898,7 +917,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   <PipelineRow
                     icon={<Calendar className="w-4 h-4" />}
                     label="Schedule"
-                    count={itinerary.days.length}
+                    count={getTotalTripDays()}
                     active={contentFilter === 'schedule'}
                     onClick={() => setContentFilter('schedule')}
                   />
