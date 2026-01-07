@@ -54,10 +54,10 @@ export default function Home() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-3 min-h-0 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2 py-1 min-h-0 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-1.5">
           {/* Left Column: Weather + Calendar + Recent Trips */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 min-h-0">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-1.5 min-h-0">
             <WeatherWidget location="West Kelowna, Canada" />
             <MonthCalendar trips={trips} />
             <div className="flex-1 min-h-0">
@@ -66,7 +66,7 @@ export default function Home() {
           </aside>
 
           {/* Center Column: Featured Trip + Housing + Transport */}
-          <section className="lg:col-span-6 flex flex-col gap-4 min-h-0">
+          <section className="lg:col-span-6 flex flex-col gap-1.5 min-h-0">
             <FeaturedTripCard trip={featuredTrip} />
             <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
             <div className="flex-1 min-h-0">
@@ -75,7 +75,7 @@ export default function Home() {
           </section>
 
           {/* Right Column: Stats + Map + Bucket List */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-4 min-h-0">
+          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-1.5 min-h-0">
             <StatsPanel stats={stats} />
             <WorldMap trips={trips} />
             <div className="flex-1 min-h-0">
