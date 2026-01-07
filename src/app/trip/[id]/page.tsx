@@ -1616,8 +1616,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 {transportBlocks.map(block => {
                                   const activity = block.activity!;
                                   const isFlight = activity.category === 'flight';
-                                  // Transport cards use purple to match pipeline widget
-                                  const colorClasses = 'bg-purple-100 text-purple-800 border-purple-200';
+                                  // Transport cards use blue to match design system
+                                  const colorClasses = 'bg-blue-100 text-blue-800 border-blue-200';
                                   const isBooked = activity.reservationStatus === 'done';
 
                                   return (
@@ -1754,8 +1754,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <span>{getFlagForLocation(base.location)} {base.location}</span>
                               </div>
                             </div>
-                            {/* Hotel card - pink to match pipeline widget */}
-                            <div className="p-3 rounded-lg border bg-pink-100 text-pink-800 border-pink-200">
+                            {/* Hotel card - purple to match design system */}
+                            <div className="p-3 rounded-lg border bg-purple-100 text-purple-800 border-purple-200">
                               {/* Line 1: icon + name + nights */}
                               <div className="flex items-center gap-1.5">
                                 <span className="opacity-60 flex-shrink-0">
@@ -1783,7 +1783,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
-                                        className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-rose-200 text-rose-800 border border-rose-300 hover:bg-rose-300 transition-colors"
+                                        className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-purple-200 text-purple-800 border border-purple-300 hover:bg-purple-300 transition-colors"
                                       >
                                         <ExternalLink className="w-2.5 h-2.5" />
                                         Book
