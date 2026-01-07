@@ -1095,17 +1095,16 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                           // Get CITY for this day (not theme/activity - only actual city changes)
                           let location: string;
-                          let isFlightDay = false;
                           if (existingDay) {
                             location = getCityForDay(existingDay);
-                            // Check if this day has a flight (travel day)
-                            isFlightDay = existingDay.blocks.some(b => b.activity?.category === 'flight');
                           } else {
                             // For empty days, use the last known location
                             location = lastLocation || itinerary.meta.destination || 'Unknown';
                           }
 
                           const lastGroup = groups[groups.length - 1];
+                          const isLocationChange = lastGroup && lastGroup.location !== location;
+
                           if (lastGroup && lastGroup.location === location) {
                             lastGroup.endDate = dateStr;
                             lastGroup.endDay = dayNum;
@@ -1113,13 +1112,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                             // But minimum 1 night if you're there at all
                             lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
                           } else {
-                            // If this is a flight day, extend the previous group to include travel day
-                            if (isFlightDay && lastGroup) {
+                            // Location change - always overlap the transition day in both groups
+                            if (lastGroup && isLocationChange) {
                               lastGroup.endDate = dateStr;
                               lastGroup.endDay = dayNum;
                               lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
                             }
-                            // Start new group (flight day overlaps - included in both)
+                            // Start new group (travel day overlaps - included in both)
                             groups.push({
                               location,
                               startDate: dateStr,
