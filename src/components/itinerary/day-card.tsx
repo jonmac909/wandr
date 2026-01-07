@@ -148,7 +148,9 @@ export function DayCard({
 
     const [y, m, d] = day.date.split('-').map(Number);
     const dayDate = new Date(y, m - 1, d);
+    const dayTime = dayDate.getTime();
 
+    // First try to find exact match (checkIn <= day < checkOut)
     for (const base of bases) {
       if (!base.checkIn || !base.checkOut) continue;
       const [cy, cm, cd] = base.checkIn.split('-').map(Number);
@@ -156,14 +158,31 @@ export function DayCard({
       const checkIn = new Date(cy, cm - 1, cd);
       const checkOut = new Date(oy, om - 1, od);
 
-      // Day is within this base's stay (checkIn <= day < checkOut)
-      if (dayDate >= checkIn && dayDate < checkOut) {
+      if (dayTime >= checkIn.getTime() && dayTime < checkOut.getTime()) {
         return {
           name: base.accommodation?.name || base.location,
           nights: base.nights || Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
         };
       }
     }
+
+    // If no exact match, find the closest base by location name matching the day's location
+    // This handles cases where bases have gaps or checkout days
+    if (location) {
+      const locationLower = location.toLowerCase();
+      for (const base of bases) {
+        const baseLoc = (base.location || '').toLowerCase();
+        const accomLoc = (base.accommodation?.name || '').toLowerCase();
+        if (locationLower.includes(baseLoc) || baseLoc.includes(locationLower) ||
+            locationLower.includes(accomLoc) || accomLoc.includes(locationLower)) {
+          return {
+            name: base.accommodation?.name || base.location,
+            nights: base.nights || 1
+          };
+        }
+      }
+    }
+
     return null;
   };
 
