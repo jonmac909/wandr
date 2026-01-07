@@ -1085,6 +1085,27 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <MapPin className="w-4 h-4" />
                                 <span>{itinerary.meta.destination}</span>
                               </div>
+                              {/* Trip dates */}
+                              {(itinerary.meta.startDate || itinerary.days[0]?.date) && (
+                                <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>
+                                    {(() => {
+                                      const startDate = itinerary.meta.startDate || itinerary.days[0]?.date;
+                                      const endDate = itinerary.meta.endDate || itinerary.days[itinerary.days.length - 1]?.date;
+                                      if (!startDate) return '';
+                                      const [y1, m1, d1] = startDate.split('-').map(Number);
+                                      const start = new Date(y1, m1 - 1, d1);
+                                      const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                      if (!endDate || startDate === endDate) return startStr;
+                                      const [y2, m2, d2] = endDate.split('-').map(Number);
+                                      const end = new Date(y2, m2 - 1, d2);
+                                      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                      return `${startStr} - ${endStr}`;
+                                    })()}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <Button
                               variant="ghost"
@@ -1463,40 +1484,47 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {contentFilter === 'transport' && (
                     <div className="space-y-2 pr-1">
                       {itinerary.days.flatMap(day =>
-                        day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').map(block => (
-                          <Card key={block.id} data-date={day.date}>
-                            <CardContent className="p-3">
-                              <div className="flex items-start gap-3">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                  block.activity?.category === 'flight' ? 'bg-blue-100' : 'bg-cyan-100'
-                                }`}>
-                                  {block.activity?.category === 'flight'
-                                    ? <Plane className="w-5 h-5 text-blue-600" />
-                                    : <Train className="w-5 h-5 text-cyan-600" />
-                                  }
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm">{block.activity?.name}</h4>
-                                  <p className="text-xs text-muted-foreground truncate">{block.activity?.description}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">{formatDisplayDate(day.date)}</p>
-                                </div>
+                        day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').map(block => {
+                          const isFlight = block.activity?.category === 'flight';
+                          const colorClasses = isFlight
+                            ? 'bg-blue-100 text-blue-800 border-blue-200'
+                            : 'bg-cyan-100 text-cyan-800 border-cyan-200';
+                          return (
+                            <div
+                              key={block.id}
+                              data-date={day.date}
+                              className={`p-3 rounded-lg border ${colorClasses}`}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                {isFlight
+                                  ? <Plane className="w-3.5 h-3.5 opacity-60" />
+                                  : <Train className="w-3.5 h-3.5 opacity-60" />
+                                }
+                                <span className="font-medium text-sm flex-1 truncate">{block.activity?.name}</span>
                                 {block.activity && (
                                   <a
                                     href={generateBookingUrl(block.activity, { date: day.date })}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-shrink-0"
+                                    className="flex-shrink-0 ml-2"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
+                                    <Button size="sm" variant="ghost" className="h-6 text-xs gap-1 px-2 hover:bg-white/50">
                                       <ExternalLink className="w-3 h-3" />
                                       Book
                                     </Button>
                                   </a>
                                 )}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))
+                              <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
+                                {block.activity?.description && (
+                                  <span className="truncate">{block.activity.description}</span>
+                                )}
+                                <span>{formatDisplayDate(day.date)}</span>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                       {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) && (
                         <div className="text-center py-8">
@@ -1513,23 +1541,28 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       {itinerary.route.bases.map((base, index) => {
                         const nights = getActualNights(index);
                         return (
-                        <Card key={base.id} data-date={base.checkIn}>
-                          <CardContent className="p-3">
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                <Hotel className="w-5 h-5 text-purple-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</h4>
-                                <p className="text-xs text-muted-foreground truncate">{base.location}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
-                                  {' • '}{nights} night{nights > 1 ? 's' : ''}
-                                </p>
-                              </div>
+                          <div
+                            key={base.id}
+                            data-date={base.checkIn}
+                            className="p-3 rounded-lg border bg-purple-100 text-purple-800 border-purple-200"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <Hotel className="w-3.5 h-3.5 opacity-60" />
+                              <span className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</span>
+                              <span className="text-xs opacity-50 ml-auto flex-shrink-0">
+                                {nights} night{nights > 1 ? 's' : ''}
+                              </span>
                             </div>
-                          </CardContent>
-                        </Card>
+                            <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {base.location}
+                              </span>
+                              <span>
+                                {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
+                              </span>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
@@ -1547,20 +1580,22 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     <div className="space-y-2 pr-1">
                       {itinerary.days.flatMap(day =>
                         day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
-                          <Card key={block.id} data-date={day.date}>
-                            <CardContent className="p-3">
-                              <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                  <Compass className="w-5 h-5 text-amber-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm">{block.activity?.name}</h4>
-                                  <p className="text-xs text-muted-foreground truncate">{block.activity?.description}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">{formatDisplayDate(day.date)}</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                          <div
+                            key={block.id}
+                            data-date={day.date}
+                            className="p-3 rounded-lg border bg-amber-100 text-amber-800 border-amber-200"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <Compass className="w-3.5 h-3.5 opacity-60" />
+                              <span className="font-medium text-sm flex-1 truncate">{block.activity?.name}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-70 mt-1">
+                              {block.activity?.description && (
+                                <span className="truncate">{block.activity.description}</span>
+                              )}
+                              <span>{formatDisplayDate(day.date)}</span>
+                            </div>
+                          </div>
                         ))
                       )}
                       {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food')) && (
