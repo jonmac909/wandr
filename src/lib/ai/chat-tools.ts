@@ -69,8 +69,8 @@ export const TRIP_TOOLS: ToolDefinition[] = [
             name: { type: 'string', description: 'Name of the activity' },
             category: {
               type: 'string',
-              enum: ['sightseeing', 'food', 'activity', 'relaxation', 'shopping', 'nightlife', 'workshop', 'transit'],
-              description: 'Category of the activity',
+              enum: ['sightseeing', 'food', 'activity', 'relaxation', 'shopping', 'nightlife', 'workshop', 'transit', 'flight', 'accommodation', 'checkin'],
+              description: 'Category of the activity. Use "flight" for flights, "transit" for trains/buses/ferries, "accommodation" for hotels.',
             },
             description: { type: 'string', description: 'Brief description' },
             duration: { type: 'number', description: 'Duration in minutes' },

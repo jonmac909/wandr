@@ -150,15 +150,16 @@ function handleAddActivity(
   }
 
   // Create the activity
+  const category = (activityInput.category as ActivityCategory) || 'activity';
   const activity: Activity = {
     id: crypto.randomUUID(),
     name: activityInput.name as string,
-    category: (activityInput.category as ActivityCategory) || 'activity',
+    category,
     description: (activityInput.description as string) || '',
     duration: (activityInput.duration as number) || 60,
     scheduledTime: activityInput.scheduledTime as string | undefined,
     location: activityInput.location as Activity['location'],
-    bookingRequired: false,
+    bookingRequired: category === 'flight' || category === 'accommodation',
     tags: [],
   };
 
