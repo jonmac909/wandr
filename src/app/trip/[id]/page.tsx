@@ -1629,10 +1629,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                   {/* Filtered View - Hotels */}
                   {contentFilter === 'hotels' && (() => {
-                    // Calculate hotel stats
-                    const hotelCount = itinerary.route.bases.length;
-                    const totalNights = itinerary.route.bases.reduce((sum, _, idx) => sum + getActualNights(idx), 0);
-                    const notBooked = itinerary.route.bases.filter(base => {
+                    // Calculate hotel stats - use optional chaining for safety
+                    const bases = itinerary.route?.bases || [];
+                    const hotelCount = bases.length;
+                    const totalNights = bases.reduce((sum, _, idx) => sum + getActualNights(idx), 0);
+                    const notBooked = bases.filter(base => {
                       const block = itinerary.days.flatMap(d => d.blocks)
                         .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
                       return block?.activity?.reservationStatus !== 'done';
@@ -1664,7 +1665,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         )}
                       </div>
                       {/* Hotels from route.bases - wrapped in Card like DayCard */}
-                      {itinerary.route.bases.map((base, index) => {
+                      {bases.map((base, index) => {
                         const nights = getActualNights(index);
                         const isToday = base.checkIn === today;
                         // Find accommodation block to get booking status
@@ -1736,7 +1737,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </Card>
                         );
                       })}
-                      {itinerary.route.bases.length === 0 && (
+                      {bases.length === 0 && (
                         <div className="text-center py-8">
                           <Hotel className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                           <p className="text-sm text-muted-foreground">No hotels in this trip</p>
