@@ -1612,9 +1612,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 {transportBlocks.map(block => {
                                   const activity = block.activity!;
                                   const isFlight = activity.category === 'flight';
-                                  const colorClasses = isFlight
-                                    ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                    : 'bg-amber-100 text-amber-800 border-amber-200';
+                                  // Transport cards use purple to match pipeline widget
+                                  const colorClasses = 'bg-purple-100 text-purple-800 border-purple-200';
                                   const isBooked = activity.reservationStatus === 'done';
 
                                   return (
@@ -1751,8 +1750,8 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                 <span>{getFlagForLocation(base.location)} {base.location}</span>
                               </div>
                             </div>
-                            {/* Hotel card - same style as schedule */}
-                            <div className="p-3 rounded-lg border bg-rose-100 text-rose-800 border-rose-200">
+                            {/* Hotel card - pink to match pipeline widget */}
+                            <div className="p-3 rounded-lg border bg-pink-100 text-pink-800 border-pink-200">
                               {/* Line 1: icon + name + nights */}
                               <div className="flex items-center gap-1.5">
                                 <span className="opacity-60 flex-shrink-0">
@@ -1868,7 +1867,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   return (
                                     <div
                                       key={block.id}
-                                      className="p-3 rounded-lg border bg-amber-100 text-amber-800 border-amber-200"
+                                      className="p-3 rounded-lg border bg-yellow-100 text-yellow-800 border-yellow-200"
                                     >
                                       {/* Line 1: icon + name + duration */}
                                       <div className="flex items-center gap-1.5">

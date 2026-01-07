@@ -145,10 +145,10 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'transport': return 'bg-blue-500';
-      case 'hotel': return 'bg-purple-500';
-      case 'food': return 'bg-orange-500';
-      case 'activity': return 'bg-yellow-500';
+      case 'transport': return 'bg-purple-500';  // Purple to match Transport widget
+      case 'hotel': return 'bg-pink-500';        // Pink to match Hotels widget
+      case 'food': return 'bg-orange-500';       // Orange to match Food widget
+      case 'activity': return 'bg-yellow-500';   // Yellow to match Activities widget
       default: return 'bg-gray-400';
     }
   };
@@ -283,11 +283,11 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
         {itinerary && (
           <div className={cn("flex items-center justify-center gap-3 border-t pt-1.5", compact ? "mt-1.5" : "mt-2")}>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
               <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Transport</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
               <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Hotels</span>
             </div>
             <div className="flex items-center gap-1">
