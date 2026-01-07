@@ -512,26 +512,29 @@ export default function TripPage() {
       const lastFlight = flightBlocks[flightBlocks.length - 1];
       const flightName = lastFlight?.activity?.name || '';
 
-      // Try to parse destination from flight name formats:
-      // "Bangkok → Chiang Mai" or "City A - City B"
-      const cityMatch = flightName.match(/([A-Za-z\s]+)\s*[→–]\s*([A-Za-z\s]+)/);
-      if (cityMatch) {
-        return cityMatch[2].trim();
+      // Map common airport codes to city names
+      const airportToCityMap: Record<string, string> = {
+        'NRT': 'Tokyo Narita', 'HND': 'Tokyo Haneda', 'KIX': 'Osaka',
+        'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
+        'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
+        'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
+        'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'JFK': 'New York',
+        'LHR': 'London', 'CDG': 'Paris', 'FCO': 'Rome',
+        'DAN': 'Da Nang', 'DAD': 'Da Nang', 'SGN': 'Ho Chi Minh',
+        'HAN': 'Hanoi', 'REP': 'Siem Reap', 'KUL': 'Kuala Lumpur',
+      };
+
+      // Try to find airport codes like "YVR-NRT" or "BKK-CNX" anywhere in the string
+      const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
+      if (codeMatch) {
+        return airportToCityMap[codeMatch[2]] || codeMatch[2];
       }
 
-      // "YVR-NRT" or "BKK-CNX" (airport codes) - get second code
-      const codeMatch = flightName.match(/\b([A-Z]{3})\s*[-–→]\s*([A-Z]{3})\b/);
-      if (codeMatch) {
-        // Map common airport codes to city names
-        const airportToCityMap: Record<string, string> = {
-          'NRT': 'Tokyo Narita', 'HND': 'Tokyo Haneda', 'KIX': 'Osaka',
-          'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
-          'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
-          'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
-          'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'JFK': 'New York',
-          'LHR': 'London', 'CDG': 'Paris', 'FCO': 'Rome',
-        };
-        return airportToCityMap[codeMatch[2]] || codeMatch[2];
+      // Try to parse destination from flight name formats:
+      // "Bangkok → Chiang Mai" or "City A - City B" (but not times like 9:50am-1:00pm)
+      const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
+      if (cityMatch && !cityMatch[2].match(/\d/)) {
+        return cityMatch[2].trim();
       }
 
       // Fallback to location if can't parse
