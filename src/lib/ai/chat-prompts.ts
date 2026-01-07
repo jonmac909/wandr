@@ -126,6 +126,25 @@ function buildToolGuidelines(): string {
 - \`move_activity\`: Move an activity to a different day or time
   - Specify source activity and destination
 
+### IMPORTANT: Flight Formatting
+When adding flights, use this EXACT format for the activity name:
+**Format:** \`[Airline] [ORIGIN]→[DEST] [departure]-[arrival]+[days]\`
+
+**Examples:**
+- "Zipair YVR→NRT 9:50am-1:00pm+1"
+- "Thai Airways BKK→CNX 10:30am-12:00pm"
+- "ANA NRT→HND 8:00am-9:10am"
+
+**Rules:**
+1. Always include the airline name first
+2. Use 3-letter airport codes (not city names)
+3. Use → (arrow) between codes, NOT "to" or "-"
+4. Include departure and arrival times with am/pm
+5. Add +1 or +2 if arriving next day(s)
+6. Put flight details (duration, stops, seat type, cost) in the description field
+7. Use category "flight" NOT "transit"
+8. Location should be just the destination city name (e.g., "Tokyo" not "Tokyo Narita Airport")
+
 ### Food Layer
 - \`add_restaurant\`: Add a restaurant recommendation
   - Links to a specific day if provided
