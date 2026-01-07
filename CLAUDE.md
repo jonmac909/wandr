@@ -69,6 +69,27 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`useTrips()`** - Load all trips with `{ trips, loading, error, refresh }`
 - **`useTrip(tripId)`** - Load single trip with `{ trip, loading, error, refresh, updateTrip, deleteTrip }`
 
+### AI Chatbot (`src/lib/ai/`, `src/components/chat/`)
+Claude-powered chatbot for modifying trips via natural language:
+- **`chat-tools.ts`** - Tool definitions (get_itinerary, add_activity, search_restaurants, etc.)
+- **`tool-handlers.ts`** - Executes tool calls and returns updated itinerary
+- **`chat-prompts.ts`** - System prompt builder with trip context
+- **`/api/chat/route.ts`** - Streaming SSE endpoint using Claude API
+- **`useChat.ts`** - Hook managing messages, streaming, and multi-turn tool execution
+
+**Flight formatting rules** (in system prompt):
+- Format: `[Airline] [ORIGIN]→[DEST] [departure]-[arrival]+[days]`
+- Example: `Zipair YVR→NRT 9:50am-1:00pm+1`
+- Always set: duration (minutes), cost ({ amount, currency }), tips (["details"])
+- Use category `flight` not `transit`
+
+### Booking URLs (`src/lib/booking/urls.ts`)
+Generates booking links based on activity category:
+- Flights → Google Flights
+- Hotels → TripAdvisor (via DuckDuckGo redirect)
+- Food/Activities → Google Search
+- `parseFlightDetails()` extracts airport codes from activity names
+
 ## Terminology
 
 - **Dashboard** = Home page (`/`) with calendar, featured trip, stats, map
