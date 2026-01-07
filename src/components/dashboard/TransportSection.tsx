@@ -16,7 +16,7 @@ export function TransportSection({ transport }: TransportSectionProps) {
   return (
     <Card className="h-full py-0">
       <CardContent className="p-2 h-full">
-        <h3 className="font-medium mb-2 text-xs text-muted-foreground">Transport</h3>
+        <h3 className="text-sm font-semibold mb-2">Transport</h3>
         <div className="space-y-0.5">
           {transport.map((t) => (
             <TransportRow key={t.id} transport={t} />

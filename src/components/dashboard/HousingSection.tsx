@@ -18,8 +18,8 @@ export function HousingSection({ bases }: HousingSectionProps) {
     <Card className="flex-shrink-0 py-0">
       <CardContent className="p-3">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-lg">Hotels</h3>
-          <span className="text-sm text-primary cursor-pointer hover:underline">See all &gt;</span>
+          <h3 className="text-sm font-semibold">Hotels</h3>
+          <span className="text-xs text-primary cursor-pointer hover:underline">See all &gt;</span>
         </div>
 
         {/* Tourvisto-style large image cards */}

@@ -107,3 +107,22 @@ Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels
 - Mobile-first with `md:` breakpoint for desktop
 - Left sidebar (map + widgets) hidden on mobile
 - Use `compact` prop on components for mobile variants
+
+### Design System (`src/lib/styles.ts`)
+Typography hierarchy - use consistently:
+```
+Page titles:      text-xl font-bold       (20px) - "Wandr" logo only
+Section titles:   text-sm font-semibold   (14px) - "Hotels", "Transport"
+Card headers:     text-sm font-semibold   (14px) - "January 2026", hotel names
+Compact headers:  text-xs font-semibold   (12px) - Trip page widgets
+Body text:        text-sm or text-xs      (14px/12px)
+Labels:           text-xs text-muted-foreground (12px)
+Small labels:     text-[10px] or text-[11px]
+Tiny (legends):   text-[9px] or text-[8px]
+```
+
+Category colors:
+- Transport: blue (bg-blue-100, text-blue-600)
+- Hotels: purple (bg-purple-100, text-purple-600)
+- Food: orange (bg-orange-100, text-orange-600)
+- Activities: yellow (bg-yellow-100, text-yellow-600)
