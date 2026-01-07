@@ -142,6 +142,33 @@ export function DayCard({
   const [editingTheme, setEditingTheme] = useState(false);
   const [themeValue, setThemeValue] = useState(day.theme || '');
 
+  // Get the hotel for this day based on bases check-in/check-out dates
+  const getHotelForDay = (): { name: string; nights: number } | null => {
+    if (!bases || bases.length === 0) return null;
+
+    const [y, m, d] = day.date.split('-').map(Number);
+    const dayDate = new Date(y, m - 1, d);
+
+    for (const base of bases) {
+      if (!base.checkIn || !base.checkOut) continue;
+      const [cy, cm, cd] = base.checkIn.split('-').map(Number);
+      const [oy, om, od] = base.checkOut.split('-').map(Number);
+      const checkIn = new Date(cy, cm - 1, cd);
+      const checkOut = new Date(oy, om - 1, od);
+
+      // Day is within this base's stay (checkIn <= day < checkOut)
+      if (dayDate >= checkIn && dayDate < checkOut) {
+        return {
+          name: base.accommodation?.name || base.location,
+          nights: base.nights || Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        };
+      }
+    }
+    return null;
+  };
+
+  const hotelForDay = getHotelForDay();
+
   // Parse date safely to avoid timezone issues (don't use new Date(string))
   const [year, month, dayNum] = day.date.split('-').map(Number);
   const dateObj = new Date(year, month - 1, dayNum);
@@ -260,6 +287,12 @@ export function DayCard({
                       </Button>
                     )}
                   </p>
+                  {hotelForDay && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Hotel className="w-3 h-3 text-purple-500" />
+                      <span className="text-purple-600">{hotelForDay.name}</span>
+                    </p>
+                  )}
                 </>
               )}
             </div>
