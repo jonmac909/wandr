@@ -69,6 +69,11 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`useTrips()`** - Load all trips with `{ trips, loading, error, refresh }`
 - **`useTrip(tripId)`** - Load single trip with `{ trip, loading, error, refresh, updateTrip, deleteTrip }`
 
+## Terminology
+
+- **Dashboard** = Home page (`/`) with calendar, featured trip, stats, map
+- **Trip page** = `/trip/[id]` with Overview, Schedule, Transport, Hotels widgets
+
 ## Ground Rules
 
 - Start replies with 🔧 emoji

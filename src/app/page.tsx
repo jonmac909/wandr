@@ -68,7 +68,7 @@ export default function Home() {
           {/* Center Column: Featured Trip + Housing + Transport */}
           <section className="lg:col-span-6 flex flex-col gap-1.5 min-h-0">
             <FeaturedTripCard trip={featuredTrip} />
-            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 2)} />
+            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 3)} />
             <div className="flex-1 min-h-0">
               <TransportSection transport={transport.slice(0, 3)} />
             </div>
