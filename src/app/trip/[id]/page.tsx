@@ -20,8 +20,7 @@ import {
   ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
-  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink,
-  MessageCircle
+  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
@@ -922,6 +921,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
         activeTab="trips"
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenChat={() => setChatOpen(true)}
       />
 
 
@@ -1967,14 +1967,6 @@ ${JSON.stringify(tripDna, null, 2)}`}
         />
       )}
 
-      {/* Chat FAB */}
-      <Button
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
-        onClick={() => setChatOpen(true)}
-        title="Trip Assistant"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
     </div>
   );
 }

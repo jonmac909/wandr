@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, Plane, Settings } from 'lucide-react';
+import { Bell, MessageCircle, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -9,9 +9,10 @@ interface DashboardHeaderProps {
   activeTab?: 'trips';
   onOpenDrawer?: () => void;
   onOpenProfile?: () => void;
+  onOpenChat?: () => void;
 }
 
-export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfile }: DashboardHeaderProps) {
+export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfile, onOpenChat }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
@@ -22,8 +23,17 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfi
           </h1>
         </Link>
 
-        {/* Left spacer for balance */}
-        <div className="w-24" />
+        {/* Left side - Chat button */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenChat}
+            title="Trip Assistant"
+          >
+            <MessageCircle className="w-5 h-5" />
+          </Button>
+        </div>
 
         {/* Right side actions */}
         <div className="flex items-center gap-1">
