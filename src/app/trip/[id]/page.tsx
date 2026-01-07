@@ -1148,37 +1148,70 @@ ${JSON.stringify(tripDna, null, 2)}`}
                 {/* Calendar Card - Shows on all views EXCEPT overview */}
                 {contentFilter !== 'overview' && (
                   <div className="flex-shrink-0 mb-2">
-                    <MonthCalendar
-                      trips={[{
-                        id: tripId,
-                        tripDna: tripDna!,
-                        itinerary: itinerary,
-                        createdAt: itinerary.createdAt,
-                        updatedAt: itinerary.updatedAt,
-                        syncedAt: new Date(),
-                        status: 'active' as const,
-                      }]}
-                      compact
-                      itinerary={itinerary}
-                      contentFilter={contentFilter}
-                      onDateClick={(date) => {
-                        const dateStr = date.toISOString().split('T')[0];
-                        // Scroll to the relevant item in the CURRENT view (don't switch views)
-                        setTimeout(() => {
-                          // Try to find an element with this date in the current view
-                          const dateElement = document.querySelector(`[data-date="${dateStr}"]`);
-                          if (dateElement) {
-                            dateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          } else if (contentFilter === 'schedule') {
-                            // Fallback for schedule view using dayRefs
-                            const dayElement = dayRefs.current[dateStr];
-                            if (dayElement) {
-                              dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    {/* Mobile: collapsible, starts collapsed */}
+                    <div className="md:hidden">
+                      <MonthCalendar
+                        trips={[{
+                          id: tripId,
+                          tripDna: tripDna!,
+                          itinerary: itinerary,
+                          createdAt: itinerary.createdAt,
+                          updatedAt: itinerary.updatedAt,
+                          syncedAt: new Date(),
+                          status: 'active' as const,
+                        }]}
+                        compact
+                        itinerary={itinerary}
+                        contentFilter={contentFilter}
+                        collapsible
+                        defaultCollapsed
+                        onDateClick={(date) => {
+                          const dateStr = date.toISOString().split('T')[0];
+                          setTimeout(() => {
+                            const dateElement = document.querySelector(`[data-date="${dateStr}"]`);
+                            if (dateElement) {
+                              dateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            } else if (contentFilter === 'schedule') {
+                              const dayElement = dayRefs.current[dateStr];
+                              if (dayElement) {
+                                dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }
                             }
-                          }
-                        }, 100);
-                      }}
-                    />
+                          }, 100);
+                        }}
+                      />
+                    </div>
+                    {/* Desktop: not collapsible */}
+                    <div className="hidden md:block">
+                      <MonthCalendar
+                        trips={[{
+                          id: tripId,
+                          tripDna: tripDna!,
+                          itinerary: itinerary,
+                          createdAt: itinerary.createdAt,
+                          updatedAt: itinerary.updatedAt,
+                          syncedAt: new Date(),
+                          status: 'active' as const,
+                        }]}
+                        compact
+                        itinerary={itinerary}
+                        contentFilter={contentFilter}
+                        onDateClick={(date) => {
+                          const dateStr = date.toISOString().split('T')[0];
+                          setTimeout(() => {
+                            const dateElement = document.querySelector(`[data-date="${dateStr}"]`);
+                            if (dateElement) {
+                              dateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            } else if (contentFilter === 'schedule') {
+                              const dayElement = dayRefs.current[dateStr];
+                              if (dayElement) {
+                                dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }
+                            }
+                          }, 100);
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
 

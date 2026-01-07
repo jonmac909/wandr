@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { StoredTrip } from '@/lib/db/indexed-db';
@@ -32,6 +32,8 @@ interface MonthCalendarProps {
   compact?: boolean;
   itinerary?: Itinerary;
   contentFilter?: string;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -42,7 +44,7 @@ const MONTHS = [
 
 /**
  * Get days in month grid (including padding days from prev/next month)
- * Always returns 42 cells (6 rows) for consistent height
+ * Only pads to complete the last row, not always 42 cells
  */
 function getMonthDays(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1);
@@ -64,18 +66,19 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
     days.push(new Date(year, month, day));
   }
 
-  // Pad to always have 42 cells (6 rows) for consistent height
-  while (days.length < 42) {
+  // Only pad to complete the current row (multiple of 7)
+  while (days.length % 7 !== 0) {
     days.push(null);
   }
 
   return days;
 }
 
-export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, contentFilter }: MonthCalendarProps) {
+export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, contentFilter, collapsible = false, defaultCollapsed = false }: MonthCalendarProps) {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const tripRanges = useMemo(() => getTripDateRanges(trips), [trips]);
 
@@ -192,12 +195,24 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
 
   return (
     <Card className="py-0">
-      <CardContent className={compact ? "p-2" : "p-3"}>
+      <CardContent className={compact ? "p-2 pb-1.5" : "p-3 pb-2"}>
         {/* Month/Year Header */}
         <div className={cn("flex items-center justify-between", compact ? "mb-2" : "mb-3")}>
-          <h3 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>
-            {MONTHS[currentMonth]} {currentYear}
-          </h3>
+          <div className="flex items-center gap-1">
+            <h3 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>
+              {MONTHS[currentMonth]} {currentYear}
+            </h3>
+            {collapsible && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                {isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+              </Button>
+            )}
+          </div>
           <div className="flex gap-0.5">
             <Button
               variant="ghost"
@@ -218,87 +233,92 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
           </div>
         </div>
 
-        {/* Day of week headers */}
-        <div className={cn("grid grid-cols-7 gap-0.5", compact ? "mb-1" : "mb-1.5")}>
-          {DAYS.map((day, i) => (
-            <div
-              key={day}
-              className={cn(
-                "text-center font-medium",
-                compact ? "text-[9px]" : "text-[10px]",
-                (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              {day}
+        {/* Collapsible content */}
+        {!isCollapsed && (
+          <>
+            {/* Day of week headers */}
+            <div className={cn("grid grid-cols-7 gap-0.5", compact ? "mb-1" : "mb-1.5")}>
+              {DAYS.map((day, i) => (
+                <div
+                  key={day}
+                  className={cn(
+                    "text-center font-medium",
+                    compact ? "text-[9px]" : "text-[10px]",
+                    (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  {day}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-0.5">
-          {days.map((date, index) => {
-            if (!date) {
-              return <div key={`empty-${index}`} className={compact ? "h-6" : "h-7"} />;
-            }
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {days.map((date, index) => {
+                if (!date) {
+                  return <div key={`empty-${index}`} className={compact ? "h-6" : "h-7"} />;
+                }
 
-            const tripRange = isDateInTrip(date, tripRanges);
-            const todayClass = isToday(date);
-            const weekendClass = isWeekend(date);
-            const dateKey = formatDateKey(date);
-            const visibleCats = itinerary ? getVisibleCategories(dateKey) : [];
+                const tripRange = isDateInTrip(date, tripRanges);
+                const todayClass = isToday(date);
+                const weekendClass = isWeekend(date);
+                const dateKey = formatDateKey(date);
+                const visibleCats = itinerary ? getVisibleCategories(dateKey) : [];
 
-            return (
-              <button
-                key={date.toISOString()}
-                onClick={() => onDateClick?.(date, tripRange || undefined)}
-                className={cn(
-                  "w-full rounded-md font-medium transition-colors relative flex flex-col items-center justify-center",
-                  compact ? "h-6 text-[10px]" : "h-7 text-xs",
-                  "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                  todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
-                  !todayClass && tripRange && "bg-muted text-foreground",
-                  !todayClass && !tripRange && weekendClass && "text-primary",
-                  !todayClass && !tripRange && !weekendClass && "text-foreground"
-                )}
-                title={tripRange?.tripTitle}
-              >
-                <span>{date.getDate()}</span>
-                {/* Activity dots */}
-                {visibleCats.length > 0 && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {visibleCats.slice(0, 3).map((cat, i) => (
-                      <span
-                        key={i}
-                        className={cn("w-1 h-1 rounded-full", getCategoryColor(cat))}
-                      />
-                    ))}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                return (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => onDateClick?.(date, tripRange || undefined)}
+                    className={cn(
+                      "w-full rounded-md font-medium transition-colors relative flex flex-col items-center justify-center",
+                      compact ? "h-6 text-[10px]" : "h-7 text-xs",
+                      "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                      todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
+                      !todayClass && tripRange && "bg-muted text-foreground",
+                      !todayClass && !tripRange && weekendClass && "text-primary",
+                      !todayClass && !tripRange && !weekendClass && "text-foreground"
+                    )}
+                    title={tripRange?.tripTitle}
+                  >
+                    <span>{date.getDate()}</span>
+                    {/* Activity dots */}
+                    {visibleCats.length > 0 && (
+                      <div className="flex gap-0.5 mt-0.5">
+                        {visibleCats.slice(0, 3).map((cat, i) => (
+                          <span
+                            key={i}
+                            className={cn("w-1 h-1 rounded-full", getCategoryColor(cat))}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Dot legend - only show when itinerary is provided */}
-        {itinerary && (
-          <div className={cn("flex items-center justify-center gap-3 border-t pt-1.5", compact ? "mt-1.5" : "mt-2")}>
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Transport</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Hotels</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Activities</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Food</span>
-            </div>
-          </div>
+            {/* Dot legend - only show when itinerary is provided */}
+            {itinerary && (
+              <div className={cn("flex items-center justify-center gap-3 border-t pt-1.5", compact ? "mt-1.5" : "mt-2")}>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Transport</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Hotels</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                  <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Activities</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Food</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
