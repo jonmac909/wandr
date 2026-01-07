@@ -415,8 +415,31 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
     priority: block.priority,
   });
 
+  // Detect if a "transit" activity is actually a flight based on name patterns
+  const detectActualCategory = (): string | undefined => {
+    if (!block.activity) return undefined;
+    const cat = block.activity.category;
+    const name = block.activity.name.toLowerCase();
+
+    // If already correctly categorized as flight, keep it
+    if (cat === 'flight') return 'flight';
+
+    // Detect flights from name patterns (e.g., "NRT → CNX", "Tokyo to Bangkok", "Flight to...")
+    if (cat === 'transit') {
+      const isLikelyFlight =
+        /\b(flight|fly|air|✈️)\b/i.test(name) ||
+        /[A-Z]{3}\s*[→–-]\s*[A-Z]{3}/.test(block.activity.name) || // Airport codes like NRT → CNX
+        /\bto\b.*\b(via|stop|layover|connecting)\b/i.test(name);
+      if (isLikelyFlight) return 'flight';
+    }
+
+    return cat;
+  };
+
+  const effectiveCategory = detectActualCategory();
+
   // Use category color if activity exists, otherwise fall back to block type color
-  const categoryColor = block.activity?.category ? CATEGORY_COLORS[block.activity.category] : null;
+  const categoryColor = effectiveCategory ? CATEGORY_COLORS[effectiveCategory] : null;
   const blockStyle = categoryColor || BLOCK_COLORS[block.type] || BLOCK_COLORS['transit'];
   const priorityStyle = PRIORITY_STYLES[block.priority];
 
@@ -688,6 +711,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
           ) : block.activity ? (
             <ActivityDisplay
               activity={block.activity}
+              effectiveCategory={effectiveCategory}
               priority={block.priority}
               date={date}
               hotelNights={hotelNights}
@@ -739,6 +763,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
 
 interface ActivityDisplayProps {
   activity: Activity;
+  effectiveCategory?: string; // Override category for display (e.g., detected flight from transit)
   priority: string;
   date?: string; // ISO date string for booking URLs
   hotelNights?: number | null; // For accommodation blocks
@@ -747,10 +772,15 @@ interface ActivityDisplayProps {
   editable?: boolean;
 }
 
-function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
+function ActivityDisplay({ activity, effectiveCategory, priority, date, hotelNights, onOpenPlaceDetails, onToggleBooked, editable }: ActivityDisplayProps) {
   const isBooked = activity.reservationStatus === 'done';
-  const categoryIcon = CATEGORY_ICONS[activity.category] || <Compass className="w-3.5 h-3.5" />;
-  const isAccommodation = ['accommodation', 'hotel', 'checkin'].includes(activity.category);
+  // Use effective category for display (allows detecting flights from transit)
+  const displayCategory = effectiveCategory || activity.category;
+  const categoryIcon = CATEGORY_ICONS[displayCategory] || <Compass className="w-3.5 h-3.5" />;
+  const isAccommodation = ['accommodation', 'hotel', 'checkin'].includes(displayCategory);
+  const isFlightOrAccommodation = ['flight', 'accommodation', 'hotel', 'checkin'].includes(displayCategory);
+  // Show booking UI for flights (detected or actual) and accommodations
+  const showBooking = activity.bookingRequired || isFlightOrAccommodation;
 
   // Strip "(X nights)" from hotel names since we show it separately on the right
   const displayName = isAccommodation
@@ -791,16 +821,16 @@ function ActivityDisplay({ activity, priority, date, hotelNights, onOpenPlaceDet
             {activity.cost.amount}
           </span>
         )}
-        {activity.bookingRequired && (
+        {showBooking && (
           <div className="flex items-center gap-1">
             {!isBooked && (
               <a
-                href={generateBookingUrl(activity, { date })}
+                href={generateBookingUrl({ ...activity, category: displayCategory as Activity['category'] }, { date })}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200 transition-colors"
-                title={`Book on ${getBookingProvider(activity.category).name}`}
+                title={`Book on ${getBookingProvider(displayCategory as Activity['category']).name}`}
               >
                 <ExternalLink className="w-2.5 h-2.5" />
                 Book
