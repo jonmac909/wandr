@@ -107,6 +107,9 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { messages, toolResults, itinerary } = body;
 
+    console.log('PUT /api/chat - Tool results received:', toolResults?.length);
+    console.log('PUT /api/chat - Messages count:', messages?.length);
+
     if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'Anthropic API key not configured on server.' },
@@ -115,17 +118,23 @@ export async function PUT(request: NextRequest) {
     }
 
     // Build messages with tool results
+    const toolResultContent = toolResults.map((tr: { toolCallId: string; result: unknown }) => ({
+      type: 'tool_result',
+      tool_use_id: tr.toolCallId,
+      content: JSON.stringify(tr.result),
+    }));
+
     const messagesWithToolResults = [
       ...messages,
       {
         role: 'user',
-        content: toolResults.map((tr: { toolCallId: string; result: unknown }) => ({
-          type: 'tool_result',
-          tool_use_id: tr.toolCallId,
-          content: JSON.stringify(tr.result),
-        })),
+        content: toolResultContent,
       },
     ];
+
+    console.log('PUT /api/chat - Tool result content:', JSON.stringify(toolResultContent, null, 2));
+    console.log('PUT /api/chat - Last assistant message:', JSON.stringify(messages[messages.length - 1]?.content, null, 2));
+    console.log('PUT /api/chat - Sending to Claude API...');
 
     const systemPrompt = buildChatSystemPrompt(itinerary);
     const tools = getToolsForAPI();
@@ -148,11 +157,14 @@ export async function PUT(request: NextRequest) {
       }),
     });
 
+    console.log('PUT /api/chat - Claude API response status:', response.status);
+    console.log('PUT /api/chat - Claude API response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Claude API error:', response.status, errorText);
       return NextResponse.json(
-        { error: 'Failed to process tool results' },
+        { error: `Failed to process tool results: ${errorText}` },
         { status: response.status }
       );
     }
