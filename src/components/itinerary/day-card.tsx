@@ -845,6 +845,12 @@ function ActivityDisplay({ activity, effectiveCategory, priority, date, hotelNig
             {activity.cost.amount}
           </span>
         )}
+        {activity.duration && !isAccommodation && (
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatDuration(activity.duration)}
+          </span>
+        )}
         {showBooking && (
           <div className="flex items-center gap-1">
             {!isBooked && (
