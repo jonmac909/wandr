@@ -1566,19 +1566,28 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     const flightCount = allTransport.filter(b => b.activity?.category === 'flight').length;
                     const transitCount = allTransport.filter(b => b.activity?.category === 'transit').length;
                     const notBooked = allTransport.filter(b => b.activity?.reservationStatus !== 'done').length;
+                    const today = new Date().toISOString().split('T')[0];
+
+                    // Filter days to only include those with transport
+                    const daysWithTransport = itinerary.days
+                      .filter(day => day.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit'))
+                      .map(day => ({
+                        ...day,
+                        blocks: day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')
+                      }));
 
                     return (
-                    <div className="space-y-4 pr-1">
+                    <div className="space-y-2 pr-1">
                       {/* Summary stats bar */}
                       <div className="flex items-center gap-3 text-sm pb-2 border-b">
                         {flightCount > 0 && (
-                          <span className="flex items-center gap-1 text-orange-600">
+                          <span className="flex items-center gap-1 text-blue-600">
                             <Plane className="w-3.5 h-3.5" />
                             {flightCount} flight{flightCount !== 1 ? 's' : ''}
                           </span>
                         )}
                         {transitCount > 0 && (
-                          <span className="flex items-center gap-1 text-amber-600">
+                          <span className="flex items-center gap-1 text-blue-600">
                             <Train className="w-3.5 h-3.5" />
                             {transitCount} train{transitCount !== 1 ? 's' : ''}
                           </span>
@@ -1596,101 +1605,19 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </span>
                         )}
                       </div>
-                      {/* Group transport by day - same as schedule view */}
-                      {itinerary.days
-                        .filter(day => day.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit'))
-                        .map(day => {
-                          const transportBlocks = day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit');
-                          return (
-                            <div key={day.id} data-date={day.date}>
-                              {/* Day header - same as schedule */}
-                              <div className="mb-2">
-                                <h3 className="text-lg font-semibold">{formatDisplayDate(day.date)}</h3>
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <MapPin className="w-3.5 h-3.5" />
-                                  <span>{getLocationForDay(day)}</span>
-                                </div>
-                              </div>
-                              {/* Transport cards - same style as schedule DayCard */}
-                              <div className="space-y-2">
-                                {transportBlocks.map(block => {
-                                  const activity = block.activity!;
-                                  const isFlight = activity.category === 'flight';
-                                  // Transport cards use blue to match design system
-                                  const colorClasses = 'bg-blue-100 text-blue-800 border-blue-200';
-                                  const isBooked = activity.reservationStatus === 'done';
-
-                                  return (
-                                    <div
-                                      key={block.id}
-                                      className={`p-2 rounded-lg border ${colorClasses}`}
-                                    >
-                                      {/* Line 1: icon + name + duration - matching DayCard */}
-                                      <div className="flex items-center gap-1">
-                                        <span className="opacity-60 flex-shrink-0">
-                                          {isFlight ? <Plane className="w-3.5 h-3.5" /> : <Train className="w-3.5 h-3.5" />}
-                                        </span>
-                                        <span className="font-medium text-sm">{activity.name}</span>
-                                        {activity.duration && (
-                                          <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
-                                            {activity.duration >= 60
-                                              ? `${Math.floor(activity.duration / 60)}h${activity.duration % 60 > 0 ? ` ${activity.duration % 60}m` : ''}`
-                                              : `${activity.duration}m`}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {/* Line 2: location, cost, book, status - matching DayCard */}
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
-                                        {activity.location?.name && (
-                                          <span className="flex items-center gap-1">
-                                            <MapPin className="w-3 h-3" />
-                                            {activity.location.name}
-                                          </span>
-                                        )}
-                                        {activity.cost && (
-                                          <span className="flex items-center gap-1">
-                                            <DollarSign className="w-3 h-3" />
-                                            {activity.cost.amount}
-                                          </span>
-                                        )}
-                                        {activity.bookingRequired && (
-                                          <div className="flex items-center gap-1">
-                                            {!isBooked && (
-                                              <a
-                                                href={generateBookingUrl(activity, { date: day.date })}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-orange-100 text-orange-800 border border-orange-300 hover:bg-orange-200 transition-colors"
-                                              >
-                                                <ExternalLink className="w-2.5 h-2.5" />
-                                                Book
-                                              </a>
-                                            )}
-                                            <span
-                                              className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
-                                                isBooked
-                                                  ? 'bg-green-500 border-green-500 text-white'
-                                                  : 'bg-transparent border-orange-400'
-                                              }`}
-                                            >
-                                              {isBooked && <Check className="w-2.5 h-2.5" />}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      {/* Line 3: description/notes */}
-                                      {activity.description && (
-                                        <div className="mt-1 text-xs opacity-70 italic">{activity.description}</div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      {!itinerary.days.some(d => d.blocks.some(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')) && (
+                      {/* Use DayCard with filtered blocks - same as schedule view */}
+                      {daysWithTransport.map(day => (
+                        <DayCard
+                          key={day.id}
+                          day={day}
+                          isToday={day.date === today}
+                          isExpanded={true}
+                          onUpdateDay={handleUpdateDay}
+                          location={getLocationForDay(day)}
+                          bases={itinerary.route.bases}
+                        />
+                      ))}
+                      {daysWithTransport.length === 0 && (
                         <div className="text-center py-8">
                           <Plane className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                           <p className="text-sm text-muted-foreground">No transport in this trip</p>
@@ -1710,12 +1637,25 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
                       return block?.activity?.reservationStatus !== 'done';
                     }).length;
+                    const today = new Date().toISOString().split('T')[0];
+
+                    // Filter days to only include those with hotel/accommodation blocks
+                    const daysWithHotels = itinerary.days
+                      .filter(day => day.blocks.some(b =>
+                        b.activity?.category === 'checkin'
+                      ))
+                      .map(day => ({
+                        ...day,
+                        blocks: day.blocks.filter(b =>
+                          b.activity?.category === 'checkin'
+                        )
+                      }));
 
                     return (
-                    <div className="space-y-4 pr-1">
+                    <div className="space-y-2 pr-1">
                       {/* Summary stats bar */}
                       <div className="flex items-center gap-3 text-sm pb-2 border-b">
-                        <span className="flex items-center gap-1 text-rose-600">
+                        <span className="flex items-center gap-1 text-purple-600">
                           <Hotel className="w-3.5 h-3.5" />
                           {hotelCount} hotel{hotelCount !== 1 ? 's' : ''}
                         </span>
@@ -1735,76 +1675,24 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </span>
                         )}
                       </div>
-                      {/* Hotels grouped by check-in date */}
-                      {itinerary.route.bases.map((base, index) => {
-                        const nights = getActualNights(index);
-                        // Find accommodation block to get booking status
-                        const accommodationBlock = itinerary.days
-                          .flatMap(d => d.blocks)
-                          .find(b => b.activity?.name?.toLowerCase() === base.accommodation?.name?.toLowerCase());
-                        const isBooked = accommodationBlock?.activity?.reservationStatus === 'done';
-
-                        return (
-                          <div key={base.id} data-date={base.checkIn}>
-                            {/* Date header - same as schedule */}
-                            <div className="mb-2">
-                              <h3 className="text-lg font-semibold">{formatDisplayDate(base.checkIn)}</h3>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <MapPin className="w-3.5 h-3.5" />
-                                <span>{getFlagForLocation(base.location)} {base.location}</span>
-                              </div>
-                            </div>
-                            {/* Hotel card - purple to match design system, matching DayCard sizing */}
-                            <div className="p-2 rounded-lg border bg-purple-100 text-purple-800 border-purple-200">
-                              {/* Line 1: icon + name + nights - matching DayCard */}
-                              <div className="flex items-center gap-1">
-                                <span className="opacity-60 flex-shrink-0">
-                                  <Hotel className="w-3.5 h-3.5" />
-                                </span>
-                                <span className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</span>
-                                <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
-                                  {nights} night{nights > 1 ? 's' : ''}
-                                </span>
-                              </div>
-                              {/* Line 2: location, dates, book, status - matching DayCard */}
-                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {base.location}
-                                </span>
-                                <span>
-                                  {formatDisplayDate(base.checkIn)} - {formatDisplayDate(getCheckOutDate(base.checkIn, nights))}
-                                </span>
-                                {base.accommodation?.name && (
-                                  <div className="flex items-center gap-1">
-                                    {!isBooked && (
-                                      <a
-                                        href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(base.location)}&checkin=${base.checkIn}&checkout=${getCheckOutDate(base.checkIn, nights)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-purple-200 text-purple-800 border border-purple-300 hover:bg-purple-300 transition-colors"
-                                      >
-                                        <ExternalLink className="w-2.5 h-2.5" />
-                                        Book
-                                      </a>
-                                    )}
-                                    <span
-                                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
-                                        isBooked
-                                          ? 'bg-green-500 border-green-500 text-white'
-                                          : 'bg-transparent border-orange-400'
-                                      }`}
-                                    >
-                                      {isBooked && <Check className="w-2.5 h-2.5" />}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {/* Use DayCard with filtered blocks - same as schedule view */}
+                      {daysWithHotels.map(day => (
+                        <DayCard
+                          key={day.id}
+                          day={day}
+                          isToday={day.date === today}
+                          isExpanded={true}
+                          onUpdateDay={handleUpdateDay}
+                          location={getLocationForDay(day)}
+                          bases={itinerary.route.bases}
+                        />
+                      ))}
+                      {daysWithHotels.length === 0 && (
+                        <div className="text-center py-8">
+                          <Hotel className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                          <p className="text-sm text-muted-foreground">No hotels in this trip</p>
+                        </div>
+                      )}
                     </div>
                     );
                   })()}
@@ -1818,19 +1706,31 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                   {/* Filtered View - Experiences */}
                   {contentFilter === 'experiences' && (() => {
-                    // Calculate experience stats
+                    // Calculate experience stats - activities that are not flights, transit, food, or checkin
+                    const isExperience = (category?: string) =>
+                      category && category !== 'flight' && category !== 'transit' && category !== 'food' && category !== 'checkin';
+
                     const allExperiences = itinerary.days.flatMap(d =>
-                      d.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin')
+                      d.blocks.filter(b => isExperience(b.activity?.category))
                     );
                     const activityCount = allExperiences.length;
                     const notBooked = allExperiences.filter(b => b.activity?.bookingRequired && b.activity?.reservationStatus !== 'done').length;
                     const needsBooking = allExperiences.filter(b => b.activity?.bookingRequired).length;
+                    const today = new Date().toISOString().split('T')[0];
+
+                    // Filter days to only include those with experience blocks
+                    const daysWithExperiences = itinerary.days
+                      .filter(day => day.blocks.some(b => isExperience(b.activity?.category)))
+                      .map(day => ({
+                        ...day,
+                        blocks: day.blocks.filter(b => isExperience(b.activity?.category))
+                      }));
 
                     return (
-                    <div className="space-y-4 pr-1">
+                    <div className="space-y-2 pr-1">
                       {/* Summary stats bar */}
                       <div className="flex items-center gap-3 text-sm pb-2 border-b">
-                        <span className="flex items-center gap-1 text-amber-600">
+                        <span className="flex items-center gap-1 text-yellow-600">
                           <Compass className="w-3.5 h-3.5" />
                           {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}
                         </span>
@@ -1847,98 +1747,19 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           </span>
                         )}
                       </div>
-                      {/* Group experiences by day - same as schedule view */}
-                      {itinerary.days
-                        .filter(day => day.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin'))
-                        .map(day => {
-                          const experienceBlocks = day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin');
-                          return (
-                            <div key={day.id} data-date={day.date}>
-                              {/* Day header - same as schedule */}
-                              <div className="mb-2">
-                                <h3 className="text-lg font-semibold">{formatDisplayDate(day.date)}</h3>
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <MapPin className="w-3.5 h-3.5" />
-                                  <span>{getLocationForDay(day)}</span>
-                                </div>
-                              </div>
-                              {/* Experience cards - same style as schedule */}
-                              <div className="space-y-2">
-                                {experienceBlocks.map(block => {
-                                  const activity = block.activity!;
-                                  const isBooked = activity.reservationStatus === 'done';
-
-                                  return (
-                                    <div
-                                      key={block.id}
-                                      className="p-2 rounded-lg border bg-yellow-100 text-yellow-800 border-yellow-200"
-                                    >
-                                      {/* Line 1: icon + name + duration - matching DayCard */}
-                                      <div className="flex items-center gap-1">
-                                        <span className="opacity-60 flex-shrink-0">
-                                          <Compass className="w-3.5 h-3.5" />
-                                        </span>
-                                        <span className="font-medium text-sm">{activity.name}</span>
-                                        {activity.duration && (
-                                          <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
-                                            {activity.duration >= 60
-                                              ? `${Math.floor(activity.duration / 60)}h${activity.duration % 60 > 0 ? ` ${activity.duration % 60}m` : ''}`
-                                              : `${activity.duration}m`}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {/* Line 2: location, cost, book, status - matching DayCard */}
-                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
-                                        {activity.location?.name && (
-                                          <span className="flex items-center gap-1">
-                                            <MapPin className="w-3 h-3" />
-                                            {activity.location.name}
-                                          </span>
-                                        )}
-                                        {activity.cost && (
-                                          <span className="flex items-center gap-1">
-                                            <DollarSign className="w-3 h-3" />
-                                            {activity.cost.amount}
-                                          </span>
-                                        )}
-                                        {activity.bookingRequired && (
-                                          <div className="flex items-center gap-1">
-                                            {!isBooked && (
-                                              <a
-                                                href={generateBookingUrl(activity, { date: day.date })}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0 h-4 rounded-full bg-amber-200 text-amber-800 border border-amber-300 hover:bg-amber-300 transition-colors"
-                                              >
-                                                <ExternalLink className="w-2.5 h-2.5" />
-                                                Book
-                                              </a>
-                                            )}
-                                            <span
-                                              className={`inline-flex items-center justify-center w-4 h-4 rounded-full border-2 ${
-                                                isBooked
-                                                  ? 'bg-green-500 border-green-500 text-white'
-                                                  : 'bg-transparent border-orange-400'
-                                              }`}
-                                            >
-                                              {isBooked && <Check className="w-2.5 h-2.5" />}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      {/* Line 3: description/notes */}
-                                      {activity.description && (
-                                        <div className="mt-1 text-xs opacity-70 italic">{activity.description}</div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      {!itinerary.days.some(d => d.blocks.some(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food' && b.activity.category !== 'accommodation' && b.activity.category !== 'checkin')) && (
+                      {/* Use DayCard with filtered blocks - same as schedule view */}
+                      {daysWithExperiences.map(day => (
+                        <DayCard
+                          key={day.id}
+                          day={day}
+                          isToday={day.date === today}
+                          isExpanded={true}
+                          onUpdateDay={handleUpdateDay}
+                          location={getLocationForDay(day)}
+                          bases={itinerary.route.bases}
+                        />
+                      ))}
+                      {daysWithExperiences.length === 0 && (
                         <div className="text-center py-8">
                           <Compass className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
                           <p className="text-sm text-muted-foreground">No experiences planned yet</p>
