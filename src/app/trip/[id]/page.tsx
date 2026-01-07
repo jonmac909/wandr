@@ -1078,12 +1078,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <section className="col-span-1 md:col-span-8 min-h-0 h-full overflow-hidden">
             <Card className="h-full flex flex-col py-0">
               <CardContent className="p-1.5 flex flex-col h-full overflow-hidden">
-                {/* Persistent Trip Header - Shows on all views */}
-                <div className="flex-shrink-0 pb-2 mb-2 border-b">
-                  <h2 className="text-xl font-bold">{itinerary.meta.title}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {getFlagsForDestination(itinerary.meta.destination)}
-                  </p>
+                {/* Persistent Trip Header - Minimal, shows on all views */}
+                <div className="flex-shrink-0 flex items-center justify-between pb-1 mb-1 border-b">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="text-base font-bold truncate">{itinerary.meta.title}</h2>
+                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                      {getFlagsForDestination(itinerary.meta.destination)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Calendar Card - Shows on all views EXCEPT overview */}
