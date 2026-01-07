@@ -73,7 +73,7 @@ export const TRIP_TOOLS: ToolDefinition[] = [
               description: 'Category of the activity. Use "flight" for flights, "transit" for trains/buses/ferries, "accommodation" for hotels.',
             },
             description: { type: 'string', description: 'Brief description' },
-            duration: { type: 'number', description: 'Duration in minutes' },
+            duration: { type: 'number', description: 'Duration in minutes (for flights, use actual flight duration)' },
             scheduledTime: { type: 'string', description: 'Time in HH:MM format (e.g., "14:00")' },
             location: {
               type: 'object',
@@ -81,6 +81,19 @@ export const TRIP_TOOLS: ToolDefinition[] = [
                 name: { type: 'string' },
                 address: { type: 'string' },
               },
+            },
+            cost: {
+              type: 'object',
+              description: 'Cost of the activity',
+              properties: {
+                amount: { type: 'number', description: 'Price amount' },
+                currency: { type: 'string', description: 'Currency code (default: USD)' },
+              },
+            },
+            tips: {
+              type: 'array',
+              description: 'Tips or notes about the activity (e.g., "10hr flight, flat seats")',
+              items: { type: 'string' },
             },
           },
           required: ['name', 'category'],

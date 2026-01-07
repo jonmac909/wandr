@@ -151,6 +151,7 @@ function handleAddActivity(
 
   // Create the activity
   const category = (activityInput.category as ActivityCategory) || 'activity';
+  const costInput = activityInput.cost as { amount?: number; currency?: string } | undefined;
   const activity: Activity = {
     id: crypto.randomUUID(),
     name: activityInput.name as string,
@@ -161,6 +162,8 @@ function handleAddActivity(
     location: activityInput.location as Activity['location'],
     bookingRequired: category === 'flight' || category === 'accommodation',
     tags: [],
+    cost: costInput?.amount ? { amount: costInput.amount, currency: costInput.currency || 'USD', isEstimate: true } : undefined,
+    tips: activityInput.tips as string[] | undefined,
   };
 
   // Create the time block

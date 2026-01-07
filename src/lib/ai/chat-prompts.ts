@@ -141,9 +141,11 @@ When adding flights, use this EXACT format for the activity name:
 3. Use → (arrow) between codes, NOT "to" or "-"
 4. Include departure and arrival times with am/pm
 5. Add +1 or +2 if arriving next day(s)
-6. Put flight details (duration, stops, seat type, cost) in the description field
-7. Use category "flight" NOT "transit"
-8. Location should be just the destination city name (e.g., "Tokyo" not "Tokyo Narita Airport")
+6. Use category "flight" NOT "transit"
+7. Location should be just the destination city name (e.g., "Tokyo" not "Tokyo Narita Airport")
+8. **Set duration** to actual flight time in minutes (e.g., 600 for 10hr flight)
+9. **Set cost** with amount and currency (e.g., { amount: 4225, currency: "USD" })
+10. **Set tips** array with flight details (e.g., ["10hr flight, flat seats"] or ["1 stop via Bangkok"])
 
 ### Food Layer
 - \`add_restaurant\`: Add a restaurant recommendation
