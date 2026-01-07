@@ -14,8 +14,8 @@ export function HousingSection({ bases }: HousingSectionProps) {
   }
 
   return (
-    <Card className="flex-shrink-0">
-      <CardContent className="p-3">
+    <Card className="flex-shrink-0 py-0">
+      <CardContent className="p-2">
         <h3 className="font-medium mb-2 text-xs text-muted-foreground">Accommodation</h3>
         <div className="grid grid-cols-2 gap-3">
           {bases.map((base) => (

@@ -18,8 +18,8 @@ export function HousingCard({ base }: HousingCardProps) {
 
   return (
     <div className="flex flex-col group">
-      {/* Landscape image */}
-      <div className="relative w-full h-20 rounded-lg overflow-hidden bg-muted mb-1.5">
+      {/* Square image */}
+      <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-muted mb-1.5">
         <img
           src={imageUrl}
           alt={name}
