@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Home, Globe, Plane, Moon, Sun, DollarSign, Ruler, Save, Bot } from 'lucide-react';
+import { MapPin, Home, Globe, Plane, Moon, Sun, DollarSign, Ruler, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { preferencesDb, type UserPreferences } from '@/lib/db/indexed-db';
-import { TokenSettings } from '@/components/chat/TokenSettings';
 
 interface ProfileSettingsProps {
   open: boolean;
@@ -156,15 +155,6 @@ export function ProfileSettings({ open, onOpenChange, onPreferencesUpdate }: Pro
                 </Select>
               </div>
             </div>
-          </div>
-
-          {/* Claude AI Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Bot className="w-4 h-4" />
-              AI Assistant
-            </h3>
-            <TokenSettings />
           </div>
 
           {/* Preferences Section */}
