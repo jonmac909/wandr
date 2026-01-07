@@ -116,6 +116,12 @@ function buildToolGuidelines(): string {
 - \`add_restaurant\`: Add a restaurant recommendation
   - Links to a specific day if provided
   - Optionally adds to schedule as a time block
+
+### Web Search
+- \`web_search\`: Search the internet for current information
+  - Use for opening hours, current events, travel advisories, reviews
+  - Use for attractions, things to do, local tips
+  - Great for checking if places are still open or have changed
 `;
 }
 

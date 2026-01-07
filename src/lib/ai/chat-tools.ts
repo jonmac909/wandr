@@ -234,11 +234,21 @@ export const TRIP_TOOLS: ToolDefinition[] = [
   },
 ];
 
+// Web search tool - Claude's built-in capability
+const WEB_SEARCH_TOOL = {
+  type: 'web_search_20250305',
+  name: 'web_search',
+  max_uses: 5, // Limit searches per request to control costs
+};
+
 // Export as Anthropic API format
 export function getToolsForAPI() {
-  return TRIP_TOOLS.map((tool) => ({
+  const customTools = TRIP_TOOLS.map((tool) => ({
     name: tool.name,
     description: tool.description,
     input_schema: tool.input_schema,
   }));
+
+  // Add web search as a server-managed tool
+  return [...customTools, WEB_SEARCH_TOOL];
 }
