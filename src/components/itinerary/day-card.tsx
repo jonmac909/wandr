@@ -151,12 +151,28 @@ export function DayCard({
   });
 
   // Get nights for a hotel by matching accommodation name to bases
+  // Calculate actual nights from checkIn dates (base.nights data may be wrong)
   const getHotelNights = (accommodationName: string): number | null => {
-    if (!bases) return null;
-    const base = bases.find(b =>
+    if (!bases || bases.length === 0) return null;
+    const baseIndex = bases.findIndex(b =>
       b.accommodation?.name?.toLowerCase() === accommodationName.toLowerCase()
     );
-    return base?.nights || null;
+    if (baseIndex === -1) return null;
+
+    const base = bases[baseIndex];
+    const nextBase = bases[baseIndex + 1];
+
+    // Calculate nights from checkIn to next base's checkIn (or use base.nights as fallback)
+    if (nextBase?.checkIn && base.checkIn) {
+      const [y1, m1, d1] = base.checkIn.split('-').map(Number);
+      const [y2, m2, d2] = nextBase.checkIn.split('-').map(Number);
+      const checkInDate = new Date(y1, m1 - 1, d1);
+      const nextCheckInDate = new Date(y2, m2 - 1, d2);
+      const diffDays = Math.round((nextCheckInDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) return diffDays;
+    }
+
+    return base.nights || null;
   };
 
   const handleSaveTheme = () => {
