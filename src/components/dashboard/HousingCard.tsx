@@ -17,9 +17,9 @@ export function HousingCard({ base }: HousingCardProps) {
   const price = base.accommodation?.priceRange || null;
 
   return (
-    <div className="flex flex-col group">
-      {/* Small square image */}
-      <div className="relative w-full h-16 rounded-lg overflow-hidden bg-muted mb-1">
+    <div className="flex items-center gap-2 group">
+      {/* Tiny square thumbnail */}
+      <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-muted">
         <img
           src={imageUrl}
           alt={name}
@@ -29,11 +29,11 @@ export function HousingCard({ base }: HousingCardProps) {
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-xs truncate">{name}</h4>
-        <div className="flex items-center justify-between mt-1">
+        <h4 className="font-medium text-[11px] truncate">{name}</h4>
+        <div className="flex items-center gap-1.5 mt-0.5">
           <span className="text-[10px] text-muted-foreground">{base.nights} nights</span>
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">
-            <Check className="w-2.5 h-2.5" />
+          <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-full text-[9px] font-medium bg-green-100 text-green-700">
+            <Check className="w-2 h-2" />
             Paid
           </span>
         </div>

@@ -215,24 +215,77 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
     return null;
   }
 
-  // Fallback to static map if no API key or error
+  // Fallback to custom SVG map if no API key or error
   if (error || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-    const markerString = coords
-      .map((b) => `${b.coords!.lat},${b.coords!.lng},red-pushpin`)
-      .join('|');
-    const staticMapUrl = coords.length > 0
-      ? `https://staticmap.openstreetmap.de/staticmap.php?center=${coords[0]?.coords?.lat || 20},${coords[0]?.coords?.lng || 100}&zoom=${singleLocation ? 12 : 4}&size=600x600&maptype=osmarenderer&markers=${encodeURIComponent(markerString)}`
-      : '';
-
     return (
       <Card className={`${className} py-0`}>
-        <CardContent className="p-1 overflow-hidden relative h-full">
-          <div className="w-full h-full min-h-[180px] rounded-lg overflow-hidden">
-            <img
-              src={staticMapUrl}
-              alt="Trip route map"
-              className="w-full h-full object-cover"
-            />
+        <CardContent className="p-1.5 overflow-hidden relative h-full">
+          <div className="w-full h-full min-h-[180px] rounded-lg overflow-hidden bg-blue-50/50">
+            {/* Custom SVG route map */}
+            <svg viewBox="0 0 100 60" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+              {/* Water background */}
+              <rect x="0" y="0" width="100" height="60" fill="#e0f2fe" />
+
+              {/* Simplified Asia landmass */}
+              <path d="M 45 8 Q 70 5 85 12 L 90 30 Q 88 42 78 45 L 65 40 Q 50 35 48 25 L 45 8"
+                    fill="#d1fae5" stroke="#86efac" strokeWidth="0.5" />
+
+              {/* Southeast Asia islands */}
+              <path d="M 68 42 Q 78 44 85 48 L 88 54 Q 82 58 72 55 L 68 48 Q 66 44 68 42"
+                    fill="#d1fae5" stroke="#86efac" strokeWidth="0.5" />
+
+              {/* Route line connecting destinations */}
+              {coords.length > 1 && (
+                <polyline
+                  points={coords.map((c, i) => {
+                    // Map lat/lng to SVG coordinates (simplified)
+                    const x = ((c.coords!.lng + 180) / 360) * 100;
+                    const y = ((90 - c.coords!.lat) / 180) * 60;
+                    return `${x},${y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="#4f46e5"
+                  strokeWidth="1.5"
+                  strokeDasharray="2,1"
+                  strokeLinecap="round"
+                />
+              )}
+
+              {/* Destination markers */}
+              {coords.map((c, i) => {
+                const x = ((c.coords!.lng + 180) / 360) * 100;
+                const y = ((90 - c.coords!.lat) / 180) * 60;
+                return (
+                  <g key={c.id || i}>
+                    <circle cx={x} cy={y} r="3" fill="#4f46e5" stroke="white" strokeWidth="1" />
+                    {!singleLocation && (
+                      <text x={x} y={y + 1} textAnchor="middle" fontSize="3" fill="white" fontWeight="bold">
+                        {i + 1}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Location list overlay */}
+            <div className="absolute bottom-2 left-2 right-2">
+              <div className="bg-background/95 rounded-lg p-2 shadow-sm">
+                <div className="flex flex-wrap gap-1">
+                  {coords.slice(0, 5).map((c, i) => (
+                    <span key={c.id || i} className="inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                      <span className="w-3.5 h-3.5 rounded-full bg-primary text-white text-[8px] flex items-center justify-center font-bold">
+                        {i + 1}
+                      </span>
+                      {c.location.split(',')[0]}
+                    </span>
+                  ))}
+                  {coords.length > 5 && (
+                    <span className="text-[10px] text-muted-foreground">+{coords.length - 5} more</span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
