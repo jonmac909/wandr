@@ -9,6 +9,23 @@ import type { Itinerary, DayPlan } from '@/types/itinerary';
 import { getTripDateRanges, isDateInTrip, TripDateRange } from '@/hooks/useTripStats';
 import { cn } from '@/lib/utils';
 
+/**
+ * STYLE GUIDE - Font Sizes (Tailwind classes):
+ *
+ * Dashboard (non-compact):
+ * - Section titles (e.g. "Hotels"): text-base font-semibold (16px)
+ * - Card headers (e.g. "January 2026"): text-sm font-semibold (14px)
+ * - Labels/meta: text-xs (12px)
+ * - Small text: text-[11px] or text-[10px]
+ *
+ * Trip Page (compact mode):
+ * - Headers: text-xs font-semibold (12px)
+ * - Labels: text-[10px]
+ * - Small: text-[9px] or text-[8px]
+ *
+ * Always use font-medium or font-semibold for headers, not font-bold
+ */
+
 interface MonthCalendarProps {
   trips: StoredTrip[];
   onDateClick?: (date: Date, trip?: TripDateRange) => void;
@@ -175,10 +192,10 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
 
   return (
     <Card className="py-0">
-      <CardContent className={compact ? "p-1.5" : "p-2"}>
-        {/* Header - aligned with grid */}
-        <div className={cn("flex items-center justify-between", compact ? "mb-1.5" : "mb-3")}>
-          <h3 className={cn("font-medium", compact ? "text-xs" : "text-sm")}>
+      <CardContent className={compact ? "p-2" : "p-3"}>
+        {/* Month/Year Header */}
+        <div className={cn("flex items-center justify-between", compact ? "mb-2" : "mb-3")}>
+          <h3 className={cn("font-semibold", compact ? "text-xs" : "text-sm")}>
             {MONTHS[currentMonth]} {currentYear}
           </h3>
           <div className="flex gap-0.5">
@@ -188,7 +205,7 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
               className={compact ? "h-5 w-5" : "h-6 w-6"}
               onClick={goToPreviousMonth}
             >
-              <ChevronLeft className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
@@ -196,19 +213,19 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
               className={compact ? "h-5 w-5" : "h-6 w-6"}
               onClick={goToNextMonth}
             >
-              <ChevronRight className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
-        {/* Day headers - consistent font size with month title */}
-        <div className={cn("grid grid-cols-7 gap-1", compact ? "mb-1" : "mb-1.5")}>
+        {/* Day of week headers */}
+        <div className={cn("grid grid-cols-7 gap-0.5", compact ? "mb-1" : "mb-1.5")}>
           {DAYS.map((day, i) => (
             <div
               key={day}
               className={cn(
                 "text-center font-medium",
-                compact ? "text-[9px] py-0.5" : "text-[11px] py-0.5",
+                compact ? "text-[9px]" : "text-[10px]",
                 (i === 0 || i === 6) ? "text-primary" : "text-muted-foreground"
               )}
             >
@@ -218,10 +235,10 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5">
           {days.map((date, index) => {
             if (!date) {
-              return <div key={`empty-${index}`} className={compact ? "h-7" : "h-8"} />;
+              return <div key={`empty-${index}`} className={compact ? "h-6" : "h-7"} />;
             }
 
             const tripRange = isDateInTrip(date, tripRanges);
@@ -236,7 +253,7 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
                 onClick={() => onDateClick?.(date, tripRange || undefined)}
                 className={cn(
                   "w-full rounded-md font-medium transition-colors relative flex flex-col items-center justify-center",
-                  compact ? "h-7 text-[10px]" : "h-8 text-sm",
+                  compact ? "h-6 text-[10px]" : "h-7 text-xs",
                   "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
                   todayClass && "bg-primary text-primary-foreground hover:bg-primary/90",
                   !todayClass && tripRange && "bg-muted text-foreground",
@@ -267,19 +284,19 @@ export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, 
           <div className={cn("flex items-center justify-center gap-3 border-t pt-1.5", compact ? "mt-1.5" : "mt-2")}>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Transport</span>
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Transport</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Hotels</span>
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Hotels</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Activities</span>
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Activities</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[10px]")}>Food</span>
+              <span className={cn("text-muted-foreground", compact ? "text-[8px]" : "text-[9px]")}>Food</span>
             </div>
           </div>
         )}
