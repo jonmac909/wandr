@@ -231,7 +231,7 @@ export function useChat({
         // Process tool calls in a loop (Claude might need multiple turns)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let conversationMessages: Array<{ role: string; content: any }> = [...apiMessages];
-        const maxIterations = 5; // Safety limit
+        const maxIterations = 10; // Safety limit - complex itinerary changes may need many tool calls
         let iteration = 0;
 
         while (allToolCalls.length > 0 && iteration < maxIterations) {
