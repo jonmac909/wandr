@@ -1063,8 +1063,9 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                       {/* Quick Glance Schedule - grouped by location from full date range */}
                       {(() => {
-                        // Get full date range
-                        const firstDate = itinerary.days[0]?.date;
+                        // Get full date range - use tripDna start date if available (includes departure day)
+                        const tripStartDate = tripDna?.constraints?.dates?.startDate;
+                        const firstDate = tripStartDate || itinerary.days[0]?.date;
                         const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
                         if (!firstDate || !lastDate) return null;
 
