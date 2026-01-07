@@ -36,15 +36,15 @@ import {
 
 // Pipeline category colors - warm neutral tones (browns, pinks, oranges)
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
-  'Overview': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
+  'Overview': { bg: 'bg-red-50 border-red-200', iconBg: 'bg-red-100 text-red-600', text: 'text-red-800' },
   'Schedule': { bg: 'bg-gray-50 border-gray-200', iconBg: 'bg-gray-100 text-gray-600', text: 'text-gray-800' },
   'Transport': { bg: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100 text-orange-600', text: 'text-orange-800' },
   'Hotels': { bg: 'bg-rose-50 border-rose-200', iconBg: 'bg-rose-100 text-rose-600', text: 'text-rose-800' },
   'Food': { bg: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100 text-purple-600', text: 'text-purple-800' },
   'Activities': { bg: 'bg-yellow-50 border-yellow-200', iconBg: 'bg-yellow-100 text-yellow-600', text: 'text-yellow-800' },
-  'Packing': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
+  'Packing': { bg: 'bg-orange-50 border-orange-300', iconBg: 'bg-orange-200 text-orange-700', text: 'text-orange-800' },
   'Docs': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
-  'Budget': { bg: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100 text-amber-600', text: 'text-amber-800' },
+  'Budget': { bg: 'bg-stone-100 border-stone-300', iconBg: 'bg-stone-200 text-stone-700', text: 'text-stone-800' },
   'More': { bg: 'bg-stone-50 border-stone-200', iconBg: 'bg-stone-100 text-stone-600', text: 'text-stone-800' },
 };
 
