@@ -14,27 +14,50 @@ interface RecentTripsSidebarProps {
 }
 
 export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: RecentTripsSidebarProps) {
-  // Filter to trips with itineraries, excluding the featured trip, sorted by most recent update
-  const otherTrips = trips
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Filter and categorize trips
+  const otherTrips = trips.filter(trip => {
+    if (excludeTripId && trip.id === excludeTripId) return false;
+    return trip.itinerary !== null;
+  });
+
+  // Upcoming trips: have a start date in the future
+  const upcomingTrips = otherTrips
     .filter(trip => {
-      // Exclude the featured trip
-      if (excludeTripId && trip.id === excludeTripId) return false;
-      // Must have an itinerary
-      return trip.itinerary !== null;
+      const startDate = trip.itinerary?.meta?.startDate;
+      if (!startDate) return false;
+      const tripStart = new Date(startDate);
+      tripStart.setHours(0, 0, 0, 0);
+      return tripStart >= today;
     })
     .sort((a, b) => {
-      // Sort by most recently updated
+      const dateA = new Date(a.itinerary!.meta.startDate);
+      const dateB = new Date(b.itinerary!.meta.startDate);
+      return dateA.getTime() - dateB.getTime(); // Soonest first
+    });
+
+  // Planning in progress: no start date or start date in the past (completed/draft)
+  const planningTrips = otherTrips
+    .filter(trip => {
+      const startDate = trip.itinerary?.meta?.startDate;
+      if (!startDate) return true; // No date = still planning
+      const tripStart = new Date(startDate);
+      tripStart.setHours(0, 0, 0, 0);
+      return tripStart < today; // Past trips or drafts
+    })
+    .sort((a, b) => {
       const dateA = new Date(a.updatedAt);
       const dateB = new Date(b.updatedAt);
-      return dateB.getTime() - dateA.getTime();
-    })
-    .slice(0, maxTrips);
+      return dateB.getTime() - dateA.getTime(); // Most recently updated first
+    });
 
   if (otherTrips.length === 0) {
     return (
-      <Card className="h-full">
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3 text-sm">Other Trips</h3>
+      <Card className="h-full py-0">
+        <CardContent className="p-2">
+          <h3 className="font-semibold mb-3 text-sm">Upcoming Trips</h3>
           <p className="text-xs text-muted-foreground text-center py-4">
             No other trips yet. Plan another adventure!
           </p>
@@ -43,25 +66,38 @@ export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: Recen
     );
   }
 
-  const [firstTrip, ...remainingTrips] = otherTrips;
-
   return (
-    <Card className="flex-1 overflow-hidden">
+    <Card className="flex-1 overflow-hidden py-0">
       <CardContent className="p-0 h-full flex flex-col">
-        <div className="p-3 pb-2">
-          <h3 className="font-semibold text-sm">Other Trips</h3>
-        </div>
+        {/* Upcoming Trips Section */}
+        {upcomingTrips.length > 0 && (
+          <>
+            <div className="p-2 pb-1">
+              <h3 className="font-semibold text-sm">Upcoming Trips</h3>
+            </div>
+            <FeaturedUpcomingTrip trip={upcomingTrips[0]} />
+            {upcomingTrips.length > 1 && (
+              <div className="px-2 pb-2 space-y-0.5">
+                {upcomingTrips.slice(1, 3).map((trip) => (
+                  <RecentTripCard key={trip.id} trip={trip} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-        {/* First trip with large photo */}
-        <FeaturedUpcomingTrip trip={firstTrip} />
-
-        {/* Other trips listed smaller below */}
-        {remainingTrips.length > 0 && (
-          <div className="px-2 pb-2 space-y-0.5">
-            {remainingTrips.map((trip) => (
-              <RecentTripCard key={trip.id} trip={trip} />
-            ))}
-          </div>
+        {/* Planning in Progress Section */}
+        {planningTrips.length > 0 && (
+          <>
+            <div className="p-2 pb-1">
+              <h3 className="font-semibold text-sm text-muted-foreground">Planning in Progress</h3>
+            </div>
+            <div className="px-2 pb-2 space-y-0.5">
+              {planningTrips.slice(0, maxTrips - upcomingTrips.length).map((trip) => (
+                <RecentTripCard key={trip.id} trip={trip} />
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
