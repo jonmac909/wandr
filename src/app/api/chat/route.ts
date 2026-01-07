@@ -117,23 +117,29 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Build messages with tool results
-    const toolResultContent = toolResults.map((tr: { toolCallId: string; result: unknown }) => ({
-      type: 'tool_result',
-      tool_use_id: tr.toolCallId,
-      content: JSON.stringify(tr.result),
-    }));
+    // Build messages - tool results may already be included in messages or passed separately
+    let messagesWithToolResults = messages;
 
-    const messagesWithToolResults = [
-      ...messages,
-      {
-        role: 'user',
-        content: toolResultContent,
-      },
-    ];
+    // Only add tool results if they're passed separately (backward compatibility)
+    if (toolResults && toolResults.length > 0) {
+      const toolResultContent = toolResults.map((tr: { toolCallId: string; result: unknown }) => ({
+        type: 'tool_result',
+        tool_use_id: tr.toolCallId,
+        content: JSON.stringify(tr.result),
+      }));
 
-    console.log('PUT /api/chat - Tool result content:', JSON.stringify(toolResultContent, null, 2));
-    console.log('PUT /api/chat - Last assistant message:', JSON.stringify(messages[messages.length - 1]?.content, null, 2));
+      messagesWithToolResults = [
+        ...messages,
+        {
+          role: 'user',
+          content: toolResultContent,
+        },
+      ];
+      console.log('PUT /api/chat - Tool result content added:', JSON.stringify(toolResultContent, null, 2));
+    }
+
+    console.log('PUT /api/chat - Messages count:', messagesWithToolResults.length);
+    console.log('PUT /api/chat - Last message role:', messagesWithToolResults[messagesWithToolResults.length - 1]?.role);
     console.log('PUT /api/chat - Sending to Claude API...');
 
     const systemPrompt = buildChatSystemPrompt(itinerary);

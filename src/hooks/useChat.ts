@@ -282,23 +282,31 @@ export function useChat({
             })),
           ];
 
-          // Update conversation messages for next turn
+          // Build tool result content for user message
+          const toolResultContent = toolResults.map((tr) => ({
+            type: 'tool_result',
+            tool_use_id: tr.toolCallId,
+            content: JSON.stringify(tr.result),
+          }));
+
+          // Update conversation messages for next turn - include both assistant tool_use AND user tool_result
           conversationMessages = [
             ...conversationMessages,
             { role: 'assistant', content: assistantTurnContent },
+            { role: 'user', content: toolResultContent },
           ];
 
           console.log('Assistant turn content:', JSON.stringify(assistantTurnContent, null, 2));
           console.log('Tool results being sent:', JSON.stringify(toolResults, null, 2));
 
-          // Send tool results back to Claude
-          console.log('Sending tool results to API...');
+          // Send to Claude for continuation (messages already include tool_result)
+          console.log('Sending continuation request to API...');
           const continuationResponse = await fetch('/api/chat', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: conversationMessages,
-              toolResults,
+              toolResults: [], // Already included in messages
               itinerary: currentItinerary.current,
             }),
           });
