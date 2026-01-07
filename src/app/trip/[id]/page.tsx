@@ -1001,12 +1001,18 @@ ${JSON.stringify(tripDna, null, 2)}`}
                       contentFilter={contentFilter}
                       onDateClick={(date) => {
                         const dateStr = date.toISOString().split('T')[0];
-                        // Switch to schedule view and scroll to day
-                        setContentFilter('schedule');
+                        // Scroll to the relevant item in the CURRENT view (don't switch views)
                         setTimeout(() => {
-                          const dayElement = dayRefs.current[dateStr];
-                          if (dayElement) {
-                            dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          // Try to find an element with this date in the current view
+                          const dateElement = document.querySelector(`[data-date="${dateStr}"]`);
+                          if (dateElement) {
+                            dateElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          } else if (contentFilter === 'schedule') {
+                            // Fallback for schedule view using dayRefs
+                            const dayElement = dayRefs.current[dateStr];
+                            if (dayElement) {
+                              dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
                           }
                         }, 100);
                       }}
@@ -1426,7 +1432,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     <div className="space-y-2 pr-1">
                       {itinerary.days.flatMap(day =>
                         day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').map(block => (
-                          <Card key={block.id}>
+                          <Card key={block.id} data-date={day.date}>
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -1460,7 +1466,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {contentFilter === 'hotels' && (
                     <div className="space-y-2 pr-1">
                       {itinerary.route.bases.map(base => (
-                        <Card key={base.id}>
+                        <Card key={base.id} data-date={base.checkIn}>
                           <CardContent className="p-3">
                             <div className="flex items-start gap-3">
                               <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -1493,7 +1499,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     <div className="space-y-2 pr-1">
                       {itinerary.days.flatMap(day =>
                         day.blocks.filter(b => b.activity && b.activity.category !== 'flight' && b.activity.category !== 'transit' && b.activity.category !== 'food').map(block => (
-                          <Card key={block.id}>
+                          <Card key={block.id} data-date={day.date}>
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
