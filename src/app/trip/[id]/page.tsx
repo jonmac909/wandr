@@ -1023,82 +1023,49 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                 {/* Scrollable content area */}
                 <div className="flex-1 overflow-auto min-h-0">
-                  {/* Overview - Trip Summary (Tourvisto-style) */}
+                  {/* Overview - Trip Summary */}
                   {contentFilter === 'overview' && (
-                    <div className="space-y-4 pr-1">
-                      {/* Trip Header with Hero Image */}
-                      <div className="relative rounded-xl overflow-hidden h-40 bg-gradient-to-r from-primary/20 to-primary/5">
-                        <img
-                          src={`https://source.unsplash.com/800x400/?${encodeURIComponent(itinerary.meta.destination)},travel`}
-                          alt={itinerary.meta.destination}
-                          className="w-full h-full object-cover opacity-80"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Input
-                                value={editedTitle}
-                                onChange={(e) => setEditedTitle(e.target.value)}
-                                className="h-10 text-xl font-bold bg-white/90"
-                                placeholder="Trip name"
-                                autoFocus
-                              />
-                              <div className="flex gap-2">
-                                <Button variant="secondary" size="sm" onClick={handleSaveTitle}>
-                                  <Save className="w-4 h-4 mr-1" />
-                                  Save
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-white hover:text-white" onClick={() => setIsEditing(false)}>
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-end justify-between">
-                              <div>
-                                <h2 className="text-2xl font-bold text-white">{itinerary.meta.title}</h2>
-                                <div className="flex items-center gap-2 text-white/80 mt-1">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{itinerary.meta.destination}</span>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-white hover:text-white hover:bg-white/20"
-                                onClick={startEditing}
-                              >
-                                <Pencil className="w-4 h-4" />
+                    <div className="space-y-3 pr-1">
+                      {/* Trip Header */}
+                      <div className="flex items-start justify-between">
+                        {isEditing ? (
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              value={editedTitle}
+                              onChange={(e) => setEditedTitle(e.target.value)}
+                              className="h-10 text-xl font-bold"
+                              placeholder="Trip name"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={handleSaveTitle}>
+                                <Save className="w-4 h-4 mr-1" />
+                                Save
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                                Cancel
                               </Button>
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Summary Stats Row */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-muted-foreground">Accommodation</span>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            <Check className="w-3 h-3" />
-                            {itinerary.route.bases.length} hotels
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-muted-foreground">Transport</span>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                            <Check className="w-3 h-3" />
-                            {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0)} flights
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between py-2 border-b">
-                          <span className="text-sm text-muted-foreground">Activities</span>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            <Sparkles className="w-3 h-3" />
-                            {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity && !['flight', 'transit', 'food'].includes(b.activity.category || '')).length, 0)} planned
-                          </span>
-                        </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <h2 className="text-2xl font-bold">{itinerary.meta.title}</h2>
+                              <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                                <MapPin className="w-4 h-4" />
+                                <span>{itinerary.meta.destination}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={startEditing}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
 
                       {/* Quick Glance Schedule - grouped by location from full date range */}
@@ -1192,79 +1159,164 @@ ${JSON.stringify(tripDna, null, 2)}`}
 
                         return (
                           <>
-                            {/* Accommodation Section - Tourvisto style */}
-                            <Card className="py-0">
-                              <CardContent className="p-3">
-                                <h3 className="text-sm font-semibold mb-3">Accommodation</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                  {itinerary.route.bases.slice(0, 4).map((base) => (
-                                    <div key={base.id} className="flex items-center gap-3 group">
-                                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                                        <img
-                                          src={`https://source.unsplash.com/200x200/?hotel,${encodeURIComponent(base.location.split(',')[0])}`}
-                                          alt={base.accommodation?.name || base.location}
-                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-sm truncate">{base.accommodation?.name || base.location.split(',')[0]}</h4>
-                                        <p className="text-xs text-muted-foreground">{base.nights} nights</p>
-                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 mt-1">
-                                          <Check className="w-2.5 h-2.5" />
-                                          Paid
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                {itinerary.route.bases.length > 4 && (
-                                  <p className="text-xs text-muted-foreground text-center mt-2">
-                                    +{itinerary.route.bases.length - 4} more hotels
-                                  </p>
-                                )}
-                              </CardContent>
-                            </Card>
+                            {/* Trip Stats */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <Card className="py-0">
+                                <CardContent className="p-2 text-center">
+                                  <p className="text-2xl font-bold">{totalDays}</p>
+                                  <p className="text-xs text-muted-foreground">Days</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="py-0">
+                                <CardContent className="p-2 text-center">
+                                  <p className="text-2xl font-bold">{uniqueDestinations}</p>
+                                  <p className="text-xs text-muted-foreground">Destinations</p>
+                                </CardContent>
+                              </Card>
+                              <Card className="py-0">
+                                <CardContent className="p-2 text-center">
+                                  <p className="text-2xl font-bold">{transportCount}</p>
+                                  <p className="text-xs text-muted-foreground">Flights</p>
+                                </CardContent>
+                              </Card>
+                            </div>
 
-                            {/* Transport Section - Tourvisto style */}
                             <Card className="py-0">
-                              <CardContent className="p-3">
-                                <h3 className="text-sm font-semibold mb-3">Transport</h3>
+                              <CardContent className="p-2">
                                 <div className="space-y-2">
-                                  {itinerary.days.flatMap(day =>
-                                    day.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit')
-                                      .map(block => ({ block, date: day.date }))
-                                  ).slice(0, 5).map(({ block, date }) => {
-                                    // Parse origin/destination from activity name
-                                    const name = block.activity?.name || '';
-                                    const match = name.match(/([A-Z]{3})\s*(?:→|->|—|-|to)\s*([A-Z]{3})/i);
-                                    const origin = match ? match[1] : 'Origin';
-                                    const destination = match ? match[2] : name.split('→')[1]?.trim() || 'Destination';
+                                  {groups.map((group, index) => {
+                                    // Get days within this group's date range
+                                    const daysInGroup = itinerary.days.filter(
+                                      d => d.date >= group.startDate && d.date <= group.endDate
+                                    );
+                                    // Get transport blocks for this group
+                                    const transportBlocks = daysInGroup.flatMap(d =>
+                                      d.blocks.filter(b =>
+                                        b.activity?.category === 'flight' || b.activity?.category === 'transit'
+                                      ).map(b => ({ ...b, date: d.date }))
+                                    );
+                                    const isExpanded = expandedOverviewIndex === index;
 
                                     return (
-                                      <div key={block.id} className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                          <Plane className="w-5 h-5 text-blue-600" />
+                                      <div key={`${group.location}-${index}`}>
+                                        <div
+                                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                                          onClick={() => {
+                                            if (editingOverviewIndex !== index) {
+                                              setExpandedOverviewIndex(isExpanded ? null : index);
+                                            }
+                                          }}
+                                        >
+                                          {/* Day numbers */}
+                                          <div className="w-16 text-xs font-medium text-primary text-center flex-shrink-0">
+                                            {group.startDay === group.endDay
+                                              ? `Day ${group.startDay}`
+                                              : `Day ${group.startDay}-${group.endDay}`}
+                                          </div>
+                                          {/* Location and dates */}
+                                          <div className="flex-1 min-w-0">
+                                            {editingOverviewIndex === index ? (
+                                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <Input
+                                                  value={editedLocation}
+                                                  onChange={(e) => setEditedLocation(e.target.value)}
+                                                  className="h-7 text-sm"
+                                                  autoFocus
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                      handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation);
+                                                    } else if (e.key === 'Escape') {
+                                                      setEditingOverviewIndex(null);
+                                                    }
+                                                  }}
+                                                />
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-7 w-7"
+                                                  onClick={() => handleUpdateOverviewLocation(group.startDate, group.endDate, editedLocation)}
+                                                >
+                                                  <Check className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-7 w-7"
+                                                  onClick={() => setEditingOverviewIndex(null)}
+                                                >
+                                                  <X className="w-3.5 h-3.5" />
+                                                </Button>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <p className="font-medium truncate">
+                                                  {group.location}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  {formatDateString(group.startDate)}
+                                                  {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                                </p>
+                                              </>
+                                            )}
+                                          </div>
+                                          {/* Nights and actions */}
+                                          {editingOverviewIndex !== index && (
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                              <span className="text-xs text-muted-foreground">
+                                                {group.nights === 1 ? '1 night' : `${group.nights} nights`}
+                                              </span>
+                                              <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingOverviewIndex(index);
+                                                  setEditedLocation(group.location);
+                                                }}
+                                              >
+                                                <Pencil className="w-3 h-3" />
+                                              </Button>
+                                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-sm">{origin} → {destination}</p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {block.startTime || '--:--'} • {block.activity?.duration || '1h'} • {formatDisplayDate(date)}
-                                          </p>
-                                        </div>
-                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                                          Pending
-                                        </span>
+
+                                        {/* Expanded dropdown with daily details */}
+                                        {isExpanded && editingOverviewIndex !== index && (
+                                          <div className="mt-2 space-y-1 pb-2 pl-3">
+                                            {/* All events as flat list with date on right */}
+                                            {daysInGroup.flatMap((day) =>
+                                              day.blocks.filter(b => b.activity).map((block) => (
+                                                <div key={block.id} className="flex items-center gap-2 text-sm">
+                                                  {block.activity?.category === 'flight' && (
+                                                    <Plane className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                                  )}
+                                                  {block.activity?.category === 'transit' && (
+                                                    <Train className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                                                  )}
+                                                  {block.activity?.category === 'accommodation' && (
+                                                    <Hotel className="w-3 h-3 text-purple-600 flex-shrink-0" />
+                                                  )}
+                                                  {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
+                                                    <Circle className="w-2 h-2 text-muted-foreground flex-shrink-0" />
+                                                  )}
+                                                  <span className="text-xs flex-1 truncate">{block.activity?.name}</span>
+                                                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                                    {formatDisplayDate(day.date)}
+                                                  </span>
+                                                </div>
+                                              ))
+                                            )}
+
+                                            {daysInGroup.every(d => d.blocks.filter(b => b.activity).length === 0) && (
+                                              <p className="text-xs text-muted-foreground italic">No activities planned</p>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
-                                  {itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0) > 5 && (
-                                    <p className="text-xs text-muted-foreground text-center">
-                                      +{itinerary.days.reduce((acc, d) => acc + d.blocks.filter(b => b.activity?.category === 'flight' || b.activity?.category === 'transit').length, 0) - 5} more flights
-                                    </p>
-                                  )}
-                                  {itinerary.days.every(d => d.blocks.every(b => b.activity?.category !== 'flight' && b.activity?.category !== 'transit')) && (
-                                    <p className="text-xs text-muted-foreground text-center py-4">No transport booked yet</p>
-                                  )}
                                 </div>
                               </CardContent>
                             </Card>
