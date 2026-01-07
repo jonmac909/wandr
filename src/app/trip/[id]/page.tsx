@@ -505,20 +505,20 @@ export default function TripPage() {
       return accommodationBlock.activity.location.name;
     }
 
-    // 2. Check for flight - use the ORIGIN (where you're departing from that day)
+    // 2. Check for flight - use the DESTINATION (where you arrive/sleep that day)
     const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
     if (flightBlocks.length > 0) {
-      // Get the first flight's origin (where you started the day)
-      const firstFlight = flightBlocks[0];
-      // Parse origin from flight name (e.g., "Bangkok → Chiang Mai" or "BKK-CNX")
-      const flightName = firstFlight?.activity?.name || '';
-      const originMatch = flightName.match(/^([^→\-–]+)/);
-      if (originMatch) {
-        return originMatch[1].trim();
+      // Get the last flight's destination (where you end up)
+      const lastFlight = flightBlocks[flightBlocks.length - 1];
+      // Parse destination from flight name (e.g., "Bangkok → Chiang Mai" or "BKK-CNX")
+      const flightName = lastFlight?.activity?.name || '';
+      const destMatch = flightName.match(/[→\-–>]\s*(.+)$/);
+      if (destMatch) {
+        return destMatch[1].trim();
       }
       // Fallback to location if can't parse
-      if (firstFlight?.activity?.location?.name) {
-        return firstFlight.activity.location.name;
+      if (lastFlight?.activity?.location?.name) {
+        return lastFlight.activity.location.name;
       }
     }
 
