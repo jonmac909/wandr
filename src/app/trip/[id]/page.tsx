@@ -11,6 +11,7 @@ import { FoodLayerView } from '@/components/itinerary/food-layer';
 import { FoodRecommendationModal } from '@/components/itinerary/food-recommendation-modal';
 import { generatePackingList, isPackingListEmpty } from '@/lib/packing/generator';
 import { fixFlightDurations, fixAirportCodes } from '@/lib/trips/fix-durations';
+import { generateBookingUrl } from '@/lib/booking/urls';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ import {
   ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
-  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus
+  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb } from '@/lib/db/indexed-db';
@@ -1448,6 +1449,19 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                   <p className="text-xs text-muted-foreground truncate">{block.activity?.description}</p>
                                   <p className="text-xs text-muted-foreground mt-1">{formatDisplayDate(day.date)}</p>
                                 </div>
+                                {block.activity && (
+                                  <a
+                                    href={generateBookingUrl(block.activity, { date: day.date })}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-shrink-0"
+                                  >
+                                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
+                                      <ExternalLink className="w-3 h-3" />
+                                      Book
+                                    </Button>
+                                  </a>
+                                )}
                               </div>
                             </CardContent>
                           </Card>
