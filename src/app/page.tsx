@@ -6,8 +6,6 @@ import {
   MonthCalendar,
   RecentTripsSidebar,
   FeaturedTripCard,
-  HousingSection,
-  TransportSection,
   StatsPanel,
   WorldMap,
   CountryBreakdown,
@@ -17,10 +15,11 @@ import {
   ImportModal,
   BucketList,
   ProfileSettings,
+  TravelHighlights,
+  DestinationInspiration,
 } from '@/components/dashboard';
 import { useDashboardData, getFeaturedTrip, getRecentTrips } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
-import { extractTransportFromItinerary } from '@/lib/dashboard/transport-extractor';
 
 export default function Home() {
   const { trips, loading } = useDashboardData();
@@ -33,10 +32,6 @@ export default function Home() {
   // Derived data
   const featuredTrip = useMemo(() => getFeaturedTrip(trips), [trips]);
   const recentTrips = useMemo(() => getRecentTrips(trips, 5), [trips]);
-  const transport = useMemo(
-    () => extractTransportFromItinerary(featuredTrip?.itinerary),
-    [featuredTrip]
-  );
 
   if (loading) {
     return (
@@ -65,12 +60,12 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* Center Column: Featured Trip + Housing + Transport */}
+          {/* Center Column: Featured Trip + Travel Highlights + Inspiration */}
           <section className="lg:col-span-6 flex flex-col gap-1.5 min-h-0">
             <FeaturedTripCard trip={featuredTrip} />
-            <HousingSection bases={featuredTrip?.itinerary?.route?.bases?.slice(0, 3)} />
+            <TravelHighlights stats={stats} trips={trips} />
             <div className="flex-1 min-h-0">
-              <TransportSection transport={transport.slice(0, 3)} />
+              <DestinationInspiration trips={trips} />
             </div>
           </section>
 

@@ -14,6 +14,8 @@ export { HousingSection } from './HousingSection';
 export { HousingCard } from './HousingCard';
 export { TransportSection } from './TransportSection';
 export { TransportRow } from './TransportRow';
+export { TravelHighlights } from './TravelHighlights';
+export { DestinationInspiration } from './DestinationInspiration';
 
 // Right column
 export { StatsPanel } from './StatsPanel';
