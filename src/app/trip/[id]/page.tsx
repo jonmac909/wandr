@@ -738,20 +738,61 @@ export default function TripPage() {
   };
 
   // Build route from schedule - extract unique cities in order they appear
+  // This MUST match the grouping logic in the overview section exactly
   const sortedBases = useMemo(() => {
-    if (!itinerary?.days) return itinerary?.route?.bases || [];
+    if (!itinerary?.days || itinerary.days.length === 0) return itinerary?.route?.bases || [];
 
-    // Get cities from schedule in order
+    // Get date range from itinerary days
+    const sortedDays = [...itinerary.days].sort((a, b) => a.date.localeCompare(b.date));
+    const firstDate = sortedDays[0].date;
+    const lastDate = sortedDays[sortedDays.length - 1].date;
+
+    // Build a map of date -> day for fast lookup
+    const daysByDate: Record<string, DayPlan> = {};
+    itinerary.days.forEach(day => {
+      daysByDate[day.date] = day;
+    });
+
+    // Parse dates
+    const [sy, sm, sd] = firstDate.split('-').map(Number);
+    const [ey, em, ed] = lastDate.split('-').map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const end = new Date(ey, em - 1, ed);
+
+    // Helper to format date as YYYY-MM-DD
+    const toDateStr = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    // Extract unique cities in order (same logic as overview groups)
     const seenCities = new Set<string>();
     const orderedCities: string[] = [];
+    let lastLocation = '';
+    const current = new Date(start);
 
-    itinerary.days.forEach(day => {
-      const city = getCityForDay(day);
-      if (city && !seenCities.has(city.toLowerCase())) {
-        seenCities.add(city.toLowerCase());
-        orderedCities.push(city);
+    while (current <= end) {
+      const dateStr = toDateStr(current);
+      const existingDay = daysByDate[dateStr];
+
+      let location: string;
+      if (existingDay) {
+        location = getCityForDay(existingDay);
+      } else {
+        location = lastLocation || itinerary.meta.destination || 'Unknown';
       }
-    });
+
+      // Add city if new (dedup by lowercase)
+      if (location && !seenCities.has(location.toLowerCase())) {
+        seenCities.add(location.toLowerCase());
+        orderedCities.push(location);
+      }
+
+      lastLocation = location;
+      current.setDate(current.getDate() + 1);
+    }
 
     // Map ordered cities to bases (or create placeholder bases)
     const bases = itinerary.route?.bases || [];
@@ -771,7 +812,7 @@ export default function TripPage() {
         rationale: '',
       };
     });
-  }, [itinerary?.days, itinerary?.route?.bases]);
+  }, [itinerary?.days, itinerary?.route?.bases, itinerary?.meta?.destination]);
 
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
