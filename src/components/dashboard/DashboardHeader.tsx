@@ -19,7 +19,7 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfi
         {/* Centered Logo */}
         <Link href="/" className="absolute left-1/2 -translate-x-1/2">
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Wandr
+            Trippified
           </h1>
         </Link>
 

@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wandr",
+  title: "Trippified",
   description: "AI-Powered Trip Planning - Optimize your trip based on personality and priorities",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Wandr",
+    title: "Trippified",
   },
   formatDetection: {
     telephone: false,
