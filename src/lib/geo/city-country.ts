@@ -213,7 +213,7 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   'nairobi': 'KE', 'masai mara': 'KE', 'mombasa': 'KE', 'lamu': 'KE',
   'dar es salaam': 'TZ', 'zanzibar': 'TZ', 'serengeti': 'TZ', 'kilimanjaro': 'TZ', 'arusha': 'TZ',
   'victoria falls': 'ZW', 'livingstone': 'ZM', 'addis ababa': 'ET', 'lalibela': 'ET',
-  'accra': 'GH', 'lagos': 'NG', 'dakar': 'SN', 'tunis': 'TN', 'algiers': 'DZ',
+  'accra': 'GH', 'lagos nigeria': 'NG', 'dakar': 'SN', 'tunis': 'TN', 'algiers': 'DZ',
   'kigali': 'RW', 'kampala': 'UG', 'windhoek': 'NA', 'etosha': 'NA', 'sossusvlei': 'NA',
   'mauritius': 'MU', 'seychelles': 'SC', 'reunion': 'RE', 'madagascar': 'MG',
 };
