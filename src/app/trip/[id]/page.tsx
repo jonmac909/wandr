@@ -12,6 +12,7 @@ import { FoodRecommendationModal } from '@/components/itinerary/food-recommendat
 import { generatePackingList, isPackingListEmpty } from '@/lib/packing/generator';
 import { fixFlightDurations, fixAirportCodes } from '@/lib/trips/fix-durations';
 import { generateBookingUrl } from '@/lib/booking/urls';
+import { getFlagForLocation } from '@/lib/geo/city-country';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -485,61 +486,6 @@ export default function TripPage() {
     'DXB': 'Dubai', 'DOH': 'Doha', 'AUH': 'Abu Dhabi',
     // Hawaii
     'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
-  };
-
-  // City/country to flag emoji mapping
-  const LOCATION_FLAGS: Record<string, string> = {
-    // Japan
-    'tokyo': '🇯🇵', 'osaka': '🇯🇵', 'kyoto': '🇯🇵', 'nagoya': '🇯🇵', 'sapporo': '🇯🇵',
-    'fukuoka': '🇯🇵', 'okinawa': '🇯🇵', 'hiroshima': '🇯🇵', 'nara': '🇯🇵', 'japan': '🇯🇵',
-    'hakone': '🇯🇵', 'nikko': '🇯🇵', 'kanazawa': '🇯🇵', 'kobe': '🇯🇵', 'yokohama': '🇯🇵',
-    'kamakura': '🇯🇵', 'narita': '🇯🇵', 'shibuya': '🇯🇵', 'shinjuku': '🇯🇵',
-    // Thailand
-    'bangkok': '🇹🇭', 'chiang mai': '🇹🇭', 'phuket': '🇹🇭', 'koh samui': '🇹🇭',
-    'krabi': '🇹🇭', 'pattaya': '🇹🇭', 'koh yao': '🇹🇭', 'koh lanta': '🇹🇭',
-    'koh phi phi': '🇹🇭', 'koh tao': '🇹🇭', 'koh phangan': '🇹🇭', 'thailand': '🇹🇭',
-    // Vietnam
-    'hanoi': '🇻🇳', 'ho chi minh': '🇻🇳', 'saigon': '🇻🇳', 'da nang': '🇻🇳',
-    'hoi an': '🇻🇳', 'nha trang': '🇻🇳', 'phu quoc': '🇻🇳', 'hue': '🇻🇳', 'vietnam': '🇻🇳',
-    // Southeast Asia
-    'singapore': '🇸🇬', 'kuala lumpur': '🇲🇾', 'malaysia': '🇲🇾', 'manila': '🇵🇭',
-    'philippines': '🇵🇭', 'jakarta': '🇮🇩', 'bali': '🇮🇩', 'indonesia': '🇮🇩',
-    'siem reap': '🇰🇭', 'phnom penh': '🇰🇭', 'cambodia': '🇰🇭',
-    'yangon': '🇲🇲', 'myanmar': '🇲🇲', 'vientiane': '🇱🇦', 'luang prabang': '🇱🇦', 'laos': '🇱🇦',
-    // East Asia
-    'hong kong': '🇭🇰', 'seoul': '🇰🇷', 'korea': '🇰🇷', 'taipei': '🇹🇼', 'taiwan': '🇹🇼',
-    'beijing': '🇨🇳', 'shanghai': '🇨🇳', 'china': '🇨🇳',
-    // Europe
-    'paris': '🇫🇷', 'france': '🇫🇷', 'london': '🇬🇧', 'uk': '🇬🇧', 'england': '🇬🇧',
-    'rome': '🇮🇹', 'italy': '🇮🇹', 'barcelona': '🇪🇸', 'madrid': '🇪🇸', 'spain': '🇪🇸',
-    'amsterdam': '🇳🇱', 'netherlands': '🇳🇱', 'berlin': '🇩🇪', 'munich': '🇩🇪', 'germany': '🇩🇪',
-    'vienna': '🇦🇹', 'austria': '🇦🇹', 'zurich': '🇨🇭', 'geneva': '🇨🇭', 'switzerland': '🇨🇭',
-    'lisbon': '🇵🇹', 'portugal': '🇵🇹', 'prague': '🇨🇿', 'czech': '🇨🇿',
-    // North America
-    'new york': '🇺🇸', 'los angeles': '🇺🇸', 'san francisco': '🇺🇸', 'usa': '🇺🇸',
-    'vancouver': '🇨🇦', 'toronto': '🇨🇦', 'montreal': '🇨🇦', 'kelowna': '🇨🇦', 'canada': '🇨🇦',
-    'seattle': '🇺🇸', 'honolulu': '🇺🇸', 'hawaii': '🇺🇸', 'maui': '🇺🇸',
-    // Oceania
-    'sydney': '🇦🇺', 'melbourne': '🇦🇺', 'brisbane': '🇦🇺', 'australia': '🇦🇺',
-    'auckland': '🇳🇿', 'new zealand': '🇳🇿',
-    // Middle East
-    'dubai': '🇦🇪', 'uae': '🇦🇪', 'doha': '🇶🇦', 'qatar': '🇶🇦', 'abu dhabi': '🇦🇪',
-  };
-
-  // Get flag emoji for a single location
-  const getFlagForLocation = (location: string): string => {
-    if (!location) return '';
-    const lower = location.toLowerCase().trim();
-
-    // Direct match
-    if (LOCATION_FLAGS[lower]) return LOCATION_FLAGS[lower];
-
-    // Check if any key is contained in the location
-    for (const [key, flag] of Object.entries(LOCATION_FLAGS)) {
-      if (lower.includes(key)) return flag;
-    }
-
-    return '';
   };
 
   // Get flags for multi-country destination string (e.g., "Thailand, Vietnam, Japan, Hawaii")
