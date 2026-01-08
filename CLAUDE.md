@@ -55,9 +55,10 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`/plan-mode`** - AI trip generation interface
 
 ### Components (`src/components/`)
-- **`dashboard/`** - Dashboard widgets (FeaturedTripCard, MonthCalendar, StatsPanel, WorldMap)
+- **`dashboard/`** - Dashboard widgets (FeaturedTripCard, MonthCalendar, StatsPanel, WorldMap, TravelHighlights, DestinationInspiration)
 - **`itinerary/`** - Trip display (DayCard, PackingListView, FoodLayerView)
 - **`trip/`** - Trip-specific (TripRouteMap)
+- **`chat/`** - AI chatbot (ChatSheet, ChatInput, ChatMessage)
 - **`ui/`** - shadcn/ui primitives (Button, Card, Input, etc.)
 - **`questionnaire/`** - Form step components
 
@@ -90,9 +91,21 @@ Generates booking links based on activity category:
 - Food/Activities → Google Search
 - `parseFlightDetails()` extracts airport codes from activity names
 
+### Route/Map Display
+The `TripRouteMap` component shows destinations in order. The `sortedBases` memo builds route order from the schedule:
+- Iterates through days using `getCityForDay()` to get each day's city
+- Returns unique cities in chronological order
+- **Map shows schedule order, NOT route.bases array order**
+
+### Overview Stats
+Trip page overview shows countries/cities count:
+- Excludes first and last groups (origin/return - typically home city)
+- Uses `getFlagForLocation()` for country flags
+- Groups consecutive days at same location
+
 ## Terminology
 
-- **Dashboard** = Home page (`/`) with calendar, featured trip, stats, map
+- **Dashboard** = Home page (`/`) with calendar, featured trip, travel highlights, destination inspiration, stats, map
 - **Trip page** = `/trip/[id]` with Overview, Schedule, Transport, Hotels widgets
 
 ## Ground Rules
@@ -100,7 +113,7 @@ Generates booking links based on activity category:
 - Start replies with 🔧 emoji
 - Be succinct - avoid verbose explanations
 - Work in small, verifiable steps
-- Always check TypeScript errors before committing: `npx tsc --noEmit`
+- **ALWAYS run `npm run build` locally before pushing** - catches TypeScript/build errors before deploy
 - **Live site: https://jjtraveler.com** - User tests here, NOT localhost
 - **ALWAYS push to live after completing tasks** - `git add -A && git commit -m "..." && git push`
 - Netlify auto-deploys from GitHub main branch (~1-2 min)
@@ -119,15 +132,22 @@ const date = new Date(y, m - 1, d);
 The `getCityForDay()` function in trip page determines where user sleeps each night by checking:
 1. Custom location override (`customLocation` field on DayPlan)
 2. Accommodation activity location
-3. Last flight destination
+3. Flight destination (but ORIGIN for overnight flights with +1/+2)
 4. Any activity location
 5. Base data fallback
 
 **IMPORTANT Location Rules:**
-- **NEVER display airport codes** (YLW, HNL, etc.) - always convert to city names (Kelowna, Honolulu)
-- **Merge equivalent locations**: Oahu = Honolulu = Waikiki (they're the same place)
-- The `normalizeLocation()` function handles these conversions
-- Airport code mappings are in `AIRPORT_TO_CITY` constant and `airportToCityMap` inside `getCityForDay()`
+- **NEVER display airport codes** (YLW, HNL, NRT) - always convert to city names
+- **Merge airport cities**: Narita/Haneda → Tokyo, NRT → Tokyo
+- **Merge equivalent locations**: Oahu = Honolulu = Waikiki
+- The `normalizeLocation()` function handles all conversions
+- **Overnight flights** (+1 in name): Show origin city, not destination (you're on the plane)
+
+### Country/Flag Detection (`src/lib/geo/city-country.ts`)
+- Comprehensive city-to-country database (400+ cities)
+- `getFlagForLocation(city)` returns flag emoji for any known city
+- `getCountryForCity(city)` returns ISO country code
+- Add new cities to `CITY_TO_COUNTRY` map as needed
 
 ### Content Filtering
 Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels'|'experiences'|'packing'|'docs'|'budget'`
