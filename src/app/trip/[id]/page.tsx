@@ -492,6 +492,8 @@ export default function TripPage() {
     // Japan
     'tokyo': '🇯🇵', 'osaka': '🇯🇵', 'kyoto': '🇯🇵', 'nagoya': '🇯🇵', 'sapporo': '🇯🇵',
     'fukuoka': '🇯🇵', 'okinawa': '🇯🇵', 'hiroshima': '🇯🇵', 'nara': '🇯🇵', 'japan': '🇯🇵',
+    'hakone': '🇯🇵', 'nikko': '🇯🇵', 'kanazawa': '🇯🇵', 'kobe': '🇯🇵', 'yokohama': '🇯🇵',
+    'kamakura': '🇯🇵', 'narita': '🇯🇵', 'shibuya': '🇯🇵', 'shinjuku': '🇯🇵',
     // Thailand
     'bangkok': '🇹🇭', 'chiang mai': '🇹🇭', 'phuket': '🇹🇭', 'koh samui': '🇹🇭',
     'krabi': '🇹🇭', 'pattaya': '🇹🇭', 'koh yao': '🇹🇭', 'koh lanta': '🇹🇭',
