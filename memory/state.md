@@ -50,7 +50,7 @@
 - Full code review completed
 - Deleted `/skills/` folder (irrelevant marketing content)
 - Removed localStorage writes from ImportModal (now IndexedDB + Supabase only)
-- Updated `docs/architecture.md` with actual Wandr architecture
+- Updated `docs/architecture.md` with actual Trippified architecture
 - Updated `memory/goal.md` with project status
 - Updated `.gitignore` comment
 - Cleaned up unused imports

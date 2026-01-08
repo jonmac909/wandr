@@ -1,12 +1,12 @@
 /**
- * WANDR DESIGN SYSTEM - Typography & Spacing
+ * TRIPPIFIED DESIGN SYSTEM - Typography & Spacing
  *
  * Use these constants for consistent styling across the app.
  * Import: import { typography, spacing } from '@/lib/styles';
  */
 
 export const typography = {
-  // Page titles (e.g., "Wandr" logo, trip title on detail page)
+  // Page titles (e.g., "Trippified" logo, trip title on detail page)
   pageTitle: 'text-xl font-bold',
 
   // Section headers (e.g., "Hotels", "Transport", "Bucket List")

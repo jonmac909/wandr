@@ -1,4 +1,4 @@
-# Wandr Architecture
+# Trippified Architecture
 
 > AI-powered trip planning PWA with offline-first storage and cloud sync.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Wandr is a personal travel planning application that helps users create, manage, and visualize detailed trip itineraries. The app uses a questionnaire-based approach to generate "Trip DNA" which captures traveler preferences, then displays rich itineraries with day-by-day planning, accommodations, transportation, and packing lists.
+Trippified is a personal travel planning application that helps users create, manage, and visualize detailed trip itineraries. The app uses a questionnaire-based approach to generate "Trip DNA" which captures traveler preferences, then displays rich itineraries with day-by-day planning, accommodations, transportation, and packing lists.
 
 ---
 

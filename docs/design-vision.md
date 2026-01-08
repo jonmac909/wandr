@@ -1,4 +1,4 @@
-# Wandr Design Vision
+# Trippified Design Vision
 
 > A personal travel companion that adapts to your style — from meticulous planners to "just book it" travelers.
 
@@ -19,7 +19,7 @@
 
 **"Your trip, your way."**
 
-Wandr is not a one-size-fits-all travel app. It's a spectrum tool that serves:
+Trippified is not a one-size-fits-all travel app. It's a spectrum tool that serves:
 - **The Perfectionist**: Wants to control every 15-minute block, read every review, compare every option
 - **The Spontaneous**: Wants AI to handle everything with minimal input
 - **Everyone in between**: Adjustable autonomy levels throughout the planning process

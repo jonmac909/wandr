@@ -6,7 +6,7 @@
 
 ## Objective
 
-Build **Wandr** - an AI-powered personal travel planning PWA that helps users create detailed trip itineraries with:
+Build **Trippified** - an AI-powered personal travel planning PWA that helps users create detailed trip itineraries with:
 - Day-by-day schedules with time blocks
 - Accommodation tracking
 - Transportation planning

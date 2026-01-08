@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Wandr is a travel planning PWA that helps users create, manage, and track trip itineraries. It uses AI to generate trip plans from user preferences (TripDNA) and stores data locally with optional Supabase cloud sync.
+Trippified is a travel planning PWA that helps users create, manage, and track trip itineraries. It uses AI to generate trip plans from user preferences (TripDNA) and stores data locally with optional Supabase cloud sync.
 
 ## Commands
 
@@ -160,7 +160,7 @@ Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels
 ### Design System (`src/lib/styles.ts`)
 Typography hierarchy - use consistently:
 ```
-Page titles:      text-xl font-bold       (20px) - "Wandr" logo only
+Page titles:      text-xl font-bold       (20px) - "Trippified" logo only
 Section titles:   text-sm font-semibold   (14px) - "Hotels", "Transport"
 Card headers:     text-sm font-semibold   (14px) - "January 2026", hotel names
 Compact headers:  text-xs font-semibold   (12px) - Trip page widgets

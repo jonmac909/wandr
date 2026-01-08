@@ -10,7 +10,7 @@ export function buildChatSystemPrompt(
   const tripContext = buildTripContext(itinerary);
   const toolGuidelines = buildToolGuidelines();
 
-  return `You are a helpful travel planning assistant for the Wandr app. You help users modify their trip plans through natural conversation.
+  return `You are a helpful travel planning assistant for the Trippified app. You help users modify their trip plans through natural conversation.
 
 ## Your Role
 - Help users update their travel itinerary
