@@ -6,127 +6,114 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
-const inputPath = join(projectRoot, 'WhatsApp Image 2026-01-08 at 13.40.51.jpeg');
+const inputPath = join(projectRoot, 'WhatsApp Image 2026-01-08 at 13.31.17.jpeg');
 const publicDir = join(projectRoot, 'public');
 const iconsDir = join(publicDir, 'icons');
 
-// Primary color from globals.css: oklch(0.65 0.2 25)
-// Converting to RGB: approximately #e85d4c (warm coral/red)
-const PRIMARY_COLOR = { r: 232, g: 93, b: 76 }; // Coral/red matching the app primary
+// Primary color for the logo text version
+const PRIMARY_COLOR = { r: 232, g: 93, b: 76 };
 
 async function generateFavicons() {
   console.log('Processing image...');
 
-  // Load the image
   const image = sharp(inputPath);
   const metadata = await image.metadata();
   console.log(`Input: ${metadata.width}x${metadata.height}`);
 
-  // This image has a light/white background with black paper airplane
-  // We need to: make background transparent, make airplane primary color
+  // This image has light gray/white outer background with black rounded square containing white airplane
+  // We need to extract just the black rounded square part
 
-  // Generate favicon sizes
+  // First, find the bounds of the black square by looking at the image
+  // The black square is roughly centered, let's crop to it
+  const size = Math.min(metadata.width, metadata.height);
+
+  // The black rounded rect takes up about 65% of the image
+  const cropSize = Math.floor(size * 0.68);
+  const offsetX = Math.floor((metadata.width - cropSize) / 2);
+  const offsetY = Math.floor((metadata.height - cropSize) / 2);
+
+  // Extract the black rounded square
+  const cropped = await image
+    .extract({
+      left: offsetX,
+      top: offsetY + 20,  // Slight adjustment since icon isn't perfectly centered
+      width: cropSize,
+      height: cropSize
+    })
+    .toBuffer();
+
+  // Generate favicon sizes - keep the black/white as-is
   const sizes = [
     { size: 16, output: 'favicon-16x16.png', dir: publicDir },
     { size: 32, output: 'favicon-32x32.png', dir: publicDir },
     { size: 180, output: 'apple-touch-icon.png', dir: publicDir },
-    { size: 64, output: 'logo-icon.png', dir: publicDir },
   ];
 
   for (const { size: s, output, dir } of sizes) {
-    // Resize first
-    const resized = await sharp(inputPath)
-      .resize(s, s, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
-      .toBuffer();
-
-    // Get raw pixel data
-    const { data, info } = await sharp(resized)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    // Create new buffer with transformed colors
-    // Light/white pixels -> transparent (background)
-    // Dark pixels -> primary color (the airplane)
-    const newData = Buffer.alloc(info.width * info.height * 4);
-
-    for (let i = 0; i < data.length; i += info.channels) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const pixelIndex = (i / info.channels) * 4;
-
-      // Calculate brightness
-      const brightness = (r + g + b) / 3;
-
-      if (brightness < 80) {
-        // Dark pixels -> primary color (fully opaque) - the airplane
-        newData[pixelIndex] = PRIMARY_COLOR.r;
-        newData[pixelIndex + 1] = PRIMARY_COLOR.g;
-        newData[pixelIndex + 2] = PRIMARY_COLOR.b;
-        newData[pixelIndex + 3] = 255;
-      } else if (brightness < 180) {
-        // Mid-gray pixels -> primary color with proportional opacity (anti-aliasing)
-        const alpha = Math.floor(((180 - brightness) / 100) * 255);
-        newData[pixelIndex] = PRIMARY_COLOR.r;
-        newData[pixelIndex + 1] = PRIMARY_COLOR.g;
-        newData[pixelIndex + 2] = PRIMARY_COLOR.b;
-        newData[pixelIndex + 3] = alpha;
-      } else {
-        // Light/white pixels -> fully transparent (background)
-        newData[pixelIndex] = 0;
-        newData[pixelIndex + 1] = 0;
-        newData[pixelIndex + 2] = 0;
-        newData[pixelIndex + 3] = 0;
-      }
-    }
-
-    await sharp(newData, {
-      raw: { width: info.width, height: info.height, channels: 4 }
-    })
+    await sharp(cropped)
+      .resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .png()
       .toFile(join(dir, output));
 
     console.log(`Created ${output}`);
   }
 
-  // PWA icons - primary background with white airplane
-  for (const s of [192, 512]) {
-    const resized = await sharp(inputPath)
-      .resize(s, s, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
-      .toBuffer();
+  // Logo icon for header - use primary color version
+  // Extract just the airplane and color it with primary
+  const logoInput = join(projectRoot, 'WhatsApp Image 2026-01-08 at 13.40.51.jpeg');
+  const logoSize = 64;
 
-    const { data, info } = await sharp(resized)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+  const logoResized = await sharp(logoInput)
+    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
+    .toBuffer();
 
-    const newData = Buffer.alloc(info.width * info.height * 4);
+  const { data: logoData, info: logoInfo } = await sharp(logoResized)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-    for (let i = 0; i < data.length; i += info.channels) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const pixelIndex = (i / info.channels) * 4;
+  const logoNewData = Buffer.alloc(logoInfo.width * logoInfo.height * 4);
 
-      const brightness = (r + g + b) / 3;
+  for (let i = 0; i < logoData.length; i += logoInfo.channels) {
+    const r = logoData[i];
+    const g = logoData[i + 1];
+    const b = logoData[i + 2];
+    const pixelIndex = (i / logoInfo.channels) * 4;
+    const brightness = (r + g + b) / 3;
 
-      if (brightness < 100) {
-        // Dark pixels (airplane) -> white
-        newData[pixelIndex] = 255;
-        newData[pixelIndex + 1] = 255;
-        newData[pixelIndex + 2] = 255;
-        newData[pixelIndex + 3] = 255;
-      } else {
-        // Light pixels (background) -> primary color
-        newData[pixelIndex] = PRIMARY_COLOR.r;
-        newData[pixelIndex + 1] = PRIMARY_COLOR.g;
-        newData[pixelIndex + 2] = PRIMARY_COLOR.b;
-        newData[pixelIndex + 3] = 255;
-      }
+    if (brightness < 80) {
+      // Dark pixels -> primary color
+      logoNewData[pixelIndex] = PRIMARY_COLOR.r;
+      logoNewData[pixelIndex + 1] = PRIMARY_COLOR.g;
+      logoNewData[pixelIndex + 2] = PRIMARY_COLOR.b;
+      logoNewData[pixelIndex + 3] = 255;
+    } else if (brightness < 180) {
+      // Anti-aliasing
+      const alpha = Math.floor(((180 - brightness) / 100) * 255);
+      logoNewData[pixelIndex] = PRIMARY_COLOR.r;
+      logoNewData[pixelIndex + 1] = PRIMARY_COLOR.g;
+      logoNewData[pixelIndex + 2] = PRIMARY_COLOR.b;
+      logoNewData[pixelIndex + 3] = alpha;
+    } else {
+      // Transparent
+      logoNewData[pixelIndex] = 0;
+      logoNewData[pixelIndex + 1] = 0;
+      logoNewData[pixelIndex + 2] = 0;
+      logoNewData[pixelIndex + 3] = 0;
     }
+  }
 
-    await sharp(newData, {
-      raw: { width: info.width, height: info.height, channels: 4 }
-    })
+  await sharp(logoNewData, {
+    raw: { width: logoInfo.width, height: logoInfo.height, channels: 4 }
+  })
+    .png()
+    .toFile(join(publicDir, 'logo-icon.png'));
+
+  console.log('Created logo-icon.png (primary color)');
+
+  // PWA icons - use the black rounded square version
+  for (const s of [192, 512]) {
+    await sharp(cropped)
+      .resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .png()
       .toFile(join(iconsDir, `icon-${s}x${s}.png`));
 
@@ -138,7 +125,7 @@ async function generateFavicons() {
     .toFile(join(publicDir, 'favicon.png'));
   console.log('Created favicon.png');
 
-  console.log('Done! All icons use primary color:', PRIMARY_COLOR);
+  console.log('Done!');
 }
 
 generateFavicons().catch(console.error);
