@@ -383,18 +383,19 @@ function parseFlightDetails(name: string, description?: string): { origin?: stri
  * - "Bus Chiang Mai to Chiang Rai"
  * - "GreenBus Chiang Mai → Chiang Rai"
  * - "Train Bangkok to Chiang Mai"
+ * - "Private car Chiang Mai to Chiang Rai"
  */
 function parseTransitDetails(name: string, description?: string): { origin?: string; destination?: string } {
-  const text = `${name} ${description || ''}`;
+  const text = `${name} ${description || ''}`.trim();
 
-  // Pattern 1: City names with "to" or arrow
-  const cityPattern = text.match(/(?:bus|train|greenbus|transport|transfer)?\s*(?:from\s+)?([A-Za-z\s]+?)\s*(?:→|->|—|-|to)\s*([A-Za-z\s]+?)(?:\s+\d|$|\s+@|\s+bus|\s+train|$)/i);
+  // Pattern 1: City names with "to" or arrow - capture everything to end of string
+  const cityPattern = text.match(/(?:bus|train|greenbus|transport|transfer|van|private\s*car)?\s*(?:from\s+)?([A-Za-z\s]+?)\s+(?:→|->|—|-|to)\s+([A-Za-z\s]+?)(?:\s*$|\s+(?:on|at|\d))/i);
   if (cityPattern) {
     const origin = cityPattern[1].trim();
     const destination = cityPattern[2].trim();
     // Clean up common words
-    const cleanOrigin = origin.replace(/\b(bus|train|from|the)\b/gi, '').trim();
-    const cleanDest = destination.replace(/\b(bus|train|the)\b/gi, '').trim();
+    const cleanOrigin = origin.replace(/\b(bus|train|from|the|greenbus|van|private|car)\b/gi, '').trim();
+    const cleanDest = destination.replace(/\b(bus|train|the|greenbus|van|private|car)\b/gi, '').trim();
     if (cleanOrigin && cleanDest) {
       return { origin: cleanOrigin, destination: cleanDest };
     }

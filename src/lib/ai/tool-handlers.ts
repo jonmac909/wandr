@@ -574,10 +574,11 @@ function handleGetBookingLink(
 
     case 'transit':
       // Parse origin/destination from the activity name
-      const transitMatch = activityName?.match(/(?:from\s+)?([A-Za-z\s]+?)\s*(?:→|->|—|-|to)\s*([A-Za-z\s]+?)(?:\s|$)/i);
+      // Pattern: "Bus Chiang Mai to Chiang Rai" or "Chiang Mai → Chiang Rai" etc.
+      const transitMatch = activityName?.match(/(?:bus|train|van|greenbus|private\s*car)?\s*(?:from\s+)?([A-Za-z\s]+?)\s+(?:→|->|—|-|to)\s+([A-Za-z\s]+?)$/i);
       if (transitMatch) {
-        const origin = transitMatch[1].replace(/\b(bus|train|greenbus)\b/gi, '').trim();
-        const dest = transitMatch[2].replace(/\b(bus|train)\b/gi, '').trim();
+        const origin = transitMatch[1].replace(/\b(bus|train|greenbus|van|private|car)\b/gi, '').trim();
+        const dest = transitMatch[2].replace(/\b(bus|train|greenbus|van|private|car)\b/gi, '').trim();
         url = generateTransitUrl({
           origin,
           destination: dest,
