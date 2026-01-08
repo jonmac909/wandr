@@ -1345,12 +1345,10 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Exclude origin location (first/last if same) from destination counts
-                        const originLocation = groups.length >= 2 && groups[0].location === groups[groups.length - 1].location
-                          ? groups[0].location
-                          : null;
-                        const destinationGroups = originLocation
-                          ? groups.filter(g => g.location !== originLocation)
+                        // Exclude origin (first) and return (last) locations from destination counts
+                        // These are typically home cities, not destinations
+                        const destinationGroups = groups.length > 2
+                          ? groups.slice(1, -1)  // Remove first and last
                           : groups;
 
                         // Count unique cities (destinations only, not origin)
