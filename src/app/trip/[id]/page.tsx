@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary, DayPlan, FoodRecommendation } from '@/types/itinerary';
@@ -724,6 +724,32 @@ export default function TripPage() {
     return getCityForDay(day);
   };
 
+  // Sort bases by first appearance in itinerary days (chronological order)
+  const sortedBases = useMemo(() => {
+    if (!itinerary?.route?.bases || !itinerary?.days) return [];
+    const bases = itinerary.route.bases;
+    const days = itinerary.days;
+
+    // Get first day index for each base location
+    const baseFirstDay: Record<string, number> = {};
+    days.forEach((day, dayIndex) => {
+      const city = getCityForDay(day);
+      bases.forEach(base => {
+        const baseCity = normalizeLocation(base.location?.split(',')[0] || '');
+        if (baseCity.toLowerCase() === city.toLowerCase() && baseFirstDay[base.id] === undefined) {
+          baseFirstDay[base.id] = dayIndex;
+        }
+      });
+    });
+
+    // Sort bases by first appearance
+    return [...bases].sort((a, b) => {
+      const dayA = baseFirstDay[a.id] ?? 999;
+      const dayB = baseFirstDay[b.id] ?? 999;
+      return dayA - dayB;
+    });
+  }, [itinerary?.route?.bases, itinerary?.days]);
+
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
     if (!itinerary) return;
@@ -1059,7 +1085,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
           <aside className="hidden md:flex md:col-span-4 flex-col gap-1.5 min-h-0">
             {/* Map - shows all locations for overview, single location for schedule */}
             <TripRouteMap
-              bases={itinerary.route.bases}
+              bases={sortedBases}
               className="flex-1 min-h-[200px]"
               singleLocation={contentFilter === 'schedule' ? (() => {
                 // Get today's date or first day's location for schedule view
