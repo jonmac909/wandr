@@ -831,7 +831,12 @@ function ActivityDisplay({ activity, effectiveCategory, priority, date, hotelNig
       {/* Compact header: icon + name + time on same line */}
       <div className="flex items-center gap-1">
         <span className="opacity-60 flex-shrink-0">{categoryIcon}</span>
-        <span className="font-medium text-sm">{displayName}</span>
+        <span className="font-medium text-sm">
+          {displayName}
+          {displayCategory === 'flight' && /\+[12]/.test(activity.name) && (
+            <span className="text-muted-foreground font-normal ml-1">(overnight)</span>
+          )}
+        </span>
         {/* Show nights for hotels, duration for everything else */}
         {isAccommodation && hotelNights ? (
           <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">

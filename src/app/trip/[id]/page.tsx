@@ -1563,7 +1563,12 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                                   {!['flight', 'transit', 'accommodation'].includes(block.activity?.category || '') && (
                                                     <Circle className="w-2 h-2 text-muted-foreground flex-shrink-0" />
                                                   )}
-                                                  <span className="text-xs flex-1 truncate">{block.activity?.name}</span>
+                                                  <span className="text-xs flex-1 truncate">
+                                                    {block.activity?.name}
+                                                    {block.activity?.category === 'flight' && (block.activity?.name || '').includes('+1') && (
+                                                      <span className="text-muted-foreground ml-1">(overnight)</span>
+                                                    )}
+                                                  </span>
                                                   <span className="text-[10px] text-muted-foreground flex-shrink-0">
                                                     {formatDisplayDate(day.date)}
                                                   </span>
