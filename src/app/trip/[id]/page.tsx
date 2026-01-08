@@ -1363,29 +1363,21 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           }
 
                           const lastGroup = groups[groups.length - 1];
-                          const isLocationChange = lastGroup && lastGroup.location !== location;
 
                           if (lastGroup && lastGroup.location === location) {
+                            // Same location - extend the group
                             lastGroup.endDate = dateStr;
                             lastGroup.endDay = dayNum;
-                            // Nights = days - 1 (you sleep each night except you leave on the last day)
-                            // But minimum 1 night if you're there at all
                             lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
                           } else {
-                            // Location change - always overlap the transition day in both groups
-                            if (lastGroup && isLocationChange) {
-                              lastGroup.endDate = dateStr;
-                              lastGroup.endDay = dayNum;
-                              lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
-                            }
-                            // Start new group (travel day overlaps - included in both)
+                            // Location change - start new group (no overlap)
                             groups.push({
                               location,
                               startDate: dateStr,
                               endDate: dateStr,
                               startDay: dayNum,
                               endDay: dayNum,
-                              nights: 1, // Single day = 1 night at that location
+                              nights: 1,
                             });
                           }
 
