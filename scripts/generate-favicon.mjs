@@ -39,14 +39,15 @@ async function generateFavicons() {
     .png()
     .toBuffer();
 
-  // Generate favicon sizes with primary color tint (no background - for browser tabs)
-  const faviconSizes = [
+  // Generate favicon sizes with primary color tint (no background)
+  const sizes = [
     { size: 16, output: 'favicon-16x16.png', dir: publicDir },
     { size: 32, output: 'favicon-32x32.png', dir: publicDir },
     { size: 180, output: 'apple-touch-icon.png', dir: publicDir },
+    { size: 64, output: 'logo-icon.png', dir: publicDir },
   ];
 
-  for (const { size: s, output, dir } of faviconSizes) {
+  for (const { size: s, output, dir } of sizes) {
     // Resize first
     const resized = await sharp(extracted)
       .resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -102,51 +103,7 @@ async function generateFavicons() {
     console.log(`Created ${output}`);
   }
 
-  // Logo icon WITH the rounded box background (for header)
-  // Keep the full icon with primary background
-  const logoSize = 64;
-  const logoResized = await sharp(inputPath)
-    .resize(logoSize, logoSize, { fit: 'cover' })
-    .toBuffer();
-
-  const { data: logoData, info: logoInfo } = await sharp(logoResized)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const logoNewData = Buffer.alloc(logoInfo.width * logoInfo.height * 4);
-
-  for (let i = 0; i < logoData.length; i += logoInfo.channels) {
-    const r = logoData[i];
-    const g = logoData[i + 1];
-    const b = logoData[i + 2];
-    const pixelIndex = (i / logoInfo.channels) * 4;
-
-    const brightness = (r + g + b) / 3;
-
-    if (brightness > 200) {
-      // White pixels stay white (the globe)
-      logoNewData[pixelIndex] = 255;
-      logoNewData[pixelIndex + 1] = 255;
-      logoNewData[pixelIndex + 2] = 255;
-      logoNewData[pixelIndex + 3] = 255;
-    } else {
-      // Dark pixels -> primary color (the background)
-      logoNewData[pixelIndex] = PRIMARY_COLOR.r;
-      logoNewData[pixelIndex + 1] = PRIMARY_COLOR.g;
-      logoNewData[pixelIndex + 2] = PRIMARY_COLOR.b;
-      logoNewData[pixelIndex + 3] = 255;
-    }
-  }
-
-  await sharp(logoNewData, {
-    raw: { width: logoInfo.width, height: logoInfo.height, channels: 4 }
-  })
-    .png()
-    .toFile(join(publicDir, 'logo-icon.png'));
-
-  console.log('Created logo-icon.png (with rounded box background)');
-
-  // PWA icons - same style as logo (primary background, white globe)
+  // PWA icons - keep the original style but with primary background
   for (const s of [192, 512]) {
     const resized = await sharp(inputPath)
       .resize(s, s, { fit: 'cover' })
@@ -190,7 +147,7 @@ async function generateFavicons() {
     console.log(`Created icons/icon-${s}x${s}.png`);
   }
 
-  // Copy favicon-32x32 as favicon.png (browsers use PNG)
+  // Copy favicon-32x32 as favicon.png
   await sharp(join(publicDir, 'favicon-32x32.png'))
     .toFile(join(publicDir, 'favicon.png'));
   console.log('Created favicon.png');
