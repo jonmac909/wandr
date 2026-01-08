@@ -1178,7 +1178,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                     label="Schedule"
                     countLabel={`${itinerary.days.length}/${getTotalTripDays()}`}
                     active={contentFilter === 'schedule'}
-                    onClick={() => setContentFilter('schedule')}
+                    onClick={() => setContentFilter(contentFilter === 'schedule' ? 'overview' : 'schedule')}
                   />
                   {/* Transport (flights, trains, buses) */}
                   <PipelineRow
@@ -1679,8 +1679,41 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
+                        // Calculate schedule summary stats
+                        const flightCount = itinerary.days.flatMap(d =>
+                          d.blocks.filter(b => b.activity?.category === 'flight')
+                        ).length;
+                        const hotelCount = itinerary.route.bases.filter(b => b.accommodation?.name).length;
+                        const activityCount = itinerary.days.flatMap(d =>
+                          d.blocks.filter(b => b.activity?.category && !['flight', 'transit', 'food', 'checkin', 'accommodation'].includes(b.activity.category))
+                        ).length;
+                        const foodCount = itinerary.days.flatMap(d =>
+                          d.blocks.filter(b => b.activity?.category === 'food')
+                        ).length;
+
                         return (
                           <>
+                            {/* Summary stats bar */}
+                            <div className="flex items-center gap-3 text-sm pb-2 mb-2 border-b flex-wrap">
+                              <span className="flex items-center gap-1 text-blue-600">
+                                <Plane className="w-3.5 h-3.5" />
+                                {flightCount} flight{flightCount !== 1 ? 's' : ''}
+                              </span>
+                              <span className="flex items-center gap-1 text-purple-600">
+                                <Hotel className="w-3.5 h-3.5" />
+                                {hotelCount} hotel{hotelCount !== 1 ? 's' : ''}
+                              </span>
+                              <span className="flex items-center gap-1 text-yellow-600">
+                                <Compass className="w-3.5 h-3.5" />
+                                {activityCount} activit{activityCount !== 1 ? 'ies' : 'y'}
+                              </span>
+                              {foodCount > 0 && (
+                                <span className="flex items-center gap-1 text-orange-600">
+                                  <UtensilsCrossed className="w-3.5 h-3.5" />
+                                  {foodCount} meal{foodCount !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
                             {/* Day list */}
                             <div ref={scheduleContainerRef} className="flex-1 overflow-auto space-y-2 pr-1">
                               {allDays.map((day) => {

@@ -614,11 +614,11 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="morning-anchor">Morning Anchor</SelectItem>
-                      <SelectItem value="midday-flex">Midday Flex</SelectItem>
-                      <SelectItem value="evening-vibe">Evening Vibe</SelectItem>
-                      <SelectItem value="rest-block">Rest Block</SelectItem>
-                      <SelectItem value="transit">Transit</SelectItem>
+                      <SelectItem value="morning-anchor">Morning</SelectItem>
+                      <SelectItem value="midday-flex">Afternoon</SelectItem>
+                      <SelectItem value="evening-vibe">Evening</SelectItem>
+                      <SelectItem value="rest-block">Rest</SelectItem>
+                      <SelectItem value="transit">Travel Day</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
