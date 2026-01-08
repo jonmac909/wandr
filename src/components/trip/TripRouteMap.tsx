@@ -100,12 +100,17 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
     ? [{ id: 'single', location: singleLocation, nights: 1 }] as Base[]
     : bases;
 
-  const coords = useMemo(() =>
-    effectiveBases
+  // DEBUG: Log what bases we receive
+  console.log('TripRouteMap bases:', bases?.map(b => b.location));
+  console.log('TripRouteMap effectiveBases:', effectiveBases?.map(b => b.location));
+
+  const coords = useMemo(() => {
+    const result = effectiveBases
       .map(b => ({ ...b, coords: getCityCoordinates(b.location) }))
-      .filter(b => b.coords !== null),
-    [effectiveBases]
-  );
+      .filter(b => b.coords !== null);
+    console.log('TripRouteMap coords (after filter):', result.map(c => c.location));
+    return result;
+  }, [effectiveBases]);
 
   // Calculate viewBox based on selected location or all points
   const viewBox = useMemo(() => {
