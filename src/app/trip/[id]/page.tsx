@@ -752,79 +752,7 @@ export default function TripPage() {
       return `${yyyy}-${mm}-${dd}`;
     };
 
-    // Inline version of getCityForDay to avoid closure issues
-    const getCityForDayInline = (day: DayPlan): string => {
-      // 0. Check custom location
-      if ((day as DayPlan & { customLocation?: string }).customLocation) {
-        return normalizeLocation((day as DayPlan & { customLocation?: string }).customLocation!);
-      }
-
-      // 1. Check accommodation
-      const accommodationBlock = day.blocks.find(b =>
-        b.activity?.category === 'accommodation' || b.activity?.category === 'checkin'
-      );
-      if (accommodationBlock?.activity) {
-        if (accommodationBlock.activity.location?.name) {
-          return normalizeLocation(accommodationBlock.activity.location.name);
-        }
-        const hotelName = accommodationBlock.activity.name || '';
-        if (hotelName.toLowerCase().includes('narita')) return 'Tokyo';
-        if (hotelName.toLowerCase().includes('haneda')) return 'Tokyo';
-      }
-
-      // 2. Check flights
-      const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
-      if (flightBlocks.length > 0) {
-        const airportToCityMap: Record<string, string> = {
-          'NRT': 'Tokyo', 'HND': 'Tokyo', 'KIX': 'Osaka',
-          'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
-          'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
-          'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
-          'YLW': 'Kelowna', 'YYC': 'Calgary', 'YEG': 'Edmonton',
-          'LAX': 'Los Angeles', 'SFO': 'San Francisco', 'JFK': 'New York',
-          'LHR': 'London', 'CDG': 'Paris', 'FCO': 'Rome',
-          'DAN': 'Da Nang', 'DAD': 'Da Nang', 'SGN': 'Ho Chi Minh',
-          'HAN': 'Hanoi', 'REP': 'Siem Reap', 'KUL': 'Kuala Lumpur',
-          'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
-        };
-
-        // Always use last flight's DESTINATION - this is where you end up
-        // (For overnight flights, you arrive the next day, but this city should be on the map)
-        const lastFlight = flightBlocks[flightBlocks.length - 1];
-        const flightName = lastFlight?.activity?.name || '';
-        const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
-        if (codeMatch) {
-          return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
-        }
-
-        const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
-        if (cityMatch && !cityMatch[2].match(/\d/)) {
-          return normalizeLocation(cityMatch[2].trim());
-        }
-
-        if (lastFlight?.activity?.location?.name) {
-          return normalizeLocation(lastFlight.activity.location.name);
-        }
-      }
-
-      // 3. Any activity location
-      for (const block of day.blocks) {
-        if (block.activity?.location?.name) {
-          return normalizeLocation(block.activity.location.name);
-        }
-      }
-
-      // 4. Base data fallback
-      for (const base of itinerary.route.bases) {
-        if (day.date >= base.checkIn && day.date < base.checkOut) {
-          return normalizeLocation(base.location);
-        }
-      }
-
-      return '';
-    };
-
-    // Extract unique cities in order
+    // Extract unique cities in order - uses same getCityForDay as overview
     const seenCities = new Set<string>();
     const orderedCities: string[] = [];
     let lastLocation = '';
@@ -836,7 +764,7 @@ export default function TripPage() {
 
       let location: string;
       if (existingDay) {
-        location = getCityForDayInline(existingDay);
+        location = getCityForDay(existingDay);
       } else {
         location = lastLocation || itinerary.meta.destination || 'Unknown';
       }
