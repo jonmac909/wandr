@@ -23,18 +23,22 @@ async function generateFavicons() {
   console.log(`Input: ${metadata.width}x${metadata.height}`);
 
   // The image has a black rounded rect background with white globe
-  // Extract the center portion containing the globe
+  // Need to extract ONLY the globe, cutting off the rounded corners of the box
+  // The globe is roughly in the center 60% of the image
   const size = Math.min(metadata.width, metadata.height);
-  const extractSize = Math.floor(size * 0.75);
-  const offset = Math.floor((size - extractSize) / 2);
 
-  // Extract center portion (just the globe, no box)
+  // More aggressive crop to remove the rounded box corners
+  const extractSize = Math.floor(size * 0.55); // Smaller extract to avoid box edges
+  const offsetX = Math.floor((metadata.width - extractSize) / 2);
+  const offsetY = Math.floor((metadata.height - extractSize) / 2);
+
+  // Extract center portion (just the globe, no box corners)
   const extracted = await image
     .extract({
-      left: offset + 50,
-      top: offset + 50,
-      width: extractSize - 100,
-      height: extractSize - 100
+      left: offsetX,
+      top: offsetY + 30, // Shift down slightly since globe is centered in the box
+      width: extractSize,
+      height: extractSize
     })
     .png()
     .toBuffer();
@@ -72,21 +76,21 @@ async function generateFavicons() {
       // Calculate brightness
       const brightness = (r + g + b) / 3;
 
-      if (brightness > 200) {
+      if (brightness > 220) {
         // White/light pixels -> primary color (fully opaque)
         newData[pixelIndex] = PRIMARY_COLOR.r;
         newData[pixelIndex + 1] = PRIMARY_COLOR.g;
         newData[pixelIndex + 2] = PRIMARY_COLOR.b;
         newData[pixelIndex + 3] = 255;
-      } else if (brightness > 50) {
-        // Gray pixels -> primary color with reduced opacity
-        const alpha = Math.floor((brightness / 255) * 255);
+      } else if (brightness > 100) {
+        // Gray pixels -> primary color with proportional opacity
+        const alpha = Math.floor(((brightness - 100) / 155) * 255);
         newData[pixelIndex] = PRIMARY_COLOR.r;
         newData[pixelIndex + 1] = PRIMARY_COLOR.g;
         newData[pixelIndex + 2] = PRIMARY_COLOR.b;
         newData[pixelIndex + 3] = alpha;
       } else {
-        // Dark/black pixels -> transparent
+        // Dark/black pixels -> fully transparent
         newData[pixelIndex] = 0;
         newData[pixelIndex + 1] = 0;
         newData[pixelIndex + 2] = 0;
