@@ -414,6 +414,7 @@ interface EditFormState {
   duration: string;
   cost: string;
   notes: string;
+  tips: string;
   blockType: TimeBlockType;
   priority: ActivityPriority;
 }
@@ -430,6 +431,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
     duration: block.activity?.duration?.toString() || '60',
     cost: block.activity?.cost?.amount?.toString() || '',
     notes: block.notes || '',
+    tips: block.activity?.tips?.join(', ') || '',
     blockType: block.type,
     priority: block.priority,
   });
@@ -477,6 +479,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
       duration: block.activity?.duration?.toString() || '60',
       cost: block.activity?.cost?.amount?.toString() || '',
       notes: block.notes || '',
+      tips: block.activity?.tips?.join(', ') || '',
       blockType: block.type,
       priority: block.priority,
     });
@@ -515,6 +518,7 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
           currency: 'USD',
           isEstimate: true,
         } : undefined,
+        tips: editForm.tips ? editForm.tips.split(',').map(t => t.trim()).filter(Boolean) : [],
       } as Activity;
     }
 
@@ -717,7 +721,18 @@ function TimeBlockCard({ block, date, hotelNights, onUpdate, onDelete, editable 
                 <Input
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  placeholder="Booking reference, tips, etc."
+                  placeholder="Booking reference, etc."
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              {/* Row 7: Tips (flight info, stops, etc) */}
+              <div className="space-y-1">
+                <Label className="text-xs">Tips / Flight Info</Label>
+                <Input
+                  value={editForm.tips}
+                  onChange={(e) => setEditForm({ ...editForm, tips: e.target.value })}
+                  placeholder="e.g. 10hr 30min, 1 stop, business class"
                   className="h-8 text-xs"
                 />
               </div>

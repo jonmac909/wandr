@@ -73,6 +73,8 @@ export default function TripPage() {
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+  const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
+  const [editingNights, setEditingNights] = useState<number>(1);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -194,6 +196,42 @@ export default function TripPage() {
   // Get documents for a specific category
   const getDocsForCategory = (category: string) => {
     return documents.filter(d => d.name.startsWith(`${category}:`));
+  };
+
+  // Update hotel nights
+  const handleUpdateHotelNights = async (baseIndex: number, newNights: number) => {
+    if (!itinerary) return;
+
+    const bases = [...itinerary.route.bases];
+    const base = bases[baseIndex];
+    if (!base || !base.checkIn) return;
+
+    // Calculate new checkout date
+    const [year, month, day] = base.checkIn.split('-').map(Number);
+    const checkInDate = new Date(year, month - 1, day);
+    checkInDate.setDate(checkInDate.getDate() + newNights);
+    const newCheckOut = `${checkInDate.getFullYear()}-${String(checkInDate.getMonth() + 1).padStart(2, '0')}-${String(checkInDate.getDate()).padStart(2, '0')}`;
+
+    // Update base
+    bases[baseIndex] = {
+      ...base,
+      nights: newNights,
+      checkOut: newCheckOut,
+    };
+
+    const updatedItinerary = {
+      ...itinerary,
+      route: { ...itinerary.route, bases },
+      updatedAt: new Date(),
+    };
+
+    setItinerary(updatedItinerary);
+    setEditingHotelIndex(null);
+
+    // Persist to DB
+    if (tripDna) {
+      await tripDb.updateItinerary(tripId, updatedItinerary);
+    }
   };
 
   const handleSaveTitle = async () => {
@@ -1787,9 +1825,54 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                     <Hotel className="w-3.5 h-3.5" />
                                   </span>
                                   <span className="font-medium text-sm">{base.accommodation?.name || 'Accommodation TBD'}</span>
-                                  <span className="text-[11px] opacity-50 ml-auto flex-shrink-0">
-                                    {nights} night{nights > 1 ? 's' : ''}
-                                  </span>
+                                  {editingHotelIndex === index ? (
+                                    <div className="flex items-center gap-1 ml-auto">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-purple-600 hover:text-purple-800"
+                                        onClick={() => setEditingNights(Math.max(1, editingNights - 1))}
+                                      >
+                                        <span className="text-sm font-bold">−</span>
+                                      </Button>
+                                      <span className="text-[11px] font-medium w-4 text-center">{editingNights}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-purple-600 hover:text-purple-800"
+                                        onClick={() => setEditingNights(editingNights + 1)}
+                                      >
+                                        <span className="text-sm font-bold">+</span>
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-green-600 hover:text-green-800"
+                                        onClick={() => handleUpdateHotelNights(index, editingNights)}
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setEditingHotelIndex(null)}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="text-[11px] opacity-50 ml-auto flex-shrink-0 flex items-center gap-1 hover:opacity-80 transition-opacity"
+                                      onClick={() => {
+                                        setEditingHotelIndex(index);
+                                        setEditingNights(nights);
+                                      }}
+                                    >
+                                      {nights} night{nights > 1 ? 's' : ''}
+                                      <Pencil className="w-2.5 h-2.5" />
+                                    </button>
+                                  )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] opacity-70">
                                   <span className="flex items-center gap-1">
