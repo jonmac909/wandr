@@ -683,34 +683,29 @@ export default function TripPage() {
       );
 
       if (hasOvernightFlight) {
-        // For overnight flights, show where you START the day (first flight's origin)
-        const firstFlight = flightBlocks[0];
-        const firstName = firstFlight?.activity?.name || '';
-        const firstCodeMatch = firstName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
-        if (firstCodeMatch) {
-          return normalizeLocation(airportToCityMap[firstCodeMatch[1]] || firstCodeMatch[1]);
+        // For overnight flights, skip flight-based detection
+        // Fall through to activities and base data detection
+      } else {
+        // For same-day flights, use last flight's destination
+        const lastFlight = flightBlocks[flightBlocks.length - 1];
+        const flightName = lastFlight?.activity?.name || '';
+        const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
+
+        if (codeMatch) {
+          return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
         }
-      }
 
-      // For same-day flights, use last flight's destination
-      const lastFlight = flightBlocks[flightBlocks.length - 1];
-      const flightName = lastFlight?.activity?.name || '';
-      const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
+        // Try to parse destination from flight name formats:
+        // "Bangkok → Chiang Mai" or "City A - City B" (but not times like 9:50am-1:00pm)
+        const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
+        if (cityMatch && !cityMatch[2].match(/\d/)) {
+          return normalizeLocation(cityMatch[2].trim());
+        }
 
-      if (codeMatch) {
-        return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
-      }
-
-      // Try to parse destination from flight name formats:
-      // "Bangkok → Chiang Mai" or "City A - City B" (but not times like 9:50am-1:00pm)
-      const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
-      if (cityMatch && !cityMatch[2].match(/\d/)) {
-        return normalizeLocation(cityMatch[2].trim());
-      }
-
-      // Fallback to location if can't parse
-      if (lastFlight?.activity?.location?.name) {
-        return normalizeLocation(lastFlight.activity.location.name);
+        // Fallback to location if can't parse
+        if (lastFlight?.activity?.location?.name) {
+          return normalizeLocation(lastFlight.activity.location.name);
+        }
       }
     }
 
@@ -808,28 +803,26 @@ export default function TripPage() {
         );
 
         if (hasOvernightFlight) {
-          const firstFlight = flightBlocks[0];
-          const firstName = firstFlight?.activity?.name || '';
-          const firstCodeMatch = firstName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
-          if (firstCodeMatch) {
-            return normalizeLocation(airportToCityMap[firstCodeMatch[1]] || firstCodeMatch[1]);
+          // For overnight flights, skip to base data / other detection methods
+          // The day you take an overnight flight, you're on the plane - not at destination yet
+          // Let it fall through to base data fallback
+        } else {
+          // For same-day flights, use last flight's destination
+          const lastFlight = flightBlocks[flightBlocks.length - 1];
+          const flightName = lastFlight?.activity?.name || '';
+          const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
+          if (codeMatch) {
+            return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
           }
-        }
 
-        const lastFlight = flightBlocks[flightBlocks.length - 1];
-        const flightName = lastFlight?.activity?.name || '';
-        const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
-        if (codeMatch) {
-          return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
-        }
+          const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
+          if (cityMatch && !cityMatch[2].match(/\d/)) {
+            return normalizeLocation(cityMatch[2].trim());
+          }
 
-        const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
-        if (cityMatch && !cityMatch[2].match(/\d/)) {
-          return normalizeLocation(cityMatch[2].trim());
-        }
-
-        if (lastFlight?.activity?.location?.name) {
-          return normalizeLocation(lastFlight.activity.location.name);
+          if (lastFlight?.activity?.location?.name) {
+            return normalizeLocation(lastFlight.activity.location.name);
+          }
         }
       }
 
