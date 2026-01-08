@@ -288,9 +288,16 @@ export function DayCard({
                       <Badge variant="default" className="text-[10px] px-1.5 py-0">Today</Badge>
                     )}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
                     <MapPin className="w-3 h-3" />
-                    {location || day.theme || 'No location set'}
+                    <span>{location || day.theme || 'No location set'}</span>
+                    {hotelForDay && (
+                      <>
+                        <span className="text-muted-foreground/50">•</span>
+                        <Hotel className="w-3 h-3 text-purple-500" />
+                        <span className="text-purple-600">{hotelForDay.name}</span>
+                      </>
+                    )}
                     {onUpdateDay && (
                       <Button
                         size="icon"
@@ -306,12 +313,6 @@ export function DayCard({
                       </Button>
                     )}
                   </p>
-                  {hotelForDay && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Hotel className="w-3 h-3 text-purple-500" />
-                      <span className="text-purple-600">{hotelForDay.name}</span>
-                    </p>
-                  )}
                 </>
               )}
             </div>

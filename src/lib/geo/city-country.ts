@@ -242,39 +242,53 @@ export function getFlagForCity(city: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
+// Common country names to codes - used for both direct lookups and "City, Country" format
+const COUNTRY_TO_CODE: Record<string, string> = {
+  'japan': 'JP', 'thailand': 'TH', 'vietnam': 'VN', 'indonesia': 'ID',
+  'malaysia': 'MY', 'singapore': 'SG', 'philippines': 'PH', 'cambodia': 'KH',
+  'laos': 'LA', 'myanmar': 'MM', 'south korea': 'KR', 'korea': 'KR',
+  'taiwan': 'TW', 'china': 'CN', 'india': 'IN', 'nepal': 'NP',
+  'sri lanka': 'LK', 'maldives': 'MV', 'usa': 'US', 'united states': 'US',
+  'canada': 'CA', 'mexico': 'MX', 'uk': 'GB', 'united kingdom': 'GB',
+  'england': 'GB', 'france': 'FR', 'italy': 'IT', 'spain': 'ES',
+  'portugal': 'PT', 'germany': 'DE', 'netherlands': 'NL', 'belgium': 'BE',
+  'switzerland': 'CH', 'austria': 'AT', 'greece': 'GR', 'croatia': 'HR',
+  'australia': 'AU', 'new zealand': 'NZ', 'uae': 'AE', 'turkey': 'TR',
+  // US States commonly listed as destinations
+  'hawaii': 'US', 'alaska': 'US', 'california': 'US', 'florida': 'US',
+  'new york': 'US', 'texas': 'US', 'arizona': 'US', 'nevada': 'US',
+};
+
 /**
- * Try to get flag from location string (handles "City, Country" format)
+ * Convert country code to flag emoji
+ */
+function codeToFlag(code: string): string {
+  const codePoints = code.toUpperCase().split('').map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+/**
+ * Try to get flag from location string (handles "City, Country" format and standalone country names)
  */
 export function getFlagForLocation(location: string): string {
   if (!location) return '';
+  const trimmed = location.trim().toLowerCase();
 
-  // First try the city part
+  // First check if it's a country name directly (e.g., "Thailand", "Japan", "Hawaii")
+  const countryCode = COUNTRY_TO_CODE[trimmed];
+  if (countryCode) return codeToFlag(countryCode);
+
+  // Then try the city part
   const city = location.split(',')[0].trim();
   const cityFlag = getFlagForCity(city);
   if (cityFlag) return cityFlag;
 
-  // Then try the country part if present
+  // Then try the country part if present (e.g., "Tokyo, Japan")
   const parts = location.split(',');
   if (parts.length > 1) {
     const country = parts[parts.length - 1].trim().toLowerCase();
-    // Common country names to codes
-    const countryToCode: Record<string, string> = {
-      'japan': 'JP', 'thailand': 'TH', 'vietnam': 'VN', 'indonesia': 'ID',
-      'malaysia': 'MY', 'singapore': 'SG', 'philippines': 'PH', 'cambodia': 'KH',
-      'laos': 'LA', 'myanmar': 'MM', 'south korea': 'KR', 'korea': 'KR',
-      'taiwan': 'TW', 'china': 'CN', 'india': 'IN', 'nepal': 'NP',
-      'sri lanka': 'LK', 'maldives': 'MV', 'usa': 'US', 'united states': 'US',
-      'canada': 'CA', 'mexico': 'MX', 'uk': 'GB', 'united kingdom': 'GB',
-      'england': 'GB', 'france': 'FR', 'italy': 'IT', 'spain': 'ES',
-      'portugal': 'PT', 'germany': 'DE', 'netherlands': 'NL', 'belgium': 'BE',
-      'switzerland': 'CH', 'austria': 'AT', 'greece': 'GR', 'croatia': 'HR',
-      'australia': 'AU', 'new zealand': 'NZ', 'uae': 'AE', 'turkey': 'TR',
-    };
-    const code = countryToCode[country];
-    if (code) {
-      const codePoints = code.split('').map(char => 127397 + char.charCodeAt(0));
-      return String.fromCodePoint(...codePoints);
-    }
+    const code = COUNTRY_TO_CODE[country];
+    if (code) return codeToFlag(code);
   }
 
   return '';

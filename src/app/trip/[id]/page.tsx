@@ -1662,7 +1662,11 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         const current = new Date(start);
 
                         while (current <= end) {
-                          const dateStr = current.toISOString().split('T')[0];
+                          // Format as local date (not UTC) to match stored day dates
+                          const yyyy = current.getFullYear();
+                          const mm = String(current.getMonth() + 1).padStart(2, '0');
+                          const dd = String(current.getDate()).padStart(2, '0');
+                          const dateStr = `${yyyy}-${mm}-${dd}`;
                           const existingDay = daysByDate[dateStr];
 
                           if (existingDay) {
