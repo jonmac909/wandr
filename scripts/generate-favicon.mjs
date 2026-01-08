@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
-const inputPath = join(projectRoot, 'WhatsApp Image 2026-01-08 at 11.01.52.jpeg');
+const inputPath = join(projectRoot, 'WhatsApp Image 2026-01-08 at 13.40.51.jpeg');
 const publicDir = join(projectRoot, 'public');
 const iconsDir = join(publicDir, 'icons');
 
@@ -22,28 +22,10 @@ async function generateFavicons() {
   const metadata = await image.metadata();
   console.log(`Input: ${metadata.width}x${metadata.height}`);
 
-  // The image has a black rounded rect background with white globe
-  // Need to extract ONLY the globe, cutting off the rounded corners of the box
-  // The globe is roughly in the center 60% of the image
-  const size = Math.min(metadata.width, metadata.height);
+  // This image has a light/white background with black paper airplane
+  // We need to: make background transparent, make airplane primary color
 
-  // More aggressive crop to remove the rounded box corners
-  const extractSize = Math.floor(size * 0.55); // Smaller extract to avoid box edges
-  const offsetX = Math.floor((metadata.width - extractSize) / 2);
-  const offsetY = Math.floor((metadata.height - extractSize) / 2);
-
-  // Extract center portion (just the globe, no box corners)
-  const extracted = await image
-    .extract({
-      left: offsetX,
-      top: offsetY + 30, // Shift down slightly since globe is centered in the box
-      width: extractSize,
-      height: extractSize
-    })
-    .png()
-    .toBuffer();
-
-  // Generate favicon sizes with primary color tint (no background)
+  // Generate favicon sizes
   const sizes = [
     { size: 16, output: 'favicon-16x16.png', dir: publicDir },
     { size: 32, output: 'favicon-32x32.png', dir: publicDir },
@@ -53,8 +35,8 @@ async function generateFavicons() {
 
   for (const { size: s, output, dir } of sizes) {
     // Resize first
-    const resized = await sharp(extracted)
-      .resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    const resized = await sharp(inputPath)
+      .resize(s, s, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
       .toBuffer();
 
     // Get raw pixel data
@@ -62,9 +44,9 @@ async function generateFavicons() {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // Create new buffer with tinted colors
-    // White pixels (globe) -> primary color
-    // Black pixels (background) -> transparent
+    // Create new buffer with transformed colors
+    // Light/white pixels -> transparent (background)
+    // Dark pixels -> primary color (the airplane)
     const newData = Buffer.alloc(info.width * info.height * 4);
 
     for (let i = 0; i < data.length; i += info.channels) {
@@ -76,21 +58,21 @@ async function generateFavicons() {
       // Calculate brightness
       const brightness = (r + g + b) / 3;
 
-      if (brightness > 220) {
-        // White/light pixels -> primary color (fully opaque)
+      if (brightness < 80) {
+        // Dark pixels -> primary color (fully opaque) - the airplane
         newData[pixelIndex] = PRIMARY_COLOR.r;
         newData[pixelIndex + 1] = PRIMARY_COLOR.g;
         newData[pixelIndex + 2] = PRIMARY_COLOR.b;
         newData[pixelIndex + 3] = 255;
-      } else if (brightness > 100) {
-        // Gray pixels -> primary color with proportional opacity
-        const alpha = Math.floor(((brightness - 100) / 155) * 255);
+      } else if (brightness < 180) {
+        // Mid-gray pixels -> primary color with proportional opacity (anti-aliasing)
+        const alpha = Math.floor(((180 - brightness) / 100) * 255);
         newData[pixelIndex] = PRIMARY_COLOR.r;
         newData[pixelIndex + 1] = PRIMARY_COLOR.g;
         newData[pixelIndex + 2] = PRIMARY_COLOR.b;
         newData[pixelIndex + 3] = alpha;
       } else {
-        // Dark/black pixels -> fully transparent
+        // Light/white pixels -> fully transparent (background)
         newData[pixelIndex] = 0;
         newData[pixelIndex + 1] = 0;
         newData[pixelIndex + 2] = 0;
@@ -107,10 +89,10 @@ async function generateFavicons() {
     console.log(`Created ${output}`);
   }
 
-  // PWA icons - keep the original style but with primary background
+  // PWA icons - primary background with white airplane
   for (const s of [192, 512]) {
     const resized = await sharp(inputPath)
-      .resize(s, s, { fit: 'cover' })
+      .resize(s, s, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
       .toBuffer();
 
     const { data, info } = await sharp(resized)
@@ -127,14 +109,14 @@ async function generateFavicons() {
 
       const brightness = (r + g + b) / 3;
 
-      if (brightness > 200) {
-        // White pixels stay white
+      if (brightness < 100) {
+        // Dark pixels (airplane) -> white
         newData[pixelIndex] = 255;
         newData[pixelIndex + 1] = 255;
         newData[pixelIndex + 2] = 255;
         newData[pixelIndex + 3] = 255;
       } else {
-        // Dark pixels -> primary color
+        // Light pixels (background) -> primary color
         newData[pixelIndex] = PRIMARY_COLOR.r;
         newData[pixelIndex + 1] = PRIMARY_COLOR.g;
         newData[pixelIndex + 2] = PRIMARY_COLOR.b;
