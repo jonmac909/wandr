@@ -18,7 +18,7 @@ import {
 import {
   Sun, Coffee, Moon, Bed, Plane, Hotel, Utensils, Compass, Camera,
   MapPin, Clock, Star, Sparkles, AlertCircle, ShoppingBag, Music, Wrench, Bus,
-  Pencil, Trash2, Check, X, ExternalLink, DollarSign, GripVertical
+  Pencil, Trash2, Check, X, ExternalLink, DollarSign, GripVertical, Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlaceDetailsModal } from '@/components/maps/place-details-modal';
@@ -124,6 +124,50 @@ function formatDuration(minutes: number): string {
   }
 }
 
+// Activity categories for the add form
+const ACTIVITY_CATEGORIES = [
+  { value: 'sightseeing', label: 'Sightseeing', icon: <Camera className="w-4 h-4" /> },
+  { value: 'activity', label: 'Activity', icon: <Compass className="w-4 h-4" /> },
+  { value: 'food', label: 'Food/Restaurant', icon: <Utensils className="w-4 h-4" /> },
+  { value: 'flight', label: 'Flight', icon: <Plane className="w-4 h-4" /> },
+  { value: 'transit', label: 'Transit (Bus/Train)', icon: <Bus className="w-4 h-4" /> },
+  { value: 'accommodation', label: 'Hotel/Accommodation', icon: <Hotel className="w-4 h-4" /> },
+  { value: 'shopping', label: 'Shopping', icon: <ShoppingBag className="w-4 h-4" /> },
+  { value: 'nightlife', label: 'Nightlife', icon: <Music className="w-4 h-4" /> },
+  { value: 'relaxation', label: 'Relaxation', icon: <Bed className="w-4 h-4" /> },
+  { value: 'workshop', label: 'Workshop/Class', icon: <Wrench className="w-4 h-4" /> },
+] as const;
+
+interface NewActivityFormState {
+  name: string;
+  category: string;
+  description: string;
+  location: string;
+  startTime: string;
+  endTime: string;
+  duration: string;
+  cost: string;
+  notes: string;
+  tips: string;
+  blockType: TimeBlockType;
+  priority: ActivityPriority;
+}
+
+const DEFAULT_NEW_ACTIVITY: NewActivityFormState = {
+  name: '',
+  category: 'activity',
+  description: '',
+  location: '',
+  startTime: '',
+  endTime: '',
+  duration: '60',
+  cost: '',
+  notes: '',
+  tips: '',
+  blockType: 'midday-flex',
+  priority: 'if-energy',
+};
+
 export function DayCard({
   day,
   isToday,
@@ -141,6 +185,8 @@ export function DayCard({
 }: DayCardProps) {
   const [editingTheme, setEditingTheme] = useState(false);
   const [themeValue, setThemeValue] = useState(day.theme || '');
+  const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [newActivityForm, setNewActivityForm] = useState<NewActivityFormState>(DEFAULT_NEW_ACTIVITY);
 
   // Get the hotel for this day based on bases check-in/check-out dates
   const getHotelForDay = (): { name: string; nights: number } | null => {
@@ -243,6 +289,43 @@ export function DayCard({
       const updatedBlocks = day.blocks.filter(b => b.id !== blockId);
       onUpdateDay({ ...day, blocks: updatedBlocks });
     }
+  };
+
+  const handleAddActivity = () => {
+    if (!onUpdateDay || !newActivityForm.name) return;
+
+    const newActivity: Activity = {
+      id: `act-${Date.now()}`,
+      name: newActivityForm.name,
+      category: newActivityForm.category as Activity['category'],
+      description: newActivityForm.description,
+      duration: parseInt(newActivityForm.duration) || 60,
+      scheduledTime: newActivityForm.startTime || undefined,
+      location: newActivityForm.location ? { name: newActivityForm.location } : undefined,
+      bookingRequired: ['flight', 'accommodation', 'hotel'].includes(newActivityForm.category),
+      tags: [],
+      cost: newActivityForm.cost ? {
+        amount: parseFloat(newActivityForm.cost),
+        currency: 'USD',
+        isEstimate: true,
+      } : undefined,
+      tips: newActivityForm.tips ? newActivityForm.tips.split(',').map(t => t.trim()).filter(Boolean) : [],
+    };
+
+    const newBlock: TimeBlock = {
+      id: `block-${Date.now()}`,
+      type: newActivityForm.blockType,
+      startTime: newActivityForm.startTime || undefined,
+      endTime: newActivityForm.endTime || undefined,
+      activity: newActivity,
+      priority: newActivityForm.priority,
+      isLocked: false,
+      notes: newActivityForm.notes || undefined,
+    };
+
+    onUpdateDay({ ...day, blocks: [...day.blocks, newBlock] });
+    setNewActivityForm(DEFAULT_NEW_ACTIVITY);
+    setIsAddingActivity(false);
   };
 
   return (
@@ -385,6 +468,198 @@ export function DayCard({
           {day.notes && (
             <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
               <strong>Notes:</strong> {day.notes}
+            </div>
+          )}
+
+          {/* Add Activity Button/Form */}
+          {onUpdateDay && (
+            <div className="mt-3">
+              {isAddingActivity ? (
+                <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
+                  {/* Category Selection */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Category</Label>
+                    <Select
+                      value={newActivityForm.category}
+                      onValueChange={(v) => setNewActivityForm({ ...newActivityForm, category: v })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACTIVITY_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            <span className="flex items-center gap-2">
+                              {cat.icon}
+                              {cat.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Row 1: Block Type & Priority */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Time of Day</Label>
+                      <Select
+                        value={newActivityForm.blockType}
+                        onValueChange={(v) => setNewActivityForm({ ...newActivityForm, blockType: v as TimeBlockType })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="morning-anchor">Morning</SelectItem>
+                          <SelectItem value="midday-flex">Afternoon</SelectItem>
+                          <SelectItem value="evening-vibe">Evening</SelectItem>
+                          <SelectItem value="rest-block">Rest</SelectItem>
+                          <SelectItem value="transit">Travel Day</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Priority</Label>
+                      <Select
+                        value={newActivityForm.priority}
+                        onValueChange={(v) => setNewActivityForm({ ...newActivityForm, priority: v as ActivityPriority })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="must-see">Must-Do</SelectItem>
+                          <SelectItem value="if-energy">If-Energy</SelectItem>
+                          <SelectItem value="skip-guilt-free">Skip Guilt-Free</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Time */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={newActivityForm.startTime}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, startTime: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">End Time</Label>
+                      <Input
+                        type="time"
+                        value={newActivityForm.endTime}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, endTime: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Duration (min)</Label>
+                      <Input
+                        type="number"
+                        value={newActivityForm.duration}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, duration: e.target.value })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Activity Name */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Activity Name *</Label>
+                    <Input
+                      value={newActivityForm.name}
+                      onChange={(e) => setNewActivityForm({ ...newActivityForm, name: e.target.value })}
+                      placeholder="What are you doing?"
+                      className="h-8"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Row 4: Location & Cost */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Location</Label>
+                      <Input
+                        value={newActivityForm.location}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, location: e.target.value })}
+                        placeholder="Address or place name"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cost ($)</Label>
+                      <Input
+                        type="number"
+                        value={newActivityForm.cost}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, cost: e.target.value })}
+                        placeholder="0"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 5: Description */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      value={newActivityForm.description}
+                      onChange={(e) => setNewActivityForm({ ...newActivityForm, description: e.target.value })}
+                      placeholder="Details about this activity..."
+                      className="min-h-[60px] text-xs"
+                    />
+                  </div>
+
+                  {/* Row 6: Notes */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Notes</Label>
+                    <Input
+                      value={newActivityForm.notes}
+                      onChange={(e) => setNewActivityForm({ ...newActivityForm, notes: e.target.value })}
+                      placeholder="Booking reference, etc."
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  {/* Row 7: Tips */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tips / Flight Info</Label>
+                    <Input
+                      value={newActivityForm.tips}
+                      onChange={(e) => setNewActivityForm({ ...newActivityForm, tips: e.target.value })}
+                      placeholder="e.g. 10hr 30min, 1 stop, business class"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={handleAddActivity} disabled={!newActivityForm.name}>
+                      <Plus className="w-3 h-3 mr-1" /> Add Activity
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      setIsAddingActivity(false);
+                      setNewActivityForm(DEFAULT_NEW_ACTIVITY);
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-muted-foreground hover:text-foreground border border-dashed"
+                  onClick={() => setIsAddingActivity(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Activity
+                </Button>
+              )}
             </div>
           )}
 
