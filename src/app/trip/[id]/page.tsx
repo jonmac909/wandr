@@ -752,8 +752,8 @@ export default function TripPage() {
       return `${yyyy}-${mm}-${dd}`;
     };
 
-    // Extract unique cities in order - uses same getCityForDay as overview
-    const seenCities = new Set<string>();
+    // Extract cities in order - track location changes (not just unique cities)
+    // This allows Tokyo to appear twice if you visit, leave, and return
     const orderedCities: string[] = [];
     let lastLocation = '';
     const current = new Date(start);
@@ -769,15 +769,17 @@ export default function TripPage() {
         location = lastLocation || itinerary.meta.destination || 'Unknown';
       }
 
-      // Add city if new (dedup by lowercase)
-      if (location && !seenCities.has(location.toLowerCase())) {
-        seenCities.add(location.toLowerCase());
+      // Add city when location CHANGES (allows revisiting same city later)
+      if (location && location !== lastLocation) {
         orderedCities.push(location);
       }
 
       lastLocation = location;
       current.setDate(current.getDate() + 1);
     }
+
+    // Debug: log to console
+    console.log('sortedBases orderedCities:', orderedCities);
 
     // Map ordered cities to bases (or create placeholder bases)
     const bases = itinerary.route?.bases || [];
