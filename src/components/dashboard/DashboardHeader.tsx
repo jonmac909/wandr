@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Bell, MessageCircle, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,7 +18,14 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfi
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
         {/* Centered Logo */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+          <Image
+            src="/logo-icon.png"
+            alt=""
+            width={24}
+            height={24}
+            className="w-6 h-6"
+          />
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Trippified
           </h1>
