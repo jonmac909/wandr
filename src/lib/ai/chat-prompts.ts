@@ -152,6 +152,13 @@ When adding flights, use this EXACT format for the activity name:
   - Links to a specific day if provided
   - Optionally adds to schedule as a time block
 
+### Booking Links
+- \`get_booking_link\`: Generate clickable booking URLs for any activity
+  - Works for flights, hotels, restaurants, and activities
+  - Returns a direct link to search/book on Google Flights, TripAdvisor, or Google
+  - ALWAYS use this tool when users ask for booking links or where to book
+  - Provide the URL in markdown format: [Book on Provider](url)
+
 ### Web Search
 - \`web_search\`: Search the internet for current information
   - Use for opening hours, current events, travel advisories, reviews

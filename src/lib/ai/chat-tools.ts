@@ -198,6 +198,33 @@ export const TRIP_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'get_booking_link',
+    description: 'Generate a booking link for an activity, flight, hotel, or restaurant. Returns a clickable URL.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        activityName: {
+          type: 'string',
+          description: 'Name of the activity/flight/hotel to generate booking link for',
+        },
+        category: {
+          type: 'string',
+          enum: ['flight', 'transit', 'accommodation', 'food', 'sightseeing', 'activity'],
+          description: 'Category of the item (flight, transit, accommodation, food, or activity)',
+        },
+        location: {
+          type: 'string',
+          description: 'Location/city for the booking search',
+        },
+        date: {
+          type: 'string',
+          description: 'Date in YYYY-MM-DD format (optional, for flights)',
+        },
+      },
+      required: ['activityName', 'category'],
+    },
+  },
+  {
     name: 'add_restaurant',
     description: 'Add a restaurant recommendation to the food layer of the itinerary.',
     input_schema: {

@@ -62,7 +62,8 @@ export type ToolName =
   | 'update_activity'
   | 'delete_activity'
   | 'move_activity'
-  | 'add_restaurant';
+  | 'add_restaurant'
+  | 'get_booking_link';
 
 export interface ToolDefinition {
   name: ToolName;

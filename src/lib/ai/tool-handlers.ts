@@ -1,6 +1,12 @@
 // Tool execution handlers for Claude chatbot
 
 import type { ToolName } from '@/types/chat';
+import {
+  generateFlightUrl,
+  generateHotelUrl,
+  generateRestaurantUrl,
+  generateActivityUrl,
+} from '@/lib/booking/urls';
 import type {
   Itinerary,
   DayPlan,
@@ -46,6 +52,8 @@ export async function executeToolCall(
       return handleMoveActivity(input, context);
     case 'add_restaurant':
       return handleAddRestaurant(input, context);
+    case 'get_booking_link':
+      return handleGetBookingLink(input, context);
     default:
       return { result: null, error: `Unknown tool: ${toolName}` };
   }
@@ -526,5 +534,74 @@ function handleAddRestaurant(
       recommendationId: recommendation.id,
     },
     updatedItinerary,
+  };
+}
+
+// Generate booking link for an activity
+function handleGetBookingLink(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const activityName = input.activityName as string;
+  const category = input.category as string;
+  const location = input.location as string | undefined;
+  const date = input.date as string | undefined;
+
+  let url: string;
+  let provider: string;
+
+  switch (category) {
+    case 'flight':
+    case 'transit':
+      url = generateFlightUrl({
+        origin: undefined, // Will be parsed from name if formatted correctly
+        destination: location,
+        date,
+      });
+      // If the name contains airport codes, use them directly
+      if (activityName) {
+        const codeMatch = activityName.match(/\b([A-Z]{3})\s*(?:→|->|—|-|to)\s*([A-Z]{3})\b/i);
+        if (codeMatch) {
+          url = generateFlightUrl({
+            origin: codeMatch[1].toUpperCase(),
+            destination: codeMatch[2].toUpperCase(),
+            date,
+          });
+        }
+      }
+      provider = 'Google Flights';
+      break;
+
+    case 'accommodation':
+      url = generateHotelUrl({
+        hotelName: activityName,
+        location,
+      });
+      provider = 'TripAdvisor';
+      break;
+
+    case 'food':
+      url = generateRestaurantUrl({
+        restaurantName: activityName,
+        location,
+      });
+      provider = 'Google';
+      break;
+
+    default:
+      url = generateActivityUrl({
+        activityName,
+        location,
+      });
+      provider = 'Google';
+  }
+
+  return {
+    result: {
+      success: true,
+      url,
+      provider,
+      message: `Here's the booking link for ${activityName}: ${url}`,
+    },
   };
 }
