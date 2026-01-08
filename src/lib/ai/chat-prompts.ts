@@ -152,24 +152,29 @@ When adding flights, use this EXACT format for the activity name:
   - Links to a specific day if provided
   - Optionally adds to schedule as a time block
 
-### Booking Links
-- \`get_booking_link\`: Generate clickable booking URLs for any activity
-  - **IMPORTANT: Use the correct category!**
-    - \`flight\`: For airplane flights → Google Flights
-    - \`transit\`: For buses, trains, ferries → 12Go.Asia
-    - \`accommodation\`: For hotels → TripAdvisor
-    - \`food\`: For restaurants → Google
-    - \`activity\` or \`sightseeing\`: For attractions → Google
-  - For buses/trains, MUST use category "transit" (NOT "flight")
-  - Include origin and destination in activityName (e.g., "Bus Chiang Mai to Chiang Rai")
-  - ALWAYS use this tool when users ask for booking links or where to book
-  - Provide the URL in markdown format: [Book on Provider](url)
-
 ### Web Search
 - \`web_search\`: Search the internet for current information
+  - **USE THIS for booking links!** Search for "[route] bus booking" or "[hotel name] booking" etc.
   - Use for opening hours, current events, travel advisories, reviews
   - Use for attractions, things to do, local tips
   - Great for checking if places are still open or have changed
+  - When user asks for booking options or links, ALWAYS use web_search to find the best current options
+  - Present search results as clickable markdown links: [Provider Name](url)
+
+### Finding Booking Options
+When users ask for booking links (buses, trains, hotels, activities):
+1. **ALWAYS use web_search** to find current booking options
+2. Search with specific terms like "Chiang Mai to Chiang Rai bus booking 2025"
+3. Present multiple options with direct links from search results
+4. Include prices if available from search results
+5. Do NOT use get_booking_link for transit - use web_search instead
+
+### Booking Links (Fallback)
+- \`get_booking_link\`: Generate fallback booking URLs (use web_search first!)
+  - \`flight\`: For airplane flights → Google Flights
+  - \`accommodation\`: For hotels → TripAdvisor
+  - \`food\`: For restaurants → Google
+  - \`activity\` or \`sightseeing\`: For attractions → Google
 `;
 }
 
