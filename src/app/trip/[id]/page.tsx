@@ -691,31 +691,41 @@ export default function TripPage() {
     return getCityForDay(day);
   };
 
-  // Sort bases by first appearance in itinerary days (chronological order)
+  // Build route from schedule - extract unique cities in order they appear
   const sortedBases = useMemo(() => {
-    if (!itinerary?.route?.bases || !itinerary?.days) return [];
-    const bases = itinerary.route.bases;
-    const days = itinerary.days;
+    if (!itinerary?.days) return itinerary?.route?.bases || [];
 
-    // Get first day index for each base location
-    const baseFirstDay: Record<string, number> = {};
-    days.forEach((day, dayIndex) => {
+    // Get cities from schedule in order
+    const seenCities = new Set<string>();
+    const orderedCities: string[] = [];
+
+    itinerary.days.forEach(day => {
       const city = getCityForDay(day);
-      bases.forEach(base => {
-        const baseCity = normalizeLocation(base.location?.split(',')[0] || '');
-        if (baseCity.toLowerCase() === city.toLowerCase() && baseFirstDay[base.id] === undefined) {
-          baseFirstDay[base.id] = dayIndex;
-        }
-      });
+      if (city && !seenCities.has(city.toLowerCase())) {
+        seenCities.add(city.toLowerCase());
+        orderedCities.push(city);
+      }
     });
 
-    // Sort bases by first appearance
-    return [...bases].sort((a, b) => {
-      const dayA = baseFirstDay[a.id] ?? 999;
-      const dayB = baseFirstDay[b.id] ?? 999;
-      return dayA - dayB;
+    // Map ordered cities to bases (or create placeholder bases)
+    const bases = itinerary.route?.bases || [];
+    return orderedCities.map((city, index) => {
+      // Try to find matching base
+      const matchingBase = bases.find(b => {
+        const baseCity = normalizeLocation(b.location?.split(',')[0] || '');
+        return baseCity.toLowerCase() === city.toLowerCase();
+      });
+
+      return matchingBase || {
+        id: `city-${index}`,
+        location: city,
+        nights: 1,
+        checkIn: '',
+        checkOut: '',
+        rationale: '',
+      };
     });
-  }, [itinerary?.route?.bases, itinerary?.days]);
+  }, [itinerary?.days, itinerary?.route?.bases]);
 
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
