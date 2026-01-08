@@ -6,6 +6,7 @@ import {
   generateHotelUrl,
   generateRestaurantUrl,
   generateActivityUrl,
+  generateTransitUrl,
 } from '@/lib/booking/urls';
 import type {
   Itinerary,
@@ -552,7 +553,6 @@ function handleGetBookingLink(
 
   switch (category) {
     case 'flight':
-    case 'transit':
       url = generateFlightUrl({
         origin: undefined, // Will be parsed from name if formatted correctly
         destination: location,
@@ -570,6 +570,26 @@ function handleGetBookingLink(
         }
       }
       provider = 'Google Flights';
+      break;
+
+    case 'transit':
+      // Parse origin/destination from the activity name
+      const transitMatch = activityName?.match(/(?:from\s+)?([A-Za-z\s]+?)\s*(?:→|->|—|-|to)\s*([A-Za-z\s]+?)(?:\s|$)/i);
+      if (transitMatch) {
+        const origin = transitMatch[1].replace(/\b(bus|train|greenbus)\b/gi, '').trim();
+        const dest = transitMatch[2].replace(/\b(bus|train)\b/gi, '').trim();
+        url = generateTransitUrl({
+          origin,
+          destination: dest,
+          transitName: activityName,
+        });
+      } else {
+        url = generateTransitUrl({
+          destination: location,
+          transitName: activityName,
+        });
+      }
+      provider = '12Go.Asia';
       break;
 
     case 'accommodation':

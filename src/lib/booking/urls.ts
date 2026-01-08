@@ -251,6 +251,46 @@ export function generateRestaurantUrl(options: BookingUrlOptions & { restaurantN
 }
 
 /**
+ * Generate a 12Go.Asia URL for bus/train bookings in Asia
+ * or Google search for other regions
+ */
+export function generateTransitUrl(options: BookingUrlOptions & { transitName?: string }): string {
+  const { origin, destination, location, date, transitName } = options;
+
+  // For Asia, 12Go.Asia is the best option
+  // Build a search URL
+  const baseUrl = 'https://12go.asia/en/travel';
+
+  // Try to build a direct route URL
+  const originCity = origin?.toLowerCase().replace(/\s+/g, '-') || '';
+  const destCity = destination?.toLowerCase().replace(/\s+/g, '-') || '';
+
+  if (originCity && destCity) {
+    // Direct route URL: https://12go.asia/en/travel/chiang-mai/chiang-rai
+    return `${baseUrl}/${originCity}/${destCity}`;
+  }
+
+  // Fallback to Google search with transit booking keywords
+  const googleUrl = 'https://www.google.com/search';
+  const params = new URLSearchParams();
+
+  let query = transitName || '';
+  if (origin && destination) {
+    query = `${origin} to ${destination} bus train booking`;
+  } else if (location) {
+    query = `${location} bus booking 12go`;
+  } else if (query) {
+    query = `${query} bus train booking`;
+  }
+
+  if (query) {
+    params.set('q', query);
+  }
+
+  return `${googleUrl}?${params.toString()}`;
+}
+
+/**
  * Generate a generic Google search URL for activities
  */
 export function generateActivityUrl(options: BookingUrlOptions & { activityName?: string }): string {
@@ -338,6 +378,50 @@ function parseFlightDetails(name: string, description?: string): { origin?: stri
 }
 
 /**
+ * Parse transit (bus/train) details from activity name
+ * Examples:
+ * - "Bus Chiang Mai to Chiang Rai"
+ * - "GreenBus Chiang Mai → Chiang Rai"
+ * - "Train Bangkok to Chiang Mai"
+ */
+function parseTransitDetails(name: string, description?: string): { origin?: string; destination?: string } {
+  const text = `${name} ${description || ''}`;
+
+  // Pattern 1: City names with "to" or arrow
+  const cityPattern = text.match(/(?:bus|train|greenbus|transport|transfer)?\s*(?:from\s+)?([A-Za-z\s]+?)\s*(?:→|->|—|-|to)\s*([A-Za-z\s]+?)(?:\s+\d|$|\s+@|\s+bus|\s+train|$)/i);
+  if (cityPattern) {
+    const origin = cityPattern[1].trim();
+    const destination = cityPattern[2].trim();
+    // Clean up common words
+    const cleanOrigin = origin.replace(/\b(bus|train|from|the)\b/gi, '').trim();
+    const cleanDest = destination.replace(/\b(bus|train|the)\b/gi, '').trim();
+    if (cleanOrigin && cleanDest) {
+      return { origin: cleanOrigin, destination: cleanDest };
+    }
+  }
+
+  // Pattern 2: Just look for two city names in the text
+  const cities = Object.keys(CITY_TO_AIRPORT);
+  const foundCities: string[] = [];
+  const lowerText = text.toLowerCase();
+
+  for (const city of cities) {
+    if (lowerText.includes(city)) {
+      foundCities.push(city);
+    }
+  }
+
+  if (foundCities.length >= 2) {
+    return {
+      origin: foundCities[0],
+      destination: foundCities[1],
+    };
+  }
+
+  return {};
+}
+
+/**
  * Main function to generate booking URL based on activity category
  */
 export function generateBookingUrl(
@@ -354,12 +438,21 @@ export function generateBookingUrl(
 
   switch (category) {
     case 'flight':
-    case 'transit':
       // Parse flight info from name and description
       const flightDetails = parseFlightDetails(name, description);
       mergedOptions.origin = flightDetails.origin || mergedOptions.origin;
       mergedOptions.destination = flightDetails.destination || mergedOptions.destination;
       return generateFlightUrl(mergedOptions);
+
+    case 'transit':
+      // For bus/train, use transit booking (12Go.Asia for Asia)
+      const transitDetails = parseTransitDetails(name, description);
+      return generateTransitUrl({
+        ...mergedOptions,
+        origin: transitDetails.origin || mergedOptions.origin,
+        destination: transitDetails.destination || mergedOptions.destination,
+        transitName: name,
+      });
 
     case 'accommodation':
       // Use the activity name as the hotel name for specific search
@@ -390,8 +483,9 @@ export function generateBookingUrl(
 export function getBookingProvider(category: ActivityCategory): { name: string; icon: string } {
   switch (category) {
     case 'flight':
-    case 'transit':
       return { name: 'Google Flights', icon: '✈️' };
+    case 'transit':
+      return { name: '12Go.Asia', icon: '🚌' };
     case 'accommodation':
     case 'checkin':
       return { name: 'TripAdvisor', icon: '🏨' };
