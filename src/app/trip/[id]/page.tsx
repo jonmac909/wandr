@@ -23,7 +23,7 @@ import {
   Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
-import { tripDb } from '@/lib/db/indexed-db';
+import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { ChatSheet } from '@/components/chat/ChatSheet';
@@ -69,6 +69,9 @@ export default function TripPage() {
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
   const [expandedOverviewIndex, setExpandedOverviewIndex] = useState<number | null>(null);
+  const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -134,6 +137,10 @@ export default function TripPage() {
           setItinerary(JSON.parse(storedItinerary));
         }
       }
+      // Load documents for this trip
+      const docs = await documentDb.getByTrip(tripId);
+      setDocuments(docs);
+
       setLoading(false);
     }
 
@@ -145,6 +152,47 @@ export default function TripPage() {
     localStorage.removeItem(`trip-dna-${tripId}`);
     localStorage.removeItem(`itinerary-${tripId}`);
     router.push('/');
+  };
+
+  // Document upload handler
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !uploadingCategory) return;
+
+    // Map category labels to document types
+    const categoryToType: Record<string, StoredDocument['type']> = {
+      'Health Insurance': 'pdf',
+      'Travel Insurance': 'pdf',
+      'Passport / Visa': 'pdf',
+      'Flight Confirmations': 'booking',
+      'Hotel Reservations': 'booking',
+      'Car Rental': 'booking',
+      'Activity Tickets': 'booking',
+      'Payment & Cards': 'other',
+    };
+
+    for (const file of Array.from(files)) {
+      const type = categoryToType[uploadingCategory] || 'other';
+      const doc = await documentDb.add(tripId, `${uploadingCategory}: ${file.name}`, type, file);
+      setDocuments(prev => [...prev, doc]);
+    }
+
+    // Reset
+    setUploadingCategory(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Delete document handler
+  const handleDeleteDocument = async (docId: string) => {
+    await documentDb.delete(docId);
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  // Get documents for a specific category
+  const getDocsForCategory = (category: string) => {
+    return documents.filter(d => d.name.startsWith(`${category}:`));
   };
 
   const handleSaveTitle = async () => {
@@ -1865,34 +1913,92 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Documents View */}
                   {contentFilter === 'docs' && (
                     <div className="space-y-2 pr-1">
+                      {/* Hidden file input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+
                       {/* Document categories as cards */}
                       {[
                         { icon: Stethoscope, label: 'Health Insurance', desc: 'Medical coverage abroad', color: 'bg-rose-100 text-rose-600' },
                         { icon: Shield, label: 'Travel Insurance', desc: 'Trip protection & cancellation', color: 'bg-stone-100 text-stone-600' },
                         { icon: FileText, label: 'Passport / Visa', desc: 'ID and entry documents', color: 'bg-amber-100 text-amber-600' },
-                        { icon: Plane, label: 'Flight Confirmations', desc: 'Booking references & e-tickets', color: 'bg-orange-100 text-orange-600' },
-                        { icon: Hotel, label: 'Hotel Reservations', desc: 'Accommodation bookings', color: 'bg-rose-100 text-rose-600' },
+                        { icon: Plane, label: 'Flight Confirmations', desc: 'Booking references & e-tickets', color: 'bg-blue-100 text-blue-600' },
+                        { icon: Hotel, label: 'Hotel Reservations', desc: 'Accommodation bookings', color: 'bg-purple-100 text-purple-600' },
                         { icon: Car, label: 'Car Rental', desc: 'Vehicle bookings & licenses', color: 'bg-amber-100 text-amber-600' },
-                        { icon: Ticket, label: 'Activity Tickets', desc: 'Tours, attractions & events', color: 'bg-amber-100 text-amber-600' },
+                        { icon: Ticket, label: 'Activity Tickets', desc: 'Tours, attractions & events', color: 'bg-yellow-100 text-yellow-600' },
                         { icon: CreditCard, label: 'Payment & Cards', desc: 'Credit cards & travel money', color: 'bg-stone-100 text-stone-600' },
-                      ].map((doc) => (
-                        <Card key={doc.label} className="cursor-pointer hover:bg-muted/30 transition-colors">
-                          <CardContent className="p-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.color}`}>
-                                <doc.icon className="w-5 h-5" />
+                      ].map((doc) => {
+                        const categoryDocs = getDocsForCategory(doc.label);
+                        return (
+                          <Card key={doc.label} className="hover:bg-muted/30 transition-colors">
+                            <CardContent className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.color}`}>
+                                  <doc.icon className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm">{doc.label}</h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {categoryDocs.length > 0 ? `${categoryDocs.length} file${categoryDocs.length > 1 ? 's' : ''}` : doc.desc}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 flex-shrink-0"
+                                  onClick={() => {
+                                    setUploadingCategory(doc.label);
+                                    fileInputRef.current?.click();
+                                  }}
+                                >
+                                  <Upload className="w-4 h-4" />
+                                </Button>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm">{doc.label}</h4>
-                                <p className="text-xs text-muted-foreground">{doc.desc}</p>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+
+                              {/* Show uploaded files for this category */}
+                              {categoryDocs.length > 0 && (
+                                <div className="mt-3 pt-3 border-t space-y-2">
+                                  {categoryDocs.map((uploadedDoc) => {
+                                    const fileName = uploadedDoc.name.replace(`${doc.label}: `, '');
+                                    return (
+                                      <div key={uploadedDoc.id} className="flex items-center gap-2 text-xs">
+                                        <FileText className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                        <span className="flex-1 truncate">{fileName}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 flex-shrink-0 hover:text-red-600"
+                                          onClick={() => handleDeleteDocument(uploadedDoc.id)}
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 flex-shrink-0"
+                                          onClick={() => {
+                                            // Open file in new tab
+                                            const url = URL.createObjectURL(uploadedDoc.data);
+                                            window.open(url, '_blank');
+                                          }}
+                                        >
+                                          <ExternalLink className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   )}
 
