@@ -75,10 +75,23 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
 }
 
 export function MonthCalendar({ trips, onDateClick, compact = false, itinerary, contentFilter, collapsible = false, defaultCollapsed = false }: MonthCalendarProps) {
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  // Default to trip start date if viewing an itinerary, otherwise today
+  const getInitialDate = () => {
+    if (itinerary?.meta?.startDate) {
+      const [year, month] = itinerary.meta.startDate.split('-').map(Number);
+      return { month: month - 1, year };
+    }
+    const today = new Date();
+    return { month: today.getMonth(), year: today.getFullYear() };
+  };
+
+  const initialDate = getInitialDate();
+  const [currentMonth, setCurrentMonth] = useState(initialDate.month);
+  const [currentYear, setCurrentYear] = useState(initialDate.year);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+
+  // Today's date for highlighting
+  const today = new Date();
 
   const tripRanges = useMemo(() => getTripDateRanges(trips), [trips]);
 
