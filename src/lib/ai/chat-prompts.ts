@@ -154,8 +154,14 @@ When adding flights, use this EXACT format for the activity name:
 
 ### Booking Links
 - \`get_booking_link\`: Generate clickable booking URLs for any activity
-  - Works for flights, hotels, restaurants, and activities
-  - Returns a direct link to search/book on Google Flights, TripAdvisor, or Google
+  - **IMPORTANT: Use the correct category!**
+    - \`flight\`: For airplane flights → Google Flights
+    - \`transit\`: For buses, trains, ferries → 12Go.Asia
+    - \`accommodation\`: For hotels → TripAdvisor
+    - \`food\`: For restaurants → Google
+    - \`activity\` or \`sightseeing\`: For attractions → Google
+  - For buses/trains, MUST use category "transit" (NOT "flight")
+  - Include origin and destination in activityName (e.g., "Bus Chiang Mai to Chiang Rai")
   - ALWAYS use this tool when users ask for booking links or where to book
   - Provide the URL in markdown format: [Book on Provider](url)
 
