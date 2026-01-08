@@ -1345,12 +1345,20 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           current.setDate(current.getDate() + 1);
                         }
 
-                        // Count unique cities (destinations)
-                        const uniqueCities = new Set(groups.map(g => g.location)).size;
+                        // Exclude origin location (first/last if same) from destination counts
+                        const originLocation = groups.length >= 2 && groups[0].location === groups[groups.length - 1].location
+                          ? groups[0].location
+                          : null;
+                        const destinationGroups = originLocation
+                          ? groups.filter(g => g.location !== originLocation)
+                          : groups;
 
-                        // Count unique countries by looking at flags
+                        // Count unique cities (destinations only, not origin)
+                        const uniqueCities = new Set(destinationGroups.map(g => g.location)).size;
+
+                        // Count unique countries by looking at flags (destinations only)
                         const uniqueCountries = new Set(
-                          groups.map(g => getFlagForLocation(g.location)).filter(f => f)
+                          destinationGroups.map(g => getFlagForLocation(g.location)).filter(f => f)
                         ).size;
 
                         // Format date string without timezone issues
