@@ -114,7 +114,7 @@ Trip page overview shows countries/cities count:
 - Be succinct - avoid verbose explanations
 - Work in small, verifiable steps
 - **ALWAYS run `npm run build` locally before pushing** - catches TypeScript/build errors before deploy
-- **Live site: https://jjtraveler.com** - User tests here, NOT localhost
+- **Live site: https://www.trippified.com** - User tests here, NOT localhost
 - **ALWAYS push to live after completing tasks** - `git add -A && git commit -m "..." && git push`
 - Netlify auto-deploys from GitHub main branch (~1-2 min)
 - If deploy doesn't trigger: `git commit --allow-empty -m "chore: trigger deploy" && git push`
