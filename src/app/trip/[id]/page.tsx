@@ -580,6 +580,12 @@ export default function TripPage() {
     if (trimmed.toUpperCase() === 'YLW') return 'Kelowna';
     if (trimmed.toUpperCase() === 'HNL') return 'Honolulu';
     if (trimmed.toUpperCase() === 'OGG') return 'Maui';
+    if (trimmed.toUpperCase() === 'NRT') return 'Tokyo';
+
+    // Merge airport cities to main city (Narita is Tokyo's airport)
+    if (lower === 'narita' || lower.includes('narita')) return 'Tokyo';
+    if (lower === 'tokyo narita') return 'Tokyo';
+    if (lower === 'haneda' || lower.includes('haneda')) return 'Tokyo';
 
     // Merge equivalent locations (Oahu = Honolulu, they're the same place)
     if (lower === 'oahu' || lower.includes('oahu')) return 'Honolulu';
@@ -609,7 +615,7 @@ export default function TripPage() {
       return normalizeLocation(accommodationBlock.activity.location.name);
     }
 
-    // 2. Check for flight - use the DESTINATION (where you arrive/sleep that day)
+    // 2. Check for flight - but handle overnight flights specially
     const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
     if (flightBlocks.length > 0) {
       // Get the last flight's destination (where you end up)
@@ -618,7 +624,7 @@ export default function TripPage() {
 
       // Map common airport codes to city names
       const airportToCityMap: Record<string, string> = {
-        'NRT': 'Tokyo Narita', 'HND': 'Tokyo Haneda', 'KIX': 'Osaka',
+        'NRT': 'Tokyo', 'HND': 'Tokyo', 'KIX': 'Osaka',
         'BKK': 'Bangkok', 'CNX': 'Chiang Mai', 'HKT': 'Phuket',
         'SIN': 'Singapore', 'HKG': 'Hong Kong', 'ICN': 'Seoul',
         'TPE': 'Taipei', 'YVR': 'Vancouver', 'YYZ': 'Toronto',
@@ -630,8 +636,17 @@ export default function TripPage() {
         'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
       };
 
+      // Check if this is an overnight flight (arrives next day - has "+1" in name)
+      const isOvernightFlight = flightName.includes('+1') || flightName.includes('+2');
+
       // Try to find airport codes like "YVR-NRT" or "BKK-CNX" anywhere in the string
       const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
+
+      if (isOvernightFlight && codeMatch) {
+        // For overnight flights, show ORIGIN city (where you depart from/sleep tonight is on the plane)
+        return normalizeLocation(airportToCityMap[codeMatch[1]] || codeMatch[1]);
+      }
+
       if (codeMatch) {
         return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
       }
@@ -640,6 +655,10 @@ export default function TripPage() {
       // "Bangkok → Chiang Mai" or "City A - City B" (but not times like 9:50am-1:00pm)
       const cityMatch = flightName.match(/([A-Za-z][A-Za-z\s]+)\s*[→–]\s*([A-Za-z][A-Za-z\s]+?)(?:\s|$)/);
       if (cityMatch && !cityMatch[2].match(/\d/)) {
+        if (isOvernightFlight) {
+          // For overnight flights, return origin
+          return normalizeLocation(cityMatch[1].trim());
+        }
         return normalizeLocation(cityMatch[2].trim());
       }
 
