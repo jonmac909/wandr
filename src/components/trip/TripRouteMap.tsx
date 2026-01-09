@@ -111,15 +111,14 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
   console.log('TripRouteMap effectiveBases:', effectiveBases?.map(b => b.location));
 
   const coords = useMemo(() => {
-    const mapped = effectiveBases.map(b => ({ ...b, coords: getCityCoordinates(b.location) }));
-    // Show which cities failed coordinate lookup
-    const failed = mapped.filter(b => b.coords === null);
-    if (failed.length > 0) {
-      console.log('TripRouteMap MISSING coords for:', failed.map(c => c.location));
-    }
-    const result = mapped.filter(b => b.coords !== null);
-    console.log('TripRouteMap coords (after filter):', result.map(c => c.location));
-    return result;
+    const mapped = effectiveBases.map(b => {
+      const coords = getCityCoordinates(b.location);
+      if (!coords) {
+        console.log(`FAILED: "${b.location}" key="${b.location?.split(',')[0]?.toLowerCase()?.trim()}"`);
+      }
+      return { ...b, coords };
+    });
+    return mapped.filter(b => b.coords !== null);
   }, [effectiveBases]);
 
   // Calculate viewBox based on selected location or all points
