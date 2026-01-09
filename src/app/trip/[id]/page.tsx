@@ -644,7 +644,15 @@ export default function TripPage() {
       return normalizeLocation((day as DayPlan & { customLocation?: string }).customLocation!);
     }
 
-    // 1. First check for accommodation activity - that's where you sleep
+    // 1. PRIMARY: Check baseId - this is the authoritative source for where you sleep
+    if ((day as DayPlan & { baseId?: string }).baseId) {
+      const base = itinerary.route.bases.find(b => b.id === (day as DayPlan & { baseId?: string }).baseId);
+      if (base) {
+        return normalizeLocation(base.location);
+      }
+    }
+
+    // 2. Fallback: Check for accommodation activity - that's where you sleep
     const accommodationBlock = day.blocks.find(b =>
       b.activity?.category === 'accommodation' ||
       b.activity?.category === 'checkin'
@@ -660,7 +668,7 @@ export default function TripPage() {
       if (hotelName.toLowerCase().includes('haneda')) return 'Tokyo';
     }
 
-    // 2. Check for flight - handle overnight flights specially
+    // 3. Check for flight - handle overnight flights specially
     const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
     if (flightBlocks.length > 0) {
       // Map common airport codes to city names
@@ -705,14 +713,14 @@ export default function TripPage() {
       }
     }
 
-    // 3. Check any activity's location - they should all be in same city for that day
+    // 4. Check any activity's location - they should all be in same city for that day
     for (const block of day.blocks) {
       if (block.activity?.location?.name) {
         return normalizeLocation(block.activity.location.name);
       }
     }
 
-    // 4. Fallback to base data if no activities have location
+    // 5. Final fallback to base data by date range (legacy)
     for (const base of itinerary.route.bases) {
       if (day.date >= base.checkIn && day.date < base.checkOut) {
         return normalizeLocation(base.location);
