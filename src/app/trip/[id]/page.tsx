@@ -764,6 +764,7 @@ export default function TripPage() {
     let lastLocation = '';
     const current = new Date(start);
 
+    const dailyLocations: string[] = [];
     while (current <= end) {
       const dateStr = toDateStr(current);
       const existingDay = daysByDate[dateStr];
@@ -775,6 +776,8 @@ export default function TripPage() {
         location = lastLocation || itinerary.meta.destination || 'Unknown';
       }
 
+      dailyLocations.push(`${dateStr}: ${location}`);
+
       // Add city when location CHANGES (allows revisiting same city later)
       if (location && location !== lastLocation) {
         orderedCities.push(location);
@@ -784,7 +787,8 @@ export default function TripPage() {
       current.setDate(current.getDate() + 1);
     }
 
-    // Debug: log to console
+    // Debug: log daily locations and final cities
+    console.log('sortedBases dailyLocations:', dailyLocations);
     console.log('sortedBases orderedCities:', orderedCities);
 
     // Map ordered cities to bases (or create placeholder bases)
