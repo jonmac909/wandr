@@ -85,7 +85,6 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'phi phi': { lat: 7.7407, lng: 98.7784 },
   'railay': { lat: 8.0128, lng: 98.8389 },
   'ao nang': { lat: 8.0363, lng: 98.8225 },
-  'vancouver': { lat: 49.2827, lng: -123.1207 },
   'seattle': { lat: 47.6062, lng: -122.3321 },
   'portland': { lat: 45.5152, lng: -122.6784 },
   'koh yao noi': { lat: 8.1167, lng: 98.6167 },

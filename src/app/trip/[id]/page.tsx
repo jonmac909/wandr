@@ -660,7 +660,7 @@ export default function TripPage() {
       if (hotelName.toLowerCase().includes('haneda')) return 'Tokyo';
     }
 
-    // 2. Check for flight - but handle overnight flights specially
+    // 2. Check for flight - handle overnight flights specially
     const flightBlocks = day.blocks.filter(b => b.activity?.category === 'flight');
     if (flightBlocks.length > 0) {
       // Map common airport codes to city names
@@ -677,13 +677,19 @@ export default function TripPage() {
         'HNL': 'Honolulu', 'OGG': 'Maui', 'LIH': 'Kauai',
       };
 
-      // Always use last flight's DESTINATION - this is where you end up
       const lastFlight = flightBlocks[flightBlocks.length - 1];
       const flightName = lastFlight?.activity?.name || '';
+
+      // Check if this is an overnight flight (+1 or +2 in name)
+      const isOvernightFlight = /\+[12]/.test(flightName);
+
       const codeMatch = flightName.match(/([A-Z]{3})\s*[-–→]\s*([A-Z]{3})/);
 
       if (codeMatch) {
-        return normalizeLocation(airportToCityMap[codeMatch[2]] || codeMatch[2]);
+        // For overnight flights, return ORIGIN city (you depart that day, arrive next day)
+        // For same-day flights, return DESTINATION (you arrive that day)
+        const cityCode = isOvernightFlight ? codeMatch[1] : codeMatch[2];
+        return normalizeLocation(airportToCityMap[cityCode] || cityCode);
       }
 
       // Try to parse destination from flight name formats:
