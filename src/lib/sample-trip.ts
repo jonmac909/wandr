@@ -79,8 +79,8 @@ export const sampleItinerary: Itinerary = {
   },
   route: {
     bases: [
-      { id: 'base-1', location: 'Tokyo Narita', accommodation: { name: 'Hotel Nikko Narita', type: 'hotel', priceRange: '$$' }, nights: 1, checkIn: '2026-02-12', checkOut: '2026-02-13', rationale: 'Layover in Tokyo Narita, Japan' },
-      { id: 'base-3', location: 'Chiang Mai', accommodation: { name: 'North Hill City Resort', type: 'hotel', priceRange: '$$' }, nights: 5, checkIn: '2026-02-13', checkOut: '2026-02-18', rationale: 'Stay in Chiang Mai, Thailand' },
+      { id: 'base-1', location: 'Tokyo Narita', accommodation: { name: 'Hotel Nikko Narita', type: 'hotel', priceRange: '$$' }, nights: 2, checkIn: '2026-02-12', checkOut: '2026-02-14', rationale: 'Layover in Tokyo Narita, Japan' },
+      { id: 'base-3', location: 'Chiang Mai', accommodation: { name: 'North Hill City Resort', type: 'hotel', priceRange: '$$' }, nights: 4, checkIn: '2026-02-14', checkOut: '2026-02-18', rationale: 'Stay in Chiang Mai, Thailand' },
       { id: 'base-4', location: 'Chiang Rai', accommodation: { name: 'TBD Chiang Rai Hotel', type: 'hotel', priceRange: '$$' }, nights: 3, checkIn: '2026-02-18', checkOut: '2026-02-21', rationale: 'Stay in Chiang Rai, Thailand' },
       { id: 'base-5', location: 'Phuket', accommodation: { name: 'Wyndham Grand Nai Harn', type: 'hotel', priceRange: '$$' }, nights: 8, checkIn: '2026-02-21', checkOut: '2026-03-01', rationale: 'Stay in Phuket, Thailand' },
       { id: 'base-6', location: 'Da Nang', accommodation: { name: 'Shilla Monogram Danang', type: 'hotel', priceRange: '$$' }, nights: 4, checkIn: '2026-03-01', checkOut: '2026-03-05', rationale: 'Stay in Da Nang, Vietnam' },
@@ -93,7 +93,7 @@ export const sampleItinerary: Itinerary = {
     movements: [
       { id: 'move-2026-02-11-block-2026-02-11-0', from: '', to: '', date: '2026-02-11', transportType: 'flight', duration: 60, cost: { amount: 136, currency: 'USD', isEstimate: false }, notes: 'Westjet YLW→YVR 6:00am-7:15am' },
       { id: 'move-2026-02-11-block-2026-02-11-1', from: '', to: '', date: '2026-02-11', transportType: 'flight', duration: 60, cost: { amount: 4225, currency: 'USD', isEstimate: false }, notes: 'Zipair YVR→NRT 9:50am-1:00pm+1' },
-      { id: 'move-2026-02-13-block-2026-02-13-0', from: '', to: '', date: '2026-02-13', transportType: 'flight', duration: 60, cost: { amount: 1848, currency: 'USD', isEstimate: false }, notes: 'AirAsia NRT→CNX 10:00am-4:00pm' },
+      { id: 'move-2026-02-14-block-2026-02-14-0', from: '', to: '', date: '2026-02-14', transportType: 'flight', duration: 60, cost: { amount: 1848, currency: 'USD', isEstimate: false }, notes: 'AirAsia NRT→CNX 10:00am-4:00pm' },
       { id: 'move-2026-02-18-block-2026-02-18-0', from: '', to: '', date: '2026-02-18', transportType: 'flight', duration: 60, cost: { amount: 479, currency: 'USD', isEstimate: false }, notes: 'AirAsia CNX→HKT' },
       { id: 'move-2026-02-23-block-2026-02-23-0', from: '', to: '', date: '2026-02-23', transportType: 'flight', duration: 60, cost: { amount: 508, currency: 'USD', isEstimate: false }, notes: 'AirAsia HKT→DAD (1 stop DMK)' },
       { id: 'move-2026-02-28-block-2026-02-28-0', from: '', to: '', date: '2026-02-28', transportType: 'other', duration: 60, notes: 'Short drive (~45 min)' },
@@ -115,24 +115,24 @@ export const sampleItinerary: Itinerary = {
     { id: 'day-2026-02-12', date: '2026-02-12', dayNumber: 2, baseId: 'base-1', theme: 'Tokyo Narita', blocks: [
       { id: 'block-2026-02-12-0', type: 'evening-vibe', activity: { id: 'act-2026-02-12-0', name: 'Hotel Nikko Narita', category: 'accommodation', description: 'Layover night, rest', location: { name: 'Tokyo Narita' }, duration: 60, cost: { amount: 74, currency: 'USD', isEstimate: false }, bookingRequired: true, tags: ['Japan'], reservationStatus: 'not-started' }, priority: 'must-see', isLocked: false, notes: 'Layover night, rest' },
     ]},
-    // Day 3: Feb 13 - Arrive Chiang Mai (night 1 of 5)
-    { id: 'day-2026-02-13', date: '2026-02-13', dayNumber: 3, baseId: 'base-3', theme: 'Chiang Mai', blocks: [
-      { id: 'block-2026-02-13-0', type: 'transit', startTime: '10:00', activity: { id: 'act-2026-02-13-0', name: 'AirAsia NRT→CNX 10:00am-4:00pm', category: 'flight', description: 'Flight to Chiang Mai via connection', location: { name: 'Chiang Mai' }, duration: 360, cost: { amount: 1848, currency: 'USD', isEstimate: false }, bookingRequired: true, tags: ['Transit'], scheduledTime: '10:00', tips: ['~6hr total with connection'] }, priority: 'must-see', isLocked: false, notes: 'Flight to Chiang Mai' },
-      { id: 'block-2026-02-13-1', type: 'evening-vibe', activity: { id: 'act-2026-02-13-1', name: 'North Hill City Resort (5 nights)', category: 'accommodation', description: 'Check-in, explore Old City, evening massage', location: { name: 'Chiang Mai' }, duration: 60, cost: { amount: 690, currency: 'USD', isEstimate: false }, bookingRequired: true, tags: ['Thailand'] }, priority: 'must-see', isLocked: false, notes: 'Check-in, explore Old City, evening massage' },
+    // Day 3: Feb 13 - Tokyo Narita (night 2 of 2)
+    { id: 'day-2026-02-13', date: '2026-02-13', dayNumber: 3, baseId: 'base-1', theme: 'Tokyo Narita', blocks: [
+      { id: 'block-2026-02-13-0', type: 'midday-flex', activity: { id: 'act-2026-02-13-0', name: 'Narita Exploration', category: 'activity', description: 'Explore Narita town, temple visits, local food', location: { name: 'Tokyo Narita' }, duration: 240, bookingRequired: false, tags: ['Japan'] }, priority: 'if-energy', isLocked: false, notes: 'Explore Narita town, Naritasan temple' },
     ]},
-    // Day 4: Feb 14 - Chiang Mai (night 2 of 5)
-    { id: 'day-2026-02-14', date: '2026-02-14', dayNumber: 4, baseId: 'base-3', theme: 'Chiang Mai Exploration', blocks: [
-      { id: 'block-2026-02-14-0', type: 'midday-flex', activity: { id: 'act-2026-02-14-0', name: 'Old City Exploration', category: 'activity', description: 'Temples, cafes, local markets', location: { name: 'Chiang Mai' }, duration: 240, bookingRequired: false, tags: ['Thailand'] }, priority: 'if-energy', isLocked: false, notes: 'Explore Old City, temples, cafes' },
+    // Day 4: Feb 14 - Arrive Chiang Mai (night 1 of 4)
+    { id: 'day-2026-02-14', date: '2026-02-14', dayNumber: 4, baseId: 'base-3', theme: 'Chiang Mai', blocks: [
+      { id: 'block-2026-02-14-0', type: 'transit', startTime: '10:00', activity: { id: 'act-2026-02-14-0', name: 'AirAsia NRT→CNX 10:00am-4:00pm', category: 'flight', description: 'Flight to Chiang Mai via connection', location: { name: 'Chiang Mai' }, duration: 360, cost: { amount: 1848, currency: 'USD', isEstimate: false }, bookingRequired: true, tags: ['Transit'], scheduledTime: '10:00', tips: ['~6hr total with connection'] }, priority: 'must-see', isLocked: false, notes: 'Flight to Chiang Mai' },
+      { id: 'block-2026-02-14-1', type: 'evening-vibe', activity: { id: 'act-2026-02-14-1', name: 'North Hill City Resort (4 nights)', category: 'accommodation', description: 'Check-in, explore Old City, evening massage', location: { name: 'Chiang Mai' }, duration: 60, cost: { amount: 552, currency: 'USD', isEstimate: false }, bookingRequired: true, tags: ['Thailand'] }, priority: 'must-see', isLocked: false, notes: 'Check-in, explore Old City, evening massage' },
     ]},
-    // Day 5: Feb 15 - Chiang Mai (night 3 of 5)
+    // Day 5: Feb 15 - Chiang Mai (night 2 of 4)
     { id: 'day-2026-02-15', date: '2026-02-15', dayNumber: 5, baseId: 'base-3', theme: 'Ethical Elephant Sanctuary', blocks: [
       { id: 'block-2026-02-15-0', type: 'morning-anchor', activity: { id: 'act-2026-02-15-0', name: 'Ethical Elephant Sanctuary', category: 'activity', description: 'Morning elephants, afternoon cafe hopping', location: { name: 'Chiang Mai' }, duration: 240, bookingRequired: true, tags: ['Thailand'] }, priority: 'must-see', isLocked: false, notes: 'Morning elephants, afternoon cafe hopping' },
     ]},
-    // Day 6: Feb 16 - Chiang Mai (night 4 of 5)
+    // Day 6: Feb 16 - Chiang Mai (night 3 of 4)
     { id: 'day-2026-02-16', date: '2026-02-16', dayNumber: 6, baseId: 'base-3', theme: 'Temples & Culture', blocks: [
       { id: 'block-2026-02-16-0', type: 'morning-anchor', activity: { id: 'act-2026-02-16-0', name: 'Temples & Culture', category: 'activity', description: 'Monk chat, temple visits, Khantoke dinner', location: { name: 'Chiang Mai' }, duration: 240, bookingRequired: false, tags: ['Thailand'] }, priority: 'if-energy', isLocked: false, notes: 'Monk chat, temple visits, Khantoke dinner' },
     ]},
-    // Day 7: Feb 17 - Chiang Mai (night 5 of 5)
+    // Day 7: Feb 17 - Chiang Mai (night 4 of 4)
     { id: 'day-2026-02-17', date: '2026-02-17', dayNumber: 7, baseId: 'base-3', theme: 'Easy Day', blocks: [
       { id: 'block-2026-02-17-0', type: 'midday-flex', activity: { id: 'act-2026-02-17-0', name: 'Easy Day', category: 'relaxation', description: 'Sleep in, massages, local markets, pack for Chiang Rai', location: { name: 'Chiang Mai' }, duration: 60, bookingRequired: false, tags: ['Thailand'] }, priority: 'if-energy', isLocked: false, notes: 'Sleep in, massages, local markets, pack for Chiang Rai' },
     ]},
