@@ -85,6 +85,12 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'phi phi': { lat: 7.7407, lng: 98.7784 },
   'railay': { lat: 8.0128, lng: 98.8389 },
   'ao nang': { lat: 8.0363, lng: 98.8225 },
+  'vancouver': { lat: 49.2827, lng: -123.1207 },
+  'seattle': { lat: 47.6062, lng: -122.3321 },
+  'portland': { lat: 45.5152, lng: -122.6784 },
+  'koh yao noi': { lat: 8.1167, lng: 98.6167 },
+  'koh yao': { lat: 8.1167, lng: 98.6167 },
+  'samui': { lat: 9.5120, lng: 100.0136 },
 };
 
 function getCityCoordinates(location: string): { lat: number; lng: number } | null {
@@ -105,9 +111,13 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
   console.log('TripRouteMap effectiveBases:', effectiveBases?.map(b => b.location));
 
   const coords = useMemo(() => {
-    const result = effectiveBases
-      .map(b => ({ ...b, coords: getCityCoordinates(b.location) }))
-      .filter(b => b.coords !== null);
+    const mapped = effectiveBases.map(b => ({ ...b, coords: getCityCoordinates(b.location) }));
+    // Show which cities failed coordinate lookup
+    const failed = mapped.filter(b => b.coords === null);
+    if (failed.length > 0) {
+      console.log('TripRouteMap MISSING coords for:', failed.map(c => c.location));
+    }
+    const result = mapped.filter(b => b.coords !== null);
     console.log('TripRouteMap coords (after filter):', result.map(c => c.location));
     return result;
   }, [effectiveBases]);
