@@ -797,14 +797,12 @@ export default function TripPage() {
       current.setDate(current.getDate() + 1);
     }
 
-    console.log('locationGroups:', groups.map(g => g.location));
     return groups;
   }, [itinerary, tripDna, getCityForDay]);
 
   // Build bases for the map from locationGroups
   const sortedBases = useMemo(() => {
     if (locationGroups.length === 0) return itinerary?.route?.bases || [];
-    console.log('sortedBases from locationGroups:', locationGroups.map(g => g.location));
 
     // Extract cities in order from groups (allows duplicates like Tokyo→...→Tokyo)
     const orderedCities = locationGroups.map(g => g.location);

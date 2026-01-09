@@ -16,6 +16,7 @@ interface TripRouteMapProps {
 // Simple coordinate lookup for common destinations
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'tokyo': { lat: 35.6762, lng: 139.6503 },
+  'tokyo narita': { lat: 35.6762, lng: 139.6503 }, // Narita is near Tokyo, use Tokyo coords
   'bangkok': { lat: 13.7563, lng: 100.5018 },
   'singapore': { lat: 1.3521, lng: 103.8198 },
   'hong kong': { lat: 22.3193, lng: 114.1694 },
@@ -105,16 +106,9 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
     ? [{ id: 'single', location: singleLocation, nights: 1 }] as Base[]
     : bases;
 
-  // DEBUG: Log what bases we receive
-  console.log('TripRouteMap bases:', bases?.map(b => b.location));
-  console.log('TripRouteMap effectiveBases:', effectiveBases?.map(b => b.location));
-
   const coords = useMemo(() => {
     const mapped = effectiveBases.map(b => {
       const coords = getCityCoordinates(b.location);
-      if (!coords) {
-        console.log(`FAILED: "${b.location}" key="${b.location?.split(',')[0]?.toLowerCase()?.trim()}"`);
-      }
       return { ...b, coords };
     });
     return mapped.filter(b => b.coords !== null);
