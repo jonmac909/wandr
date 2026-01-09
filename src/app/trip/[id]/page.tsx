@@ -780,7 +780,8 @@ export default function TripPage() {
       if (lastGroup && lastGroup.location === location) {
         lastGroup.endDate = dateStr;
         lastGroup.endDay = dayNum;
-        lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
+        // Nights = number of days at this location (inclusive)
+        lastGroup.nights = lastGroup.endDay - lastGroup.startDay + 1;
       } else {
         groups.push({
           location,
@@ -1399,13 +1400,24 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           return `${months[month - 1]} ${day}`;
                         };
 
-                        // Get date range from groups
-                        const firstDate = groups[0]?.startDate || '';
-                        const lastDate = groups[groups.length - 1]?.endDate || '';
+                        // Get checkout date (day after endDate) for display
+                        const getCheckoutDate = (endDateStr: string) => {
+                          const [y, m, d] = endDateStr.split('-').map(Number);
+                          const date = new Date(y, m - 1, d);
+                          date.setDate(date.getDate() + 1);
+                          const yyyy = date.getFullYear();
+                          const mm = String(date.getMonth() + 1).padStart(2, '0');
+                          const dd = String(date.getDate()).padStart(2, '0');
+                          return `${yyyy}-${mm}-${dd}`;
+                        };
 
-                        // Format the trip date range
-                        const tripDateRange = firstDate && lastDate
-                          ? `${formatDateString(firstDate)} – ${formatDateString(lastDate)}`
+                        // Get date range from groups (use checkout date for end)
+                        const firstDate = groups[0]?.startDate || '';
+                        const lastEndDate = groups[groups.length - 1]?.endDate || '';
+
+                        // Format the trip date range (show checkout date for the end)
+                        const tripDateRange = firstDate && lastEndDate
+                          ? `${formatDateString(firstDate)} – ${formatDateString(getCheckoutDate(lastEndDate))}`
                           : '';
 
                         // Count flights
@@ -1514,7 +1526,7 @@ ${JSON.stringify(tripDna, null, 2)}`}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                   {formatDateString(group.startDate)}
-                                                  {group.startDate !== group.endDate && ` – ${formatDateString(group.endDate)}`}
+                                                  {group.nights > 1 && ` – ${formatDateString(getCheckoutDate(group.endDate))}`}
                                                 </p>
                                               </>
                                             )}
