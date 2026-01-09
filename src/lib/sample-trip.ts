@@ -81,7 +81,7 @@ export const sampleItinerary: Itinerary = {
     bases: [
       { id: 'base-1', location: 'Tokyo Narita', accommodation: { name: 'Hotel Nikko Narita', type: 'hotel', priceRange: '$$' }, nights: 2, checkIn: '2026-02-12', checkOut: '2026-02-14', rationale: 'Layover in Tokyo Narita, Japan' },
       { id: 'base-3', location: 'Chiang Mai', accommodation: { name: 'North Hill City Resort', type: 'hotel', priceRange: '$$' }, nights: 4, checkIn: '2026-02-14', checkOut: '2026-02-18', rationale: 'Stay in Chiang Mai, Thailand' },
-      { id: 'base-4', location: 'Chiang Rai', accommodation: { name: 'TBD Chiang Rai Hotel', type: 'hotel', priceRange: '$$' }, nights: 3, checkIn: '2026-02-18', checkOut: '2026-02-21', rationale: 'Stay in Chiang Rai, Thailand' },
+      { id: 'base-4', location: 'Chiang Rai', accommodation: { name: 'The Riverie by Katathani', type: 'hotel', priceRange: '$$' }, nights: 3, checkIn: '2026-02-18', checkOut: '2026-02-21', rationale: 'Stay in Chiang Rai, Thailand' },
       { id: 'base-5', location: 'Phuket', accommodation: { name: 'Wyndham Grand Nai Harn', type: 'hotel', priceRange: '$$' }, nights: 8, checkIn: '2026-02-21', checkOut: '2026-03-01', rationale: 'Stay in Phuket, Thailand' },
       { id: 'base-6', location: 'Da Nang', accommodation: { name: 'Shilla Monogram Danang', type: 'hotel', priceRange: '$$' }, nights: 4, checkIn: '2026-03-01', checkOut: '2026-03-05', rationale: 'Stay in Da Nang, Vietnam' },
       { id: 'base-7', location: 'Hoi An', accommodation: { name: 'Grand Sunrise Palace', type: 'hotel', priceRange: '$$' }, nights: 4, checkIn: '2026-03-05', checkOut: '2026-03-09', rationale: 'Stay in Hoi An, Vietnam' },
@@ -139,7 +139,7 @@ export const sampleItinerary: Itinerary = {
     // Day 8: Feb 18 - Travel to Chiang Rai (night 1 of 3)
     { id: 'day-2026-02-18', date: '2026-02-18', dayNumber: 8, baseId: 'base-4', theme: 'Chiang Rai', blocks: [
       { id: 'block-2026-02-18-0', type: 'transit', activity: { id: 'act-2026-02-18-0', name: 'Bus/Van Chiang Mai to Chiang Rai', category: 'transit', description: '3hr bus/van ride', location: { name: 'Chiang Rai' }, duration: 180, cost: { amount: 20, currency: 'USD', isEstimate: true }, bookingRequired: false, tags: ['Thailand'], tips: ['~3hr journey via GreenBus or private transfer'] }, priority: 'must-see', isLocked: false, notes: '3hr bus/van ride' },
-      { id: 'block-2026-02-18-1', type: 'evening-vibe', activity: { id: 'act-2026-02-18-1', name: 'TBD Chiang Rai Hotel (3 nights)', category: 'accommodation', description: 'Check-in, explore Night Bazaar', location: { name: 'Chiang Rai' }, duration: 60, cost: { amount: 300, currency: 'USD', isEstimate: true }, bookingRequired: true, tags: ['Thailand'] }, priority: 'must-see', isLocked: false, notes: 'Check-in, explore Night Bazaar' },
+      { id: 'block-2026-02-18-1', type: 'evening-vibe', activity: { id: 'act-2026-02-18-1', name: 'The Riverie by Katathani (3 nights)', category: 'accommodation', description: 'Check-in, explore Night Bazaar', location: { name: 'Chiang Rai' }, duration: 60, cost: { amount: 300, currency: 'USD', isEstimate: true }, bookingRequired: true, tags: ['Thailand'] }, priority: 'must-see', isLocked: false, notes: 'Check-in, explore Night Bazaar' },
     ]},
     // Day 9: Feb 19 - Chiang Rai (night 2 of 3)
     { id: 'day-2026-02-19', date: '2026-02-19', dayNumber: 9, baseId: 'base-4', theme: 'White Temple & Blue Temple', blocks: [
