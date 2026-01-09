@@ -728,27 +728,27 @@ export default function TripPage() {
     return getCityForDay(day);
   };
 
-  // Build route from schedule - extract unique cities in order they appear
-  // Uses itinerary.days directly to ensure consistency with overview groups
-  const sortedBases = useMemo(() => {
-    if (!itinerary?.days || itinerary.days.length === 0) return itinerary?.route?.bases || [];
+  // Build location groups - SINGLE SOURCE OF TRUTH for both Overview and Map
+  // Groups consecutive days at the same location
+  const locationGroups = useMemo(() => {
+    if (!itinerary?.days || itinerary.days.length === 0) return [];
 
-    // Get date range from itinerary days
+    // Get full date range - use tripDna start date if available (includes departure day)
+    const tripStartDate = tripDna?.constraints?.dates?.startDate;
     const sortedDays = [...itinerary.days].sort((a, b) => a.date.localeCompare(b.date));
-    const firstDate = sortedDays[0].date;
+    const firstDate = tripStartDate || sortedDays[0].date;
     const lastDate = sortedDays[sortedDays.length - 1].date;
+
+    const [y1, m1, d1] = firstDate.split('-').map(Number);
+    const [y2, m2, d2] = lastDate.split('-').map(Number);
+    const start = new Date(y1, m1 - 1, d1);
+    const end = new Date(y2, m2 - 1, d2);
 
     // Build a map of date -> day for fast lookup
     const daysByDate: Record<string, DayPlan> = {};
     itinerary.days.forEach(day => {
       daysByDate[day.date] = day;
     });
-
-    // Parse dates
-    const [sy, sm, sd] = firstDate.split('-').map(Number);
-    const [ey, em, ed] = lastDate.split('-').map(Number);
-    const start = new Date(sy, sm - 1, sd);
-    const end = new Date(ey, em - 1, ed);
 
     // Helper to format date as YYYY-MM-DD
     const toDateStr = (d: Date) => {
@@ -758,13 +758,12 @@ export default function TripPage() {
       return `${yyyy}-${mm}-${dd}`;
     };
 
-    // Extract cities in order - track location changes (not just unique cities)
-    // This allows Tokyo to appear twice if you visit, leave, and return
-    const orderedCities: string[] = [];
-    let lastLocation = '';
+    // Group consecutive days by location
+    const groups: { location: string; startDate: string; endDate: string; startDay: number; endDay: number; nights: number }[] = [];
+    let dayNum = 1;
     const current = new Date(start);
+    let lastLocation = '';
 
-    const dailyLocations: string[] = [];
     while (current <= end) {
       const dateStr = toDateStr(current);
       const existingDay = daysByDate[dateStr];
@@ -776,23 +775,40 @@ export default function TripPage() {
         location = lastLocation || itinerary.meta.destination || 'Unknown';
       }
 
-      dailyLocations.push(`${dateStr}: ${location}`);
+      const lastGroup = groups[groups.length - 1];
 
-      // Add city when location CHANGES (allows revisiting same city later)
-      if (location && location !== lastLocation) {
-        orderedCities.push(location);
+      if (lastGroup && lastGroup.location === location) {
+        lastGroup.endDate = dateStr;
+        lastGroup.endDay = dayNum;
+        lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
+      } else {
+        groups.push({
+          location,
+          startDate: dateStr,
+          endDate: dateStr,
+          startDay: dayNum,
+          endDay: dayNum,
+          nights: 1,
+        });
       }
 
       lastLocation = location;
+      dayNum++;
       current.setDate(current.getDate() + 1);
     }
 
-    // Debug: log daily locations and final cities
-    console.log('sortedBases dailyLocations:', dailyLocations);
-    console.log('sortedBases orderedCities:', orderedCities);
+    return groups;
+  }, [itinerary, tripDna, getCityForDay]);
 
-    // Map ordered cities to bases (or create placeholder bases)
-    const bases = itinerary.route?.bases || [];
+  // Build bases for the map from locationGroups
+  const sortedBases = useMemo(() => {
+    if (locationGroups.length === 0) return itinerary?.route?.bases || [];
+
+    // Extract cities in order from groups (allows duplicates like Tokyo→...→Tokyo)
+    const orderedCities = locationGroups.map(g => g.location);
+
+    // Map to base objects for the map component
+    const bases = itinerary?.route?.bases || [];
     return orderedCities.map((city, index) => {
       const matchingBase = bases.find(b => {
         const baseCity = normalizeLocation(b.location?.split(',')[0] || '');
@@ -802,13 +818,13 @@ export default function TripPage() {
       return matchingBase || {
         id: `city-${index}`,
         location: city,
-        nights: 1,
-        checkIn: '',
-        checkOut: '',
+        nights: locationGroups[index]?.nights || 1,
+        checkIn: locationGroups[index]?.startDate || '',
+        checkOut: locationGroups[index]?.endDate || '',
         rationale: '',
       };
     });
-  }, [itinerary]);
+  }, [locationGroups, itinerary, normalizeLocation]);
 
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
@@ -1354,74 +1370,13 @@ ${JSON.stringify(tripDna, null, 2)}`}
                   {/* Overview - Trip Summary */}
                   {contentFilter === 'overview' && (
                     <div className="space-y-3 pr-1">
-                      {/* Quick Glance Schedule - grouped by location from full date range */}
+                      {/* Quick Glance Schedule - uses pre-computed locationGroups */}
                       {(() => {
-                        // Get full date range - use tripDna start date if available (includes departure day)
-                        const tripStartDate = tripDna?.constraints?.dates?.startDate;
-                        const firstDate = tripStartDate || itinerary.days[0]?.date;
-                        const lastDate = itinerary.days[itinerary.days.length - 1]?.date;
-                        if (!firstDate || !lastDate) return null;
+                        // Use the shared locationGroups (same data as map)
+                        const groups = locationGroups;
+                        if (groups.length === 0) return null;
 
-                        const [y1, m1, d1] = firstDate.split('-').map(Number);
-                        const [y2, m2, d2] = lastDate.split('-').map(Number);
-                        const start = new Date(y1, m1 - 1, d1);
-                        const end = new Date(y2, m2 - 1, d2);
-                        const totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-                        // Create a map of existing days by date
-                        const daysByDate: Record<string, DayPlan> = {};
-                        itinerary.days.forEach(d => { daysByDate[d.date] = d; });
-
-                        // Group consecutive days by location with day numbers (including empty days)
-                        const groups: { location: string; startDate: string; endDate: string; startDay: number; endDay: number; nights: number }[] = [];
-                        let dayNum = 1;
-                        const current = new Date(start);
-                        let lastLocation = '';
-
-                        // Helper to format date as YYYY-MM-DD without timezone issues
-                        const toDateStr = (d: Date) => {
-                          const yyyy = d.getFullYear();
-                          const mm = String(d.getMonth() + 1).padStart(2, '0');
-                          const dd = String(d.getDate()).padStart(2, '0');
-                          return `${yyyy}-${mm}-${dd}`;
-                        };
-
-                        while (current <= end) {
-                          const dateStr = toDateStr(current);
-                          const existingDay = daysByDate[dateStr];
-
-                          // Get CITY for this day (not theme/activity - only actual city changes)
-                          let location: string;
-                          if (existingDay) {
-                            location = getCityForDay(existingDay);
-                          } else {
-                            // For empty days, use the last known location
-                            location = lastLocation || itinerary.meta.destination || 'Unknown';
-                          }
-
-                          const lastGroup = groups[groups.length - 1];
-
-                          if (lastGroup && lastGroup.location === location) {
-                            // Same location - extend the group
-                            lastGroup.endDate = dateStr;
-                            lastGroup.endDay = dayNum;
-                            lastGroup.nights = Math.max(1, lastGroup.endDay - lastGroup.startDay);
-                          } else {
-                            // Location change - start new group (no overlap)
-                            groups.push({
-                              location,
-                              startDate: dateStr,
-                              endDate: dateStr,
-                              startDay: dayNum,
-                              endDay: dayNum,
-                              nights: 1,
-                            });
-                          }
-
-                          lastLocation = location;
-                          dayNum++;
-                          current.setDate(current.getDate() + 1);
-                        }
+                        const totalDays = groups[groups.length - 1]?.endDay || 1;
 
                         // Exclude origin (first) and return (last) locations from destination counts
                         // These are typically home cities, not destinations
@@ -1444,8 +1399,14 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           return `${months[month - 1]} ${day}`;
                         };
 
+                        // Get date range from groups
+                        const firstDate = groups[0]?.startDate || '';
+                        const lastDate = groups[groups.length - 1]?.endDate || '';
+
                         // Format the trip date range
-                        const tripDateRange = `${formatDateString(firstDate)} – ${formatDateString(lastDate)}`;
+                        const tripDateRange = firstDate && lastDate
+                          ? `${formatDateString(firstDate)} – ${formatDateString(lastDate)}`
+                          : '';
 
                         // Count flights
                         const allFlights = itinerary.days.flatMap(d =>
