@@ -1,22 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { X, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Base } from '@/types/itinerary';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
 
 interface TripRouteMapProps {
   bases: Base[];
   className?: string;
-  singleLocation?: string; // If provided, show only this location (for daily view)
+  singleLocation?: string;
 }
 
 // Simple coordinate lookup for common destinations
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'tokyo': { lat: 35.6762, lng: 139.6503 },
-  'tokyo narita': { lat: 35.6762, lng: 139.6503 }, // Narita is near Tokyo, use Tokyo coords
+  'tokyo narita': { lat: 35.6762, lng: 139.6503 },
   'bangkok': { lat: 13.7563, lng: 100.5018 },
   'singapore': { lat: 1.3521, lng: 103.8198 },
   'hong kong': { lat: 22.3193, lng: 114.1694 },
@@ -98,6 +97,16 @@ function getCityCoordinates(location: string): { lat: number; lng: number } | nu
   return CITY_COORDINATES[cityName] || null;
 }
 
+// Dynamically import the map component to avoid SSR issues
+const LeafletMap = dynamic(() => import('./LeafletMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 min-h-[120px] rounded-lg overflow-hidden bg-blue-50/50 flex items-center justify-center">
+      <span className="text-xs text-muted-foreground">Loading map...</span>
+    </div>
+  ),
+});
+
 export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapProps) {
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
 
@@ -114,49 +123,6 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
     return mapped.filter(b => b.coords !== null);
   }, [effectiveBases]);
 
-  // Calculate viewBox based on selected location or all points
-  const viewBox = useMemo(() => {
-    if (coords.length === 0) return { x: 0, y: 0, width: 100, height: 60 };
-
-    if (selectedLocation !== null && coords[selectedLocation]) {
-      // Zoom in on selected location
-      const c = coords[selectedLocation];
-      const x = ((c.coords!.lng + 180) / 360) * 100;
-      const y = ((90 - c.coords!.lat) / 180) * 60;
-      // Smaller viewBox = more zoom
-      const zoomWidth = 20;
-      const zoomHeight = 12;
-      return {
-        x: Math.max(0, Math.min(100 - zoomWidth, x - zoomWidth / 2)),
-        y: Math.max(0, Math.min(60 - zoomHeight, y - zoomHeight / 2)),
-        width: zoomWidth,
-        height: zoomHeight,
-      };
-    }
-
-    // Default: show all points with padding
-    const points = coords.map(c => ({
-      x: ((c.coords!.lng + 180) / 360) * 100,
-      y: ((90 - c.coords!.lat) / 180) * 60,
-    }));
-
-    const minX = Math.min(...points.map(p => p.x));
-    const maxX = Math.max(...points.map(p => p.x));
-    const minY = Math.min(...points.map(p => p.y));
-    const maxY = Math.max(...points.map(p => p.y));
-
-    const padding = 10;
-    const width = Math.max(30, maxX - minX + padding * 2);
-    const height = Math.max(18, maxY - minY + padding * 2);
-
-    return {
-      x: Math.max(0, minX - padding),
-      y: Math.max(0, minY - padding),
-      width: Math.min(100, width),
-      height: Math.min(60, height),
-    };
-  }, [coords, selectedLocation]);
-
   if (!bases || bases.length === 0) {
     return null;
   }
@@ -165,174 +131,16 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
     setSelectedLocation(selectedLocation === index ? null : index);
   };
 
-  const handleResetZoom = () => {
-    setSelectedLocation(null);
-  };
-
-  // Use custom SVG map - clean, fast, no API issues
   return (
     <Card className={`${className} py-0`}>
       <CardContent className="p-1.5 overflow-hidden relative h-full flex flex-col">
         {/* Map area */}
-        <div className="flex-1 min-h-[120px] rounded-lg overflow-hidden bg-blue-50/50 relative">
-          {/* Zoom controls */}
-          {selectedLocation !== null && (
-            <Button
-              variant="secondary"
-              size="icon"
-              className="absolute top-1 right-1 z-10 h-6 w-6 bg-background/90"
-              onClick={handleResetZoom}
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          )}
-
-          {/* Custom SVG route map */}
-          <svg
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-            className="w-full h-full transition-all duration-500 ease-out"
-            preserveAspectRatio="xMidYMid meet"
-          >
-            {/* Water background */}
-            <rect x="0" y="0" width="100" height="60" fill="#e0f2fe" />
-
-            {/* World landmasses - simplified */}
-            {/* North America */}
-            <path d="M 5 10 Q 15 8 25 12 L 30 20 Q 28 28 20 30 L 10 25 Q 5 18 5 10"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* South America */}
-            <path d="M 18 32 Q 25 30 28 35 L 26 48 Q 22 55 18 50 L 16 40 Q 15 35 18 32"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Europe */}
-            <path d="M 42 10 Q 52 8 55 12 L 54 18 Q 50 22 45 20 L 42 15 Q 40 12 42 10"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Africa */}
-            <path d="M 45 22 Q 55 20 58 25 L 56 40 Q 50 48 45 42 L 44 30 Q 43 25 45 22"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Asia */}
-            <path d="M 55 8 Q 75 5 90 12 L 92 30 Q 88 42 78 45 L 65 40 Q 55 35 55 25 L 55 8"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Southeast Asia islands */}
-            <path d="M 68 42 Q 78 44 85 48 L 88 54 Q 82 58 72 55 L 68 48 Q 66 44 68 42"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Australia */}
-            <path d="M 78 38 Q 88 36 92 42 L 90 50 Q 84 54 78 50 L 76 44 Q 76 40 78 38"
-                  fill="#d1fae5" stroke="#86efac" strokeWidth="0.3" />
-
-            {/* Hawaii dots */}
-            <circle cx="12" cy="22" r="0.8" fill="#d1fae5" stroke="#86efac" strokeWidth="0.2" />
-
-            {/* Route line connecting destinations - handles Pacific crossing */}
-            {coords.length > 1 && (() => {
-              // Build segments that don't cross the antimeridian (180° / -180°)
-              const segments: string[][] = [];
-              let currentSegment: string[] = [];
-
-              coords.forEach((c, i) => {
-                const x = ((c.coords!.lng + 180) / 360) * 100;
-                const y = ((90 - c.coords!.lat) / 180) * 60;
-
-                if (i > 0) {
-                  const prevLng = coords[i - 1].coords!.lng;
-                  const currLng = c.coords!.lng;
-                  // If longitude difference > 180, we're crossing the Pacific
-                  if (Math.abs(currLng - prevLng) > 180) {
-                    // End current segment and start new one
-                    if (currentSegment.length > 0) {
-                      segments.push(currentSegment);
-                    }
-                    currentSegment = [];
-                  }
-                }
-                currentSegment.push(`${x},${y}`);
-              });
-
-              if (currentSegment.length > 0) {
-                segments.push(currentSegment);
-              }
-
-              return segments.map((segment, idx) => (
-                <polyline
-                  key={idx}
-                  points={segment.join(' ')}
-                  fill="none"
-                  stroke="#4f46e5"
-                  strokeWidth={selectedLocation !== null ? "0.3" : "1"}
-                  strokeDasharray={selectedLocation !== null ? "0.5,0.25" : "2,1"}
-                  strokeLinecap="round"
-                />
-              ));
-            })()}
-
-            {/* Destination markers */}
-            {coords.map((c, i) => {
-              const x = ((c.coords!.lng + 180) / 360) * 100;
-              const y = ((90 - c.coords!.lat) / 180) * 60;
-              const isSelected = selectedLocation === i;
-              const markerSize = selectedLocation !== null ? (isSelected ? 1.5 : 0.8) : 3;
-
-              return (
-                <g
-                  key={c.id || i}
-                  className="cursor-pointer"
-                  onClick={() => handleLocationClick(i)}
-                >
-                  {/* Pulse animation for selected */}
-                  {isSelected && (
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={markerSize * 2}
-                      fill="#4f46e5"
-                      opacity="0.3"
-                      className="animate-ping"
-                    />
-                  )}
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={markerSize}
-                    fill={isSelected ? "#dc2626" : "#4f46e5"}
-                    stroke="white"
-                    strokeWidth={selectedLocation !== null ? 0.2 : 1}
-                    className="transition-all duration-300"
-                  />
-                  {!singleLocation && selectedLocation === null && (
-                    <text
-                      x={x}
-                      y={y + 1}
-                      textAnchor="middle"
-                      fontSize="3"
-                      fill="white"
-                      fontWeight="bold"
-                    >
-                      {i + 1}
-                    </text>
-                  )}
-                  {/* Show city name when zoomed */}
-                  {isSelected && (
-                    <text
-                      x={x}
-                      y={y + 3}
-                      textAnchor="middle"
-                      fontSize="1.5"
-                      fill="#1f2937"
-                      fontWeight="600"
-                    >
-                      {c.location.split(',')[0]}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+        <LeafletMap
+          coords={coords}
+          selectedLocation={selectedLocation}
+          onLocationClick={handleLocationClick}
+          singleLocation={singleLocation}
+        />
 
         {/* Location list - scrollable */}
         <div className="mt-1.5 max-h-[80px] overflow-y-auto">
