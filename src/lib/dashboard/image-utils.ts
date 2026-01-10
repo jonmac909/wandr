@@ -1,28 +1,31 @@
 /**
  * Image utilities for dashboard components
  *
- * Uses custom placeholder API for reliable images with destination names
- * This ensures consistent, relevant placeholders for each destination
+ * Uses Lorem Picsum for reliable placeholder images
+ * Seed-based URLs ensure consistent images per destination
  */
 
 /**
- * Generate a placeholder image URL based on destination
- * Uses our custom placeholder API that shows city names with themed colors
+ * Generate a seeded image URL based on destination
+ * Same destination always gets the same image
  */
 export function getDestinationImage(destination: string, width: number, height: number): string {
-  return `/api/placeholder/city/${encodeURIComponent(destination)}`;
+  const seed = destination.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }
 
 /**
- * Generate a hotel/accommodation placeholder image
+ * Generate a hotel/accommodation image
  */
 export function getAccommodationImage(name: string, width: number, height: number): string {
-  return `/api/placeholder/city/${encodeURIComponent(name)}`;
+  const seed = `hotel${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }
 
 /**
- * Generate a generic travel placeholder
+ * Generate a generic travel image
  */
 export function getTravelImage(query: string, width: number, height: number): string {
-  return `/api/placeholder/city/${encodeURIComponent(query || 'Travel')}`;
+  const seed = (query || 'travel').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }

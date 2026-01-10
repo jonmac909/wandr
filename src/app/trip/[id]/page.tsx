@@ -42,38 +42,38 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Helper to get popular cities for a destination
+// Helper to get popular cities for a destination - extended lists with 15+ cities
 function getCitiesForDestination(destination: string): string[] {
   const cityMap: Record<string, string[]> = {
-    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye'],
-    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo'],
-    'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna'],
-    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes'],
-    'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka'],
-    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi'],
-    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Lagos'],
-    'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki'],
-    'Switzerland': ['Zurich', 'Lucerne', 'Interlaken', 'Zermatt', 'Geneva', 'Bern', 'Basel', 'Lausanne', 'St. Moritz'],
-    'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Dresden', 'Heidelberg', 'Rothenburg', 'Nuremberg'],
-    'UK': ['London', 'Edinburgh', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton'],
-    'England': ['London', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol'],
-    'Scotland': ['Edinburgh', 'Glasgow', 'Isle of Skye', 'Inverness', 'St Andrews', 'Aberdeen', 'Stirling', 'Loch Ness', 'Highlands'],
-    'Netherlands': ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Delft', 'Leiden', 'Haarlem', 'Maastricht', 'Giethoorn'],
-    'Austria': ['Vienna', 'Salzburg', 'Innsbruck', 'Hallstatt', 'Graz', 'Linz', 'Kitzbühel', 'Bad Gastein', 'Zell am See'],
-    'Czech Republic': ['Prague', 'Český Krumlov', 'Brno', 'Karlovy Vary', 'Kutná Hora', 'Olomouc', 'Plzeň', 'Telč', 'Liberec'],
-    'Croatia': ['Dubrovnik', 'Split', 'Zagreb', 'Plitvice Lakes', 'Hvar', 'Rovinj', 'Zadar', 'Korčula', 'Pula'],
-    'Morocco': ['Marrakech', 'Fes', 'Chefchaouen', 'Casablanca', 'Essaouira', 'Tangier', 'Rabat', 'Sahara Desert', 'Agadir'],
-    'Egypt': ['Cairo', 'Luxor', 'Aswan', 'Alexandria', 'Giza', 'Hurghada', 'Sharm El Sheikh', 'Abu Simbel', 'Dahab'],
-    'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc'],
-    'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya'],
-    'Bali': ['Ubud', 'Seminyak', 'Canggu', 'Uluwatu', 'Sanur', 'Nusa Penida', 'Kuta', 'Amed', 'Lovina'],
-    'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Great Barrier Reef', 'Uluru', 'Tasmania', 'Gold Coast'],
-    'New Zealand': ['Auckland', 'Queenstown', 'Wellington', 'Rotorua', 'Milford Sound', 'Christchurch', 'Hobbiton', 'Bay of Islands', 'Wanaka'],
-    'USA': ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Las Vegas', 'Seattle', 'Boston', 'New Orleans'],
-    'Mexico': ['Mexico City', 'Cancun', 'Tulum', 'Oaxaca', 'Playa del Carmen', 'San Miguel de Allende', 'Guanajuato', 'Puerto Vallarta', 'Merida'],
-    'Peru': ['Lima', 'Cusco', 'Machu Picchu', 'Arequipa', 'Sacred Valley', 'Lake Titicaca', 'Nazca', 'Huacachina', 'Trujillo'],
-    'Argentina': ['Buenos Aires', 'Mendoza', 'Patagonia', 'Iguazu Falls', 'Bariloche', 'Salta', 'Ushuaia', 'Córdoba', 'El Calafate'],
-    'Brazil': ['Rio de Janeiro', 'São Paulo', 'Salvador', 'Florianópolis', 'Paraty', 'Fernando de Noronha', 'Iguaçu Falls', 'Manaus', 'Bonito'],
+    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye', 'Kas', 'Trabzon', 'Bursa', 'Konya', 'Dalyan', 'Oludeniz'],
+    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo', 'Cordoba', 'Ibiza', 'Ronda', 'Salamanca', 'Girona', 'Segovia'],
+    'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna', 'Verona', 'Lake Como', 'Siena', 'Ravenna', 'Pisa', 'Sorrento'],
+    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes', 'Avignon', 'Annecy', 'Colmar', 'Saint-Tropez', 'Chamonix', 'Carcassonne'],
+    'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka', 'Takayama', 'Nagoya', 'Kamakura', 'Naoshima', 'Kobe', 'Miyajima'],
+    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi', 'Koh Lanta', 'Koh Tao', 'Hua Hin', 'Koh Chang', 'Sukhothai', 'Kanchanaburi'],
+    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Lagos', 'Nazaré', 'Óbidos', 'Azores', 'Braga', 'Aveiro', 'Tavira'],
+    'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki', 'Naxos', 'Paros', 'Zakynthos', 'Hydra', 'Milos', 'Nafplio'],
+    'Switzerland': ['Zurich', 'Lucerne', 'Interlaken', 'Zermatt', 'Geneva', 'Bern', 'Basel', 'Lausanne', 'St. Moritz', 'Gstaad', 'Grindelwald', 'Lugano', 'Montreux', 'Verbier', 'Davos', 'Lauterbrunnen', 'Wengen', 'Appenzell'],
+    'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Dresden', 'Heidelberg', 'Rothenburg', 'Nuremberg', 'Bamberg', 'Freiburg', 'Stuttgart', 'Düsseldorf', 'Leipzig', 'Würzburg'],
+    'UK': ['London', 'Edinburgh', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol', 'Canterbury', 'Stratford-upon-Avon', 'Windsor', 'Cornwall', 'Lake District'],
+    'England': ['London', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol', 'Canterbury', 'Stratford-upon-Avon', 'Windsor', 'Cornwall', 'Lake District', 'Cotswolds'],
+    'Scotland': ['Edinburgh', 'Glasgow', 'Isle of Skye', 'Inverness', 'St Andrews', 'Aberdeen', 'Stirling', 'Loch Ness', 'Highlands', 'Glencoe', 'Fort William', 'Oban', 'Isle of Mull', 'Orkney Islands', 'Dundee'],
+    'Netherlands': ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Delft', 'Leiden', 'Haarlem', 'Maastricht', 'Giethoorn', 'Kinderdijk', 'Keukenhof', 'Eindhoven', 'Groningen', 'Volendam', 'Zaanse Schans'],
+    'Austria': ['Vienna', 'Salzburg', 'Innsbruck', 'Hallstatt', 'Graz', 'Linz', 'Kitzbühel', 'Bad Gastein', 'Zell am See', 'Melk', 'Dürnstein', 'St. Anton', 'Krems', 'Wachau Valley', 'Lech'],
+    'Czech Republic': ['Prague', 'Český Krumlov', 'Brno', 'Karlovy Vary', 'Kutná Hora', 'Olomouc', 'Plzeň', 'Telč', 'Liberec', 'Český Ráj', 'Třebíč', 'Litomyšl', 'Kroměříž', 'Lednice', 'Mikulov'],
+    'Croatia': ['Dubrovnik', 'Split', 'Zagreb', 'Plitvice Lakes', 'Hvar', 'Rovinj', 'Zadar', 'Korčula', 'Pula', 'Trogir', 'Šibenik', 'Mljet', 'Vis', 'Rab', 'Brač'],
+    'Morocco': ['Marrakech', 'Fes', 'Chefchaouen', 'Casablanca', 'Essaouira', 'Tangier', 'Rabat', 'Sahara Desert', 'Agadir', 'Ouarzazate', 'Meknes', 'Asilah', 'Merzouga', 'Dades Valley', 'Ait Benhaddou'],
+    'Egypt': ['Cairo', 'Luxor', 'Aswan', 'Alexandria', 'Giza', 'Hurghada', 'Sharm El Sheikh', 'Abu Simbel', 'Dahab', 'Siwa Oasis', 'Valley of the Kings', 'Karnak', 'Edfu', 'Kom Ombo', 'White Desert'],
+    'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc', 'Ninh Binh', 'Dalat', 'Mui Ne', 'Can Tho', 'Phong Nha', 'Quy Nhon'],
+    'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya', 'Gili Islands', 'Labuan Bajo', 'Sulawesi', 'Sumatra', 'Flores', 'Malang'],
+    'Bali': ['Ubud', 'Seminyak', 'Canggu', 'Uluwatu', 'Sanur', 'Nusa Penida', 'Kuta', 'Amed', 'Lovina', 'Munduk', 'Sidemen', 'Jimbaran', 'Tegallalang', 'Tanah Lot', 'Nusa Dua'],
+    'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Great Barrier Reef', 'Uluru', 'Tasmania', 'Gold Coast', 'Cairns', 'Byron Bay', 'Kangaroo Island', 'Blue Mountains', 'Margaret River', 'Whitsundays'],
+    'New Zealand': ['Auckland', 'Queenstown', 'Wellington', 'Rotorua', 'Milford Sound', 'Christchurch', 'Hobbiton', 'Bay of Islands', 'Wanaka', 'Fiordland', 'Tongariro', 'Abel Tasman', 'Kaikoura', 'Franz Josef', 'Coromandel'],
+    'USA': ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Las Vegas', 'Seattle', 'Boston', 'New Orleans', 'Washington DC', 'San Diego', 'Hawaii', 'Austin', 'Nashville', 'Portland'],
+    'Mexico': ['Mexico City', 'Cancun', 'Tulum', 'Oaxaca', 'Playa del Carmen', 'San Miguel de Allende', 'Guanajuato', 'Puerto Vallarta', 'Merida', 'Sayulita', 'Cozumel', 'Valladolid', 'Puebla', 'Bacalar', 'San Cristobal'],
+    'Peru': ['Lima', 'Cusco', 'Machu Picchu', 'Arequipa', 'Sacred Valley', 'Lake Titicaca', 'Nazca', 'Huacachina', 'Trujillo', 'Colca Canyon', 'Rainbow Mountain', 'Puno', 'Ica', 'Ollantaytambo', 'Paracas'],
+    'Argentina': ['Buenos Aires', 'Mendoza', 'Patagonia', 'Iguazu Falls', 'Bariloche', 'Salta', 'Ushuaia', 'Córdoba', 'El Calafate', 'El Chaltén', 'Cafayate', 'Purmamarca', 'Tigre', 'La Plata', 'San Martín de los Andes'],
+    'Brazil': ['Rio de Janeiro', 'São Paulo', 'Salvador', 'Florianópolis', 'Paraty', 'Fernando de Noronha', 'Iguaçu Falls', 'Manaus', 'Bonito', 'Jericoacoara', 'Trancoso', 'Ouro Preto', 'Ilhabela', 'Búzios', 'Lençóis Maranhenses'],
     'Colombia': ['Bogotá', 'Medellín', 'Cartagena', 'Santa Marta', 'San Andrés', 'Tayrona', 'Villa de Leyva', 'Salento', 'Cali'],
     'South Korea': ['Seoul', 'Busan', 'Jeju Island', 'Gyeongju', 'Incheon', 'Jeonju', 'Suwon', 'Gangneung', 'Sokcho'],
     'China': ['Beijing', 'Shanghai', 'Hong Kong', 'Xi\'an', 'Guilin', 'Chengdu', 'Hangzhou', 'Suzhou', 'Zhangjiajie'],
@@ -1407,26 +1407,35 @@ export default function TripPage() {
             </Button>
           </div>
 
-          {/* Trip Summary - Minimal */}
+          {/* Trip Summary - Minimal with Edit */}
           <div className="mb-4 p-3 rounded-lg bg-muted/30 border">
-            <div className="flex items-center gap-3 flex-wrap text-sm">
-              <span className="font-medium capitalize">{partyType}</span>
-              <span className="text-muted-foreground">•</span>
-              <span>{duration} days</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="capitalize">{pace}</span>
-              <span className="text-muted-foreground">•</span>
-              <span>{budgetLevel}</span>
-              {tripTypes.length > 0 && (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  {tripTypes.slice(0, 3).map((type: string) => (
-                    <span key={type} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
-                      {type}
-                    </span>
-                  ))}
-                </>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-wrap text-sm">
+                <span className="font-medium capitalize">{partyType}</span>
+                <span className="text-muted-foreground">•</span>
+                <span>{duration} days</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="capitalize">{pace}</span>
+                <span className="text-muted-foreground">•</span>
+                <span>{budgetLevel}</span>
+                {tripTypes.length > 0 && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    {tripTypes.slice(0, 3).map((type: string) => (
+                      <span key={type} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                        {type}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => router.push(`/questionnaire?edit=${tripId}`)}
+                className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-muted flex-shrink-0"
+                title="Edit preferences"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -1445,12 +1454,12 @@ export default function TripPage() {
               if (category === 'cities') {
                 const cityNames = getCitiesForDestination(destination);
                 cityNames.forEach((city, idx) => {
-                  // TODO: Replace with real destination images from Unsplash/Google Places API
+                  const seed = city.toLowerCase().replace(/[^a-z0-9]/g, '');
                   mockItems.push({
                     id: `city-${idx}`,
                     name: city,
                     description: `Explore ${city}`,
-                    imageUrl: `/api/placeholder/city/${encodeURIComponent(city)}`,
+                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                     category: 'activities',
                     tags: ['cities'],
                     isFavorited: false,
@@ -1459,11 +1468,12 @@ export default function TripPage() {
               } else if (category === 'experiences') {
                 const experiences = ['Walking Tour', 'Food Tour', 'Museum Visit', 'Historical Site', 'Local Market', 'Sunset Viewpoint', 'Cooking Class', 'Art Gallery', 'Nature Hike'];
                 experiences.forEach((exp, idx) => {
+                  const seed = exp.toLowerCase().replace(/[^a-z0-9]/g, '');
                   mockItems.push({
                     id: `exp-${idx}`,
                     name: exp,
                     description: `Experience the best ${exp.toLowerCase()}`,
-                    imageUrl: `/api/placeholder/city/${encodeURIComponent(exp)}`,
+                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                     category: 'activities',
                     tags: ['experiences'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1474,11 +1484,12 @@ export default function TripPage() {
               } else if (category === 'hotels') {
                 const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
                 hotelTypes.forEach((hotel, idx) => {
+                  const seed = `hotel${hotel.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                   mockItems.push({
                     id: `hotel-${idx}`,
                     name: hotel,
                     description: 'Beautiful accommodations',
-                    imageUrl: `/api/placeholder/city/${encodeURIComponent(hotel)}`,
+                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                     category: 'hotels',
                     tags: ['hotels'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1489,11 +1500,12 @@ export default function TripPage() {
               } else if (category === 'restaurants') {
                 const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Brunch Cafe'];
                 restaurants.forEach((resto, idx) => {
+                  const seed = `food${resto.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                   mockItems.push({
                     id: `resto-${idx}`,
                     name: resto,
                     description: 'Delicious local cuisine',
-                    imageUrl: `/api/placeholder/city/${encodeURIComponent(resto)}`,
+                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                     category: 'restaurants',
                     tags: ['restaurants'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1504,11 +1516,12 @@ export default function TripPage() {
               } else if (category === 'cafes') {
                 const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
                 cafes.forEach((cafe, idx) => {
+                  const seed = `cafe${cafe.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                   mockItems.push({
                     id: `cafe-${idx}`,
                     name: cafe,
                     description: 'Perfect spot for coffee',
-                    imageUrl: `/api/placeholder/city/${encodeURIComponent(cafe)}`,
+                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                     category: 'cafes',
                     tags: ['cafes'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1522,7 +1535,6 @@ export default function TripPage() {
               const newItems = mockItems.filter(i => !existingIds.has(i.id));
               setPlanningItems([...planningItems, ...newItems]);
             }}
-            onEditPreferences={() => router.push(`/questionnaire?edit=${tripId}`)}
           />
         </main>
 
@@ -1653,11 +1665,12 @@ export default function TripPage() {
                   destinations.forEach((dest, destIdx) => {
                     const cityNames = getCitiesForDestination(dest);
                     cityNames.forEach((city, idx) => {
+                      const seed = city.toLowerCase().replace(/[^a-z0-9]/g, '');
                       mockItems.push({
                         id: `city-${destIdx}-${idx}`,
                         name: city,
                         description: `Explore the wonders of ${city}`,
-                        imageUrl: `/api/placeholder/city/${encodeURIComponent(city)}`,
+                        imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                         category: 'activities',
                         tags: ['cities', dest],
                         isFavorited: false,
@@ -1671,11 +1684,12 @@ export default function TripPage() {
                     'Nature Hike'
                   ];
                   experiences.forEach((exp, idx) => {
+                    const seed = exp.toLowerCase().replace(/[^a-z0-9]/g, '');
                     mockItems.push({
                       id: `exp-${idx}`,
                       name: exp,
                       description: `Experience the best ${exp.toLowerCase()}`,
-                      imageUrl: `/api/placeholder/city/${encodeURIComponent(exp)}`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                       category: 'activities',
                       tags: ['experiences'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1686,11 +1700,12 @@ export default function TripPage() {
                 } else if (category === 'hotels') {
                   const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
                   hotelTypes.forEach((hotel, idx) => {
+                    const seed = `hotel${hotel.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `hotel-${idx}`,
                       name: hotel,
                       description: 'Beautiful accommodations',
-                      imageUrl: `/api/placeholder/city/${encodeURIComponent(hotel)}`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                       category: 'hotels',
                       tags: ['hotels'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1701,11 +1716,12 @@ export default function TripPage() {
                 } else if (category === 'restaurants') {
                   const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food Market', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Cafe & Brunch'];
                   restaurants.forEach((resto, idx) => {
+                    const seed = `food${resto.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `resto-${idx}`,
                       name: resto,
                       description: 'Delicious local cuisine',
-                      imageUrl: `/api/placeholder/city/${encodeURIComponent(resto)}`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                       category: 'restaurants',
                       tags: ['restaurants'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1716,11 +1732,12 @@ export default function TripPage() {
                 } else if (category === 'cafes') {
                   const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
                   cafes.forEach((cafe, idx) => {
+                    const seed = `cafe${cafe.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `cafe-${idx}`,
                       name: cafe,
                       description: 'Perfect spot for coffee',
-                      imageUrl: `/api/placeholder/city/${encodeURIComponent(cafe)}`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
                       category: 'cafes',
                       tags: ['cafes'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1735,7 +1752,6 @@ export default function TripPage() {
                 const newItems = mockItems.filter(i => !existingIds.has(i.id));
                 setPlanningItems([...planningItems, ...newItems]);
               }}
-              onEditPreferences={() => router.push(`/questionnaire?edit=${tripId}`)}
             />
           </div>
         </div>

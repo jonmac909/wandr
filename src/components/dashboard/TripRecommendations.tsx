@@ -90,7 +90,8 @@ const recommendations: TripRecommendation[] = [
 ];
 
 function getUnsplashImage(query: string, width = 400, height = 300): string {
-  return `https://source.unsplash.com/${width}x${height}/?${encodeURIComponent(query)}`;
+  const seed = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
 }
 
 export function TripRecommendations() {

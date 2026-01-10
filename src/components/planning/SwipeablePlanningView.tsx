@@ -56,7 +56,6 @@ interface SwipeablePlanningViewProps {
   onSearchAI?: (query: string, category: string) => void;
   duration?: number; // Trip duration in days
   isTripLocked?: boolean; // When Trip View is locked, only allow adding (not removing/editing)
-  onEditPreferences?: () => void; // Open questionnaire to edit preferences
 }
 
 interface CategoryStep {
@@ -170,7 +169,6 @@ export function SwipeablePlanningView({
   onSearchAI,
   duration: propDuration,
   isTripLocked = false,
-  onEditPreferences,
 }: SwipeablePlanningViewProps) {
   // Calculate duration from itinerary or props
   const duration = propDuration || getItineraryDuration(itinerary) || 7;
@@ -186,9 +184,9 @@ export function SwipeablePlanningView({
   const [detailItem, setDetailItem] = useState<PlanningItem | null>(null);
   const [expandedDay, setExpandedDay] = useState<number>(0);
   const [initialized, setInitialized] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('all');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
+  const [cityImageIndex, setCityImageIndex] = useState(0);
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -804,185 +802,49 @@ export function SwipeablePlanningView({
 
   // ============ PICKING PHASE ============
   return (
-    <div className="space-y-4">
-      {/* Your Preferences (TripDNA Summary) - Collapsible */}
-      <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 overflow-hidden">
-        <div className="flex items-center">
-          <button
-            onClick={() => setShowPreferences(!showPreferences)}
-            className="flex-1 flex items-center justify-between p-3 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold">Your Preferences</h3>
-                <p className="text-xs text-muted-foreground">
-                  {destinations.join(', ')} • {formatPartyType(tripDna.travelerProfile.partyType)}
-                </p>
-              </div>
-            </div>
-            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showPreferences ? 'rotate-180' : ''}`} />
-          </button>
-          {onEditPreferences && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditPreferences();
-              }}
-              className="p-3 text-muted-foreground hover:text-primary transition-colors"
-              title="Edit preferences"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {showPreferences && (
-          <div className="px-3 pb-3 space-y-3">
-            {/* Destination & Dates */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <MapPin className="w-3 h-3" />
-                  Destinations
-                </div>
-                <p className="text-sm font-medium">{destinations.join(', ')}</p>
-              </div>
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <Calendar className="w-3 h-3" />
-                  Duration
-                </div>
-                <p className="text-sm font-medium">
-                  {tripDna.constraints.dates.totalDays || duration} days
-                </p>
-              </div>
-            </div>
-
-            {/* Traveler & Pace */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <Users className="w-3 h-3" />
-                  Travelers
-                </div>
-                <p className="text-sm font-medium">
-                  {formatPartyType(tripDna.travelerProfile.partyType)}
-                  {tripDna.travelerProfile.partySize && tripDna.travelerProfile.partySize > 1
-                    ? ` (${tripDna.travelerProfile.partySize})`
-                    : ''}
-                </p>
-              </div>
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <Zap className="w-3 h-3" />
-                  Pace
-                </div>
-                <p className="text-sm font-medium">{formatPace(tripDna.vibeAndPace.tripPace)}</p>
-              </div>
-            </div>
-
-            {/* Travel Identities */}
-            {tripDna.travelerProfile.travelIdentities.length > 0 && (
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-                  <Heart className="w-3 h-3" />
-                  Your Interests
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {tripDna.travelerProfile.travelIdentities.slice(0, 5).map((identity) => (
-                    <span key={identity} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      {formatIdentity(identity)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Budget & Accommodation */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <DollarSign className="w-3 h-3" />
-                  Daily Budget
-                </div>
-                <p className="text-sm font-medium">
-                  {tripDna.constraints.budget.dailySpend.min > 0
-                    ? `${tripDna.constraints.budget.currency} ${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}`
-                    : 'Flexible'}
-                </p>
-              </div>
-              <div className="bg-background rounded-lg p-2">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <Hotel className="w-3 h-3" />
-                  Accommodation
-                </div>
-                <p className="text-sm font-medium capitalize">{tripDna.constraints.accommodation.style}</p>
-              </div>
-            </div>
+    <div className="space-y-3">
+      {/* Compact step header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <currentStep.icon className="w-5 h-5 text-primary" />
+          <div>
+            <h2 className="text-base font-bold">{currentStep.title}</h2>
+            <p className="text-xs text-muted-foreground">{currentStep.subtitle}</p>
           </div>
-        )}
+        </div>
+        <Badge variant="secondary" className="text-xs">{selectedIds.size} selected</Badge>
       </div>
 
-      {/* Progress indicator */}
+      {/* Progress dots */}
       <div className="flex gap-1">
         {PLANNING_STEPS.map((step, index) => (
           <div
             key={step.id}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              index < currentStepIndex
-                ? 'bg-green-500'
-                : index === currentStepIndex
-                ? 'bg-primary'
-                : 'bg-muted'
+            className={`h-1 flex-1 rounded-full ${
+              index < currentStepIndex ? 'bg-green-500' : index === currentStepIndex ? 'bg-primary' : 'bg-muted'
             }`}
           />
         ))}
       </div>
 
-      {/* Step header */}
-      <div className="flex items-center gap-3">
-        {currentStepIndex > 0 && (
-          <Button variant="ghost" size="sm" onClick={goToPrevStep}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-        )}
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <currentStep.icon className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">{currentStep.title}</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">{currentStep.subtitle}</p>
-        </div>
-        <Badge variant="secondary">{selectedIds.size} selected</Badge>
-      </div>
-
-      {/* Your picks - always visible at top */}
+      {/* Your picks - compact inline display */}
       {selectedItems.length > 0 && (
-        <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20 rounded-xl p-3 border border-pink-100 dark:border-pink-900/30">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-              Your Picks ({selectedItems.length})
-            </h3>
-            <span className="text-xs text-muted-foreground">Tap to view</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {selectedItems.map((item) => (
+        <div className="flex items-center gap-2 py-1">
+          <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
+          <span className="text-xs font-medium">Your picks:</span>
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            {selectedItems.slice(0, 8).map((item) => (
               <button
                 key={item.id}
                 onClick={() => setDetailItem(item)}
-                className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-pink-200 dark:ring-pink-800"
+                className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
               >
                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                <span className="absolute bottom-0.5 left-0.5 right-0.5 text-[8px] text-white font-medium truncate text-center">
-                  {item.name.split(' ')[0]}
-                </span>
               </button>
             ))}
+            {selectedItems.length > 8 && (
+              <span className="text-xs text-muted-foreground self-center ml-1">+{selectedItems.length - 8}</span>
+            )}
           </div>
         </div>
       )}
@@ -1174,40 +1036,86 @@ export function SwipeablePlanningView({
         </DialogContent>
       </Dialog>
 
-      {/* City Detail Modal - Compact with image slider */}
-      <Dialog open={!!cityDetailItem} onOpenChange={() => setCityDetailItem(null)}>
-        <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
+      {/* City Detail Modal */}
+      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); }}>
+        <DialogContent className="max-w-sm sm:max-w-md p-0 gap-0">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
-            const searchTerms = cityDetailItem.name.toLowerCase().replace(/\s+/g, ',');
+            const cityName = cityDetailItem.name.toLowerCase().replace(/\s+/g, '');
+
+            // Create image slides: city overview + top sites
+            const imageSlides = [
+              { label: cityDetailItem.name, seed: cityName },
+              ...cityInfo.topSites.slice(0, 4).map((site) => ({
+                label: site,
+                seed: site.toLowerCase().replace(/[^a-z0-9]/g, '')
+              }))
+            ];
 
             return (
-              <>
-                {/* Image slider */}
-                <div className="relative h-40">
-                  <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <div key={num} className="w-full h-full flex-shrink-0 snap-center">
-                        <img
-                          src={`https://source.unsplash.com/featured/600x400/?${searchTerms},travel&sig=${num}`}
-                          alt={`${cityDetailItem.name} ${num}`}
-                          className="w-full h-full object-cover"
-                        />
+              <div className="overflow-hidden rounded-lg">
+                {/* Swipeable image slider */}
+                <div className="relative h-52">
+                  <img
+                    src={`https://picsum.photos/seed/${imageSlides[cityImageIndex].seed}/800/600`}
+                    alt={imageSlides[cityImageIndex].label}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                  {/* Navigation arrows */}
+                  {cityImageIndex > 0 && (
+                    <button
+                      onClick={() => setCityImageIndex(i => i - 1)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  {cityImageIndex < imageSlides.length - 1 && (
+                    <button
+                      onClick={() => setCityImageIndex(i => i + 1)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {/* Image label */}
+                  <div className="absolute bottom-12 left-4 right-4">
+                    <h2 className="text-2xl font-bold text-white drop-shadow-lg">{imageSlides[cityImageIndex].label}</h2>
+                    {cityImageIndex === 0 && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm mt-1">
+                        <span className={`font-medium ${
+                          cityInfo.crowdLevel === 'Low' ? 'text-green-300' :
+                          cityInfo.crowdLevel === 'Moderate' ? 'text-amber-300' :
+                          cityInfo.crowdLevel === 'High' ? 'text-orange-300' : 'text-red-300'
+                        }`}>{cityInfo.crowdLevel} crowds</span>
+                        <span>•</span>
+                        <span>{cityInfo.avgDays}</span>
                       </div>
+                    )}
+                  </div>
+
+                  {/* Dot indicators */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {imageSlides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCityImageIndex(idx)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          idx === cityImageIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/70'
+                        }`}
+                      />
                     ))}
                   </div>
-                  {/* Dots indicator */}
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                    {[1, 2, 3, 4, 5].map((dot) => (
-                      <div key={dot} className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                    ))}
-                  </div>
-                  {/* Add button overlay */}
+
+                  {/* Add button */}
                   <button
                     onClick={() => toggleSelect(cityDetailItem.id, cityDetailItem.name)}
-                    className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                      isSelected ? 'bg-green-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
+                    className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg ${
+                      isSelected ? 'bg-green-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     {isSelected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -1215,64 +1123,45 @@ export function SwipeablePlanningView({
                 </div>
 
                 <div className="p-4 space-y-3">
-                  {/* Header with name and quick stats */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="text-lg font-bold">{cityDetailItem.name}</h2>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        <span className={`font-medium ${
-                          cityInfo.crowdLevel === 'Low' ? 'text-green-600' :
-                          cityInfo.crowdLevel === 'Moderate' ? 'text-amber-600' :
-                          cityInfo.crowdLevel === 'High' ? 'text-orange-600' : 'text-red-600'
-                        }`}>{cityInfo.crowdLevel} crowds</span>
-                        <span>•</span>
-                        <span>{cityInfo.avgDays}</span>
-                        <span>•</span>
-                        <span>{cityInfo.bestTime}</span>
-                      </div>
+                  {/* Best time & tags */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4 inline mr-1" />
+                      Best: <span className="text-foreground font-medium">{cityInfo.bestTime}</span>
+                    </p>
+                    <div className="flex gap-1.5">
+                      {cityInfo.bestFor.slice(0, 3).map((tag) => (
+                        <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">{tag}</span>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Best for + Top sites in compact grid */}
-                  <div className="flex gap-2 flex-wrap">
-                    {cityInfo.bestFor.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">{tag}</span>
-                    ))}
-                  </div>
-
-                  {/* Top sites - horizontal scroll */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide text-xs">
-                    {cityInfo.topSites.map((site, idx) => (
-                      <span key={site} className="flex items-center gap-1 px-2 py-1 bg-muted rounded-lg whitespace-nowrap">
-                        <span className="text-primary font-bold">{idx + 1}</span> {site}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Pros & Cons side by side */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-green-50 rounded-lg p-2">
-                      <div className="font-semibold text-green-700 mb-1">Pros</div>
+                  {/* Pros & Cons - compact */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-2.5">
+                      <div className="font-semibold text-green-700 dark:text-green-400 text-xs mb-1.5">Pros</div>
                       {cityInfo.pros.slice(0, 2).map((pro, i) => (
-                        <div key={i} className="text-green-600 flex items-start gap-1">
-                          <span>+</span><span className="line-clamp-1">{pro}</span>
+                        <div key={i} className="text-green-600 dark:text-green-400 text-xs mb-0.5 flex items-start gap-1">
+                          <span className="text-green-500">✓</span>
+                          <span className="line-clamp-1">{pro}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="bg-red-50 rounded-lg p-2">
-                      <div className="font-semibold text-red-700 mb-1">Cons</div>
+                    <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-2.5">
+                      <div className="font-semibold text-red-700 dark:text-red-400 text-xs mb-1.5">Cons</div>
                       {cityInfo.cons.slice(0, 2).map((con, i) => (
-                        <div key={i} className="text-red-600 flex items-start gap-1">
-                          <span>-</span><span className="line-clamp-1">{con}</span>
+                        <div key={i} className="text-red-600 dark:text-red-400 text-xs mb-0.5 flex items-start gap-1">
+                          <span className="text-red-400">✗</span>
+                          <span className="line-clamp-1">{con}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Local tip - compact */}
-                  <div className="bg-amber-50 rounded-lg p-2 text-xs">
-                    <span className="font-semibold text-amber-800">Tip: </span>
-                    <span className="text-amber-700">{cityInfo.localTip}</span>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2.5 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-800 dark:text-amber-300 line-clamp-2">{cityInfo.localTip}</p>
                   </div>
 
                   {/* Action button */}
@@ -1282,12 +1171,23 @@ export function SwipeablePlanningView({
                     onClick={() => {
                       toggleSelect(cityDetailItem.id, cityDetailItem.name);
                       setCityDetailItem(null);
+                      setCityImageIndex(0);
                     }}
                   >
-                    {isSelected ? 'Added to Trip' : `Add ${cityDetailItem.name}`}
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Added to Trip
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add to Trip
+                      </>
+                    )}
                   </Button>
                 </div>
-              </>
+              </div>
             );
           })()}
         </DialogContent>
