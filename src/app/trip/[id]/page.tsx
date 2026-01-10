@@ -101,21 +101,61 @@ export default function TripPage() {
         // Load from cloud/IndexedDB (cloud-first with local fallback)
         const storedTrip = await tripDb.get(tripId);
 
+        // Also check localStorage for more recent local edits
+        const localItineraryStr = localStorage.getItem(`itinerary-${tripId}`);
+        let localItinerary: Itinerary | null = null;
+        if (localItineraryStr) {
+          try {
+            localItinerary = JSON.parse(localItineraryStr);
+            // Parse date strings
+            if (localItinerary && typeof localItinerary.updatedAt === 'string') {
+              localItinerary.updatedAt = new Date(localItinerary.updatedAt);
+            }
+            if (localItinerary && typeof localItinerary.createdAt === 'string') {
+              localItinerary.createdAt = new Date(localItinerary.createdAt);
+            }
+            if (localItinerary?.aiMeta && typeof localItinerary.aiMeta.generatedAt === 'string') {
+              localItinerary.aiMeta.generatedAt = new Date(localItinerary.aiMeta.generatedAt);
+            }
+          } catch {
+            localItinerary = null;
+          }
+        }
+
         if (storedTrip) {
           setTripDna(storedTrip.tripDna);
           if (storedTrip.itinerary) {
             // Parse dates if they're strings (from JSON storage)
-            const itinerary = storedTrip.itinerary;
-            if (typeof itinerary.createdAt === 'string') {
-              itinerary.createdAt = new Date(itinerary.createdAt);
+            const cloudItinerary = storedTrip.itinerary;
+            if (typeof cloudItinerary.createdAt === 'string') {
+              cloudItinerary.createdAt = new Date(cloudItinerary.createdAt);
             }
-            if (typeof itinerary.updatedAt === 'string') {
-              itinerary.updatedAt = new Date(itinerary.updatedAt);
+            if (typeof cloudItinerary.updatedAt === 'string') {
+              cloudItinerary.updatedAt = new Date(cloudItinerary.updatedAt);
             }
-            if (itinerary.aiMeta && typeof itinerary.aiMeta.generatedAt === 'string') {
-              itinerary.aiMeta.generatedAt = new Date(itinerary.aiMeta.generatedAt);
+            if (cloudItinerary.aiMeta && typeof cloudItinerary.aiMeta.generatedAt === 'string') {
+              cloudItinerary.aiMeta.generatedAt = new Date(cloudItinerary.aiMeta.generatedAt);
             }
-            setItinerary(itinerary);
+
+            // Use whichever itinerary is more recent (localStorage wins if newer)
+            // This ensures local edits aren't lost when cloud sync is slow
+            if (localItinerary && localItinerary.updatedAt && cloudItinerary.updatedAt) {
+              const localTime = localItinerary.updatedAt.getTime();
+              const cloudTime = cloudItinerary.updatedAt.getTime();
+              if (localTime > cloudTime) {
+                setItinerary(localItinerary);
+                // Re-sync local to cloud since it's newer
+                tripDb.updateItinerary(tripId, localItinerary);
+              } else {
+                setItinerary(cloudItinerary);
+              }
+            } else if (localItinerary) {
+              setItinerary(localItinerary);
+            } else {
+              setItinerary(cloudItinerary);
+            }
+          } else if (localItinerary) {
+            setItinerary(localItinerary);
           }
         } else {
           // Fallback to localStorage for backwards compatibility
@@ -123,9 +163,8 @@ export default function TripPage() {
           if (storedTripDna) {
             setTripDna(JSON.parse(storedTripDna));
           }
-          const storedItinerary = localStorage.getItem(`itinerary-${tripId}`);
-          if (storedItinerary) {
-            setItinerary(JSON.parse(storedItinerary));
+          if (localItinerary) {
+            setItinerary(localItinerary);
           }
         }
       } catch (error) {
