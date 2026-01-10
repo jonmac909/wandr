@@ -21,7 +21,8 @@ import {
   ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
-  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink
+  Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink,
+  Lock, Unlock
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
@@ -31,6 +32,9 @@ import { ChatSheet } from '@/components/chat/ChatSheet';
 import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningCuration } from '@/components/planning/PlanningCuration';
+import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningView';
+import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
+import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +91,9 @@ export default function TripPage() {
   const [editingDestinations, setEditingDestinations] = useState(false);
   const [editedDestinations, setEditedDestinations] = useState('');
   const [planningFavorites, setPlanningFavorites] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'planning' | 'trip'>('trip');
+  const [planningItems, setPlanningItems] = useState<PlanningItem[]>([]);
+  const [isTripLocked, setIsTripLocked] = useState(true); // Default locked for imported trips
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -207,6 +214,16 @@ export default function TripPage() {
       setTotalBudget(itinerary.meta.estimatedBudget.total);
     }
   }, [itinerary?.meta?.estimatedBudget?.total]);
+
+  // Initialize planning items from existing itinerary
+  useEffect(() => {
+    if (itinerary && planningItems.length === 0) {
+      const items = itineraryToPlanningItems(itinerary);
+      if (items.length > 0) {
+        setPlanningItems(items);
+      }
+    }
+  }, [itinerary, planningItems.length]);
 
   // Save budget to itinerary when it changes
   const handleSaveBudget = async (newBudget: number) => {
@@ -1438,7 +1455,51 @@ export default function TripPage() {
         onOpenChat={() => setChatOpen(true)}
       />
 
+      {/* Planning / Trip View Toggle - Minimal pill */}
+      <div className="flex justify-center py-2">
+        <div className="inline-flex gap-0.5 p-0.5 bg-muted rounded-full text-xs">
+          <button
+            onClick={() => setViewMode('planning')}
+            className={`px-3 py-1 rounded-full transition-all ${
+              viewMode === 'planning'
+                ? 'bg-background shadow-sm text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Plan
+          </button>
+          <button
+            onClick={() => setViewMode('trip')}
+            className={`px-3 py-1 rounded-full transition-all ${
+              viewMode === 'trip'
+                ? 'bg-background shadow-sm text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Trip
+          </button>
+        </div>
+      </div>
 
+      {/* Planning View */}
+      {viewMode === 'planning' && tripDna && (
+        <div className="flex-1 overflow-auto px-4 py-4 pb-24 md:pb-4">
+          <div className="max-w-2xl mx-auto">
+            <SwipeablePlanningView
+              tripDna={tripDna}
+              itinerary={itinerary}
+              items={planningItems}
+              onItemsChange={setPlanningItems}
+              duration={itinerary?.meta?.totalDays}
+              isTripLocked={isTripLocked}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Trip View - Only show when viewMode is 'trip' */}
+      {viewMode === 'trip' && (
+        <>
       {/* Mobile Bottom Tab Bar (square widgets matching desktop) - hidden on tablet and up */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-10 pb-safe">
         <div className="flex justify-center items-center px-3 pt-3 pb-5 gap-2">
@@ -2899,8 +2960,10 @@ export default function TripPage() {
           </section>
         </div>
       </main>
+        </>
+      )}
 
-      {/* Overlays */}
+      {/* Overlays - always visible */}
       <TripDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
