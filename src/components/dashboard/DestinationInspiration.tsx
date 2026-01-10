@@ -110,7 +110,7 @@ const SEASONS: Season[] = [
         destination: 'Vermont',
         country: 'USA',
         why: 'Peak fall foliage, apple picking, cozy inns',
-        imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80',
+        imageUrl: 'https://images.unsplash.com/photo-1601224876471-d5a92e2c1abf?w=600&q=80',
       },
       {
         id: 'munich-fall',
