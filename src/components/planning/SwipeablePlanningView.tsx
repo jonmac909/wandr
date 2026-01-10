@@ -86,33 +86,35 @@ interface CityInfo {
   topSites: string[];
   localTip: string;
   avgDays: string;
+  pros: string[];
+  cons: string[];
 }
 
 const CITY_INFO: Record<string, CityInfo> = {
   // Turkey
-  'Istanbul': { bestFor: ['History', 'Culture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Hagia Sophia', 'Blue Mosque', 'Grand Bazaar', 'Topkapi Palace'], localTip: 'Take a Bosphorus ferry at sunset for stunning views', avgDays: '3-4 days' },
-  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance, especially for sunrise flights', avgDays: '2-3 days' },
-  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days' },
-  'Ephesus': { bestFor: ['History', 'Architecture'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Library of Celsus', 'Temple of Artemis', 'Terrace Houses', 'Great Theatre'], localTip: 'Arrive early morning to beat tour groups, enter from upper gate', avgDays: '1 day' },
-  'Pamukkale': { bestFor: ['Nature', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Travertine Terraces', 'Hierapolis Ancient City', 'Cleopatra Pool', 'Necropolis'], localTip: 'Visit at sunset when the terraces glow pink and gold', avgDays: '1-2 days' },
+  'Istanbul': { bestFor: ['History', 'Culture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Hagia Sophia', 'Blue Mosque', 'Grand Bazaar', 'Topkapi Palace'], localTip: 'Take a Bosphorus ferry at sunset for stunning views', avgDays: '3-4 days', pros: ['Incredible history spanning millennia', 'Amazing food scene', 'Great value for money'], cons: ['Can be overwhelming for first-timers', 'Traffic congestion', 'Persistent street vendors'] },
+  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance, especially for sunrise flights', avgDays: '2-3 days', pros: ['Otherworldly landscapes', 'Unique cave hotels', 'Bucket-list balloon rides'], cons: ['Balloon flights often cancelled due to weather', 'Limited nightlife', 'Remote location'] },
+  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days', pros: ['Beautiful beaches', 'Ancient ruins nearby', 'Good weather most of year'], cons: ['Very touristy in summer', 'Resort-heavy areas', 'Can feel commercialized'] },
+  'Ephesus': { bestFor: ['History', 'Architecture'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Library of Celsus', 'Temple of Artemis', 'Terrace Houses', 'Great Theatre'], localTip: 'Arrive early morning to beat tour groups, enter from upper gate', avgDays: '1 day', pros: ['Best-preserved ancient city', 'UNESCO World Heritage', 'Fascinating history'], cons: ['Cruise ship crowds', 'Very hot in summer', 'Not much else nearby'] },
+  'Pamukkale': { bestFor: ['Nature', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Travertine Terraces', 'Hierapolis Ancient City', 'Cleopatra Pool', 'Necropolis'], localTip: 'Visit at sunset when the terraces glow pink and gold', avgDays: '1-2 days', pros: ['Unique natural wonder', 'Ancient spa experience', 'Great photo opportunities'], cons: ['Terraces can be slippery', 'Remote location', 'Limited accommodation options'] },
   // Switzerland
-  'Zurich': { bestFor: ['Culture', 'Shopping', 'Food'], crowdLevel: 'Moderate', bestTime: 'Jun-Sep', topSites: ['Old Town (Altstadt)', 'Lake Zurich', 'Kunsthaus', 'Bahnhofstrasse'], localTip: 'Take the free bikes from Züri rollt stations to explore', avgDays: '1-2 days' },
-  'Lucerne': { bestFor: ['Scenery', 'Culture', 'Nature'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Chapel Bridge', 'Mt. Pilatus', 'Lake Lucerne', 'Lion Monument'], localTip: 'Take the Golden Round Trip combining boat, cogwheel train, and cable car', avgDays: '2-3 days' },
-  'Interlaken': { bestFor: ['Adventure', 'Nature', 'Photography'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Jungfraujoch', 'Harder Kulm', 'Paragliding', 'Lake Thun'], localTip: 'Get the Jungfrau Travel Pass for unlimited transport in the region', avgDays: '2-3 days' },
-  'Zermatt': { bestFor: ['Skiing', 'Hiking', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr (ski), Jul-Sep (hike)', topSites: ['Matterhorn', 'Gornergrat', '5 Lakes Walk', 'Glacier Paradise'], localTip: 'The town is car-free - arrive by train for the full experience', avgDays: '2-3 days' },
-  'Geneva': { bestFor: ['Culture', 'Luxury', 'Food'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Jet d\'Eau', 'Old Town', 'CERN', 'Lake Geneva'], localTip: 'Free public transport with your hotel stay - ask for the Geneva Transport Card', avgDays: '1-2 days' },
+  'Zurich': { bestFor: ['Culture', 'Shopping', 'Food'], crowdLevel: 'Moderate', bestTime: 'Jun-Sep', topSites: ['Old Town (Altstadt)', 'Lake Zurich', 'Kunsthaus', 'Bahnhofstrasse'], localTip: 'Take the free bikes from Züri rollt stations to explore', avgDays: '1-2 days', pros: ['Clean and efficient', 'Beautiful lake setting', 'Excellent public transport'], cons: ['Very expensive', 'Can feel sterile', 'Not as charming as other Swiss cities'] },
+  'Lucerne': { bestFor: ['Scenery', 'Culture', 'Nature'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Chapel Bridge', 'Mt. Pilatus', 'Lake Lucerne', 'Lion Monument'], localTip: 'Take the Golden Round Trip combining boat, cogwheel train, and cable car', avgDays: '2-3 days', pros: ['Stunning mountain views', 'Charming old town', 'Gateway to Swiss Alps'], cons: ['Crowded in peak season', 'Expensive mountain excursions', 'Weather dependent'] },
+  'Interlaken': { bestFor: ['Adventure', 'Nature', 'Photography'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Jungfraujoch', 'Harder Kulm', 'Paragliding', 'Lake Thun'], localTip: 'Get the Jungfrau Travel Pass for unlimited transport in the region', avgDays: '2-3 days', pros: ['Adventure sports capital', 'Stunning alpine scenery', 'Excellent hiking'], cons: ['Very touristy', 'Extremely expensive', 'Town itself is unremarkable'] },
+  'Zermatt': { bestFor: ['Skiing', 'Hiking', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr (ski), Jul-Sep (hike)', topSites: ['Matterhorn', 'Gornergrat', '5 Lakes Walk', 'Glacier Paradise'], localTip: 'The town is car-free - arrive by train for the full experience', avgDays: '2-3 days', pros: ['Iconic Matterhorn views', 'Car-free village', 'Year-round skiing'], cons: ['Very expensive', 'Remote access', 'Matterhorn often hidden in clouds'] },
+  'Geneva': { bestFor: ['Culture', 'Luxury', 'Food'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Jet d\'Eau', 'Old Town', 'CERN', 'Lake Geneva'], localTip: 'Free public transport with your hotel stay - ask for the Geneva Transport Card', avgDays: '1-2 days', pros: ['International atmosphere', 'Beautiful lake', 'Excellent museums'], cons: ['Very expensive', 'Can feel corporate', 'French-speaking (language barrier)'] },
   // Spain
-  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days' },
-  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days' },
-  'Seville': { bestFor: ['History', 'Architecture', 'Flamenco'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alcázar', 'Cathedral & Giralda', 'Plaza de España', 'Triana'], localTip: 'Visit during Feria de Abril for the ultimate Seville experience', avgDays: '2-3 days' },
-  'Granada': { bestFor: ['History', 'Architecture', 'Food'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alhambra', 'Albaicín', 'Sacromonte', 'Granada Cathedral'], localTip: 'Tapas are free with drinks - bar hop through Albaicín', avgDays: '2-3 days' },
+  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days', pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'], cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'] },
+  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days', pros: ['World-class art museums', 'Fantastic food scene', 'Less touristy than Barcelona'], cons: ['Hot summers', 'Late schedule takes adjustment', 'No beach'] },
+  'Seville': { bestFor: ['History', 'Architecture', 'Flamenco'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alcázar', 'Cathedral & Giralda', 'Plaza de España', 'Triana'], localTip: 'Visit during Feria de Abril for the ultimate Seville experience', avgDays: '2-3 days', pros: ['Authentic flamenco culture', 'Stunning Moorish architecture', 'Great tapas'], cons: ['Extremely hot in summer', 'Siesta shuts everything down', 'Can be humid'] },
+  'Granada': { bestFor: ['History', 'Architecture', 'Food'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alhambra', 'Albaicín', 'Sacromonte', 'Granada Cathedral'], localTip: 'Tapas are free with drinks - bar hop through Albaicín', avgDays: '2-3 days', pros: ['Alhambra is breathtaking', 'Free tapas culture', 'Affordable'], cons: ['Alhambra tickets sell out fast', 'Steep hills to climb', 'Limited beach access'] },
   // Italy
-  'Rome': { bestFor: ['History', 'Art', 'Food'], crowdLevel: 'Very High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Colosseum', 'Vatican Museums', 'Trevi Fountain', 'Roman Forum'], localTip: 'Book skip-the-line tickets for Vatican and Colosseum', avgDays: '3-4 days' },
-  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days' },
-  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience away from crowds', avgDays: '2-3 days' },
-  'Amalfi Coast': { bestFor: ['Scenery', 'Beach', 'Food'], crowdLevel: 'High', bestTime: 'May-Jun, Sep', topSites: ['Positano', 'Ravello', 'Amalfi', 'Path of the Gods'], localTip: 'Take SITA buses - much cheaper than taxis on the winding roads', avgDays: '3-4 days' },
+  'Rome': { bestFor: ['History', 'Art', 'Food'], crowdLevel: 'Very High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Colosseum', 'Vatican Museums', 'Trevi Fountain', 'Roman Forum'], localTip: 'Book skip-the-line tickets for Vatican and Colosseum', avgDays: '3-4 days', pros: ['2,500+ years of history', 'Incredible food everywhere', 'Art at every corner'], cons: ['Overwhelming crowds', 'Tourist traps near attractions', 'Hot and chaotic in summer'] },
+  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days', pros: ['Renaissance art capital', 'Walkable historic center', 'Tuscan food and wine'], cons: ['Very crowded', 'Expensive near center', 'Can feel like a museum'] },
+  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience away from crowds', avgDays: '2-3 days', pros: ['Truly unique city', 'Romantic atmosphere', 'No cars'], cons: ['Extremely crowded', 'Very expensive', 'Flooding risk (acqua alta)'] },
+  'Amalfi Coast': { bestFor: ['Scenery', 'Beach', 'Food'], crowdLevel: 'High', bestTime: 'May-Jun, Sep', topSites: ['Positano', 'Ravello', 'Amalfi', 'Path of the Gods'], localTip: 'Take SITA buses - much cheaper than taxis on the winding roads', avgDays: '3-4 days', pros: ['Stunning coastal scenery', 'Charming villages', 'Excellent seafood'], cons: ['Narrow winding roads', 'Very crowded in summer', 'Expensive accommodations'] },
   // Default fallback
-  '_default': { bestFor: ['Exploration'], crowdLevel: 'Moderate', bestTime: 'Varies by season', topSites: ['Local landmarks', 'City center', 'Markets', 'Museums'], localTip: 'Ask locals for their favorite hidden spots', avgDays: '2-3 days' },
+  '_default': { bestFor: ['Exploration'], crowdLevel: 'Moderate', bestTime: 'Varies by season', topSites: ['Local landmarks', 'City center', 'Markets', 'Museums'], localTip: 'Ask locals for their favorite hidden spots', avgDays: '2-3 days', pros: ['New discoveries await', 'Authentic experiences', 'Off the beaten path'], cons: ['Less tourist infrastructure', 'Language barriers possible', 'Less online info available'] },
 };
 
 function getCityInfo(cityName: string): CityInfo {
@@ -379,9 +381,15 @@ export function SwipeablePlanningView({
 
     return (
       <div className="relative aspect-square rounded-xl overflow-hidden group">
-        {/* Main click area - toggles selection */}
+        {/* Main click area - opens modal */}
         <button
-          onClick={() => toggleSelect(item.id, item.name)}
+          onClick={() => {
+            if (itemIsCity) {
+              setCityDetailItem(item);
+            } else {
+              setDetailItem(item);
+            }
+          }}
           className="absolute inset-0 w-full h-full"
         >
           <img
@@ -392,16 +400,20 @@ export function SwipeablePlanningView({
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         </button>
 
-        {/* Selection indicator (top-right) */}
-        <div
-          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all pointer-events-none ${
+        {/* Selection button (top-right) - toggles selection */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelect(item.id, item.name);
+          }}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
             isSelected
               ? 'bg-green-500 text-white scale-100'
-              : 'bg-white/30 backdrop-blur-sm text-white/70 scale-90 group-hover:scale-100'
+              : 'bg-white/30 backdrop-blur-sm text-white hover:bg-white/50 scale-90 group-hover:scale-100'
           }`}
         >
           {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-        </div>
+        </button>
 
         {/* Rating */}
         {item.rating && (
@@ -420,21 +432,6 @@ export function SwipeablePlanningView({
             <p className="text-[10px] text-white/70 mt-0.5">{item.priceInfo}</p>
           )}
         </div>
-
-        {/* Info button - opens detail modal */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (itemIsCity) {
-              setCityDetailItem(item);
-            } else {
-              setDetailItem(item);
-            }
-          }}
-          className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/50"
-        >
-          <MapPin className="w-3 h-3 text-white" />
-        </button>
       </div>
     );
   };
@@ -1177,132 +1174,117 @@ export function SwipeablePlanningView({
         </DialogContent>
       </Dialog>
 
-      {/* City Detail Modal - Rich information with multiple images, crowd levels, highlights */}
+      {/* City Detail Modal - Compact with image slider */}
       <Dialog open={!!cityDetailItem} onOpenChange={() => setCityDetailItem(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
+            const searchTerms = cityDetailItem.name.toLowerCase().replace(/\s+/g, ',');
 
             return (
               <>
-                {/* City image header */}
-                <div className="relative -mt-6 -mx-6 mb-4">
-                  <img
-                    src={`/api/placeholder/city/${encodeURIComponent(cityDetailItem.name)}`}
-                    alt={cityDetailItem.name}
-                    className="w-full h-48 object-cover"
-                  />
+                {/* Image slider */}
+                <div className="relative h-40">
+                  <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full">
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <div key={num} className="w-full h-full flex-shrink-0 snap-center">
+                        <img
+                          src={`https://source.unsplash.com/featured/600x400/?${searchTerms},travel&sig=${num}`}
+                          alt={`${cityDetailItem.name} ${num}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Dots indicator */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                    {[1, 2, 3, 4, 5].map((dot) => (
+                      <div key={dot} className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                    ))}
+                  </div>
+                  {/* Add button overlay */}
+                  <button
+                    onClick={() => toggleSelect(cityDetailItem.id, cityDetailItem.name)}
+                    className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                      isSelected ? 'bg-green-500 text-white' : 'bg-white/90 text-gray-700 hover:bg-white'
+                    }`}
+                  >
+                    {isSelected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                  </button>
                 </div>
 
-                <DialogHeader>
-                  <DialogTitle className="flex items-start justify-between gap-2 text-xl">
-                    <span>{cityDetailItem.name}</span>
-                    <button
-                      onClick={() => {
-                        toggleSelect(cityDetailItem.id, cityDetailItem.name);
-                      }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                        isSelected ? 'bg-green-500 text-white' : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      {isSelected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                    </button>
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  {/* Quick stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <Users2 className="w-3.5 h-3.5" />
-                        Crowd Level
+                <div className="p-4 space-y-3">
+                  {/* Header with name and quick stats */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold">{cityDetailItem.name}</h2>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        <span className={`font-medium ${
+                          cityInfo.crowdLevel === 'Low' ? 'text-green-600' :
+                          cityInfo.crowdLevel === 'Moderate' ? 'text-amber-600' :
+                          cityInfo.crowdLevel === 'High' ? 'text-orange-600' : 'text-red-600'
+                        }`}>{cityInfo.crowdLevel} crowds</span>
+                        <span>•</span>
+                        <span>{cityInfo.avgDays}</span>
+                        <span>•</span>
+                        <span>{cityInfo.bestTime}</span>
                       </div>
-                      <p className={`text-sm font-semibold ${
-                        cityInfo.crowdLevel === 'Low' ? 'text-green-600' :
-                        cityInfo.crowdLevel === 'Moderate' ? 'text-amber-600' :
-                        cityInfo.crowdLevel === 'High' ? 'text-orange-600' :
-                        'text-red-600'
-                      }`}>
-                        {cityInfo.crowdLevel}
-                      </p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        Recommended Stay
-                      </div>
-                      <p className="text-sm font-semibold">{cityInfo.avgDays}</p>
                     </div>
                   </div>
 
-                  {/* Best time to visit */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-xs text-blue-600 mb-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      Best Time to Visit
-                    </div>
-                    <p className="text-sm font-medium text-blue-800">{cityInfo.bestTime}</p>
+                  {/* Best for + Top sites in compact grid */}
+                  <div className="flex gap-2 flex-wrap">
+                    {cityInfo.bestFor.map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">{tag}</span>
+                    ))}
                   </div>
 
-                  {/* Best for tags */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">BEST FOR</h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {cityInfo.bestFor.map((tag) => (
-                        <span key={tag} className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                          {tag}
-                        </span>
+                  {/* Top sites - horizontal scroll */}
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide text-xs">
+                    {cityInfo.topSites.map((site, idx) => (
+                      <span key={site} className="flex items-center gap-1 px-2 py-1 bg-muted rounded-lg whitespace-nowrap">
+                        <span className="text-primary font-bold">{idx + 1}</span> {site}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Pros & Cons side by side */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-green-50 rounded-lg p-2">
+                      <div className="font-semibold text-green-700 mb-1">Pros</div>
+                      {cityInfo.pros.slice(0, 2).map((pro, i) => (
+                        <div key={i} className="text-green-600 flex items-start gap-1">
+                          <span>+</span><span className="line-clamp-1">{pro}</span>
+                        </div>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Top sites */}
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">TOP SITES & ATTRACTIONS</h4>
-                    <div className="space-y-2">
-                      {cityInfo.topSites.map((site, idx) => (
-                        <div key={site} className="flex items-center gap-2 text-sm">
-                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                            {idx + 1}
-                          </span>
-                          {site}
+                    <div className="bg-red-50 rounded-lg p-2">
+                      <div className="font-semibold text-red-700 mb-1">Cons</div>
+                      {cityInfo.cons.slice(0, 2).map((con, i) => (
+                        <div key={i} className="text-red-600 flex items-start gap-1">
+                          <span>-</span><span className="line-clamp-1">{con}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Local tip */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <h4 className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Local Tip
-                    </h4>
-                    <p className="text-sm text-amber-700">{cityInfo.localTip}</p>
+                  {/* Local tip - compact */}
+                  <div className="bg-amber-50 rounded-lg p-2 text-xs">
+                    <span className="font-semibold text-amber-800">Tip: </span>
+                    <span className="text-amber-700">{cityInfo.localTip}</span>
                   </div>
 
                   {/* Action button */}
                   <Button
                     className="w-full"
-                    size="lg"
                     variant={isSelected ? 'outline' : 'default'}
                     onClick={() => {
                       toggleSelect(cityDetailItem.id, cityDetailItem.name);
                       setCityDetailItem(null);
                     }}
                   >
-                    {isSelected ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        Added to Trip
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add {cityDetailItem.name} to Trip
-                      </>
-                    )}
+                    {isSelected ? 'Added to Trip' : `Add ${cityDetailItem.name}`}
                   </Button>
                 </div>
               </>

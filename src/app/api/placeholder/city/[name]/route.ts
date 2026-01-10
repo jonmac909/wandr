@@ -1,100 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Color palette for different cities - creates visual variety
-const CITY_COLORS: Record<string, { bg: string; text: string }> = {
+// Search terms for better Unsplash results
+const CITY_SEARCH_TERMS: Record<string, string> = {
   // Turkey
-  'Istanbul': { bg: '#1e3a5f', text: '#ffffff' },
-  'Cappadocia': { bg: '#c4a35a', text: '#1a1a1a' },
-  'Antalya': { bg: '#0e7490', text: '#ffffff' },
-  'Bodrum': { bg: '#0369a1', text: '#ffffff' },
-  'Ephesus': { bg: '#92400e', text: '#ffffff' },
-  'Pamukkale': { bg: '#e0f2fe', text: '#0c4a6e' },
+  'Istanbul': 'istanbul,mosque,bosphorus',
+  'Cappadocia': 'cappadocia,balloon,turkey',
+  'Antalya': 'antalya,beach,turkey',
+  'Bodrum': 'bodrum,aegean,coast',
+  'Ephesus': 'ephesus,ruins,ancient',
+  'Pamukkale': 'pamukkale,travertine,turkey',
   // Spain
-  'Barcelona': { bg: '#dc2626', text: '#fef08a' },
-  'Madrid': { bg: '#1e40af', text: '#ffffff' },
-  'Seville': { bg: '#f97316', text: '#ffffff' },
-  'Granada': { bg: '#be123c', text: '#ffffff' },
+  'Barcelona': 'barcelona,sagrada,gaudi',
+  'Madrid': 'madrid,spain,plaza',
+  'Seville': 'seville,spain,alcazar',
+  'Granada': 'granada,alhambra,spain',
+  'Valencia': 'valencia,spain,architecture',
+  'San Sebastian': 'san+sebastian,basque,beach',
   // Italy
-  'Rome': { bg: '#7c2d12', text: '#fef3c7' },
-  'Florence': { bg: '#4d7c0f', text: '#ffffff' },
-  'Venice': { bg: '#0284c7', text: '#ffffff' },
-  'Amalfi Coast': { bg: '#0891b2', text: '#ffffff' },
+  'Rome': 'rome,colosseum,italy',
+  'Florence': 'florence,duomo,italy',
+  'Venice': 'venice,canal,gondola',
+  'Amalfi Coast': 'amalfi,positano,coast',
+  'Milan': 'milan,duomo,italy',
   // Switzerland
-  'Zurich': { bg: '#374151', text: '#ffffff' },
-  'Lucerne': { bg: '#2563eb', text: '#ffffff' },
-  'Interlaken': { bg: '#059669', text: '#ffffff' },
-  'Zermatt': { bg: '#4b5563', text: '#ffffff' },
-  'Geneva': { bg: '#1f2937', text: '#ffffff' },
-  // Default
-  '_default': { bg: '#3b82f6', text: '#ffffff' },
+  'Zurich': 'zurich,switzerland,lake',
+  'Lucerne': 'lucerne,switzerland,chapel',
+  'Interlaken': 'interlaken,alps,switzerland',
+  'Zermatt': 'zermatt,matterhorn,alps',
+  'Geneva': 'geneva,switzerland,lake',
+  // France
+  'Paris': 'paris,eiffel,france',
+  'Nice': 'nice,riviera,france',
+  'Lyon': 'lyon,france,city',
+  // Generic activities/categories
+  'Walking Tour': 'walking,tour,city',
+  'Food Tour': 'food,market,culinary',
+  'Museum Visit': 'museum,art,gallery',
+  'Historical Site': 'historical,monument,heritage',
+  'Local Market': 'market,bazaar,local',
+  'Sunset Viewpoint': 'sunset,viewpoint,scenic',
+  'Cooking Class': 'cooking,class,kitchen',
+  'Art Gallery': 'art,gallery,museum',
+  'Nature Hike': 'hiking,nature,trail',
+  'Boutique Hotel': 'boutique,hotel,luxury',
+  'Design Hotel': 'design,hotel,modern',
+  'Historic Inn': 'historic,inn,traditional',
+  'Modern Resort': 'resort,pool,modern',
+  'Local Bistro': 'bistro,restaurant,dining',
+  'Rooftop Bar': 'rooftop,bar,cocktail',
+  'Street Food': 'street,food,market',
+  'Fine Dining': 'fine,dining,restaurant',
+  'Artisan Coffee': 'coffee,cafe,artisan',
+  'Cozy Cafe': 'cozy,cafe,coffee',
 };
-
-function getColorForCity(cityName: string): { bg: string; text: string } {
-  return CITY_COLORS[cityName] || CITY_COLORS['_default'];
-}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   const { name } = await params;
-  const cityName = decodeURIComponent(name);
-  const colors = getColorForCity(cityName);
+  const searchName = decodeURIComponent(name);
 
-  // Create SVG placeholder with city name
-  const svg = `
-    <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${colors.bg};stop-opacity:1" />
-          <stop offset="100%" style="stop-color:${adjustColor(colors.bg, -30)};stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#bg)"/>
-      <text
-        x="50%"
-        y="45%"
-        dominant-baseline="middle"
-        text-anchor="middle"
-        font-family="system-ui, -apple-system, sans-serif"
-        font-size="32"
-        font-weight="600"
-        fill="${colors.text}"
-      >${escapeXml(cityName)}</text>
-      <text
-        x="50%"
-        y="60%"
-        dominant-baseline="middle"
-        text-anchor="middle"
-        font-family="system-ui, -apple-system, sans-serif"
-        font-size="14"
-        fill="${colors.text}"
-        opacity="0.7"
-      >Tap to explore</text>
-    </svg>
-  `;
+  // Get optimized search terms or use the name directly
+  const searchTerms = CITY_SEARCH_TERMS[searchName] || `${searchName.toLowerCase().replace(/\s+/g, '+')},travel,destination`;
 
-  return new NextResponse(svg, {
+  // Use Unsplash Source for free images
+  // Format: https://source.unsplash.com/featured/WIDTHxHEIGHT/?SEARCH_TERMS
+  const unsplashUrl = `https://source.unsplash.com/featured/800x600/?${searchTerms}`;
+
+  // Redirect to Unsplash image
+  return NextResponse.redirect(unsplashUrl, {
+    status: 302, // Temporary redirect so browser doesn't cache
     headers: {
-      'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
     },
   });
-}
-
-function adjustColor(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amount));
-  const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amount));
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
-}
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }

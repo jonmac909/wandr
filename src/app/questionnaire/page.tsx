@@ -1,7 +1,9 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { X, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useQuestionnaireStore, QUESTIONNAIRE_STEPS } from '@/lib/questionnaire/store';
 import { TravelerProfileStep } from './steps/traveler-profile';
 import { VibePaceStep } from './steps/vibe-pace';
@@ -12,6 +14,7 @@ import { ReviewStep } from './steps/review';
 import { tripDb } from '@/lib/db/indexed-db';
 
 function QuestionnaireContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const editTripId = searchParams.get('edit');
   const [isLoading, setIsLoading] = useState(!!editTripId);
@@ -42,6 +45,15 @@ function QuestionnaireContent() {
 
     loadTripForEdit();
   }, [editTripId, setTripDna, setEditingTripId]);
+
+  // Back/close handler for edit mode
+  const handleClose = () => {
+    if (editTripId) {
+      router.push(`/trip/${editTripId}`);
+    } else {
+      router.push('/');
+    }
+  };
 
   if (isLoading) {
     return (
