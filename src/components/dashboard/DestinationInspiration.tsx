@@ -24,6 +24,41 @@ interface Season {
 
 const SEASONS: Season[] = [
   {
+    name: 'Winter',
+    months: 'Dec-Feb',
+    emoji: '❄️',
+    destinations: [
+      {
+        id: 'vienna-winter',
+        destination: 'Vienna',
+        country: 'Austria',
+        why: 'Christmas markets, opera season, imperial palaces in snow',
+        imageUrl: 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=600&q=80',
+      },
+      {
+        id: 'tromso-winter',
+        destination: 'Tromsø',
+        country: 'Norway',
+        why: 'Northern lights peak, dog sledding, Arctic adventures',
+        imageUrl: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=600&q=80',
+      },
+      {
+        id: 'thailand-winter',
+        destination: 'Thailand',
+        country: 'Southeast Asia',
+        why: 'Dry season, escape winter, temple tours & beaches',
+        imageUrl: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600&q=80',
+      },
+      {
+        id: 'swiss-alps-winter',
+        destination: 'Swiss Alps',
+        country: 'Switzerland',
+        why: 'World-class skiing, fondue, scenic train rides',
+        imageUrl: 'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=600&q=80',
+      },
+    ],
+  },
+  {
     name: 'Spring',
     months: 'Mar-May',
     emoji: '🌸',
@@ -110,7 +145,7 @@ const SEASONS: Season[] = [
         destination: 'Vermont',
         country: 'USA',
         why: 'Peak fall foliage, apple picking, cozy inns',
-        imageUrl: 'https://images.unsplash.com/photo-1601224876471-d5a92e2c1abf?w=600&q=80',
+        imageUrl: 'https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&q=80',
       },
       {
         id: 'munich-fall',
@@ -125,41 +160,6 @@ const SEASONS: Season[] = [
         country: 'Argentina',
         why: 'Spring wildflowers, fewer crowds, baby wildlife',
         imageUrl: 'https://images.unsplash.com/photo-1478827536114-da961b7f86d2?w=600&q=80',
-      },
-    ],
-  },
-  {
-    name: 'Winter',
-    months: 'Dec-Feb',
-    emoji: '❄️',
-    destinations: [
-      {
-        id: 'vienna-winter',
-        destination: 'Vienna',
-        country: 'Austria',
-        why: 'Christmas markets, opera season, imperial palaces in snow',
-        imageUrl: 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=600&q=80',
-      },
-      {
-        id: 'tromso-winter',
-        destination: 'Tromsø',
-        country: 'Norway',
-        why: 'Northern lights peak, dog sledding, Arctic adventures',
-        imageUrl: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=600&q=80',
-      },
-      {
-        id: 'thailand-winter',
-        destination: 'Thailand',
-        country: 'Southeast Asia',
-        why: 'Dry season, escape winter, temple tours & beaches',
-        imageUrl: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600&q=80',
-      },
-      {
-        id: 'swiss-alps-winter',
-        destination: 'Swiss Alps',
-        country: 'Switzerland',
-        why: 'World-class skiing, fondue, scenic train rides',
-        imageUrl: 'https://images.unsplash.com/photo-1531400158697-6f2e9c8f8e2f?w=600&q=80',
       },
     ],
   },
