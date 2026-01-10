@@ -1179,25 +1179,13 @@ export function SwipeablePlanningView({
 
             return (
               <>
-                {/* Image gallery */}
+                {/* City image header */}
                 <div className="relative -mt-6 -mx-6 mb-4">
-                  <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-                    {[1, 2, 3].map((imgNum) => (
-                      <div key={imgNum} className="w-full flex-shrink-0 snap-center">
-                        <img
-                          src={`https://picsum.photos/seed/${encodeURIComponent(cityDetailItem.name)}-${imgNum}/600/300`}
-                          alt={`${cityDetailItem.name} ${imgNum}`}
-                          className="w-full h-48 object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Image indicator dots */}
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                    {[1, 2, 3].map((dot) => (
-                      <div key={dot} className="w-1.5 h-1.5 rounded-full bg-white/60" />
-                    ))}
-                  </div>
+                  <img
+                    src={`/api/placeholder/city/${encodeURIComponent(cityDetailItem.name)}`}
+                    alt={cityDetailItem.name}
+                    className="w-full h-48 object-cover"
+                  />
                 </div>
 
                 <DialogHeader>
