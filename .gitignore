@@ -36,6 +36,8 @@ yarn-error.log*
 # deployment
 .vercel
 .netlify
+.open-next
+.wrangler
 
 # typescript
 *.tsbuildinfo

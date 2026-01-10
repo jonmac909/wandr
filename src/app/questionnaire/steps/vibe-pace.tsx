@@ -181,7 +181,7 @@ export function VibePaceStep() {
       <div className="space-y-3 mt-8">
         <h2 className="text-lg font-semibold">Anything else?</h2>
         <p className="text-sm text-muted-foreground">
-          Add specific interests that didn't fit above
+          Add specific interests that didn&apos;t fit above
         </p>
 
         {/* Custom interest tags */}

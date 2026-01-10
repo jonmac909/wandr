@@ -1368,6 +1368,7 @@ export default function TripPage() {
   // If no itinerary yet, show planning dashboard
   if (!itinerary) {
     // Use type assertion for flexible tripDna structure from different sources
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dna = tripDna as any;
     const destination = dna.interests?.destination || 'Your Trip';
     const partyType = dna.travelerProfile?.partyType || dna.travelers?.type || 'traveler';

@@ -201,6 +201,7 @@ function PlanPageContent() {
       // Save to DB
       await tripDb.save({
         id: tripId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tripDna: tripDna as any,
         itinerary: null,
         createdAt: new Date(),
