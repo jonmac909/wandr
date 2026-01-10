@@ -31,9 +31,6 @@ import { ChatSheet } from '@/components/chat/ChatSheet';
 import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningCuration } from '@/components/planning/PlanningCuration';
-import { SteppedCuration } from '@/components/planning/SteppedCuration';
-import { TripInfoDisplay } from '@/components/planning/TripInfoDisplay';
-import { PlanningTripToggle, PlanningItem } from '@/components/planning/PlanningTripToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,14 +87,6 @@ export default function TripPage() {
   const [editingDestinations, setEditingDestinations] = useState(false);
   const [editedDestinations, setEditedDestinations] = useState('');
   const [planningFavorites, setPlanningFavorites] = useState<string[]>([]);
-  // Stepped curation state
-  const [tripStyles, setTripStyles] = useState<string[]>([]);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
-  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  // New planning state
-  const [planningItems, setPlanningItems] = useState<PlanningItem[]>([]);
-  const [isPlanLocked, setIsPlanLocked] = useState(false);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -211,19 +200,6 @@ export default function TripPage() {
 
     loadTrip();
   }, [tripId]);
-
-  // Initialize trip styles from tripDna
-  useEffect(() => {
-    if (tripDna) {
-      const dna = tripDna as any;
-      const types = dna.travelerProfile?.travelIdentities || dna.interests?.tripTypes || [];
-      // Capitalize first letter of each type
-      const capitalizedTypes = types.map((t: string) =>
-        t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
-      );
-      setTripStyles(capitalizedTypes);
-    }
-  }, [tripDna]);
 
   // Initialize total budget from itinerary when it loads
   useEffect(() => {
@@ -1248,14 +1224,16 @@ export default function TripPage() {
     );
   }
 
-  // If no itinerary yet, show planning dashboard with Planning/Trip toggle
+  // If no itinerary yet, show planning dashboard
   if (!itinerary) {
+    // Use type assertion for flexible tripDna structure from different sources
     const dna = tripDna as any;
     const destination = dna.interests?.destination || 'Your Trip';
+    const partyType = dna.travelerProfile?.partyType || dna.travelers?.type || 'traveler';
+    const pace = dna.vibeAndPace?.tripPace || 'balanced';
+    const tripTypes = dna.travelerProfile?.travelIdentities || dna.interests?.tripTypes || [];
     const duration = dna.constraints?.duration?.days || dna.constraints?.duration?.min || 7;
     const budgetLevel = dna.constraints?.budget?.level || '$$';
-    const startMonth = dna.constraints?.startMonth;
-    const startYear = dna.constraints?.startYear;
 
     return (
       <div className="min-h-screen bg-background">
@@ -1265,50 +1243,144 @@ export default function TripPage() {
           onOpenChat={() => setChatOpen(true)}
         />
 
-        <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-          {/* Header with Trip Info */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+        <main className="max-w-2xl mx-auto px-4 py-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push('/')}
+            >
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
               <h1 className="text-xl font-bold">{destination}</h1>
-              <p className="text-sm text-muted-foreground">
-                {duration} days · {startMonth !== undefined ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][startMonth]} ${startYear}` : 'Dates flexible'} · {budgetLevel}
-              </p>
+              <p className="text-sm text-muted-foreground">Draft Trip • {duration} days</p>
             </div>
-            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
               <Trash2 className="w-5 h-5" />
             </Button>
           </div>
 
-          {/* Planning/Trip Toggle View */}
-          <PlanningTripToggle
-            destination={destination}
-            duration={duration}
-            items={planningItems}
-            onItemsChange={setPlanningItems}
-            isPlanLocked={isPlanLocked}
-            onPlanLockChange={setIsPlanLocked}
-          />
+          {/* Trip Summary Card */}
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-semibold">Trip Planning</h2>
+                  <p className="text-sm text-muted-foreground">Ready to generate your itinerary</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Travelers</div>
+                  <div className="font-medium capitalize">{partyType}</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Pace</div>
+                  <div className="font-medium capitalize">{pace}</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Duration</div>
+                  <div className="font-medium">{duration} days</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Budget</div>
+                  <div className="font-medium">{budgetLevel}</div>
+                </div>
+              </div>
+
+              {tripTypes.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-muted-foreground text-xs mb-2">Trip Style</div>
+                  <div className="flex flex-wrap gap-2">
+                    {tripTypes.slice(0, 4).map((type: string) => (
+                      <span key={type} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Curation Widgets */}
+          <div className="mb-6">
+            <h2 className="font-semibold mb-3">Curate Your Trip</h2>
+            <PlanningCuration
+              destination={destination}
+              favorites={planningFavorites}
+              onToggleFavorite={(id) => {
+                setPlanningFavorites(prev =>
+                  prev.includes(id)
+                    ? prev.filter(f => f !== id)
+                    : [...prev, id]
+                );
+              }}
+            />
+          </div>
+
+          {/* Generate Action */}
+          <Card className="mb-6 border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Generate Itinerary
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Use the chat assistant to generate a personalized day-by-day itinerary based on your preferences.
+              </p>
+              <Button onClick={() => setChatOpen(true)} className="w-full">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Open Chat to Generate
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Edit Link */}
+          <div className="text-center">
+            <Link href="/plan">
+              <Button variant="outline" size="sm">
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Trip Preferences
+              </Button>
+            </Link>
+          </div>
         </main>
 
-        {/* Delete Modal */}
+        {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <Card className="max-w-sm w-full">
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">Delete Trip?</h3>
-                <p className="text-sm text-muted-foreground mb-4">This will permanently delete this trip draft.</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This will permanently delete this trip draft.
+                </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                  <Button variant="destructive" className="flex-1" onClick={handleDelete}>Delete</Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={handleDelete}>
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
+        {/* Overlays */}
         <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} onRefresh={refreshTrips} />
         <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
         <GeneralChatSheet open={chatOpen} onOpenChange={setChatOpen} />
