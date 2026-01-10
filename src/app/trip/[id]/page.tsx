@@ -1397,7 +1397,7 @@ export default function TripPage() {
             </Button>
             <div className="flex-1">
               <h1 className="text-xl font-bold">{destination}</h1>
-              <p className="text-sm text-muted-foreground">Draft Trip • {duration} days</p>
+              <p className="text-sm text-muted-foreground">Draft Trip</p>
             </div>
             <Button
               variant="ghost"
@@ -1454,17 +1454,32 @@ export default function TripPage() {
               // Generate items for the category
               const mockItems: PlanningItem[] = [];
 
+              // Get destinations array (for proper filtering)
+              // Parse "Turkey → Spain" or "Turkey - Spain" into ["Turkey", "Spain"]
+              const parseDestinations = (dest: string): string[] => {
+                if (dest.includes('→')) return dest.split('→').map(d => d.trim());
+                if (dest.includes('->')) return dest.split('->').map(d => d.trim());
+                if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
+                return [dest];
+              };
+              const destinations = dna.interests?.destinations?.length > 0
+                ? dna.interests.destinations
+                : parseDestinations(destination);
+
               if (category === 'cities') {
-                const cityNames = getCitiesForDestination(destination);
-                cityNames.forEach((city, idx) => {
-                  mockItems.push({
-                    id: `city-${idx}`,
-                    name: city,
-                    description: `Explore ${city}`,
-                    imageUrl: getCityImage(city),
-                    category: 'activities',
-                    tags: ['cities'],
-                    isFavorited: false,
+                // Generate cities for EACH destination
+                destinations.forEach((dest: string, destIdx: number) => {
+                  const cityNames = getCitiesForDestination(dest);
+                  cityNames.forEach((city, idx) => {
+                    mockItems.push({
+                      id: `city-${destIdx}-${idx}`,
+                      name: city,
+                      description: `Explore ${city}`,
+                      imageUrl: getCityImage(city, dest),
+                      category: 'activities',
+                      tags: ['cities', dest], // Tag with specific destination for filtering
+                      isFavorited: false,
+                    });
                   });
                 });
               } else if (category === 'experiences') {
@@ -1660,18 +1675,29 @@ export default function TripPage() {
               onSearchAI={(query, category) => {
                 // Generate mock items for the category
                 const mockItems: PlanningItem[] = [];
-                const destinations = tripDna.interests.destinations || [tripDna.interests.destination || 'destination'];
+
+                // Parse "Turkey → Spain" into ["Turkey", "Spain"]
+                const parseDestinations = (dest: string): string[] => {
+                  if (dest.includes('→')) return dest.split('→').map(d => d.trim());
+                  if (dest.includes('->')) return dest.split('->').map(d => d.trim());
+                  if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
+                  return [dest];
+                };
+                const rawDests = tripDna.interests.destinations;
+                const destinations: string[] = (rawDests && rawDests.length > 0)
+                  ? rawDests
+                  : parseDestinations(tripDna.interests.destination || 'destination');
 
                 if (category === 'cities') {
                   // Generate city items for each destination
-                  destinations.forEach((dest, destIdx) => {
+                  destinations.forEach((dest: string, destIdx: number) => {
                     const cityNames = getCitiesForDestination(dest);
                     cityNames.forEach((city, idx) => {
                       mockItems.push({
                         id: `city-${destIdx}-${idx}`,
                         name: city,
                         description: `Explore the wonders of ${city}`,
-                        imageUrl: getCityImage(city),
+                        imageUrl: getCityImage(city, dest),
                         category: 'activities',
                         tags: ['cities', dest],
                         isFavorited: false,

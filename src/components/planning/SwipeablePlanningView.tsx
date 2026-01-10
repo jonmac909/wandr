@@ -216,13 +216,20 @@ export function SwipeablePlanningView({
 
   // Get all destinations from TripDNA
   const destinations = useMemo(() => {
-    const dests: string[] = [];
+    // Parse "Turkey → Spain" into ["Turkey", "Spain"]
+    const parseDestinations = (dest: string): string[] => {
+      if (dest.includes('→')) return dest.split('→').map(d => d.trim());
+      if (dest.includes('->')) return dest.split('->').map(d => d.trim());
+      if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
+      return [dest];
+    };
+
     if (tripDna.interests.destinations && tripDna.interests.destinations.length > 0) {
-      dests.push(...tripDna.interests.destinations);
+      return tripDna.interests.destinations;
     } else if (tripDna.interests.destination) {
-      dests.push(tripDna.interests.destination);
+      return parseDestinations(tripDna.interests.destination);
     }
-    return dests.length > 0 ? dests : ['Your destination'];
+    return ['Your destination'];
   }, [tripDna.interests.destinations, tripDna.interests.destination]);
 
   const currentStep = PLANNING_STEPS[currentStepIndex];
@@ -1107,8 +1114,9 @@ export function SwipeablePlanningView({
             const cityName = cityDetailItem.name.toLowerCase().replace(/\s+/g, '');
 
             // Create image slides: city overview + top sites (using real Unsplash images)
+            const country = destinations.length > 0 ? destinations[0] : undefined;
             const imageSlides = [
-              { label: cityDetailItem.name, url: getCityImage(cityDetailItem.name) },
+              { label: cityDetailItem.name, url: getCityImage(cityDetailItem.name, country) },
               ...cityInfo.topSites.slice(0, 4).map((site) => ({
                 label: site,
                 url: getSiteImage(site)
