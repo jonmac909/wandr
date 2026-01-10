@@ -75,6 +75,9 @@ export default function TripPage() {
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
   const [editingHotelIndex, setEditingHotelIndex] = useState<number | null>(null);
   const [editingNights, setEditingNights] = useState<number>(1);
+  const [totalBudget, setTotalBudget] = useState<number>(0);
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [editedBudgetValue, setEditedBudgetValue] = useState('');
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -188,6 +191,38 @@ export default function TripPage() {
 
     loadTrip();
   }, [tripId]);
+
+  // Initialize total budget from itinerary when it loads
+  useEffect(() => {
+    if (itinerary?.meta?.estimatedBudget?.total) {
+      setTotalBudget(itinerary.meta.estimatedBudget.total);
+    }
+  }, [itinerary?.meta?.estimatedBudget?.total]);
+
+  // Save budget to itinerary when it changes
+  const handleSaveBudget = async (newBudget: number) => {
+    setTotalBudget(newBudget);
+
+    if (!itinerary) return;
+
+    const updatedItinerary = {
+      ...itinerary,
+      meta: {
+        ...itinerary.meta,
+        estimatedBudget: {
+          ...itinerary.meta.estimatedBudget,
+          total: newBudget,
+        },
+      },
+      updatedAt: new Date(),
+    };
+
+    setItinerary(updatedItinerary);
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+
+    // Sync to cloud
+    await tripDb.updateItinerary(tripId, updatedItinerary);
+  };
 
   const handleDelete = async () => {
     await tripDb.delete(tripId);
@@ -873,6 +908,61 @@ export default function TripPage() {
       };
     });
   }, [locationGroups, itinerary, normalizeLocation]);
+
+  // Calculate booked expenses by category (only items with reservationStatus === 'done')
+  const bookedExpenses = useMemo(() => {
+    if (!itinerary) return { transport: 0, accommodation: 0, food: 0, activities: 0, total: 0 };
+
+    let transport = 0;
+    let accommodation = 0;
+    let food = 0;
+    let activities = 0;
+
+    // Iterate through all days and blocks
+    for (const day of itinerary.days) {
+      for (const block of day.blocks) {
+        const activity = block.activity;
+        if (!activity?.cost?.amount) continue;
+
+        // Only count if booked (reservationStatus === 'done')
+        if (activity.reservationStatus !== 'done') continue;
+
+        const amount = activity.cost.amount;
+        const category = activity.category;
+
+        // Categorize the expense
+        if (category === 'flight' || category === 'transit') {
+          transport += amount;
+        } else if (category === 'accommodation' || category === 'checkin') {
+          accommodation += amount;
+        } else if (category === 'food') {
+          food += amount;
+        } else {
+          // Activities, shopping, sightseeing, etc.
+          activities += amount;
+        }
+      }
+    }
+
+    // Also check movements for transport costs that are marked as booked
+    if (itinerary.route?.movements) {
+      for (const movement of itinerary.route.movements) {
+        if (movement.cost?.amount) {
+          // Movements don't have reservationStatus, include them if they have cost
+          // (assumption: if cost is set, it's been booked)
+          transport += movement.cost.amount;
+        }
+      }
+    }
+
+    return {
+      transport,
+      accommodation,
+      food,
+      activities,
+      total: transport + accommodation + food + activities,
+    };
+  }, [itinerary]);
 
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
@@ -2208,58 +2298,146 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         <CardContent className="p-3">
                           <div className="flex justify-between items-center mb-4">
                             <span className="text-sm text-muted-foreground">Total Budget</span>
-                            <span className="text-lg font-bold">$0.00</span>
+                            {editingBudget ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">$</span>
+                                <Input
+                                  type="number"
+                                  value={editedBudgetValue}
+                                  onChange={(e) => setEditedBudgetValue(e.target.value)}
+                                  className="w-24 h-7 text-right text-sm"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const value = parseFloat(editedBudgetValue) || 0;
+                                      handleSaveBudget(value);
+                                      setEditingBudget(false);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingBudget(false);
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => {
+                                    const value = parseFloat(editedBudgetValue) || 0;
+                                    handleSaveBudget(value);
+                                    setEditingBudget(false);
+                                  }}
+                                >
+                                  <Check className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setEditingBudget(false)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditedBudgetValue(totalBudget.toString());
+                                  setEditingBudget(true);
+                                }}
+                                className="text-lg font-bold hover:text-primary transition-colors cursor-pointer"
+                              >
+                                ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </button>
+                            )}
                           </div>
                           <div className="flex justify-between items-center mb-4">
-                            <span className="text-sm text-muted-foreground">Spent</span>
-                            <span className="text-lg font-bold text-green-600">$0.00</span>
+                            <span className="text-sm text-muted-foreground">Spent (Booked)</span>
+                            <span className={`text-lg font-bold ${bookedExpenses.total > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                              ${bookedExpenses.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Remaining</span>
-                            <span className="text-lg font-bold">$0.00</span>
+                            <span className={`text-lg font-bold ${
+                              totalBudget - bookedExpenses.total < 0
+                                ? 'text-red-600'
+                                : totalBudget - bookedExpenses.total > 0
+                                  ? 'text-green-600'
+                                  : 'text-muted-foreground'
+                            }`}>
+                              ${(totalBudget - bookedExpenses.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
+                          {totalBudget > 0 && (
+                            <div className="mt-3">
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${
+                                    bookedExpenses.total / totalBudget > 1
+                                      ? 'bg-red-500'
+                                      : bookedExpenses.total / totalBudget > 0.8
+                                        ? 'bg-amber-500'
+                                        : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${Math.min(100, (bookedExpenses.total / totalBudget) * 100)}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1 text-center">
+                                {Math.round((bookedExpenses.total / totalBudget) * 100)}% of budget used
+                              </p>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
 
                       {/* Budget Categories */}
                       <div>
-                        <h4 className="text-sm font-medium mb-3">Categories</h4>
+                        <h4 className="text-sm font-medium mb-3">Booked by Category</h4>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
-                              <Plane className="w-4 h-4 text-orange-500" />
+                              <Plane className="w-4 h-4 text-blue-500" />
                               <span className="text-sm">Transport</span>
                             </div>
-                            <span className="text-sm font-medium">$0</span>
+                            <span className={`text-sm font-medium ${bookedExpenses.transport > 0 ? 'text-blue-600' : ''}`}>
+                              ${bookedExpenses.transport.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
-                              <Hotel className="w-4 h-4 text-rose-500" />
+                              <Hotel className="w-4 h-4 text-purple-500" />
                               <span className="text-sm">Accommodation</span>
                             </div>
-                            <span className="text-sm font-medium">$0</span>
+                            <span className={`text-sm font-medium ${bookedExpenses.accommodation > 0 ? 'text-purple-600' : ''}`}>
+                              ${bookedExpenses.accommodation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
                               <UtensilsCrossed className="w-4 h-4 text-orange-500" />
                               <span className="text-sm">Food & Dining</span>
                             </div>
-                            <span className="text-sm font-medium">$0</span>
+                            <span className={`text-sm font-medium ${bookedExpenses.food > 0 ? 'text-orange-600' : ''}`}>
+                              ${bookedExpenses.food.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-2">
                               <Compass className="w-4 h-4 text-amber-500" />
                               <span className="text-sm">Activities</span>
                             </div>
-                            <span className="text-sm font-medium">$0</span>
+                            <span className={`text-sm font-medium ${bookedExpenses.activities > 0 ? 'text-amber-600' : ''}`}>
+                              ${bookedExpenses.activities.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <Button variant="outline" className="w-full">
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Add Expense
-                      </Button>
+                      {bookedExpenses.total === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">
+                          Mark items as booked to track spending
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
