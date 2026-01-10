@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
-import { BucketList } from '@/components/dashboard';
+import { BucketList, DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 
@@ -26,6 +26,8 @@ export default function MyTripsPage() {
   const router = useRouter();
   const { trips, loading } = useDashboardData();
   const stats = useTripStats(trips);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Split trips into upcoming and past
   const { upcomingTrips, pastTrips } = useMemo(() => {
@@ -75,9 +77,14 @@ export default function MyTripsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <DashboardHeader
+        onOpenDrawer={() => setDrawerOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
+      />
+
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -91,9 +98,6 @@ export default function MyTripsPage() {
             <p className="text-xs text-muted-foreground">{trips.length} trips</p>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <Card>
@@ -175,6 +179,18 @@ export default function MyTripsPage() {
           </div>
         )}
       </main>
+
+      {/* Overlays */}
+      <TripDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        trips={trips}
+      />
+
+      <ProfileSettings
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+      />
     </div>
   );
 }

@@ -28,6 +28,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { tripDb } from '@/lib/db/indexed-db';
+import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 type DurationType = 'days' | 'months';
 type Pace = 'relaxed' | 'balanced' | 'active';
@@ -48,8 +50,11 @@ const TRIP_TYPES: { id: TripType; label: string; icon: typeof Compass }[] = [
 
 export default function PlanPage() {
   const router = useRouter();
+  const { trips } = useDashboardData();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Step 1: Basics
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
@@ -107,17 +112,24 @@ export default function PlanPage() {
       const tripId = crypto.randomUUID();
       const actualDuration = durationType === 'days' ? durationDays : durationMonths * 30;
 
+      // Build tripDna in the expected format for the trip page
       const tripDna = {
         id: tripId,
         version: '1.0',
         createdAt: new Date().toISOString(),
+        travelerProfile: {
+          partyType: travelerType,
+          travelIdentities: tripTypes, // Trip types serve as travel identities
+        },
+        vibeAndPace: {
+          tripPace: pace,
+        },
         interests: {
           destination: destinationMode === 'known' ? destination : surpriseDescription,
           tripTypes,
-          pace,
         },
         constraints: {
-          duration: actualDuration,
+          duration: { days: actualDuration },
           startDate: startDate || undefined,
           flexibleDates,
           budget: {
@@ -158,33 +170,33 @@ export default function PlanPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3 mb-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => step === 1 ? router.push('/') : setStep(1)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="font-semibold">Plan New Trip</h1>
-              <p className="text-xs text-muted-foreground">Step {step} of 2</p>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="flex items-center gap-2">
-            <div className={`flex-1 h-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`flex-1 h-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        onOpenDrawer={() => setDrawerOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
+      />
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        {/* Page Header with Back Button */}
+        <div className="flex items-center gap-3 mb-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            onClick={() => step === 1 ? router.push('/') : setStep(1)}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="font-semibold">Plan New Trip</h1>
+            <p className="text-xs text-muted-foreground">Step {step} of 2</p>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className={`flex-1 h-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`flex-1 h-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+        </div>
         {step === 1 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
@@ -530,6 +542,18 @@ export default function PlanPage() {
           </div>
         )}
       </main>
+
+      {/* Overlays */}
+      <TripDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        trips={trips}
+      />
+
+      <ProfileSettings
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+      />
     </div>
   );
 }

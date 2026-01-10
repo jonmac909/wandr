@@ -16,6 +16,7 @@ export { TransportSection } from './TransportSection';
 export { TransportRow } from './TransportRow';
 export { TravelHighlights } from './TravelHighlights';
 export { DestinationInspiration } from './DestinationInspiration';
+export { TripRecommendations } from './TripRecommendations';
 
 // Right column
 export { StatsPanel } from './StatsPanel';
