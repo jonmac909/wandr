@@ -1,13 +1,10 @@
-# Cloudflare Workers configuration for Next.js
+# Cloudflare Pages configuration for Next.js with OpenNext
 name = "trippified"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Assets configuration
-assets = { directory = ".open-next/assets", binding = "ASSETS" }
-
-# Main worker entry point
-main = ".open-next/worker.js"
+# Required for Cloudflare Pages
+pages_build_output_dir = ".open-next"
 
 # Environment variables will be set in Cloudflare dashboard
 # NEXT_PUBLIC_SUPABASE_URL
