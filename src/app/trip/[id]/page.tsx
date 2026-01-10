@@ -78,6 +78,12 @@ export default function TripPage() {
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [editingBudget, setEditingBudget] = useState(false);
   const [editedBudgetValue, setEditedBudgetValue] = useState('');
+  const [expandedBudgetCategory, setExpandedBudgetCategory] = useState<string | null>(null);
+  const [editingBudgetItem, setEditingBudgetItem] = useState<{ blockId: string; dayId: string } | null>(null);
+  const [editedItemName, setEditedItemName] = useState('');
+  const [editedItemAmount, setEditedItemAmount] = useState('');
+  const [editingDestinations, setEditingDestinations] = useState(false);
+  const [editedDestinations, setEditedDestinations] = useState('');
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -222,6 +228,84 @@ export default function TripPage() {
 
     // Sync to cloud
     await tripDb.updateItinerary(tripId, updatedItinerary);
+  };
+
+  // Update a budget item (name or amount)
+  const handleUpdateBudgetItem = async (dayId: string, blockId: string, newName: string, newAmount: number) => {
+    if (!itinerary) return;
+
+    const updatedDays = itinerary.days.map(day => {
+      if (day.id !== dayId) return day;
+      return {
+        ...day,
+        blocks: day.blocks.map(block => {
+          if (block.id !== blockId || !block.activity) return block;
+          return {
+            ...block,
+            activity: {
+              ...block.activity,
+              name: newName,
+              cost: {
+                ...block.activity.cost,
+                amount: newAmount,
+                currency: block.activity.cost?.currency || 'USD',
+                isEstimate: false,
+              },
+            },
+          };
+        }),
+      };
+    });
+
+    const updatedItinerary = { ...itinerary, days: updatedDays, updatedAt: new Date() };
+    setItinerary(updatedItinerary);
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+    await tripDb.updateItinerary(tripId, updatedItinerary);
+    setEditingBudgetItem(null);
+  };
+
+  // Delete a budget item (remove cost)
+  const handleDeleteBudgetItem = async (dayId: string, blockId: string) => {
+    if (!itinerary) return;
+
+    const updatedDays = itinerary.days.map(day => {
+      if (day.id !== dayId) return day;
+      return {
+        ...day,
+        blocks: day.blocks.map(block => {
+          if (block.id !== blockId || !block.activity) return block;
+          return {
+            ...block,
+            activity: {
+              ...block.activity,
+              cost: undefined,
+              reservationStatus: 'not-started' as const,
+            },
+          };
+        }),
+      };
+    });
+
+    const updatedItinerary = { ...itinerary, days: updatedDays, updatedAt: new Date() };
+    setItinerary(updatedItinerary);
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+    await tripDb.updateItinerary(tripId, updatedItinerary);
+  };
+
+  // Update destinations list
+  const handleSaveDestinations = async (newDestinations: string) => {
+    if (!itinerary) return;
+
+    const updatedItinerary = {
+      ...itinerary,
+      meta: { ...itinerary.meta, destination: newDestinations.trim() },
+      updatedAt: new Date(),
+    };
+
+    setItinerary(updatedItinerary);
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updatedItinerary));
+    await tripDb.updateItinerary(tripId, updatedItinerary);
+    setEditingDestinations(false);
   };
 
   const handleDelete = async () => {
@@ -910,13 +994,31 @@ export default function TripPage() {
   }, [locationGroups, itinerary, normalizeLocation]);
 
   // Calculate booked expenses by category (only items with reservationStatus === 'done')
+  interface BudgetItem {
+    id: string;
+    blockId: string;
+    dayId: string;
+    name: string;
+    amount: number;
+    currency: string;
+    category: string;
+  }
+
   const bookedExpenses = useMemo(() => {
-    if (!itinerary) return { transport: 0, accommodation: 0, food: 0, activities: 0, total: 0 };
+    if (!itinerary) return {
+      transport: 0, accommodation: 0, food: 0, activities: 0, total: 0,
+      transportItems: [] as BudgetItem[], accommodationItems: [] as BudgetItem[],
+      foodItems: [] as BudgetItem[], activityItems: [] as BudgetItem[]
+    };
 
     let transport = 0;
     let accommodation = 0;
     let food = 0;
     let activities = 0;
+    const transportItems: BudgetItem[] = [];
+    const accommodationItems: BudgetItem[] = [];
+    const foodItems: BudgetItem[] = [];
+    const activityItems: BudgetItem[] = [];
 
     // Iterate through all days and blocks
     for (const day of itinerary.days) {
@@ -929,17 +1031,30 @@ export default function TripPage() {
 
         const amount = activity.cost.amount;
         const category = activity.category;
+        const item: BudgetItem = {
+          id: activity.id,
+          blockId: block.id,
+          dayId: day.id,
+          name: activity.name,
+          amount,
+          currency: activity.cost.currency || 'USD',
+          category,
+        };
 
         // Categorize the expense
         if (category === 'flight' || category === 'transit') {
           transport += amount;
+          transportItems.push(item);
         } else if (category === 'accommodation' || category === 'checkin') {
           accommodation += amount;
+          accommodationItems.push(item);
         } else if (category === 'food') {
           food += amount;
+          foodItems.push(item);
         } else {
           // Activities, shopping, sightseeing, etc.
           activities += amount;
+          activityItems.push(item);
         }
       }
     }
@@ -948,9 +1063,16 @@ export default function TripPage() {
     if (itinerary.route?.movements) {
       for (const movement of itinerary.route.movements) {
         if (movement.cost?.amount) {
-          // Movements don't have reservationStatus, include them if they have cost
-          // (assumption: if cost is set, it's been booked)
           transport += movement.cost.amount;
+          transportItems.push({
+            id: movement.id || `movement-${movement.from}-${movement.to}`,
+            blockId: '',
+            dayId: '',
+            name: `${movement.transportType}: ${movement.from} → ${movement.to}`,
+            amount: movement.cost.amount,
+            currency: movement.cost.currency || 'USD',
+            category: 'transit',
+          });
         }
       }
     }
@@ -961,6 +1083,10 @@ export default function TripPage() {
       food,
       activities,
       total: transport + accommodation + food + activities,
+      transportItems,
+      accommodationItems,
+      foodItems,
+      activityItems,
     };
   }, [itinerary]);
 
@@ -1426,9 +1552,41 @@ ${JSON.stringify(tripDna, null, 2)}`}
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {getFlagsForDestination(itinerary.meta.destination)}
-                      </p>
+                      {editingDestinations ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            value={editedDestinations}
+                            onChange={(e) => setEditedDestinations(e.target.value)}
+                            placeholder="Canada, Japan, Thailand..."
+                            className="h-7 text-sm flex-1"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSaveDestinations(editedDestinations);
+                              } else if (e.key === 'Escape') {
+                                setEditingDestinations(false);
+                              }
+                            }}
+                          />
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleSaveDestinations(editedDestinations)}>
+                            <Check className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingDestinations(false)}>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                          onClick={() => {
+                            setEditedDestinations(itinerary.meta.destination);
+                            setEditingDestinations(true);
+                          }}
+                          title="Click to edit destinations"
+                        >
+                          {getFlagsForDestination(itinerary.meta.destination)}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2390,45 +2548,240 @@ ${JSON.stringify(tripDna, null, 2)}`}
                         </CardContent>
                       </Card>
 
-                      {/* Budget Categories */}
+                      {/* Budget Categories - Expandable */}
                       <div>
                         <h4 className="text-sm font-medium mb-3">Booked by Category</h4>
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <Plane className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm">Transport</span>
-                            </div>
-                            <span className={`text-sm font-medium ${bookedExpenses.transport > 0 ? 'text-blue-600' : ''}`}>
-                              ${bookedExpenses.transport.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                          {/* Transport */}
+                          <div className="rounded-lg bg-muted/50 overflow-hidden">
+                            <button
+                              onClick={() => setExpandedBudgetCategory(expandedBudgetCategory === 'transport' ? null : 'transport')}
+                              className="flex items-center justify-between p-3 w-full hover:bg-muted/70 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <ChevronDown className={`w-3 h-3 transition-transform ${expandedBudgetCategory === 'transport' ? 'rotate-0' : '-rotate-90'}`} />
+                                <Plane className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm">Transport ({bookedExpenses.transportItems.length})</span>
+                              </div>
+                              <span className={`text-sm font-medium ${bookedExpenses.transport > 0 ? 'text-blue-600' : ''}`}>
+                                ${bookedExpenses.transport.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </button>
+                            {expandedBudgetCategory === 'transport' && bookedExpenses.transportItems.length > 0 && (
+                              <div className="px-3 pb-3 space-y-2">
+                                {bookedExpenses.transportItems.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between p-2 rounded bg-background text-xs">
+                                    {editingBudgetItem?.blockId === item.blockId && editingBudgetItem?.dayId === item.dayId ? (
+                                      <>
+                                        <Input
+                                          value={editedItemName}
+                                          onChange={(e) => setEditedItemName(e.target.value)}
+                                          className="h-6 text-xs flex-1 mr-1"
+                                        />
+                                        <Input
+                                          type="number"
+                                          value={editedItemAmount}
+                                          onChange={(e) => setEditedItemAmount(e.target.value)}
+                                          className="h-6 text-xs w-20 mr-1"
+                                        />
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
+                                          handleUpdateBudgetItem(item.dayId, item.blockId, editedItemName, parseFloat(editedItemAmount) || 0);
+                                        }}><Check className="w-3 h-3" /></Button>
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingBudgetItem(null)}><X className="w-3 h-3" /></Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="truncate flex-1" title={item.name}>{item.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="font-medium">${item.amount.toLocaleString()}</span>
+                                          {item.blockId && (
+                                            <>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => {
+                                                setEditingBudgetItem({ blockId: item.blockId, dayId: item.dayId });
+                                                setEditedItemName(item.name);
+                                                setEditedItemAmount(item.amount.toString());
+                                              }}><Pencil className="w-2.5 h-2.5" /></Button>
+                                              <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-500" onClick={() => handleDeleteBudgetItem(item.dayId, item.blockId)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <Hotel className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm">Accommodation</span>
-                            </div>
-                            <span className={`text-sm font-medium ${bookedExpenses.accommodation > 0 ? 'text-purple-600' : ''}`}>
-                              ${bookedExpenses.accommodation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+
+                          {/* Accommodation */}
+                          <div className="rounded-lg bg-muted/50 overflow-hidden">
+                            <button
+                              onClick={() => setExpandedBudgetCategory(expandedBudgetCategory === 'accommodation' ? null : 'accommodation')}
+                              className="flex items-center justify-between p-3 w-full hover:bg-muted/70 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <ChevronDown className={`w-3 h-3 transition-transform ${expandedBudgetCategory === 'accommodation' ? 'rotate-0' : '-rotate-90'}`} />
+                                <Hotel className="w-4 h-4 text-purple-500" />
+                                <span className="text-sm">Accommodation ({bookedExpenses.accommodationItems.length})</span>
+                              </div>
+                              <span className={`text-sm font-medium ${bookedExpenses.accommodation > 0 ? 'text-purple-600' : ''}`}>
+                                ${bookedExpenses.accommodation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </button>
+                            {expandedBudgetCategory === 'accommodation' && bookedExpenses.accommodationItems.length > 0 && (
+                              <div className="px-3 pb-3 space-y-2">
+                                {bookedExpenses.accommodationItems.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between p-2 rounded bg-background text-xs">
+                                    {editingBudgetItem?.blockId === item.blockId && editingBudgetItem?.dayId === item.dayId ? (
+                                      <>
+                                        <Input
+                                          value={editedItemName}
+                                          onChange={(e) => setEditedItemName(e.target.value)}
+                                          className="h-6 text-xs flex-1 mr-1"
+                                        />
+                                        <Input
+                                          type="number"
+                                          value={editedItemAmount}
+                                          onChange={(e) => setEditedItemAmount(e.target.value)}
+                                          className="h-6 text-xs w-20 mr-1"
+                                        />
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
+                                          handleUpdateBudgetItem(item.dayId, item.blockId, editedItemName, parseFloat(editedItemAmount) || 0);
+                                        }}><Check className="w-3 h-3" /></Button>
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingBudgetItem(null)}><X className="w-3 h-3" /></Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="truncate flex-1" title={item.name}>{item.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="font-medium">${item.amount.toLocaleString()}</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => {
+                                            setEditingBudgetItem({ blockId: item.blockId, dayId: item.dayId });
+                                            setEditedItemName(item.name);
+                                            setEditedItemAmount(item.amount.toString());
+                                          }}><Pencil className="w-2.5 h-2.5" /></Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-500" onClick={() => handleDeleteBudgetItem(item.dayId, item.blockId)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <UtensilsCrossed className="w-4 h-4 text-orange-500" />
-                              <span className="text-sm">Food & Dining</span>
-                            </div>
-                            <span className={`text-sm font-medium ${bookedExpenses.food > 0 ? 'text-orange-600' : ''}`}>
-                              ${bookedExpenses.food.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+
+                          {/* Food & Dining */}
+                          <div className="rounded-lg bg-muted/50 overflow-hidden">
+                            <button
+                              onClick={() => setExpandedBudgetCategory(expandedBudgetCategory === 'food' ? null : 'food')}
+                              className="flex items-center justify-between p-3 w-full hover:bg-muted/70 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <ChevronDown className={`w-3 h-3 transition-transform ${expandedBudgetCategory === 'food' ? 'rotate-0' : '-rotate-90'}`} />
+                                <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+                                <span className="text-sm">Food & Dining ({bookedExpenses.foodItems.length})</span>
+                              </div>
+                              <span className={`text-sm font-medium ${bookedExpenses.food > 0 ? 'text-orange-600' : ''}`}>
+                                ${bookedExpenses.food.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </button>
+                            {expandedBudgetCategory === 'food' && bookedExpenses.foodItems.length > 0 && (
+                              <div className="px-3 pb-3 space-y-2">
+                                {bookedExpenses.foodItems.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between p-2 rounded bg-background text-xs">
+                                    {editingBudgetItem?.blockId === item.blockId && editingBudgetItem?.dayId === item.dayId ? (
+                                      <>
+                                        <Input
+                                          value={editedItemName}
+                                          onChange={(e) => setEditedItemName(e.target.value)}
+                                          className="h-6 text-xs flex-1 mr-1"
+                                        />
+                                        <Input
+                                          type="number"
+                                          value={editedItemAmount}
+                                          onChange={(e) => setEditedItemAmount(e.target.value)}
+                                          className="h-6 text-xs w-20 mr-1"
+                                        />
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
+                                          handleUpdateBudgetItem(item.dayId, item.blockId, editedItemName, parseFloat(editedItemAmount) || 0);
+                                        }}><Check className="w-3 h-3" /></Button>
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingBudgetItem(null)}><X className="w-3 h-3" /></Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="truncate flex-1" title={item.name}>{item.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="font-medium">${item.amount.toLocaleString()}</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => {
+                                            setEditingBudgetItem({ blockId: item.blockId, dayId: item.dayId });
+                                            setEditedItemName(item.name);
+                                            setEditedItemAmount(item.amount.toString());
+                                          }}><Pencil className="w-2.5 h-2.5" /></Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-500" onClick={() => handleDeleteBudgetItem(item.dayId, item.blockId)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <Compass className="w-4 h-4 text-amber-500" />
-                              <span className="text-sm">Activities</span>
-                            </div>
-                            <span className={`text-sm font-medium ${bookedExpenses.activities > 0 ? 'text-amber-600' : ''}`}>
-                              ${bookedExpenses.activities.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+
+                          {/* Activities */}
+                          <div className="rounded-lg bg-muted/50 overflow-hidden">
+                            <button
+                              onClick={() => setExpandedBudgetCategory(expandedBudgetCategory === 'activities' ? null : 'activities')}
+                              className="flex items-center justify-between p-3 w-full hover:bg-muted/70 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <ChevronDown className={`w-3 h-3 transition-transform ${expandedBudgetCategory === 'activities' ? 'rotate-0' : '-rotate-90'}`} />
+                                <Compass className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm">Activities ({bookedExpenses.activityItems.length})</span>
+                              </div>
+                              <span className={`text-sm font-medium ${bookedExpenses.activities > 0 ? 'text-amber-600' : ''}`}>
+                                ${bookedExpenses.activities.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </button>
+                            {expandedBudgetCategory === 'activities' && bookedExpenses.activityItems.length > 0 && (
+                              <div className="px-3 pb-3 space-y-2">
+                                {bookedExpenses.activityItems.map((item) => (
+                                  <div key={item.id} className="flex items-center justify-between p-2 rounded bg-background text-xs">
+                                    {editingBudgetItem?.blockId === item.blockId && editingBudgetItem?.dayId === item.dayId ? (
+                                      <>
+                                        <Input
+                                          value={editedItemName}
+                                          onChange={(e) => setEditedItemName(e.target.value)}
+                                          className="h-6 text-xs flex-1 mr-1"
+                                        />
+                                        <Input
+                                          type="number"
+                                          value={editedItemAmount}
+                                          onChange={(e) => setEditedItemAmount(e.target.value)}
+                                          className="h-6 text-xs w-20 mr-1"
+                                        />
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => {
+                                          handleUpdateBudgetItem(item.dayId, item.blockId, editedItemName, parseFloat(editedItemAmount) || 0);
+                                        }}><Check className="w-3 h-3" /></Button>
+                                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingBudgetItem(null)}><X className="w-3 h-3" /></Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="truncate flex-1" title={item.name}>{item.name}</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="font-medium">${item.amount.toLocaleString()}</span>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => {
+                                            setEditingBudgetItem({ blockId: item.blockId, dayId: item.dayId });
+                                            setEditedItemName(item.name);
+                                            setEditedItemAmount(item.amount.toString());
+                                          }}><Pencil className="w-2.5 h-2.5" /></Button>
+                                          <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-red-500" onClick={() => handleDeleteBudgetItem(item.dayId, item.blockId)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
