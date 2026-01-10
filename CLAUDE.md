@@ -22,7 +22,7 @@ npm run lint     # Run ESLint
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
 - **AI:** Anthropic Claude API for itinerary generation
 - **Icons:** lucide-react
-- **Deployment:** Vercel (auto-deploys from GitHub main branch)
+- **Deployment:** Netlify (auto-deploys from GitHub main branch)
 
 ## Architecture
 
@@ -122,7 +122,7 @@ Trip page overview shows countries/cities count:
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
 - **Live site: https://www.trippified.com** - User tests here, NOT localhost
 - **ALWAYS push to deploy:** `git add -A && git commit -m "..." && git push`
-- Vercel auto-deploys from GitHub main branch (~1-2 min)
+- Netlify auto-deploys from GitHub main branch (~1-2 min)
 
 ## Key Patterns
 
