@@ -188,6 +188,7 @@ export function SwipeablePlanningView({
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('all');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
+  const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -331,10 +332,25 @@ export function SwipeablePlanningView({
         onSearchAI(`best ${nextStep.id} in ${citiesQuery}`, nextStep.id);
       }
       setCurrentStepIndex(currentStepIndex + 1);
+      setGridOffset(0); // Reset pagination
     } else {
       // Finished all steps, go to favorites library
       setPhase('favorites-library');
     }
+  };
+
+  // Show more items in grid
+  const showMoreItems = () => {
+    const newOffset = gridOffset + currentStep.gridSize;
+    if (newOffset < stepItems.length) {
+      setGridOffset(newOffset);
+    }
+  };
+
+  // Show previous items in grid
+  const showPrevItems = () => {
+    const newOffset = gridOffset - currentStep.gridSize;
+    setGridOffset(Math.max(0, newOffset));
   };
 
   // Go to previous step
@@ -344,8 +360,10 @@ export function SwipeablePlanningView({
     } else if (phase === 'favorites-library') {
       setPhase('picking');
       setCurrentStepIndex(PLANNING_STEPS.length - 1); // Go back to last picking step
+      setGridOffset(0);
     } else if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
+      setGridOffset(0);
     }
   };
 
@@ -804,9 +822,14 @@ export function SwipeablePlanningView({
   // ============ PICKING PHASE ============
   return (
     <div className="space-y-3">
-      {/* Compact step header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* Compact step header with back button */}
+      <div className="flex items-center gap-2">
+        {currentStepIndex > 0 && (
+          <Button variant="ghost" size="sm" className="p-1 h-8 w-8" onClick={goToPrevStep}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        )}
+        <div className="flex items-center gap-2 flex-1">
           <currentStep.icon className="w-5 h-5 text-primary" />
           <div>
             <h2 className="text-base font-bold">{currentStep.title}</h2>
@@ -816,45 +839,75 @@ export function SwipeablePlanningView({
         <Badge variant="secondary" className="text-xs">{selectedIds.size} selected</Badge>
       </div>
 
-      {/* Progress dots */}
-      <div className="flex gap-1">
-        {PLANNING_STEPS.map((step, index) => (
-          <div
-            key={step.id}
-            className={`h-1 flex-1 rounded-full ${
-              index < currentStepIndex ? 'bg-green-500' : index === currentStepIndex ? 'bg-primary' : 'bg-muted'
-            }`}
-          />
-        ))}
+      {/* Labeled progress bar */}
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+        {PLANNING_STEPS.map((step, index) => {
+          const StepIcon = step.icon;
+          const isComplete = index < currentStepIndex;
+          const isCurrent = index === currentStepIndex;
+          return (
+            <div key={step.id} className="flex items-center">
+              <button
+                onClick={() => {
+                  if (index < currentStepIndex) {
+                    setCurrentStepIndex(index);
+                    setGridOffset(0);
+                  }
+                }}
+                disabled={index > currentStepIndex}
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  isCurrent
+                    ? 'bg-primary text-primary-foreground'
+                    : isComplete
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {isComplete ? (
+                  <Check className="w-3 h-3" />
+                ) : (
+                  <StepIcon className="w-3 h-3" />
+                )}
+                <span className="hidden sm:inline">{step.id === 'cities' ? 'Cities' : step.id === 'experiences' ? 'Activities' : step.id.charAt(0).toUpperCase() + step.id.slice(1)}</span>
+              </button>
+              {index < PLANNING_STEPS.length - 1 && (
+                <ChevronRight className={`w-3 h-3 mx-0.5 flex-shrink-0 ${isComplete ? 'text-green-500' : 'text-muted-foreground'}`} />
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Your picks - compact inline display */}
-      {selectedItems.length > 0 && (
-        <div className="flex items-center gap-2 py-1">
-          <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
-          <span className="text-xs font-medium">Your picks:</span>
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {selectedItems.slice(0, 8).map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setDetailItem(item)}
-                className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
-              >
-                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-              </button>
-            ))}
-            {selectedItems.length > 8 && (
-              <span className="text-xs text-muted-foreground self-center ml-1">+{selectedItems.length - 8}</span>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Your picks - fixed height inline display, doesn't expand/move page */}
+      <div className="h-10 flex items-center gap-2">
+        {selectedItems.length > 0 ? (
+          <>
+            <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500 flex-shrink-0" />
+            <span className="text-xs font-medium flex-shrink-0">Your picks:</span>
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+              {selectedItems.slice(0, 8).map((item) => (
+                <div
+                  key={item.id}
+                  className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
+                >
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                </div>
+              ))}
+              {selectedItems.length > 8 && (
+                <span className="text-xs text-muted-foreground self-center ml-1">+{selectedItems.length - 8}</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <span className="text-xs text-muted-foreground">Tap hearts to add picks</span>
+        )}
+      </div>
 
       {/* Destination filter tabs (for multiple destinations) */}
       {currentStep.id === 'cities' && destinations.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
-            onClick={() => setActiveDestinationFilter('all')}
+            onClick={() => { setActiveDestinationFilter('all'); setGridOffset(0); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
               activeDestinationFilter === 'all'
                 ? 'bg-primary text-primary-foreground'
@@ -868,7 +921,7 @@ export function SwipeablePlanningView({
             return (
               <button
                 key={dest}
-                onClick={() => setActiveDestinationFilter(dest)}
+                onClick={() => { setActiveDestinationFilter(dest); setGridOffset(0); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
                   activeDestinationFilter === dest
                     ? 'bg-primary text-primary-foreground'
@@ -894,7 +947,7 @@ export function SwipeablePlanningView({
       {/* Items grid (3x3 = 9 squares) */}
       {stepItems.length > 0 ? (
         <div className="grid grid-cols-3 gap-2">
-          {stepItems.slice(0, currentStep.gridSize).map((item) => (
+          {stepItems.slice(gridOffset, gridOffset + currentStep.gridSize).map((item) => (
             <ItemSquare key={item.id} item={item} />
           ))}
         </div>
@@ -914,11 +967,25 @@ export function SwipeablePlanningView({
         </div>
       )}
 
-      {/* More items indicator */}
+      {/* Pagination controls */}
       {stepItems.length > currentStep.gridSize && (
-        <p className="text-xs text-center text-muted-foreground">
-          +{stepItems.length - currentStep.gridSize} more options
-        </p>
+        <div className="flex items-center justify-center gap-2">
+          {gridOffset > 0 && (
+            <Button variant="ghost" size="sm" onClick={showPrevItems} className="text-xs">
+              <ChevronLeft className="w-3 h-3 mr-1" />
+              Previous
+            </Button>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {Math.floor(gridOffset / currentStep.gridSize) + 1} / {Math.ceil(stepItems.length / currentStep.gridSize)}
+          </span>
+          {gridOffset + currentStep.gridSize < stepItems.length && (
+            <Button variant="ghost" size="sm" onClick={showMoreItems} className="text-xs">
+              More
+              <ChevronRight className="w-3 h-3 ml-1" />
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Continue button */}
