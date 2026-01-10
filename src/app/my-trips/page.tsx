@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
 import { BucketList, DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
+import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 
@@ -28,6 +29,7 @@ export default function MyTripsPage() {
   const stats = useTripStats(trips);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Split trips into upcoming and past
   const { upcomingTrips, pastTrips } = useMemo(() => {
@@ -80,6 +82,7 @@ export default function MyTripsPage() {
       <DashboardHeader
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenChat={() => setChatOpen(true)}
       />
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -190,6 +193,11 @@ export default function MyTripsPage() {
       <ProfileSettings
         open={profileOpen}
         onOpenChange={setProfileOpen}
+      />
+
+      <GeneralChatSheet
+        open={chatOpen}
+        onOpenChange={setChatOpen}
       />
     </div>
   );

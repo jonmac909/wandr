@@ -1,7 +1,5 @@
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles, TrendingUp, Heart } from 'lucide-react';
 import Link from 'next/link';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 
@@ -9,18 +7,62 @@ interface DestinationInspirationProps {
   trips: StoredTrip[];
 }
 
-// Suggested destinations based on travel patterns
-const INSPIRATION_DESTINATIONS = [
-  { name: 'Bali, Indonesia', emoji: '🏝️', vibe: 'Beaches & Culture', image: '/destinations/bali.jpg' },
-  { name: 'Kyoto, Japan', emoji: '⛩️', vibe: 'Temples & Gardens', image: '/destinations/kyoto.jpg' },
-  { name: 'Barcelona, Spain', emoji: '🏛️', vibe: 'Art & Architecture', image: '/destinations/barcelona.jpg' },
-  { name: 'Iceland', emoji: '🌋', vibe: 'Nature & Adventure', image: '/destinations/iceland.jpg' },
-  { name: 'Lisbon, Portugal', emoji: '🚃', vibe: 'History & Food', image: '/destinations/lisbon.jpg' },
-  { name: 'New Zealand', emoji: '🏔️', vibe: 'Adventure & Scenery', image: '/destinations/nz.jpg' },
+interface SeasonalDestination {
+  id: string;
+  destination: string;
+  country: string;
+  season: string;
+  months: string;
+  why: string;
+  imageUrl: string;
+  gradient: string;
+}
+
+const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
+  {
+    id: 'japan-spring',
+    destination: 'Kyoto',
+    country: 'Japan',
+    season: 'Spring',
+    months: 'Mar-Apr',
+    why: 'Cherry blossom season',
+    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
+    gradient: 'from-pink-400/80 to-rose-500/80',
+  },
+  {
+    id: 'santorini-summer',
+    destination: 'Santorini',
+    country: 'Greece',
+    season: 'Summer',
+    months: 'Jun-Aug',
+    why: 'Perfect beach weather',
+    imageUrl: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=400&fit=crop',
+    gradient: 'from-blue-400/80 to-cyan-500/80',
+  },
+  {
+    id: 'munich-fall',
+    destination: 'Munich',
+    country: 'Germany',
+    season: 'Fall',
+    months: 'Sep-Oct',
+    why: 'Oktoberfest celebrations',
+    imageUrl: 'https://images.unsplash.com/photo-1599982890963-3aba55f01fd4?w=400&h=400&fit=crop',
+    gradient: 'from-amber-400/80 to-orange-500/80',
+  },
+  {
+    id: 'tromso-winter',
+    destination: 'Tromso',
+    country: 'Norway',
+    season: 'Winter',
+    months: 'Dec-Feb',
+    why: 'Northern lights season',
+    imageUrl: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400&h=400&fit=crop',
+    gradient: 'from-indigo-400/80 to-purple-500/80',
+  },
 ];
 
 export function DestinationInspiration({ trips }: DestinationInspirationProps) {
-  // Get places already visited to filter suggestions
+  // Filter out places already visited
   const visitedPlaces = new Set<string>();
   trips.forEach(trip => {
     const bases = trip.itinerary?.route?.bases || [];
@@ -30,44 +72,63 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
     });
   });
 
-  // Filter out already visited places
-  const suggestions = INSPIRATION_DESTINATIONS.filter(dest => {
-    const destCity = dest.name.split(',')[0].trim().toLowerCase();
+  const suggestions = SEASONAL_DESTINATIONS.filter(dest => {
+    const destCity = dest.destination.toLowerCase();
     return !visitedPlaces.has(destCity);
-  }).slice(0, 4);
+  });
+
+  if (suggestions.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p className="text-sm">You&apos;ve explored so many places!</p>
+        <p className="text-xs">Keep the adventure going</p>
+      </div>
+    );
+  }
 
   return (
-    <Card className="py-0 h-full flex flex-col">
-      <CardContent className="p-3 flex-1 flex flex-col">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <h3 className="text-xs font-semibold text-muted-foreground">Where to Next?</h3>
-        </div>
+    <div className="grid grid-cols-2 gap-3">
+      {suggestions.map((dest) => (
+        <Link
+          key={dest.id}
+          href="/plan"
+          className="group relative aspect-square rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+        >
+          {/* Background Image */}
+          <img
+            src={dest.imageUrl}
+            alt={dest.destination}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
 
-        <div className="grid grid-cols-2 gap-2 flex-1">
-          {suggestions.map((dest) => (
-            <Link
-              key={dest.name}
-              href="/questionnaire"
-              className="group relative bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 hover:from-primary/10 hover:to-primary/20 transition-all border border-transparent hover:border-primary/20"
-            >
-              <div className="text-2xl mb-1">{dest.emoji}</div>
-              <p className="text-sm font-medium">{dest.name}</p>
-              <p className="text-[10px] text-muted-foreground">{dest.vibe}</p>
-            </Link>
-          ))}
-        </div>
+          {/* Gradient Overlay */}
+          <div className={`absolute inset-0 bg-gradient-to-t ${dest.gradient} opacity-70`} />
 
-        {suggestions.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+          {/* Content */}
+          <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
+            {/* Season Badge */}
+            <div className="self-start">
+              <span className="text-xs font-medium bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                {dest.months}
+              </span>
+            </div>
+
+            {/* Destination Info */}
             <div>
-              <Heart className="w-8 h-8 mx-auto mb-2 text-pink-400" />
-              <p className="text-sm">You've explored so many places!</p>
-              <p className="text-xs">Keep the adventure going</p>
+              <h3 className="font-bold text-lg leading-tight">
+                {dest.destination}
+              </h3>
+              <p className="text-sm opacity-90">{dest.country}</p>
+              <p className="text-xs mt-1 opacity-80 font-medium">
+                {dest.why}
+              </p>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </Link>
+      ))}
+    </div>
   );
 }

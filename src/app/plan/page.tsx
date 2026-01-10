@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { tripDb } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
+import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 type DurationType = 'days' | 'months';
@@ -55,6 +56,7 @@ export default function PlanPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Step 1: Basics
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
@@ -173,6 +175,7 @@ export default function PlanPage() {
       <DashboardHeader
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenChat={() => setChatOpen(true)}
       />
 
       <main className="max-w-2xl mx-auto px-4 py-6">
@@ -553,6 +556,11 @@ export default function PlanPage() {
       <ProfileSettings
         open={profileOpen}
         onOpenChange={setProfileOpen}
+      />
+
+      <GeneralChatSheet
+        open={chatOpen}
+        onOpenChange={setChatOpen}
       />
     </div>
   );
