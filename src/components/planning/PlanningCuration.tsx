@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Heart,
   MapPin,
@@ -13,9 +19,8 @@ import {
   Hotel,
   Compass,
   Building2,
-  ChevronRight,
   Plus,
-  Check,
+  X,
 } from 'lucide-react';
 
 interface Listing {
@@ -39,16 +44,13 @@ interface PlanningCurationProps {
 
 // Generate mock listings based on destination
 function generateListings(destination: string): Record<string, Listing[]> {
-  const destLower = destination.toLowerCase();
-
-  // Default listings with destination-aware content
   const listings: Record<string, Listing[]> = {
     activities: [
       {
         id: 'act-1',
         name: `${destination} Walking Tour`,
-        description: 'Explore the historic streets and hidden gems with a local guide',
-        imageUrl: `https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=400&q=80`,
+        description: 'Explore the historic streets and hidden gems with a local guide. Perfect for first-time visitors wanting to get oriented.',
+        imageUrl: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80',
         rating: 4.8,
         priceLevel: '$$',
         category: 'activities',
@@ -57,8 +59,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'act-2',
         name: 'Food & Market Tour',
-        description: 'Sample local delicacies and visit vibrant markets',
-        imageUrl: `https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80`,
+        description: 'Sample local delicacies and visit vibrant markets with a culinary expert. Tastings included.',
+        imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80',
         rating: 4.9,
         priceLevel: '$$$',
         category: 'activities',
@@ -66,9 +68,9 @@ function generateListings(destination: string): Record<string, Listing[]> {
       },
       {
         id: 'act-3',
-        name: 'Sunset Experience',
-        description: 'Watch the sunset from the best viewpoint in the city',
-        imageUrl: `https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=400&q=80`,
+        name: 'Sunset Viewpoint Tour',
+        description: 'Watch the sunset from the best viewpoint in the city. Includes drinks and appetizers.',
+        imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80',
         rating: 4.7,
         priceLevel: '$',
         category: 'activities',
@@ -76,9 +78,9 @@ function generateListings(destination: string): Record<string, Listing[]> {
       },
       {
         id: 'act-4',
-        name: 'Museum & Art Gallery',
-        description: 'Discover world-class art and cultural exhibits',
-        imageUrl: `https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=400&q=80`,
+        name: 'Museum & Art Experience',
+        description: 'Discover world-class art and cultural exhibits with skip-the-line access.',
+        imageUrl: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=600&q=80',
         rating: 4.6,
         priceLevel: '$$',
         category: 'activities',
@@ -89,8 +91,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'hotel-1',
         name: 'Boutique Hotel Central',
-        description: 'Charming boutique hotel in the heart of the city',
-        imageUrl: `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80`,
+        description: 'Charming boutique hotel in the heart of the city. Rooftop bar, complimentary breakfast, and walkable to major attractions.',
+        imageUrl: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&q=80',
         rating: 4.7,
         priceLevel: '$$$',
         category: 'hotels',
@@ -100,8 +102,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'hotel-2',
         name: 'Grand Heritage Hotel',
-        description: 'Luxurious historic property with modern amenities',
-        imageUrl: `https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80`,
+        description: 'Luxurious historic property with modern amenities. Full-service spa, fine dining, and concierge.',
+        imageUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&q=80',
         rating: 4.9,
         priceLevel: '$$$$',
         category: 'hotels',
@@ -111,8 +113,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'hotel-3',
         name: 'Urban Hostel & Suites',
-        description: 'Budget-friendly with private rooms and social vibes',
-        imageUrl: `https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&q=80`,
+        description: 'Budget-friendly with private rooms and social vibes. Rooftop terrace, bar, and weekly events.',
+        imageUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80',
         rating: 4.4,
         priceLevel: '$',
         category: 'hotels',
@@ -124,24 +126,24 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'hood-1',
         name: 'Old Town',
-        description: 'Historic center with cobblestone streets and landmarks',
-        imageUrl: `https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=400&q=80`,
+        description: 'Historic center with cobblestone streets and landmarks. Best for sightseeing and traditional restaurants.',
+        imageUrl: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=80',
         category: 'neighborhoods',
         tags: ['Historic', 'Touristy', 'Photogenic'],
       },
       {
         id: 'hood-2',
         name: 'Arts District',
-        description: 'Trendy area with galleries, cafes, and nightlife',
-        imageUrl: `https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&q=80`,
+        description: 'Trendy area with galleries, cafes, and nightlife. Best for creatives and night owls.',
+        imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80',
         category: 'neighborhoods',
         tags: ['Trendy', 'Nightlife', 'Art'],
       },
       {
         id: 'hood-3',
         name: 'Waterfront',
-        description: 'Scenic promenade with restaurants and views',
-        imageUrl: `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80`,
+        description: 'Scenic promenade with restaurants and views. Perfect for evening strolls and seafood.',
+        imageUrl: 'https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?w=600&q=80',
         category: 'neighborhoods',
         tags: ['Scenic', 'Dining', 'Relaxed'],
       },
@@ -150,8 +152,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'cafe-1',
         name: 'Artisan Coffee House',
-        description: 'Third-wave coffee and fresh pastries',
-        imageUrl: `https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&q=80`,
+        description: 'Third-wave coffee and fresh pastries in a cozy setting. Known for their pour-overs and croissants.',
+        imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80',
         rating: 4.8,
         priceLevel: '$$',
         category: 'cafes',
@@ -161,8 +163,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'cafe-2',
         name: 'Garden Terrace Cafe',
-        description: 'Beautiful outdoor seating with brunch menu',
-        imageUrl: `https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&q=80`,
+        description: 'Beautiful outdoor seating with brunch menu. Weekend reservations recommended.',
+        imageUrl: 'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=600&q=80',
         rating: 4.6,
         priceLevel: '$$',
         category: 'cafes',
@@ -172,8 +174,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'cafe-3',
         name: 'Local Bakery & Cafe',
-        description: 'Traditional pastries and local breakfast favorites',
-        imageUrl: `https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80`,
+        description: 'Traditional pastries and local breakfast favorites. Where the locals go.',
+        imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=80',
         rating: 4.7,
         priceLevel: '$',
         category: 'cafes',
@@ -185,8 +187,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'rest-1',
         name: 'Traditional Kitchen',
-        description: 'Authentic local cuisine in a cozy setting',
-        imageUrl: `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80`,
+        description: 'Authentic local cuisine in a cozy setting. Family recipes passed down through generations.',
+        imageUrl: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?w=600&q=80',
         rating: 4.7,
         priceLevel: '$$',
         category: 'restaurants',
@@ -196,8 +198,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'rest-2',
         name: 'Rooftop Fine Dining',
-        description: 'Upscale dining with panoramic city views',
-        imageUrl: `https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80`,
+        description: 'Upscale dining with panoramic city views. Tasting menu and sommelier recommended.',
+        imageUrl: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=80',
         rating: 4.9,
         priceLevel: '$$$$',
         category: 'restaurants',
@@ -207,8 +209,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'rest-3',
         name: 'Street Food Market',
-        description: 'Diverse food stalls and casual atmosphere',
-        imageUrl: `https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80`,
+        description: 'Diverse food stalls and casual atmosphere. Great for sampling multiple cuisines.',
+        imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
         rating: 4.5,
         priceLevel: '$',
         category: 'restaurants',
@@ -218,8 +220,8 @@ function generateListings(destination: string): Record<string, Listing[]> {
       {
         id: 'rest-4',
         name: 'Farm-to-Table Bistro',
-        description: 'Seasonal menu with locally sourced ingredients',
-        imageUrl: `https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80`,
+        description: 'Seasonal menu with locally sourced ingredients. Intimate setting, natural wines.',
+        imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80',
         rating: 4.8,
         priceLevel: '$$$',
         category: 'restaurants',
@@ -247,6 +249,7 @@ export function PlanningCuration({
   onAddToSchedule,
 }: PlanningCurationProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const listings = generateListings(destination);
 
   return (
@@ -296,7 +299,7 @@ export function PlanningCuration({
         })}
       </div>
 
-      {/* Expanded Category Listings */}
+      {/* Expanded Category Listings - Square Grid */}
       {activeCategory && (
         <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between">
@@ -313,116 +316,193 @@ export function PlanningCuration({
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {(listings[activeCategory] || []).map((listing) => (
-              <ListingCard
+              <SquareListingCard
                 key={listing.id}
                 listing={listing}
                 isFavorite={favorites.includes(listing.id)}
                 onToggleFavorite={() => onToggleFavorite(listing.id)}
-                onAddToSchedule={onAddToSchedule ? () => onAddToSchedule(listing) : undefined}
+                onClick={() => setSelectedListing(listing)}
               />
             ))}
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <ListingDetailModal
+        listing={selectedListing}
+        isOpen={!!selectedListing}
+        onClose={() => setSelectedListing(null)}
+        isFavorite={selectedListing ? favorites.includes(selectedListing.id) : false}
+        onToggleFavorite={() => selectedListing && onToggleFavorite(selectedListing.id)}
+        onAddToSchedule={onAddToSchedule && selectedListing ? () => {
+          onAddToSchedule(selectedListing);
+          setSelectedListing(null);
+        } : undefined}
+      />
     </div>
   );
 }
 
-function ListingCard({
+// Square card for grid display
+function SquareListingCard({
   listing,
   isFavorite,
   onToggleFavorite,
-  onAddToSchedule,
+  onClick,
 }: {
   listing: Listing;
   isFavorite: boolean;
   onToggleFavorite: () => void;
-  onAddToSchedule?: () => void;
+  onClick: () => void;
 }) {
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div className="flex">
-        {/* Image */}
-        <div className="w-28 h-28 flex-shrink-0 relative">
+    <button
+      onClick={onClick}
+      className="group relative aspect-square rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 text-left"
+    >
+      {/* Background Image */}
+      <img
+        src={listing.imageUrl}
+        alt={listing.name}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+      {/* Favorite Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        className={`absolute top-2 right-2 p-1.5 rounded-full transition-all z-10 ${
+          isFavorite
+            ? 'bg-pink-500 text-white'
+            : 'bg-white/80 text-gray-600 hover:bg-white'
+        }`}
+      >
+        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+      </button>
+
+      {/* Rating badge */}
+      {listing.rating && (
+        <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 rounded-full px-2 py-0.5">
+          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+          <span className="text-xs font-medium">{listing.rating}</span>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="absolute inset-0 p-3 flex flex-col justify-end text-white">
+        <h4 className="font-bold text-sm leading-tight drop-shadow-md line-clamp-2">
+          {listing.name}
+        </h4>
+        {listing.neighborhood && (
+          <div className="flex items-center gap-1 mt-1">
+            <MapPin className="w-3 h-3" />
+            <span className="text-[10px] opacity-90">{listing.neighborhood}</span>
+          </div>
+        )}
+        {listing.priceLevel && (
+          <span className="text-[10px] mt-0.5 opacity-75">{listing.priceLevel}</span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// Detail modal for listing
+function ListingDetailModal({
+  listing,
+  isOpen,
+  onClose,
+  isFavorite,
+  onToggleFavorite,
+  onAddToSchedule,
+}: {
+  listing: Listing | null;
+  isOpen: boolean;
+  onClose: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onAddToSchedule?: () => void;
+}) {
+  if (!listing) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        {/* Hero Image */}
+        <div className="relative h-48 w-full">
           <img
             src={listing.imageUrl}
             alt={listing.name}
             className="w-full h-full object-cover"
           />
-          {/* Favorite Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
-              isFavorite
-                ? 'bg-pink-500 text-white'
-                : 'bg-white/80 text-gray-600 hover:bg-white'
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+          {/* Rating badge */}
+          {listing.rating && (
+            <div className="absolute top-4 left-4 flex items-center gap-1 bg-white/90 rounded-full px-2 py-1">
+              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+              <span className="text-xs font-semibold">{listing.rating}</span>
+            </div>
+          )}
         </div>
 
-        {/* Content */}
-        <CardContent className="flex-1 p-3 flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <h4 className="font-semibold text-sm line-clamp-1">{listing.name}</h4>
+        <div className="p-4 space-y-4">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-start justify-between">
+              <DialogTitle className="text-lg font-bold">{listing.name}</DialogTitle>
               {listing.priceLevel && (
-                <span className="text-xs text-muted-foreground flex-shrink-0">
-                  {listing.priceLevel}
-                </span>
+                <span className="text-sm text-muted-foreground">{listing.priceLevel}</span>
               )}
             </div>
-
-            {listing.rating && (
-              <div className="flex items-center gap-1 mt-0.5">
-                <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                <span className="text-xs font-medium">{listing.rating}</span>
+            {listing.neighborhood && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span>{listing.neighborhood}</span>
               </div>
             )}
+          </DialogHeader>
 
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-              {listing.description}
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">{listing.description}</p>
 
           {/* Tags */}
           {listing.tags && listing.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {listing.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] px-1.5 py-0.5 bg-muted rounded-full"
-                >
+            <div className="flex flex-wrap gap-2">
+              {listing.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
-                </span>
+                </Badge>
               ))}
             </div>
           )}
 
-          {/* Add to Schedule Button */}
-          {onAddToSchedule && (
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
             <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToSchedule();
-              }}
-              className="mt-2 h-7 text-xs"
+              variant={isFavorite ? 'default' : 'outline'}
+              onClick={onToggleFavorite}
+              className="flex-1"
             >
-              <Plus className="w-3 h-3 mr-1" />
-              Add to Schedule
+              <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
+              {isFavorite ? 'Saved' : 'Save'}
             </Button>
-          )}
-        </CardContent>
-      </div>
-    </Card>
+            {onAddToSchedule && (
+              <Button onClick={onAddToSchedule} className="flex-1">
+                <Plus className="w-4 h-4 mr-2" />
+                Add to Trip
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

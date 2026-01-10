@@ -22,7 +22,7 @@ npm run lint     # Run ESLint
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
 - **AI:** Anthropic Claude API for itinerary generation
 - **Icons:** lucide-react
-- **Deployment:** Netlify (auto-deploys from GitHub main branch)
+- **Deployment:** Vercel (auto-deploys from GitHub main branch)
 
 ## Architecture
 
@@ -49,17 +49,20 @@ TimeBlock { activity: Activity, priority, isLocked }
 ```
 
 ### Pages (`src/app/`)
-- **`/`** - Dashboard with trip list, stats, calendar
-- **`/questionnaire`** - Multi-step trip preferences form
-- **`/trip/[id]`** - Trip detail view with overview, schedule, transport, hotels, packing tabs
+- **`/`** - Home dashboard with hero, CTAs, destination inspiration
+- **`/plan`** - 2-step trip creation (destinations → preferences)
+- **`/my-trips`** - Trip list with upcoming/past sections, stats
+- **`/trip/[id]`** - Trip detail OR planning dashboard (if no itinerary yet)
+- **`/questionnaire`** - Legacy multi-step trip preferences form
 - **`/plan-mode`** - AI trip generation interface
 
 ### Components (`src/components/`)
-- **`dashboard/`** - Dashboard widgets (FeaturedTripCard, MonthCalendar, StatsPanel, WorldMap, TravelHighlights, DestinationInspiration)
-- **`itinerary/`** - Trip display (DayCard, PackingListView, FoodLayerView)
-- **`trip/`** - Trip-specific (TripRouteMap)
-- **`chat/`** - AI chatbot (ChatSheet, ChatInput, ChatMessage)
-- **`ui/`** - shadcn/ui primitives (Button, Card, Input, etc.)
+- **`dashboard/`** - Dashboard widgets (DashboardHeader, TripDrawer, DestinationInspiration, MonthCalendar, BucketList, ProfileSettings)
+- **`planning/`** - Trip planning curation (PlanningCuration with activities, hotels, neighborhoods, cafes, restaurants)
+- **`itinerary/`** - Trip display (DayCard, PackingListView, FoodLayerView, TripOverview)
+- **`trip/`** - Trip-specific (TripRouteMap, LeafletMap)
+- **`chat/`** - AI chatbot (ChatSheet for trips, GeneralChatSheet for general use)
+- **`ui/`** - shadcn/ui primitives (Button, Card, Input, Badge, etc.)
 - **`questionnaire/`** - Form step components
 
 ### Hooks (`src/hooks/`)
@@ -75,8 +78,13 @@ Claude-powered chatbot for modifying trips via natural language:
 - **`chat-tools.ts`** - Tool definitions (get_itinerary, add_activity, search_restaurants, etc.)
 - **`tool-handlers.ts`** - Executes tool calls and returns updated itinerary
 - **`chat-prompts.ts`** - System prompt builder with trip context
-- **`/api/chat/route.ts`** - Streaming SSE endpoint using Claude API
+- **`/api/chat/route.ts`** - Streaming SSE endpoint for trip-specific chat
+- **`/api/chat/general/route.ts`** - Streaming SSE endpoint for general chat (no trip context)
 - **`useChat.ts`** - Hook managing messages, streaming, and multi-turn tool execution
+
+**Two chat variants:**
+- `ChatSheet` - Requires trip/itinerary context, can modify trips
+- `GeneralChatSheet` - No trip context, for general travel questions
 
 **Flight formatting rules** (in system prompt):
 - Format: `[Airline] [ORIGIN]→[DEST] [departure]-[arrival]+[days]`
@@ -105,19 +113,16 @@ Trip page overview shows countries/cities count:
 
 ## Terminology
 
-- **Dashboard** = Home page (`/`) with calendar, featured trip, travel highlights, destination inspiration, stats, map
+- **Dashboard** = Home page (`/`) with hero, plan/import CTAs, destination inspiration
 - **Trip page** = `/trip/[id]` with Overview, Schedule, Transport, Hotels widgets
+- **Planning dashboard** = Trip page when no itinerary exists (shows curation widgets)
 
 ## Ground Rules
 
-- Start replies with 🔧 emoji
-- Be succinct - avoid verbose explanations
-- Work in small, verifiable steps
-- **ALWAYS run `npm run build` locally before pushing** - catches TypeScript/build errors before deploy
+- **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
 - **Live site: https://www.trippified.com** - User tests here, NOT localhost
-- **ALWAYS push to live after completing tasks** - `git add -A && git commit -m "..." && git push`
-- Netlify auto-deploys from GitHub main branch (~1-2 min)
-- If deploy doesn't trigger: `git commit --allow-empty -m "chore: trigger deploy" && git push`
+- **ALWAYS push to deploy:** `git add -A && git commit -m "..." && git push`
+- Vercel auto-deploys from GitHub main branch (~1-2 min)
 
 ## Key Patterns
 
@@ -127,6 +132,12 @@ Dates stored as ISO strings (`YYYY-MM-DD`). Parse without timezone issues:
 const [y, m, d] = dateStr.split('-').map(Number);
 const date = new Date(y, m - 1, d);
 ```
+
+### Multiple Destinations
+The `/plan` page supports multiple destinations:
+- Stored as `destinations: string[]` array in tripDna.interests
+- Display as `destination: "Tokyo → Kyoto → Osaka"` (joined with →)
+- Use chips UI with add/remove functionality
 
 ### Location Detection
 The `getCityForDay()` function in trip page determines where user sleeps each night by checking:
@@ -150,7 +161,7 @@ The `getCityForDay()` function in trip page determines where user sleeps each ni
 - Add new cities to `CITY_TO_COUNTRY` map as needed
 
 ### Content Filtering
-Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels'|'experiences'|'packing'|'docs'|'budget'`
+Trip page uses `contentFilter` state: `'overview'|'schedule'|'restaurants'|'docs'`
 
 ### Responsive Design
 - Mobile-first with `md:` breakpoint for desktop
@@ -158,20 +169,32 @@ Trip page uses `contentFilter` state: `'overview'|'schedule'|'transport'|'hotels
 - Use `compact` prop on components for mobile variants
 
 ### Design System (`src/lib/styles.ts`)
-Typography hierarchy - use consistently:
+Typography hierarchy:
 ```
-Page titles:      text-xl font-bold       (20px) - "Trippified" logo only
-Section titles:   text-sm font-semibold   (14px) - "Hotels", "Transport"
-Card headers:     text-sm font-semibold   (14px) - "January 2026", hotel names
-Compact headers:  text-xs font-semibold   (12px) - Trip page widgets
+Page titles:      text-xl font-bold       (20px)
+Section titles:   text-sm font-semibold   (14px)
+Card headers:     text-sm font-semibold   (14px)
 Body text:        text-sm or text-xs      (14px/12px)
 Labels:           text-xs text-muted-foreground (12px)
 Small labels:     text-[10px] or text-[11px]
-Tiny (legends):   text-[9px] or text-[8px]
 ```
 
-Category colors:
-- Transport: blue (bg-blue-100, text-blue-600)
-- Hotels: purple (bg-purple-100, text-purple-600)
-- Food: orange (bg-orange-100, text-orange-600)
-- Activities: yellow (bg-yellow-100, text-yellow-600)
+Category colors (PIPELINE_COLORS):
+- Overview: red (bg-red-50, text-red-600)
+- Schedule: gray (bg-gray-50, text-gray-600)
+- Transport: blue (bg-blue-50, text-blue-600)
+- Hotels: purple (bg-purple-50, text-purple-600)
+- Food: orange (bg-orange-50, text-orange-600)
+- Activities: yellow (bg-yellow-50, text-yellow-600)
+
+### Suspense Boundaries
+When using `useSearchParams()`, wrap the component in Suspense:
+```typescript
+export default function Page() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <PageContent />
+    </Suspense>
+  );
+}
+```
