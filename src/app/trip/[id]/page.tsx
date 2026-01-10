@@ -30,6 +30,7 @@ import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { ChatSheet } from '@/components/chat/ChatSheet';
 import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { PlanningCuration } from '@/components/planning/PlanningCuration';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +86,7 @@ export default function TripPage() {
   const [editedItemAmount, setEditedItemAmount] = useState('');
   const [editingDestinations, setEditingDestinations] = useState(false);
   const [editedDestinations, setEditedDestinations] = useState('');
+  const [planningFavorites, setPlanningFavorites] = useState<string[]>([]);
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1311,6 +1313,22 @@ export default function TripPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Curation Widgets */}
+          <div className="mb-6">
+            <h2 className="font-semibold mb-3">Curate Your Trip</h2>
+            <PlanningCuration
+              destination={destination}
+              favorites={planningFavorites}
+              onToggleFavorite={(id) => {
+                setPlanningFavorites(prev =>
+                  prev.includes(id)
+                    ? prev.filter(f => f !== id)
+                    : [...prev, id]
+                );
+              }}
+            />
+          </div>
 
           {/* Generate Action */}
           <Card className="mb-6 border-primary/20 bg-primary/5">

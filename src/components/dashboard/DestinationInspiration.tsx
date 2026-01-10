@@ -152,14 +152,14 @@ const SEASONS: Season[] = [
         destination: 'Munich',
         country: 'Germany',
         why: 'Oktoberfest (late Sep), beer gardens, Bavarian Alps',
-        imageUrl: 'https://images.unsplash.com/photo-1595867818082-083862f3d630?w=600&q=80',
+        imageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&q=80',
       },
       {
         id: 'patagonia-fall',
         destination: 'Patagonia',
         country: 'Argentina',
         why: 'Spring wildflowers, fewer crowds, baby wildlife',
-        imageUrl: 'https://images.unsplash.com/photo-1478827536114-da961b7f86d2?w=600&q=80',
+        imageUrl: 'https://images.unsplash.com/photo-1531761535209-180857e963b9?w=600&q=80',
       },
     ],
   },
@@ -231,7 +231,7 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
               {availableDestinations.map((dest) => (
                 <Link
                   key={dest.id}
-                  href="/plan"
+                  href={`/plan?destination=${encodeURIComponent(dest.destination + ', ' + dest.country)}`}
                   className="group relative aspect-[4/3] rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
                 >
                   {/* Background Image */}
@@ -264,18 +264,26 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
       {/* Places to Avoid */}
       <div className="pt-4 border-t">
         <div className="flex items-center gap-2 mb-3">
-          <h3 className="font-semibold text-sm text-muted-foreground">Skip for Now</h3>
+          <span className="text-lg">⚠️</span>
+          <h3 className="font-semibold text-sm">Skip for Now</h3>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+        <div className="grid grid-cols-4 gap-2">
           {PLACES_TO_AVOID.map((place) => (
             <div
               key={place.id}
-              className="flex-shrink-0 w-36 p-3 rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-200/50 dark:border-red-900/30"
+              className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900"
             >
-              <div className="text-2xl mb-2">{place.icon}</div>
-              <div className="font-semibold text-sm">{place.destination}</div>
-              <div className="text-xs text-red-600 dark:text-red-400 font-medium">{place.reason}</div>
-              <div className="text-[10px] text-muted-foreground mt-1 leading-tight">{place.details}</div>
+              {/* Red warning stripe */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+
+              {/* Content */}
+              <div className="absolute inset-0 p-2 flex flex-col justify-between text-white">
+                <span className="text-xl">{place.icon}</span>
+                <div>
+                  <h4 className="font-bold text-xs leading-tight">{place.destination}</h4>
+                  <p className="text-[9px] text-red-300 font-medium leading-tight">{place.reason}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>

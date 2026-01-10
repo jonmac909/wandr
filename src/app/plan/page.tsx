@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
@@ -50,7 +50,16 @@ const TRIP_TYPES: { id: TripType; label: string; icon: typeof Compass }[] = [
 ];
 
 export default function PlanPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
+      <PlanPageContent />
+    </Suspense>
+  );
+}
+
+function PlanPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { trips } = useDashboardData();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,7 +69,29 @@ export default function PlanPage() {
 
   // Step 1: Basics
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
-  const [destination, setDestination] = useState('');
+  const [destinations, setDestinations] = useState<string[]>([]);
+  const [destinationInput, setDestinationInput] = useState('');
+
+  // Pre-fill destination from URL query param
+  useEffect(() => {
+    const destParam = searchParams.get('destination');
+    if (destParam) {
+      setDestinations([destParam]);
+      setDestinationMode('known');
+    }
+  }, [searchParams]);
+
+  const addDestination = () => {
+    const trimmed = destinationInput.trim();
+    if (trimmed && !destinations.includes(trimmed)) {
+      setDestinations([...destinations, trimmed]);
+      setDestinationInput('');
+    }
+  };
+
+  const removeDestination = (dest: string) => {
+    setDestinations(destinations.filter(d => d !== dest));
+  };
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [durationType, setDurationType] = useState<DurationType>('days');
   const [durationDays, setDurationDays] = useState(14);
@@ -127,7 +158,8 @@ export default function PlanPage() {
           tripPace: pace,
         },
         interests: {
-          destination: destinationMode === 'known' ? destination : surpriseDescription,
+          destination: destinationMode === 'known' ? destinations.join(' → ') : surpriseDescription,
+          destinations: destinationMode === 'known' ? destinations : [],
           tripTypes,
         },
         constraints: {
@@ -167,7 +199,7 @@ export default function PlanPage() {
     }
   };
 
-  const canProceedStep1 = destinationMode === 'known' ? destination.trim() : surpriseDescription.trim();
+  const canProceedStep1 = destinationMode === 'known' ? destinations.length > 0 : surpriseDescription.trim();
   const canBuild = tripTypes.length > 0;
 
   return (
@@ -224,13 +256,59 @@ export default function PlanPage() {
                   </div>
                 </div>
                 {destinationMode === 'known' && (
-                  <div className="mt-3 pl-7">
-                    <Input
-                      placeholder="e.g., Japan, Tokyo, Southeast Asia..."
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="bg-background"
-                    />
+                  <div className="mt-3 pl-7 space-y-2">
+                    {/* Destination chips */}
+                    {destinations.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {destinations.map((dest) => (
+                          <Badge key={dest} variant="secondary" className="pl-2 pr-1 py-1 gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {dest}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeDestination(dest);
+                              }}
+                              className="ml-1 hover:bg-muted rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {/* Input with add button */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={destinations.length === 0 ? "e.g., Japan, Tokyo..." : "Add another destination..."}
+                        value={destinationInput}
+                        onChange={(e) => setDestinationInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addDestination();
+                          }
+                        }}
+                        className="bg-background flex-1"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addDestination();
+                        }}
+                        disabled={!destinationInput.trim()}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {destinations.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {destinations.length} destination{destinations.length > 1 ? 's' : ''} added
+                      </p>
+                    )}
                   </div>
                 )}
               </button>
