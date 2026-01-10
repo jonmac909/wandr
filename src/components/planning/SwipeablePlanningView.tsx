@@ -1038,7 +1038,7 @@ export function SwipeablePlanningView({
 
       {/* City Detail Modal */}
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); }}>
-        <DialogContent className="max-w-sm sm:max-w-md p-0 gap-0">
+        <DialogContent className="max-w-sm sm:max-w-md p-0 gap-0 [&>button]:hidden">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
@@ -1053,14 +1053,43 @@ export function SwipeablePlanningView({
               }))
             ];
 
+            // Touch swipe handlers
+            let touchStartX = 0;
+            const handleTouchStart = (e: React.TouchEvent) => {
+              touchStartX = e.touches[0].clientX;
+            };
+            const handleTouchEnd = (e: React.TouchEvent) => {
+              const touchEndX = e.changedTouches[0].clientX;
+              const diff = touchStartX - touchEndX;
+              if (Math.abs(diff) > 50) {
+                if (diff > 0 && cityImageIndex < imageSlides.length - 1) {
+                  setCityImageIndex(i => i + 1);
+                } else if (diff < 0 && cityImageIndex > 0) {
+                  setCityImageIndex(i => i - 1);
+                }
+              }
+            };
+
             return (
               <div className="overflow-hidden rounded-lg">
+                {/* Close button */}
+                <button
+                  onClick={() => { setCityDetailItem(null); setCityImageIndex(0); }}
+                  className="absolute top-3 left-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
                 {/* Swipeable image slider */}
-                <div className="relative h-52">
+                <div
+                  className="relative h-48"
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
                   <img
                     src={`https://picsum.photos/seed/${imageSlides[cityImageIndex].seed}/800/600`}
                     alt={imageSlides[cityImageIndex].label}
-                    className="w-full h-full object-cover transition-opacity duration-300"
+                    className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
@@ -1083,8 +1112,8 @@ export function SwipeablePlanningView({
                   )}
 
                   {/* Image label */}
-                  <div className="absolute bottom-12 left-4 right-4">
-                    <h2 className="text-2xl font-bold text-white drop-shadow-lg">{imageSlides[cityImageIndex].label}</h2>
+                  <div className="absolute bottom-10 left-4 right-4">
+                    <h2 className="text-xl font-bold text-white drop-shadow-lg">{imageSlides[cityImageIndex].label}</h2>
                     {cityImageIndex === 0 && (
                       <div className="flex items-center gap-2 text-white/90 text-sm mt-1">
                         <span className={`font-medium ${
@@ -1099,7 +1128,7 @@ export function SwipeablePlanningView({
                   </div>
 
                   {/* Dot indicators */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                     {imageSlides.map((_, idx) => (
                       <button
                         key={idx}
@@ -1111,46 +1140,66 @@ export function SwipeablePlanningView({
                     ))}
                   </div>
 
-                  {/* Add button */}
+                  {/* Add button - moved to top right, away from close */}
                   <button
                     onClick={() => toggleSelect(cityDetailItem.id, cityDetailItem.name)}
-                    className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg ${
+                    className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-lg ${
                       isSelected ? 'bg-green-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    {isSelected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </button>
                 </div>
 
-                <div className="p-4 space-y-3">
+                <div className="p-3 space-y-2.5">
                   {/* Best time & tags */}
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4 inline mr-1" />
+                    <p className="text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3 inline mr-1" />
                       Best: <span className="text-foreground font-medium">{cityInfo.bestTime}</span>
                     </p>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1">
                       {cityInfo.bestFor.slice(0, 3).map((tag) => (
-                        <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">{tag}</span>
+                        <span key={tag} className="px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-medium rounded-full">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top Sites list */}
+                  <div>
+                    <div className="text-xs font-semibold mb-1">Top Sites</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {cityInfo.topSites.map((site, idx) => (
+                        <button
+                          key={site}
+                          onClick={() => setCityImageIndex(idx + 1)}
+                          className={`text-[10px] px-2 py-1 rounded-full transition-colors ${
+                            cityImageIndex === idx + 1
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80'
+                          }`}
+                        >
+                          {site}
+                        </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Pros & Cons - compact */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-2.5">
-                      <div className="font-semibold text-green-700 dark:text-green-400 text-xs mb-1.5">Pros</div>
+                    <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-2">
+                      <div className="font-semibold text-green-700 dark:text-green-400 text-[10px] mb-1">Pros</div>
                       {cityInfo.pros.slice(0, 2).map((pro, i) => (
-                        <div key={i} className="text-green-600 dark:text-green-400 text-xs mb-0.5 flex items-start gap-1">
+                        <div key={i} className="text-green-600 dark:text-green-400 text-[10px] mb-0.5 flex items-start gap-1">
                           <span className="text-green-500">✓</span>
                           <span className="line-clamp-1">{pro}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-2.5">
-                      <div className="font-semibold text-red-700 dark:text-red-400 text-xs mb-1.5">Cons</div>
+                    <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-2">
+                      <div className="font-semibold text-red-700 dark:text-red-400 text-[10px] mb-1">Cons</div>
                       {cityInfo.cons.slice(0, 2).map((con, i) => (
-                        <div key={i} className="text-red-600 dark:text-red-400 text-xs mb-0.5 flex items-start gap-1">
+                        <div key={i} className="text-red-600 dark:text-red-400 text-[10px] mb-0.5 flex items-start gap-1">
                           <span className="text-red-400">✗</span>
                           <span className="line-clamp-1">{con}</span>
                         </div>
@@ -1159,14 +1208,15 @@ export function SwipeablePlanningView({
                   </div>
 
                   {/* Local tip - compact */}
-                  <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2.5 flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-amber-800 dark:text-amber-300 line-clamp-2">{cityInfo.localTip}</p>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2 flex items-start gap-2">
+                    <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-[10px] text-amber-800 dark:text-amber-300 line-clamp-2">{cityInfo.localTip}</p>
                   </div>
 
                   {/* Action button */}
                   <Button
                     className="w-full"
+                    size="sm"
                     variant={isSelected ? 'outline' : 'default'}
                     onClick={() => {
                       toggleSelect(cityDetailItem.id, cityDetailItem.name);
