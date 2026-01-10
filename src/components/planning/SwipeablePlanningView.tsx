@@ -112,7 +112,7 @@ const PLANNING_STEPS: CategoryStep[] = [
   },
 ];
 
-type PlanningPhase = 'picking' | 'day-planning';
+type PlanningPhase = 'picking' | 'favorites-library' | 'day-planning';
 
 export function SwipeablePlanningView({
   tripDna,
@@ -258,18 +258,26 @@ export function SwipeablePlanningView({
       }
       setCurrentStepIndex(currentStepIndex + 1);
     } else {
-      // Finished all steps, go to day planning
-      setPhase('day-planning');
+      // Finished all steps, go to favorites library
+      setPhase('favorites-library');
     }
   };
 
   // Go to previous step
   const goToPrevStep = () => {
     if (phase === 'day-planning') {
+      setPhase('favorites-library');
+    } else if (phase === 'favorites-library') {
       setPhase('picking');
+      setCurrentStepIndex(PLANNING_STEPS.length - 1); // Go back to last picking step
     } else if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
     }
+  };
+
+  // Start day planning
+  const startDayPlanning = () => {
+    setPhase('day-planning');
   };
 
   // Request AI to load items
@@ -346,6 +354,170 @@ export function SwipeablePlanningView({
       </button>
     );
   };
+
+  // Get favorites by category for library view
+  const getFavoritesByCategory = () => {
+    const byCategory: Record<string, PlanningItem[]> = {
+      cities: [],
+      hotels: [],
+      restaurants: [],
+      cafes: [],
+      activities: [],
+    };
+
+    selectedItems.forEach(item => {
+      if (item.tags?.includes('cities')) byCategory.cities.push(item);
+      else if (item.tags?.includes('hotels') || item.category === 'hotels') byCategory.hotels.push(item);
+      else if (item.tags?.includes('restaurants') || item.category === 'restaurants') byCategory.restaurants.push(item);
+      else if (item.tags?.includes('cafes') || item.category === 'cafes') byCategory.cafes.push(item);
+      else byCategory.activities.push(item);
+    });
+
+    return byCategory;
+  };
+
+  // ============ FAVORITES LIBRARY PHASE ============
+  if (phase === 'favorites-library') {
+    const favoritesByCategory = getFavoritesByCategory();
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={goToPrevStep}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold">Your Favorites</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedItems.length} items saved to your trip
+            </p>
+          </div>
+        </div>
+
+        {/* Favorites by category */}
+        <div className="space-y-4">
+          {/* Cities */}
+          {favoritesByCategory.cities.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                Cities ({favoritesByCategory.cities.length})
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {favoritesByCategory.cities.map((item) => (
+                  <div key={item.id} className="w-20 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hotels */}
+          {favoritesByCategory.hotels.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <Hotel className="w-4 h-4 text-purple-500" />
+                Hotels ({favoritesByCategory.hotels.length})
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {favoritesByCategory.hotels.map((item) => (
+                  <div key={item.id} className="w-20 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Restaurants */}
+          {favoritesByCategory.restaurants.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+                Restaurants ({favoritesByCategory.restaurants.length})
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {favoritesByCategory.restaurants.map((item) => (
+                  <div key={item.id} className="w-20 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cafes */}
+          {favoritesByCategory.cafes.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <Coffee className="w-4 h-4 text-amber-600" />
+                Cafes ({favoritesByCategory.cafes.length})
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {favoritesByCategory.cafes.map((item) => (
+                  <div key={item.id} className="w-20 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Activities */}
+          {favoritesByCategory.activities.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <Ticket className="w-4 h-4 text-green-500" />
+                Activities ({favoritesByCategory.activities.length})
+              </h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {favoritesByCategory.activities.map((item) => (
+                  <div key={item.id} className="w-20 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Empty state */}
+        {selectedItems.length === 0 && (
+          <div className="py-12 text-center">
+            <Heart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">No favorites yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Go back and pick some items you love</p>
+          </div>
+        )}
+
+        {/* Start Day Planning button */}
+        {selectedItems.length > 0 && (
+          <Button className="w-full" size="lg" onClick={startDayPlanning}>
+            <Calendar className="w-4 h-4 mr-2" />
+            Plan Your {duration} Days
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   // ============ DAY PLANNING PHASE ============
   if (phase === 'day-planning') {
