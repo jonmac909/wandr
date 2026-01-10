@@ -28,6 +28,7 @@ import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { ChatSheet } from '@/components/chat/ChatSheet';
+import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
   DropdownMenu,
@@ -1221,69 +1222,150 @@ export default function TripPage() {
     );
   }
 
-  // If no itinerary yet, show generation prompt
+  // If no itinerary yet, show planning dashboard
   if (!itinerary) {
+    // Use type assertion for flexible tripDna structure from different sources
+    const dna = tripDna as any;
+    const destination = dna.interests?.destination || 'Your Trip';
+    const partyType = dna.travelerProfile?.partyType || dna.travelers?.type || 'traveler';
+    const pace = dna.vibeAndPace?.tripPace || 'balanced';
+    const tripTypes = dna.travelerProfile?.travelIdentities || dna.interests?.tripTypes || [];
+    const duration = dna.constraints?.duration?.days || dna.constraints?.duration?.min || 7;
+    const budgetLevel = dna.constraints?.budget?.level || '$$';
+
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-        <div className="max-w-2xl mx-auto px-4 py-16">
-          <Card>
-            <CardContent className="pt-8 text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold mb-2">Ready to Generate Your Itinerary</h1>
-              <p className="text-muted-foreground mb-6">
-                Your Trip DNA has been saved. Now Claude will generate a personalized
-                itinerary based on your preferences.
-              </p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onOpenProfile={() => setProfileOpen(true)}
+          onOpenChat={() => setChatOpen(true)}
+        />
 
-              {/* Trip DNA Summary */}
-              <div className="text-left bg-muted/50 rounded-lg p-4 mb-6 text-sm">
-                <h3 className="font-semibold mb-2">Your Trip DNA:</h3>
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>• <strong>Party:</strong> {tripDna.travelerProfile.partyType}</li>
-                  <li>• <strong>Pace:</strong> {tripDna.vibeAndPace.tripPace}</li>
-                  <li>• <strong>Destination:</strong> {tripDna.interests.destination || 'Not specified'}</li>
-                  <li>• <strong>Identities:</strong> {tripDna.travelerProfile.travelIdentities.slice(0, 3).join(', ')}</li>
-                  <li>• <strong>Budget:</strong> ${tripDna.constraints.budget.dailySpend.min}-${tripDna.constraints.budget.dailySpend.max}/day</li>
-                </ul>
-              </div>
+        <main className="max-w-2xl mx-auto px-4 py-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push('/')}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold">{destination}</h1>
+              <p className="text-sm text-muted-foreground">Draft Trip • {duration} days</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-left">
-                <h3 className="font-semibold text-amber-800 mb-2">
-                  🤖 Generation via Claude Opus 4.5
-                </h3>
-                <p className="text-sm text-amber-700">
-                  This app uses <strong>Claude Opus 4.5</strong> via Claude Code (your subscription) to generate itineraries.
-                  Ask Claude to generate your itinerary based on this Trip DNA.
-                </p>
-                <p className="text-sm text-amber-700 mt-2">
-                  <strong>Copy this prompt:</strong>
-                </p>
-                <pre className="bg-white border rounded p-2 text-xs mt-2 overflow-x-auto whitespace-pre-wrap">
-{`Using Claude Opus 4.5, generate a detailed itinerary for this Trip DNA. Include:
-- Optimized route with bases and movements
-- Daily plans with time blocks (morning-anchor, midday-flex, evening-vibe, rest-block)
-- Priority rankings (must-see, if-energy, skip-guilt-free)
-- Food layer with local classics, splurges, and backups
-- Packing list with capsule wardrobe and do-not-bring items
-
-Trip DNA:
-${JSON.stringify(tripDna, null, 2)}`}
-                </pre>
+          {/* Trip Summary Card */}
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-semibold">Trip Planning</h2>
+                  <p className="text-sm text-muted-foreground">Ready to generate your itinerary</p>
+                </div>
               </div>
 
-              <div className="flex gap-3 mt-6 justify-center">
-                <Link href="/questionnaire">
-                  <Button variant="outline">
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Edit Trip DNA
-                  </Button>
-                </Link>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Travelers</div>
+                  <div className="font-medium capitalize">{partyType}</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Pace</div>
+                  <div className="font-medium capitalize">{pace}</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Duration</div>
+                  <div className="font-medium">{duration} days</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-muted-foreground text-xs mb-1">Budget</div>
+                  <div className="font-medium">{budgetLevel}</div>
+                </div>
               </div>
+
+              {tripTypes.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-muted-foreground text-xs mb-2">Trip Style</div>
+                  <div className="flex flex-wrap gap-2">
+                    {tripTypes.slice(0, 4).map((type: string) => (
+                      <span key={type} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
+
+          {/* Generate Action */}
+          <Card className="mb-6 border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Generate Itinerary
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Use the chat assistant to generate a personalized day-by-day itinerary based on your preferences.
+              </p>
+              <Button onClick={() => setChatOpen(true)} className="w-full">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Open Chat to Generate
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Edit Link */}
+          <div className="text-center">
+            <Link href="/plan">
+              <Button variant="outline" size="sm">
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Trip Preferences
+              </Button>
+            </Link>
+          </div>
+        </main>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-sm w-full">
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-2">Delete Trip?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This will permanently delete this trip draft.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={handleDelete}>
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Overlays */}
+        <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} />
+        <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
+        <GeneralChatSheet open={chatOpen} onOpenChange={setChatOpen} />
       </div>
     );
   }
