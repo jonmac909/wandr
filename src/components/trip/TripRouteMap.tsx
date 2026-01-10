@@ -228,21 +228,47 @@ export function TripRouteMap({ bases, className, singleLocation }: TripRouteMapP
             {/* Hawaii dots */}
             <circle cx="12" cy="22" r="0.8" fill="#d1fae5" stroke="#86efac" strokeWidth="0.2" />
 
-            {/* Route line connecting destinations */}
-            {coords.length > 1 && (
-              <polyline
-                points={coords.map((c) => {
-                  const x = ((c.coords!.lng + 180) / 360) * 100;
-                  const y = ((90 - c.coords!.lat) / 180) * 60;
-                  return `${x},${y}`;
-                }).join(' ')}
-                fill="none"
-                stroke="#4f46e5"
-                strokeWidth={selectedLocation !== null ? "0.3" : "1"}
-                strokeDasharray={selectedLocation !== null ? "0.5,0.25" : "2,1"}
-                strokeLinecap="round"
-              />
-            )}
+            {/* Route line connecting destinations - handles Pacific crossing */}
+            {coords.length > 1 && (() => {
+              // Build segments that don't cross the antimeridian (180° / -180°)
+              const segments: string[][] = [];
+              let currentSegment: string[] = [];
+
+              coords.forEach((c, i) => {
+                const x = ((c.coords!.lng + 180) / 360) * 100;
+                const y = ((90 - c.coords!.lat) / 180) * 60;
+
+                if (i > 0) {
+                  const prevLng = coords[i - 1].coords!.lng;
+                  const currLng = c.coords!.lng;
+                  // If longitude difference > 180, we're crossing the Pacific
+                  if (Math.abs(currLng - prevLng) > 180) {
+                    // End current segment and start new one
+                    if (currentSegment.length > 0) {
+                      segments.push(currentSegment);
+                    }
+                    currentSegment = [];
+                  }
+                }
+                currentSegment.push(`${x},${y}`);
+              });
+
+              if (currentSegment.length > 0) {
+                segments.push(currentSegment);
+              }
+
+              return segments.map((segment, idx) => (
+                <polyline
+                  key={idx}
+                  points={segment.join(' ')}
+                  fill="none"
+                  stroke="#4f46e5"
+                  strokeWidth={selectedLocation !== null ? "0.3" : "1"}
+                  strokeDasharray={selectedLocation !== null ? "0.5,0.25" : "2,1"}
+                  strokeLinecap="round"
+                />
+              ));
+            })()}
 
             {/* Destination markers */}
             {coords.map((c, i) => {
