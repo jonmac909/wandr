@@ -46,8 +46,8 @@ import {
 // Helper to get popular cities for a destination - extended lists with 15+ cities
 function getCitiesForDestination(destination: string): string[] {
   const cityMap: Record<string, string[]> = {
-    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye', 'Kas', 'Trabzon', 'Bursa', 'Konya', 'Dalyan', 'Oludeniz'],
-    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo', 'Cordoba', 'Ibiza', 'Ronda', 'Salamanca', 'Girona', 'Segovia'],
+    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye', 'Kas', 'Trabzon', 'Bursa', 'Konya', 'Dalyan', 'Oludeniz', 'Marmaris', 'Alanya', 'Side'],
+    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo', 'Cordoba', 'Ibiza', 'Ronda', 'Salamanca', 'Girona', 'Segovia', 'Cadiz', 'Marbella', 'Palma de Mallorca'],
     'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna', 'Verona', 'Lake Como', 'Siena', 'Ravenna', 'Pisa', 'Sorrento'],
     'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes', 'Avignon', 'Annecy', 'Colmar', 'Saint-Tropez', 'Chamonix', 'Carcassonne'],
     'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka', 'Takayama', 'Nagoya', 'Kamakura', 'Naoshima', 'Kobe', 'Miyajima'],

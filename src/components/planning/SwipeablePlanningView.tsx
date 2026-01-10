@@ -128,7 +128,7 @@ const PLANNING_STEPS: CategoryStep[] = [
     title: 'Pick your cities',
     subtitle: 'Which cities do you want to explore?',
     icon: Building2,
-    gridSize: 9,
+    gridSize: 18,
   },
   {
     id: 'experiences',
@@ -185,7 +185,7 @@ export function SwipeablePlanningView({
   const [detailItem, setDetailItem] = useState<PlanningItem | null>(null);
   const [expandedDay, setExpandedDay] = useState<number>(0);
   const [initialized, setInitialized] = useState(false);
-  const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('all');
+  const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
@@ -232,6 +232,13 @@ export function SwipeablePlanningView({
     return ['Your destination'];
   }, [tripDna.interests.destinations, tripDna.interests.destination]);
 
+  // Set default destination filter to first destination
+  useEffect(() => {
+    if (destinations.length > 0 && !activeDestinationFilter) {
+      setActiveDestinationFilter(destinations[0]);
+    }
+  }, [destinations, activeDestinationFilter]);
+
   const currentStep = PLANNING_STEPS[currentStepIndex];
 
   // Get items for current step/category
@@ -243,7 +250,7 @@ export function SwipeablePlanningView({
 
   // Filter by active destination when viewing cities
   const stepItems = useMemo(() => {
-    if (currentStep.id !== 'cities' || activeDestinationFilter === 'all') {
+    if (currentStep.id !== 'cities' || !activeDestinationFilter) {
       return allStepItems;
     }
     return allStepItems.filter(item => item.tags?.includes(activeDestinationFilter));
@@ -828,108 +835,94 @@ export function SwipeablePlanningView({
 
   // ============ PICKING PHASE ============
   return (
-    <div className="space-y-3">
-      {/* Compact step header with back button */}
+    <div className="space-y-2">
+      {/* Compact header row: back button, icon, title, progress dots, selected count */}
       <div className="flex items-center gap-2">
         {currentStepIndex > 0 && (
-          <Button variant="ghost" size="sm" className="p-1 h-8 w-8" onClick={goToPrevStep}>
+          <Button variant="ghost" size="sm" className="p-1 h-7 w-7" onClick={goToPrevStep}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         )}
-        <div className="flex items-center gap-2 flex-1">
-          <currentStep.icon className="w-5 h-5 text-primary" />
-          <div>
-            <h2 className="text-base font-bold">{currentStep.title}</h2>
-            <p className="text-xs text-muted-foreground">{currentStep.subtitle}</p>
-          </div>
+        <currentStep.icon className="w-4 h-4 text-primary flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold">{currentStep.title}</h2>
+          <p className="text-[11px] text-muted-foreground truncate">{currentStep.subtitle}</p>
         </div>
-        <Badge variant="secondary" className="text-xs">{selectedIds.size} selected</Badge>
+        <Badge variant="secondary" className="text-[10px] h-5">{selectedIds.size} selected</Badge>
       </div>
 
-      {/* Numbered progress bar: 1 - 2 - 3 - 4 - 5 */}
-      <div className="flex items-center justify-center gap-0">
-        {PLANNING_STEPS.map((step, index) => {
-          const isComplete = index < currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-          return (
-            <div key={step.id} className="flex items-center">
-              <button
-                onClick={() => {
-                  if (index <= currentStepIndex) {
-                    setCurrentStepIndex(index);
-                    setGridOffset(0);
-                  }
-                }}
-                disabled={index > currentStepIndex}
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  isCurrent
-                    ? 'bg-primary text-primary-foreground'
-                    : isComplete
-                      ? 'bg-green-500 text-white'
-                      : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {isComplete ? <Check className="w-3.5 h-3.5" /> : index + 1}
-              </button>
-              {index < PLANNING_STEPS.length - 1 && (
-                <div className={`w-6 h-0.5 ${index < currentStepIndex ? 'bg-green-500' : 'bg-muted'}`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* Inline progress + picks row */}
+      <div className="flex items-center gap-3">
+        {/* Compact progress dots */}
+        <div className="flex items-center gap-0 flex-shrink-0">
+          {PLANNING_STEPS.map((step, index) => {
+            const isComplete = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            return (
+              <div key={step.id} className="flex items-center">
+                <button
+                  onClick={() => {
+                    if (index <= currentStepIndex) {
+                      setCurrentStepIndex(index);
+                      setGridOffset(0);
+                    }
+                  }}
+                  disabled={index > currentStepIndex}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                    isCurrent
+                      ? 'bg-primary text-primary-foreground'
+                      : isComplete
+                        ? 'bg-green-500 text-white'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {isComplete ? <Check className="w-3 h-3" /> : index + 1}
+                </button>
+                {index < PLANNING_STEPS.length - 1 && (
+                  <div className={`w-4 h-0.5 ${index < currentStepIndex ? 'bg-green-500' : 'bg-muted'}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-      {/* Your picks - fixed height inline display, doesn't expand/move page */}
-      <div className="h-10 flex items-center gap-2">
-        {selectedItems.length > 0 ? (
-          <>
-            <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500 flex-shrink-0" />
-            <span className="text-xs font-medium flex-shrink-0">Your picks:</span>
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-              {selectedItems.slice(0, 8).map((item) => (
+        {/* Picks thumbnails - inline with progress */}
+        {selectedItems.length > 0 && (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <Heart className="w-3 h-3 text-pink-500 fill-pink-500 flex-shrink-0" />
+            <div className="flex gap-0.5 overflow-hidden">
+              {selectedItems.slice(0, 5).map((item) => (
                 <div
                   key={item.id}
-                  className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
+                  className="w-6 h-6 rounded overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
                 >
                   <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                 </div>
               ))}
-              {selectedItems.length > 8 && (
-                <span className="text-xs text-muted-foreground self-center ml-1">+{selectedItems.length - 8}</span>
+              {selectedItems.length > 5 && (
+                <span className="text-[10px] text-muted-foreground self-center ml-0.5">+{selectedItems.length - 5}</span>
               )}
             </div>
-          </>
-        ) : (
-          <span className="text-xs text-muted-foreground">Tap hearts to add picks</span>
+          </div>
         )}
       </div>
 
-      {/* Destination filter tabs (for multiple destinations) */}
+      {/* Destination filter tabs (for multiple destinations) - no "All" option */}
       {currentStep.id === 'cities' && destinations.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => { setActiveDestinationFilter('all'); setGridOffset(0); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-              activeDestinationFilter === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            All ({allStepItems.length})
-          </button>
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           {destinations.map((dest) => {
             const destCount = allStepItems.filter(item => item.tags?.includes(dest)).length;
             return (
               <button
                 key={dest}
                 onClick={() => { setActiveDestinationFilter(dest); setGridOffset(0); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                   activeDestinationFilter === dest
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <MapPin className="w-3 h-3" />
+                <MapPin className="w-2.5 h-2.5" />
                 {dest} ({destCount})
               </button>
             );

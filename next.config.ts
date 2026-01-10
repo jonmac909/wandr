@@ -11,6 +11,8 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   // Enable Turbopack explicitly (Next.js 16 default)
   turbopack: {},
+  // Required for OpenNext/Cloudflare deployment
+  output: 'standalone',
 };
 
 export default withPWA(nextConfig);
