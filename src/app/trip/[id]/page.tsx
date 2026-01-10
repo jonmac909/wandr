@@ -35,6 +35,7 @@ import { PlanningCuration } from '@/components/planning/PlanningCuration';
 import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningView';
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
+import { getCityImage } from '@/lib/planning/city-images';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1409,24 +1410,25 @@ export default function TripPage() {
 
           {/* Trip Summary - Minimal with Edit */}
           <div className="mb-4 p-3 rounded-lg bg-muted/30 border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-wrap text-sm">
-                <span className="font-medium capitalize">{partyType}</span>
-                <span className="text-muted-foreground">•</span>
-                <span>{duration} days</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="capitalize">{pace}</span>
-                <span className="text-muted-foreground">•</span>
-                <span>{budgetLevel}</span>
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="font-medium capitalize">{partyType}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span>{duration} days</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="capitalize">{pace}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span>{budgetLevel}</span>
+                </div>
                 {tripTypes.length > 0 && (
-                  <>
-                    <span className="text-muted-foreground">•</span>
-                    {tripTypes.slice(0, 3).map((type: string) => (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {tripTypes.slice(0, 5).map((type: string) => (
                       <span key={type} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
                         {type}
                       </span>
                     ))}
-                  </>
+                  </div>
                 )}
               </div>
               <button
@@ -1454,12 +1456,11 @@ export default function TripPage() {
               if (category === 'cities') {
                 const cityNames = getCitiesForDestination(destination);
                 cityNames.forEach((city, idx) => {
-                  const seed = city.toLowerCase().replace(/[^a-z0-9]/g, '');
                   mockItems.push({
                     id: `city-${idx}`,
                     name: city,
                     description: `Explore ${city}`,
-                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                    imageUrl: getCityImage(city),
                     category: 'activities',
                     tags: ['cities'],
                     isFavorited: false,
@@ -1665,12 +1666,11 @@ export default function TripPage() {
                   destinations.forEach((dest, destIdx) => {
                     const cityNames = getCitiesForDestination(dest);
                     cityNames.forEach((city, idx) => {
-                      const seed = city.toLowerCase().replace(/[^a-z0-9]/g, '');
                       mockItems.push({
                         id: `city-${destIdx}-${idx}`,
                         name: city,
                         description: `Explore the wonders of ${city}`,
-                        imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                        imageUrl: getCityImage(city),
                         category: 'activities',
                         tags: ['cities', dest],
                         isFavorited: false,
