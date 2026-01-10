@@ -69,28 +69,52 @@ function PlanPageContent() {
 
   // Step 1: Basics
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
-  const [destinations, setDestinations] = useState<string[]>([]);
-  const [destinationInput, setDestinationInput] = useState('');
+  const [mainDestination, setMainDestination] = useState(''); // Country/region
+  const [mustVisitPlaces, setMustVisitPlaces] = useState<string[]>([]); // Specific cities
+  const [mustVisitInput, setMustVisitInput] = useState('');
+  const [avoidCrowds, setAvoidCrowds] = useState(false);
+  const [avoidLongDrives, setAvoidLongDrives] = useState(false);
+  const [avoidCities, setAvoidCities] = useState<string[]>([]);
+  const [avoidCityInput, setAvoidCityInput] = useState('');
 
   // Pre-fill destination from URL query param
   useEffect(() => {
     const destParam = searchParams.get('destination');
     if (destParam) {
-      setDestinations([destParam]);
+      // If it looks like "City, Country", extract both
+      if (destParam.includes(',')) {
+        const [city, country] = destParam.split(',').map(s => s.trim());
+        setMainDestination(country);
+        setMustVisitPlaces([city]);
+      } else {
+        setMainDestination(destParam);
+      }
       setDestinationMode('known');
     }
   }, [searchParams]);
 
-  const addDestination = () => {
-    const trimmed = destinationInput.trim();
-    if (trimmed && !destinations.includes(trimmed)) {
-      setDestinations([...destinations, trimmed]);
-      setDestinationInput('');
+  const addMustVisitPlace = () => {
+    const trimmed = mustVisitInput.trim();
+    if (trimmed && !mustVisitPlaces.includes(trimmed)) {
+      setMustVisitPlaces([...mustVisitPlaces, trimmed]);
+      setMustVisitInput('');
     }
   };
 
-  const removeDestination = (dest: string) => {
-    setDestinations(destinations.filter(d => d !== dest));
+  const removeMustVisitPlace = (place: string) => {
+    setMustVisitPlaces(mustVisitPlaces.filter(p => p !== place));
+  };
+
+  const addAvoidCity = () => {
+    const trimmed = avoidCityInput.trim();
+    if (trimmed && !avoidCities.includes(trimmed)) {
+      setAvoidCities([...avoidCities, trimmed]);
+      setAvoidCityInput('');
+    }
+  };
+
+  const removeAvoidCity = (city: string) => {
+    setAvoidCities(avoidCities.filter(c => c !== city));
   };
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [durationType, setDurationType] = useState<DurationType>('days');
@@ -145,6 +169,12 @@ function PlanPageContent() {
       const tripId = crypto.randomUUID();
       const actualDuration = durationType === 'days' ? durationDays : durationMonths * 30;
 
+      // Build destination string
+      const allPlaces = mustVisitPlaces.length > 0
+        ? mustVisitPlaces.join(' → ')
+        : mainDestination;
+      const destinationDisplay = mainDestination + (mustVisitPlaces.length > 0 ? ` (${allPlaces})` : '');
+
       // Build tripDna in the expected format for the trip page
       const tripDna = {
         id: tripId,
@@ -158,9 +188,15 @@ function PlanPageContent() {
           tripPace: pace,
         },
         interests: {
-          destination: destinationMode === 'known' ? destinations.join(' → ') : surpriseDescription,
-          destinations: destinationMode === 'known' ? destinations : [],
+          destination: destinationMode === 'known' ? destinationDisplay : surpriseDescription,
+          mainDestination: destinationMode === 'known' ? mainDestination : '',
+          mustVisitPlaces: destinationMode === 'known' ? mustVisitPlaces : [],
           tripTypes,
+        },
+        preferences: {
+          avoidCrowds,
+          avoidLongDrives,
+          avoidCities,
         },
         constraints: {
           duration: { days: actualDuration },
@@ -199,7 +235,7 @@ function PlanPageContent() {
     }
   };
 
-  const canProceedStep1 = destinationMode === 'known' ? destinations.length > 0 : surpriseDescription.trim();
+  const canProceedStep1 = destinationMode === 'known' ? mainDestination.trim() : surpriseDescription.trim();
   const canBuild = tripTypes.length > 0;
 
   return (
@@ -256,59 +292,132 @@ function PlanPageContent() {
                   </div>
                 </div>
                 {destinationMode === 'known' && (
-                  <div className="mt-3 pl-7 space-y-2">
-                    {/* Destination chips */}
-                    {destinations.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {destinations.map((dest) => (
-                          <Badge key={dest} variant="secondary" className="pl-2 pr-1 py-1 gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {dest}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeDestination(dest);
-                              }}
-                              className="ml-1 hover:bg-muted rounded-full p-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    {/* Input with add button */}
-                    <div className="flex gap-2">
+                  <div className="mt-4 pl-7 space-y-4" onClick={(e) => e.stopPropagation()}>
+                    {/* Main Destination (Country/Region) */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Where to go
+                      </label>
                       <Input
-                        placeholder={destinations.length === 0 ? "e.g., Japan, Tokyo..." : "Add another destination..."}
-                        value={destinationInput}
-                        onChange={(e) => setDestinationInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addDestination();
-                          }
-                        }}
-                        className="bg-background flex-1"
+                        placeholder="e.g., Switzerland, Japan, Southeast Asia..."
+                        value={mainDestination}
+                        onChange={(e) => setMainDestination(e.target.value)}
+                        className="bg-background"
                       />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addDestination();
-                        }}
-                        disabled={!destinationInput.trim()}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
                     </div>
-                    {destinations.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {destinations.length} destination{destinations.length > 1 ? 's' : ''} added
-                      </p>
-                    )}
+
+                    {/* Must-Visit Places (Optional) */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Must-visit places <span className="text-muted-foreground/60">(optional)</span>
+                      </label>
+                      {mustVisitPlaces.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {mustVisitPlaces.map((place) => (
+                            <Badge key={place} variant="secondary" className="pl-2 pr-1 py-1 gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {place}
+                              <button
+                                onClick={() => removeMustVisitPlace(place)}
+                                className="ml-1 hover:bg-muted rounded-full p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Add specific cities..."
+                          value={mustVisitInput}
+                          onChange={(e) => setMustVisitInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addMustVisitPlace();
+                            }
+                          }}
+                          className="bg-background flex-1"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={addMustVisitPlace}
+                          disabled={!mustVisitInput.trim()}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Avoid Section */}
+                    <div className="pt-2 border-t">
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Avoid <span className="text-muted-foreground/60">(optional)</span>
+                      </label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={avoidCrowds}
+                            onChange={(e) => setAvoidCrowds(e.target.checked)}
+                            className="rounded"
+                          />
+                          <span>Crowded tourist areas</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={avoidLongDrives}
+                            onChange={(e) => setAvoidLongDrives(e.target.checked)}
+                            className="rounded"
+                          />
+                          <span>Long drives (2+ hours)</span>
+                        </label>
+                        {/* Specific cities to avoid */}
+                        {avoidCities.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {avoidCities.map((city) => (
+                              <Badge key={city} variant="outline" className="pl-2 pr-1 py-1 gap-1 text-red-600 border-red-200">
+                                {city}
+                                <button
+                                  onClick={() => removeAvoidCity(city)}
+                                  className="ml-1 hover:bg-red-100 rounded-full p-0.5"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            placeholder="Skip specific cities..."
+                            value={avoidCityInput}
+                            onChange={(e) => setAvoidCityInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addAvoidCity();
+                              }
+                            }}
+                            className="bg-background flex-1 text-sm h-8"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={addAvoidCity}
+                            disabled={!avoidCityInput.trim()}
+                            className="h-8"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </button>
@@ -324,7 +433,7 @@ function PlanPageContent() {
                     {destinationMode === 'surprise' && <div className="w-full h-full rounded-full bg-white scale-50" />}
                   </div>
                   <div>
-                    <div className="font-medium">Surprise me</div>
+                    <div className="font-medium">Anywhere</div>
                     <div className="text-sm text-muted-foreground">Describe what you&apos;re looking for</div>
                   </div>
                 </div>
