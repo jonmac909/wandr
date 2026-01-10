@@ -42,6 +42,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Helper to get popular cities for a destination
+function getCitiesForDestination(destination: string): string[] {
+  const cityMap: Record<string, string[]> = {
+    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye'],
+    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo'],
+    'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna'],
+    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Normandy'],
+    'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka'],
+    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi'],
+    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Azores'],
+    'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki'],
+  };
+
+  // Check if destination matches a key (case-insensitive)
+  const normalizedDest = destination.toLowerCase();
+  for (const [country, cities] of Object.entries(cityMap)) {
+    if (normalizedDest.includes(country.toLowerCase()) || country.toLowerCase().includes(normalizedDest)) {
+      return cities;
+    }
+  }
+
+  // Default cities for unknown destinations
+  return [`${destination} City`, `Old Town`, `Beach Area`, `Historic District`, `Downtown`, `Harbor`, `Mountains`, `Countryside`, `Coast`];
+}
+
 // Pipeline category colors - all distinct warm neutral tones
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
   'Overview': { bg: 'bg-red-50 border-red-200', iconBg: 'bg-red-100 text-red-600', text: 'text-red-800' },
@@ -1492,6 +1517,98 @@ export default function TripPage() {
               onItemsChange={setPlanningItems}
               duration={itinerary?.meta?.totalDays}
               isTripLocked={isTripLocked}
+              onSearchAI={(query, category) => {
+                // Generate mock items for the category
+                const mockItems: PlanningItem[] = [];
+                const destinations = tripDna.interests.destinations || [tripDna.interests.destination || 'destination'];
+
+                if (category === 'cities') {
+                  // Generate city items for each destination
+                  destinations.forEach((dest, destIdx) => {
+                    const cityNames = getCitiesForDestination(dest);
+                    cityNames.forEach((city, idx) => {
+                      mockItems.push({
+                        id: `city-${destIdx}-${idx}`,
+                        name: city,
+                        description: `Explore the wonders of ${city}`,
+                        imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(city)},city`,
+                        category: 'activities',
+                        tags: ['cities'],
+                        isFavorited: false,
+                      });
+                    });
+                  });
+                } else if (category === 'experiences') {
+                  const experiences = [
+                    'Walking Tour', 'Food Tour', 'Museum Visit', 'Historical Site',
+                    'Local Market', 'Sunset Viewpoint', 'Cooking Class', 'Art Gallery',
+                    'Nature Hike'
+                  ];
+                  experiences.forEach((exp, idx) => {
+                    mockItems.push({
+                      id: `exp-${idx}`,
+                      name: exp,
+                      description: `Experience the best ${exp.toLowerCase()}`,
+                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(exp)},travel`,
+                      category: 'activities',
+                      tags: ['experiences'],
+                      rating: parseFloat((4 + Math.random()).toFixed(1)),
+                      priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+                      isFavorited: false,
+                    });
+                  });
+                } else if (category === 'hotels') {
+                  const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
+                  hotelTypes.forEach((hotel, idx) => {
+                    mockItems.push({
+                      id: `hotel-${idx}`,
+                      name: hotel,
+                      description: 'Beautiful accommodations',
+                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(hotel)},hotel`,
+                      category: 'hotels',
+                      tags: ['hotels'],
+                      rating: parseFloat((4 + Math.random()).toFixed(1)),
+                      priceInfo: ['$$', '$$$', '$$$$'][Math.floor(Math.random() * 3)],
+                      isFavorited: false,
+                    });
+                  });
+                } else if (category === 'restaurants') {
+                  const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food Market', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Cafe & Brunch'];
+                  restaurants.forEach((resto, idx) => {
+                    mockItems.push({
+                      id: `resto-${idx}`,
+                      name: resto,
+                      description: 'Delicious local cuisine',
+                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(resto)},food`,
+                      category: 'restaurants',
+                      tags: ['restaurants'],
+                      rating: parseFloat((4 + Math.random()).toFixed(1)),
+                      priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+                      isFavorited: false,
+                    });
+                  });
+                } else if (category === 'cafes') {
+                  const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
+                  cafes.forEach((cafe, idx) => {
+                    mockItems.push({
+                      id: `cafe-${idx}`,
+                      name: cafe,
+                      description: 'Perfect spot for coffee',
+                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(cafe)},coffee`,
+                      category: 'cafes',
+                      tags: ['cafes'],
+                      rating: parseFloat((4 + Math.random()).toFixed(1)),
+                      priceInfo: '$',
+                      isFavorited: false,
+                    });
+                  });
+                }
+
+                // Merge with existing items (don't duplicate)
+                const existingIds = new Set(planningItems.map(i => i.id));
+                const newItems = mockItems.filter(i => !existingIds.has(i.id));
+                setPlanningItems([...planningItems, ...newItems]);
+              }}
             />
           </div>
         </div>
