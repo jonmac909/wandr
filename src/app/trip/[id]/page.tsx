@@ -1517,7 +1517,7 @@ export default function TripPage() {
         onOpenChat={() => setChatOpen(true)}
       />
 
-      {/* Planning / Trip View Toggle - Minimal pill */}
+      {/* Planning / Trip View Toggle */}
       <div className="flex justify-center py-2">
         <div className="inline-flex gap-0.5 p-0.5 bg-muted rounded-full text-xs">
           <button
