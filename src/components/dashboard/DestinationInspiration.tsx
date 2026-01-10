@@ -264,23 +264,18 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
       {/* Places to Avoid */}
       <div className="pt-4 border-t">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">⚠️</span>
-          <h3 className="font-semibold text-sm">Skip for Now</h3>
+          <h3 className="font-semibold text-sm text-muted-foreground">Skip for Now</h3>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {PLACES_TO_AVOID.map((place) => (
             <div
               key={place.id}
-              className="p-3 rounded-xl bg-muted/50 border border-muted"
+              className="flex-shrink-0 w-36 p-3 rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-200/50 dark:border-red-900/30"
             >
-              <div className="flex items-start gap-2">
-                <span className="text-base">{place.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{place.destination}</div>
-                  <div className="text-xs text-destructive font-medium">{place.reason}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{place.details}</div>
-                </div>
-              </div>
+              <div className="text-2xl mb-2">{place.icon}</div>
+              <div className="font-semibold text-sm">{place.destination}</div>
+              <div className="text-xs text-red-600 dark:text-red-400 font-medium">{place.reason}</div>
+              <div className="text-[10px] text-muted-foreground mt-1 leading-tight">{place.details}</div>
             </div>
           ))}
         </div>
