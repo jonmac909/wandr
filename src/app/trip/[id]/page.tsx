@@ -116,7 +116,7 @@ export default function TripPage() {
   const [editingDestinations, setEditingDestinations] = useState(false);
   const [editedDestinations, setEditedDestinations] = useState('');
   const [planningFavorites, setPlanningFavorites] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'planning' | 'trip'>('trip');
+  const [viewMode, setViewMode] = useState<'planning' | 'trip'>('planning'); // Default to planning for new/draft trips
   const [planningItems, setPlanningItems] = useState<PlanningItem[]>([]);
   const [isTripLocked, setIsTripLocked] = useState(true); // Default locked for imported trips
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
@@ -239,6 +239,17 @@ export default function TripPage() {
       setTotalBudget(itinerary.meta.estimatedBudget.total);
     }
   }, [itinerary?.meta?.estimatedBudget?.total]);
+
+  // Set view mode based on whether trip has a generated itinerary
+  useEffect(() => {
+    if (itinerary && itinerary.days.length > 0) {
+      // Has generated itinerary - default to trip view
+      setViewMode('trip');
+    } else {
+      // Draft/new trip - stay in planning view
+      setViewMode('planning');
+    }
+  }, [itinerary]);
 
   // Initialize planning items from existing itinerary
   useEffect(() => {
@@ -1309,52 +1320,28 @@ export default function TripPage() {
             </Button>
           </div>
 
-          {/* Trip Summary Card */}
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h2 className="font-semibold">Trip Planning</h2>
-                  <p className="text-sm text-muted-foreground">Ready to generate your itinerary</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-muted-foreground text-xs mb-1">Travelers</div>
-                  <div className="font-medium capitalize">{partyType}</div>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-muted-foreground text-xs mb-1">Pace</div>
-                  <div className="font-medium capitalize">{pace}</div>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-muted-foreground text-xs mb-1">Duration</div>
-                  <div className="font-medium">{duration} days</div>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-muted-foreground text-xs mb-1">Budget</div>
-                  <div className="font-medium">{budgetLevel}</div>
-                </div>
-              </div>
-
+          {/* Trip Summary - Minimal */}
+          <div className="mb-4 p-3 rounded-lg bg-muted/30 border">
+            <div className="flex items-center gap-3 flex-wrap text-sm">
+              <span className="font-medium capitalize">{partyType}</span>
+              <span className="text-muted-foreground">•</span>
+              <span>{duration} days</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="capitalize">{pace}</span>
+              <span className="text-muted-foreground">•</span>
+              <span>{budgetLevel}</span>
               {tripTypes.length > 0 && (
-                <div className="mt-4">
-                  <div className="text-muted-foreground text-xs mb-2">Trip Style</div>
-                  <div className="flex flex-wrap gap-2">
-                    {tripTypes.slice(0, 4).map((type: string) => (
-                      <span key={type} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full capitalize">
-                        {type}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  {tripTypes.slice(0, 3).map((type: string) => (
+                    <span key={type} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                      {type}
+                    </span>
+                  ))}
+                </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Curation Widgets */}
           <div className="mb-6">
