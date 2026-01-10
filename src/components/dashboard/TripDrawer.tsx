@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MapPin, Calendar, ChevronRight, LayoutList, Archive, RotateCcw, MoreVertical } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, LayoutList, Archive, RotateCcw, MoreVertical, Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
   Sheet,
   SheetContent,
@@ -139,6 +140,7 @@ function DrawerTripCard({
   onRestore: () => void;
   isArchived: boolean;
 }) {
+  const router = useRouter();
   const title = trip.itinerary?.meta?.title ||
     trip.tripDna?.interests?.destination ||
     'Untitled Trip';
@@ -206,6 +208,15 @@ function DrawerTripCard({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {!isArchived && (
+            <DropdownMenuItem onClick={() => {
+              onOpenChange(false);
+              router.push(`/questionnaire?edit=${trip.id}`);
+            }}>
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+          )}
           {isArchived ? (
             <DropdownMenuItem onClick={onRestore}>
               <RotateCcw className="w-4 h-4 mr-2" />

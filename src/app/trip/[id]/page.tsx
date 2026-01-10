@@ -48,23 +48,110 @@ function getCitiesForDestination(destination: string): string[] {
     'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye'],
     'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo'],
     'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna'],
-    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Normandy'],
+    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes'],
     'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka'],
     'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi'],
-    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Azores'],
+    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Lagos'],
     'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki'],
+    'Switzerland': ['Zurich', 'Lucerne', 'Interlaken', 'Zermatt', 'Geneva', 'Bern', 'Basel', 'Lausanne', 'St. Moritz'],
+    'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Dresden', 'Heidelberg', 'Rothenburg', 'Nuremberg'],
+    'UK': ['London', 'Edinburgh', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton'],
+    'England': ['London', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol'],
+    'Scotland': ['Edinburgh', 'Glasgow', 'Isle of Skye', 'Inverness', 'St Andrews', 'Aberdeen', 'Stirling', 'Loch Ness', 'Highlands'],
+    'Netherlands': ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Delft', 'Leiden', 'Haarlem', 'Maastricht', 'Giethoorn'],
+    'Austria': ['Vienna', 'Salzburg', 'Innsbruck', 'Hallstatt', 'Graz', 'Linz', 'Kitzbühel', 'Bad Gastein', 'Zell am See'],
+    'Czech Republic': ['Prague', 'Český Krumlov', 'Brno', 'Karlovy Vary', 'Kutná Hora', 'Olomouc', 'Plzeň', 'Telč', 'Liberec'],
+    'Croatia': ['Dubrovnik', 'Split', 'Zagreb', 'Plitvice Lakes', 'Hvar', 'Rovinj', 'Zadar', 'Korčula', 'Pula'],
+    'Morocco': ['Marrakech', 'Fes', 'Chefchaouen', 'Casablanca', 'Essaouira', 'Tangier', 'Rabat', 'Sahara Desert', 'Agadir'],
+    'Egypt': ['Cairo', 'Luxor', 'Aswan', 'Alexandria', 'Giza', 'Hurghada', 'Sharm El Sheikh', 'Abu Simbel', 'Dahab'],
+    'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc'],
+    'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya'],
+    'Bali': ['Ubud', 'Seminyak', 'Canggu', 'Uluwatu', 'Sanur', 'Nusa Penida', 'Kuta', 'Amed', 'Lovina'],
+    'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Great Barrier Reef', 'Uluru', 'Tasmania', 'Gold Coast'],
+    'New Zealand': ['Auckland', 'Queenstown', 'Wellington', 'Rotorua', 'Milford Sound', 'Christchurch', 'Hobbiton', 'Bay of Islands', 'Wanaka'],
+    'USA': ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Las Vegas', 'Seattle', 'Boston', 'New Orleans'],
+    'Mexico': ['Mexico City', 'Cancun', 'Tulum', 'Oaxaca', 'Playa del Carmen', 'San Miguel de Allende', 'Guanajuato', 'Puerto Vallarta', 'Merida'],
+    'Peru': ['Lima', 'Cusco', 'Machu Picchu', 'Arequipa', 'Sacred Valley', 'Lake Titicaca', 'Nazca', 'Huacachina', 'Trujillo'],
+    'Argentina': ['Buenos Aires', 'Mendoza', 'Patagonia', 'Iguazu Falls', 'Bariloche', 'Salta', 'Ushuaia', 'Córdoba', 'El Calafate'],
+    'Brazil': ['Rio de Janeiro', 'São Paulo', 'Salvador', 'Florianópolis', 'Paraty', 'Fernando de Noronha', 'Iguaçu Falls', 'Manaus', 'Bonito'],
+    'Colombia': ['Bogotá', 'Medellín', 'Cartagena', 'Santa Marta', 'San Andrés', 'Tayrona', 'Villa de Leyva', 'Salento', 'Cali'],
+    'South Korea': ['Seoul', 'Busan', 'Jeju Island', 'Gyeongju', 'Incheon', 'Jeonju', 'Suwon', 'Gangneung', 'Sokcho'],
+    'China': ['Beijing', 'Shanghai', 'Hong Kong', 'Xi\'an', 'Guilin', 'Chengdu', 'Hangzhou', 'Suzhou', 'Zhangjiajie'],
+    'India': ['Delhi', 'Mumbai', 'Jaipur', 'Agra', 'Varanasi', 'Kerala', 'Goa', 'Udaipur', 'Rishikesh'],
+    'Singapore': ['Marina Bay', 'Sentosa', 'Chinatown', 'Little India', 'Orchard Road', 'Gardens by the Bay', 'Clarke Quay', 'Kampong Glam', 'Jurong'],
+    'Malaysia': ['Kuala Lumpur', 'Penang', 'Langkawi', 'Malacca', 'Cameron Highlands', 'Borneo', 'Ipoh', 'Kota Kinabalu', 'Tioman Island'],
+    'Philippines': ['Manila', 'Palawan', 'Boracay', 'Cebu', 'Siargao', 'Bohol', 'Baguio', 'Vigan', 'Coron'],
+    'Iceland': ['Reykjavik', 'Blue Lagoon', 'Golden Circle', 'Vik', 'Akureyri', 'Jokulsarlon', 'Húsavík', 'Westfjords', 'Snæfellsnes'],
+    'Norway': ['Oslo', 'Bergen', 'Tromsø', 'Lofoten Islands', 'Stavanger', 'Trondheim', 'Geirangerfjord', 'Ålesund', 'Svalbard'],
+    'Sweden': ['Stockholm', 'Gothenburg', 'Malmö', 'Uppsala', 'Lapland', 'Visby', 'Kiruna', 'Öland', 'Dalarna'],
+    'Denmark': ['Copenhagen', 'Aarhus', 'Odense', 'Skagen', 'Roskilde', 'Billund', 'Helsingør', 'Aalborg', 'Bornholm'],
+    'Finland': ['Helsinki', 'Rovaniemi', 'Lapland', 'Turku', 'Tampere', 'Oulu', 'Savonlinna', 'Porvoo', 'Levi'],
+    'Ireland': ['Dublin', 'Galway', 'Cork', 'Ring of Kerry', 'Cliffs of Moher', 'Killarney', 'Belfast', 'Dingle', 'Giant\'s Causeway'],
+    'Belgium': ['Brussels', 'Bruges', 'Ghent', 'Antwerp', 'Leuven', 'Liège', 'Mechelen', 'Dinant', 'Ypres'],
+    'Poland': ['Warsaw', 'Krakow', 'Gdańsk', 'Wrocław', 'Poznań', 'Zakopane', 'Łódź', 'Toruń', 'Auschwitz'],
+    'Hungary': ['Budapest', 'Eger', 'Pécs', 'Debrecen', 'Szeged', 'Lake Balaton', 'Szentendre', 'Győr', 'Visegrád'],
+    'Romania': ['Bucharest', 'Transylvania', 'Brașov', 'Sibiu', 'Cluj-Napoca', 'Bran Castle', 'Timișoara', 'Sighișoara', 'Maramureș'],
+    'Bulgaria': ['Sofia', 'Plovdiv', 'Veliko Tarnovo', 'Bansko', 'Varna', 'Rila Monastery', 'Nessebar', 'Koprivshtitsa', 'Sozopol'],
+    'Slovenia': ['Ljubljana', 'Lake Bled', 'Piran', 'Postojna', 'Maribor', 'Škocjan Caves', 'Soča Valley', 'Ptuj', 'Kranjska Gora'],
+    'Montenegro': ['Kotor', 'Budva', 'Perast', 'Durmitor', 'Sveti Stefan', 'Cetinje', 'Herceg Novi', 'Ulcinj', 'Podgorica'],
+    'Albania': ['Tirana', 'Berat', 'Gjirokastër', 'Saranda', 'Ksamil', 'Shkodër', 'Vlorë', 'Korçë', 'Butrint'],
+    'Malta': ['Valletta', 'Mdina', 'Gozo', 'Comino', 'Sliema', 'St. Julian\'s', 'Blue Lagoon', 'Marsaxlokk', 'Rabat'],
+    'Cyprus': ['Nicosia', 'Limassol', 'Paphos', 'Larnaca', 'Ayia Napa', 'Troodos', 'Kyrenia', 'Famagusta', 'Protaras'],
+    'Israel': ['Tel Aviv', 'Jerusalem', 'Haifa', 'Dead Sea', 'Eilat', 'Nazareth', 'Acre', 'Caesarea', 'Masada'],
+    'Jordan': ['Amman', 'Petra', 'Wadi Rum', 'Dead Sea', 'Aqaba', 'Jerash', 'Madaba', 'Dana', 'Ajloun'],
+    'UAE': ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ras Al Khaimah', 'Fujairah', 'Al Ain', 'Ajman', 'Hatta', 'Liwa'],
+    'Dubai': ['Downtown Dubai', 'Palm Jumeirah', 'Dubai Marina', 'Old Dubai', 'Jumeirah Beach', 'Dubai Creek', 'Business Bay', 'Al Barsha', 'Deira'],
+    'South Africa': ['Cape Town', 'Johannesburg', 'Kruger National Park', 'Durban', 'Garden Route', 'Stellenbosch', 'Pretoria', 'Drakensberg', 'Port Elizabeth'],
+    'Kenya': ['Nairobi', 'Masai Mara', 'Mombasa', 'Amboseli', 'Lake Nakuru', 'Diani Beach', 'Lamu', 'Tsavo', 'Mt Kenya'],
+    'Tanzania': ['Dar es Salaam', 'Serengeti', 'Zanzibar', 'Kilimanjaro', 'Ngorongoro', 'Arusha', 'Stone Town', 'Lake Manyara', 'Tarangire'],
+    'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Banff', 'Quebec City', 'Niagara Falls', 'Ottawa', 'Victoria', 'Whistler'],
+    'Cuba': ['Havana', 'Trinidad', 'Viñales', 'Varadero', 'Cienfuegos', 'Santiago de Cuba', 'Camagüey', 'Baracoa', 'Santa Clara'],
+    'Costa Rica': ['San José', 'Arenal', 'Manuel Antonio', 'Monteverde', 'Tamarindo', 'Puerto Viejo', 'Tortuguero', 'Guanacaste', 'La Fortuna'],
   };
 
   // Check if destination matches a key (case-insensitive)
-  const normalizedDest = destination.toLowerCase();
+  const normalizedDest = destination.toLowerCase().trim();
   for (const [country, cities] of Object.entries(cityMap)) {
-    if (normalizedDest.includes(country.toLowerCase()) || country.toLowerCase().includes(normalizedDest)) {
+    if (normalizedDest === country.toLowerCase() ||
+        normalizedDest.includes(country.toLowerCase()) ||
+        country.toLowerCase().includes(normalizedDest)) {
       return cities;
     }
   }
 
-  // Default cities for unknown destinations
-  return [`${destination} City`, `Old Town`, `Beach Area`, `Historic District`, `Downtown`, `Harbor`, `Mountains`, `Countryside`, `Coast`];
+  // Try partial matching for common variations
+  const partialMatches: Record<string, string> = {
+    'swiss': 'Switzerland',
+    'greek': 'Greece',
+    'italian': 'Italy',
+    'spanish': 'Spain',
+    'french': 'France',
+    'german': 'Germany',
+    'japanese': 'Japan',
+    'thai': 'Thailand',
+    'portuguese': 'Portugal',
+    'turkish': 'Turkey',
+    'dutch': 'Netherlands',
+    'british': 'UK',
+    'american': 'USA',
+    'mexican': 'Mexico',
+    'canadian': 'Canada',
+    'australian': 'Australia',
+    'korean': 'South Korea',
+    'chinese': 'China',
+    'indian': 'India',
+    'brazilian': 'Brazil',
+    'colombian': 'Colombia',
+  };
+
+  for (const [partial, country] of Object.entries(partialMatches)) {
+    if (normalizedDest.includes(partial)) {
+      return cityMap[country] || [];
+    }
+  }
+
+  // Default: return destination as a single "city" option
+  return [destination];
 }
 
 // Pipeline category colors - all distinct warm neutral tones
@@ -1362,7 +1449,7 @@ export default function TripPage() {
                     id: `city-${idx}`,
                     name: city,
                     description: `Explore ${city}`,
-                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(city)},city,travel`,
+                    imageUrl: `https://picsum.photos/seed/${encodeURIComponent(city)}-city/400/300`,
                     category: 'activities',
                     tags: ['cities'],
                     isFavorited: false,
@@ -1375,7 +1462,7 @@ export default function TripPage() {
                     id: `exp-${idx}`,
                     name: exp,
                     description: `Experience the best ${exp.toLowerCase()}`,
-                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(exp)},travel`,
+                    imageUrl: `https://picsum.photos/seed/${encodeURIComponent(exp)}-exp/400/300`,
                     category: 'activities',
                     tags: ['experiences'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1390,7 +1477,7 @@ export default function TripPage() {
                     id: `hotel-${idx}`,
                     name: hotel,
                     description: 'Beautiful accommodations',
-                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(hotel)},hotel,room`,
+                    imageUrl: `https://picsum.photos/seed/${encodeURIComponent(hotel)}-hotel/400/300`,
                     category: 'hotels',
                     tags: ['hotels'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1405,7 +1492,7 @@ export default function TripPage() {
                     id: `resto-${idx}`,
                     name: resto,
                     description: 'Delicious local cuisine',
-                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(resto)},food,restaurant`,
+                    imageUrl: `https://picsum.photos/seed/${encodeURIComponent(resto)}-food/400/300`,
                     category: 'restaurants',
                     tags: ['restaurants'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1420,7 +1507,7 @@ export default function TripPage() {
                     id: `cafe-${idx}`,
                     name: cafe,
                     description: 'Perfect spot for coffee',
-                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(cafe)},coffee,cafe`,
+                    imageUrl: `https://picsum.photos/seed/${encodeURIComponent(cafe)}-cafe/400/300`,
                     category: 'cafes',
                     tags: ['cafes'],
                     rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1434,6 +1521,7 @@ export default function TripPage() {
               const newItems = mockItems.filter(i => !existingIds.has(i.id));
               setPlanningItems([...planningItems, ...newItems]);
             }}
+            onEditPreferences={() => router.push(`/questionnaire?edit=${tripId}`)}
           />
         </main>
 
@@ -1568,9 +1656,9 @@ export default function TripPage() {
                         id: `city-${destIdx}-${idx}`,
                         name: city,
                         description: `Explore the wonders of ${city}`,
-                        imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(city)},city`,
+                        imageUrl: `https://picsum.photos/seed/${encodeURIComponent(city)}-city/400/300`,
                         category: 'activities',
-                        tags: ['cities'],
+                        tags: ['cities', dest],
                         isFavorited: false,
                       });
                     });
@@ -1586,7 +1674,7 @@ export default function TripPage() {
                       id: `exp-${idx}`,
                       name: exp,
                       description: `Experience the best ${exp.toLowerCase()}`,
-                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(exp)},travel`,
+                      imageUrl: `https://picsum.photos/seed/${encodeURIComponent(exp)}-exp/400/300`,
                       category: 'activities',
                       tags: ['experiences'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1601,7 +1689,7 @@ export default function TripPage() {
                       id: `hotel-${idx}`,
                       name: hotel,
                       description: 'Beautiful accommodations',
-                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(hotel)},hotel`,
+                      imageUrl: `https://picsum.photos/seed/${encodeURIComponent(hotel)}-hotel/400/300`,
                       category: 'hotels',
                       tags: ['hotels'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1616,7 +1704,7 @@ export default function TripPage() {
                       id: `resto-${idx}`,
                       name: resto,
                       description: 'Delicious local cuisine',
-                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(resto)},food`,
+                      imageUrl: `https://picsum.photos/seed/${encodeURIComponent(resto)}-food/400/300`,
                       category: 'restaurants',
                       tags: ['restaurants'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1631,7 +1719,7 @@ export default function TripPage() {
                       id: `cafe-${idx}`,
                       name: cafe,
                       description: 'Perfect spot for coffee',
-                      imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(cafe)},coffee`,
+                      imageUrl: `https://picsum.photos/seed/${encodeURIComponent(cafe)}-cafe/400/300`,
                       category: 'cafes',
                       tags: ['cafes'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1646,6 +1734,7 @@ export default function TripPage() {
                 const newItems = mockItems.filter(i => !existingIds.has(i.id));
                 setPlanningItems([...planningItems, ...newItems]);
               }}
+              onEditPreferences={() => router.push(`/questionnaire?edit=${tripId}`)}
             />
           </div>
         </div>

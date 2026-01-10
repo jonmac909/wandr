@@ -34,6 +34,10 @@ import {
   Users,
   Calendar,
   Zap,
+  Pencil,
+  X,
+  Users2,
+  Image,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { Itinerary } from '@/types/itinerary';
@@ -52,6 +56,7 @@ interface SwipeablePlanningViewProps {
   onSearchAI?: (query: string, category: string) => void;
   duration?: number; // Trip duration in days
   isTripLocked?: boolean; // When Trip View is locked, only allow adding (not removing/editing)
+  onEditPreferences?: () => void; // Open questionnaire to edit preferences
 }
 
 interface CategoryStep {
@@ -72,6 +77,47 @@ const DAY_COLORS = [
   { bg: 'bg-emerald-500', text: 'text-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
   { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' },
 ];
+
+// City information database for rich detail modals
+interface CityInfo {
+  bestFor: string[];
+  crowdLevel: 'Low' | 'Moderate' | 'High' | 'Very High';
+  bestTime: string;
+  topSites: string[];
+  localTip: string;
+  avgDays: string;
+}
+
+const CITY_INFO: Record<string, CityInfo> = {
+  // Turkey
+  'Istanbul': { bestFor: ['History', 'Culture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Hagia Sophia', 'Blue Mosque', 'Grand Bazaar', 'Topkapi Palace'], localTip: 'Take a Bosphorus ferry at sunset for stunning views', avgDays: '3-4 days' },
+  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance, especially for sunrise flights', avgDays: '2-3 days' },
+  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days' },
+  'Ephesus': { bestFor: ['History', 'Architecture'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Library of Celsus', 'Temple of Artemis', 'Terrace Houses', 'Great Theatre'], localTip: 'Arrive early morning to beat tour groups, enter from upper gate', avgDays: '1 day' },
+  'Pamukkale': { bestFor: ['Nature', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Travertine Terraces', 'Hierapolis Ancient City', 'Cleopatra Pool', 'Necropolis'], localTip: 'Visit at sunset when the terraces glow pink and gold', avgDays: '1-2 days' },
+  // Switzerland
+  'Zurich': { bestFor: ['Culture', 'Shopping', 'Food'], crowdLevel: 'Moderate', bestTime: 'Jun-Sep', topSites: ['Old Town (Altstadt)', 'Lake Zurich', 'Kunsthaus', 'Bahnhofstrasse'], localTip: 'Take the free bikes from Züri rollt stations to explore', avgDays: '1-2 days' },
+  'Lucerne': { bestFor: ['Scenery', 'Culture', 'Nature'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Chapel Bridge', 'Mt. Pilatus', 'Lake Lucerne', 'Lion Monument'], localTip: 'Take the Golden Round Trip combining boat, cogwheel train, and cable car', avgDays: '2-3 days' },
+  'Interlaken': { bestFor: ['Adventure', 'Nature', 'Photography'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Jungfraujoch', 'Harder Kulm', 'Paragliding', 'Lake Thun'], localTip: 'Get the Jungfrau Travel Pass for unlimited transport in the region', avgDays: '2-3 days' },
+  'Zermatt': { bestFor: ['Skiing', 'Hiking', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr (ski), Jul-Sep (hike)', topSites: ['Matterhorn', 'Gornergrat', '5 Lakes Walk', 'Glacier Paradise'], localTip: 'The town is car-free - arrive by train for the full experience', avgDays: '2-3 days' },
+  'Geneva': { bestFor: ['Culture', 'Luxury', 'Food'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Jet d\'Eau', 'Old Town', 'CERN', 'Lake Geneva'], localTip: 'Free public transport with your hotel stay - ask for the Geneva Transport Card', avgDays: '1-2 days' },
+  // Spain
+  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days' },
+  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days' },
+  'Seville': { bestFor: ['History', 'Architecture', 'Flamenco'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alcázar', 'Cathedral & Giralda', 'Plaza de España', 'Triana'], localTip: 'Visit during Feria de Abril for the ultimate Seville experience', avgDays: '2-3 days' },
+  'Granada': { bestFor: ['History', 'Architecture', 'Food'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alhambra', 'Albaicín', 'Sacromonte', 'Granada Cathedral'], localTip: 'Tapas are free with drinks - bar hop through Albaicín', avgDays: '2-3 days' },
+  // Italy
+  'Rome': { bestFor: ['History', 'Art', 'Food'], crowdLevel: 'Very High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Colosseum', 'Vatican Museums', 'Trevi Fountain', 'Roman Forum'], localTip: 'Book skip-the-line tickets for Vatican and Colosseum', avgDays: '3-4 days' },
+  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days' },
+  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience away from crowds', avgDays: '2-3 days' },
+  'Amalfi Coast': { bestFor: ['Scenery', 'Beach', 'Food'], crowdLevel: 'High', bestTime: 'May-Jun, Sep', topSites: ['Positano', 'Ravello', 'Amalfi', 'Path of the Gods'], localTip: 'Take SITA buses - much cheaper than taxis on the winding roads', avgDays: '3-4 days' },
+  // Default fallback
+  '_default': { bestFor: ['Exploration'], crowdLevel: 'Moderate', bestTime: 'Varies by season', topSites: ['Local landmarks', 'City center', 'Markets', 'Museums'], localTip: 'Ask locals for their favorite hidden spots', avgDays: '2-3 days' },
+};
+
+function getCityInfo(cityName: string): CityInfo {
+  return CITY_INFO[cityName] || CITY_INFO['_default'];
+}
 
 // Planning flow steps
 const PLANNING_STEPS: CategoryStep[] = [
@@ -122,6 +168,7 @@ export function SwipeablePlanningView({
   onSearchAI,
   duration: propDuration,
   isTripLocked = false,
+  onEditPreferences,
 }: SwipeablePlanningViewProps) {
   // Calculate duration from itinerary or props
   const duration = propDuration || getItineraryDuration(itinerary) || 7;
@@ -129,8 +176,8 @@ export function SwipeablePlanningView({
   // Determine if this is an imported trip (has existing itinerary)
   const hasExistingItinerary = Boolean(itinerary && itinerary.days.length > 0);
 
-  // For imported trips, start in day-planning phase (everything already picked)
-  const [phase, setPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'day-planning' : 'picking');
+  // For imported trips, start in favorites-library phase to review picks before day planning
+  const [phase, setPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'favorites-library' : 'picking');
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -138,6 +185,8 @@ export function SwipeablePlanningView({
   const [expandedDay, setExpandedDay] = useState<number>(0);
   const [initialized, setInitialized] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('all');
+  const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -181,7 +230,15 @@ export function SwipeablePlanningView({
     return items.filter((item) => item.tags?.includes(stepId));
   };
 
-  const stepItems = getStepItems(currentStep.id);
+  const allStepItems = getStepItems(currentStep.id);
+
+  // Filter by active destination when viewing cities
+  const stepItems = useMemo(() => {
+    if (currentStep.id !== 'cities' || activeDestinationFilter === 'all') {
+      return allStepItems;
+    }
+    return allStepItems.filter(item => item.tags?.includes(activeDestinationFilter));
+  }, [allStepItems, currentStep.id, activeDestinationFilter]);
 
   // Auto-load items when entering a step with no items
   useEffect(() => {
@@ -312,25 +369,32 @@ export function SwipeablePlanningView({
     }
   };
 
+  // Check if item is a city
+  const isCity = (item: PlanningItem) => item.tags?.includes('cities');
+
   // Item grid square component
   const ItemSquare = ({ item }: { item: PlanningItem }) => {
     const isSelected = selectedIds.has(item.id);
+    const itemIsCity = isCity(item);
 
     return (
-      <button
-        onClick={() => toggleSelect(item.id, item.name)}
-        className="relative aspect-square rounded-xl overflow-hidden group"
-      >
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      <div className="relative aspect-square rounded-xl overflow-hidden group">
+        {/* Main click area - toggles selection */}
+        <button
+          onClick={() => toggleSelect(item.id, item.name)}
+          className="absolute inset-0 w-full h-full"
+        >
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        </button>
 
         {/* Selection indicator (top-right) */}
         <div
-          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all pointer-events-none ${
             isSelected
               ? 'bg-green-500 text-white scale-100'
               : 'bg-white/30 backdrop-blur-sm text-white/70 scale-90 group-hover:scale-100'
@@ -341,14 +405,14 @@ export function SwipeablePlanningView({
 
         {/* Rating */}
         {item.rating && (
-          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">
+          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 pointer-events-none">
             <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
             <span className="text-[10px] text-white font-medium">{item.rating}</span>
           </div>
         )}
 
         {/* Name */}
-        <div className="absolute bottom-0 left-0 right-0 p-2">
+        <div className="absolute bottom-0 left-0 right-0 p-2 pointer-events-none">
           <p className="text-xs font-semibold text-white line-clamp-2 leading-tight">
             {item.name}
           </p>
@@ -357,17 +421,21 @@ export function SwipeablePlanningView({
           )}
         </div>
 
-        {/* Info button */}
+        {/* Info button - opens detail modal */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setDetailItem(item);
+            if (itemIsCity) {
+              setCityDetailItem(item);
+            } else {
+              setDetailItem(item);
+            }
           }}
-          className="absolute bottom-2 right-2 w-5 h-5 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/50"
         >
           <MapPin className="w-3 h-3 text-white" />
         </button>
-      </button>
+      </div>
     );
   };
 
@@ -742,23 +810,37 @@ export function SwipeablePlanningView({
     <div className="space-y-4">
       {/* Your Preferences (TripDNA Summary) - Collapsible */}
       <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 overflow-hidden">
-        <button
-          onClick={() => setShowPreferences(!showPreferences)}
-          className="w-full flex items-center justify-between p-3 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary" />
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="flex-1 flex items-center justify-between p-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold">Your Preferences</h3>
+                <p className="text-xs text-muted-foreground">
+                  {destinations.join(', ')} • {formatPartyType(tripDna.travelerProfile.partyType)}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold">Your Preferences</h3>
-              <p className="text-xs text-muted-foreground">
-                {destinations.join(', ')} • {formatPartyType(tripDna.travelerProfile.partyType)}
-              </p>
-            </div>
-          </div>
-          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showPreferences ? 'rotate-180' : ''}`} />
-        </button>
+            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showPreferences ? 'rotate-180' : ''}`} />
+          </button>
+          {onEditPreferences && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditPreferences();
+              }}
+              className="p-3 text-muted-foreground hover:text-primary transition-colors"
+              title="Edit preferences"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         {showPreferences && (
           <div className="px-3 pb-3 space-y-3">
@@ -880,15 +962,36 @@ export function SwipeablePlanningView({
         <Badge variant="secondary">{selectedIds.size} selected</Badge>
       </div>
 
-      {/* Multiple destinations indicator */}
+      {/* Destination filter tabs (for multiple destinations) */}
       {currentStep.id === 'cities' && destinations.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {destinations.map((dest) => (
-            <Badge key={dest} variant="outline" className="text-xs">
-              <MapPin className="w-3 h-3 mr-1" />
-              {dest}
-            </Badge>
-          ))}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => setActiveDestinationFilter('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+              activeDestinationFilter === 'all'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            All ({allStepItems.length})
+          </button>
+          {destinations.map((dest) => {
+            const destCount = allStepItems.filter(item => item.tags?.includes(dest)).length;
+            return (
+              <button
+                key={dest}
+                onClick={() => setActiveDestinationFilter(dest)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                  activeDestinationFilter === dest
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                <MapPin className="w-3 h-3" />
+                {dest} ({destCount})
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -1064,6 +1167,152 @@ export function SwipeablePlanningView({
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* City Detail Modal - Rich information with multiple images, crowd levels, highlights */}
+      <Dialog open={!!cityDetailItem} onOpenChange={() => setCityDetailItem(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          {cityDetailItem && (() => {
+            const cityInfo = getCityInfo(cityDetailItem.name);
+            const isSelected = selectedIds.has(cityDetailItem.id);
+
+            return (
+              <>
+                {/* Image gallery */}
+                <div className="relative -mt-6 -mx-6 mb-4">
+                  <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                    {[1, 2, 3].map((imgNum) => (
+                      <div key={imgNum} className="w-full flex-shrink-0 snap-center">
+                        <img
+                          src={`https://picsum.photos/seed/${encodeURIComponent(cityDetailItem.name)}-${imgNum}/600/300`}
+                          alt={`${cityDetailItem.name} ${imgNum}`}
+                          className="w-full h-48 object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Image indicator dots */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                    {[1, 2, 3].map((dot) => (
+                      <div key={dot} className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                    ))}
+                  </div>
+                </div>
+
+                <DialogHeader>
+                  <DialogTitle className="flex items-start justify-between gap-2 text-xl">
+                    <span>{cityDetailItem.name}</span>
+                    <button
+                      onClick={() => {
+                        toggleSelect(cityDetailItem.id, cityDetailItem.name);
+                      }}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        isSelected ? 'bg-green-500 text-white' : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {isSelected ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    </button>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  {/* Quick stats */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Users2 className="w-3.5 h-3.5" />
+                        Crowd Level
+                      </div>
+                      <p className={`text-sm font-semibold ${
+                        cityInfo.crowdLevel === 'Low' ? 'text-green-600' :
+                        cityInfo.crowdLevel === 'Moderate' ? 'text-amber-600' :
+                        cityInfo.crowdLevel === 'High' ? 'text-orange-600' :
+                        'text-red-600'
+                      }`}>
+                        {cityInfo.crowdLevel}
+                      </p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        Recommended Stay
+                      </div>
+                      <p className="text-sm font-semibold">{cityInfo.avgDays}</p>
+                    </div>
+                  </div>
+
+                  {/* Best time to visit */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-xs text-blue-600 mb-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Best Time to Visit
+                    </div>
+                    <p className="text-sm font-medium text-blue-800">{cityInfo.bestTime}</p>
+                  </div>
+
+                  {/* Best for tags */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">BEST FOR</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cityInfo.bestFor.map((tag) => (
+                        <span key={tag} className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top sites */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">TOP SITES & ATTRACTIONS</h4>
+                    <div className="space-y-2">
+                      {cityInfo.topSites.map((site, idx) => (
+                        <div key={site} className="flex items-center gap-2 text-sm">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
+                            {idx + 1}
+                          </span>
+                          {site}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Local tip */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <h4 className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Local Tip
+                    </h4>
+                    <p className="text-sm text-amber-700">{cityInfo.localTip}</p>
+                  </div>
+
+                  {/* Action button */}
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    variant={isSelected ? 'outline' : 'default'}
+                    onClick={() => {
+                      toggleSelect(cityDetailItem.id, cityDetailItem.name);
+                      setCityDetailItem(null);
+                    }}
+                  >
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Added to Trip
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add {cityDetailItem.name} to Trip
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

@@ -21,6 +21,9 @@ interface QuestionnaireState {
   // Trip DNA being built
   tripDna: TripDNA;
 
+  // Edit mode - existing trip ID
+  editingTripId: string | null;
+
   // Validation errors by field
   errors: Record<string, string>;
 
@@ -32,6 +35,10 @@ interface QuestionnaireState {
   setStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
+
+  // Set entire TripDNA (for edit mode)
+  setTripDna: (tripDna: TripDNA) => void;
+  setEditingTripId: (id: string | null) => void;
 
   // Trip DNA updates (partial updates merge with existing)
   updateTravelerProfile: (data: Partial<TripDNA['travelerProfile']>) => void;
@@ -58,11 +65,15 @@ export const useQuestionnaireStore = create<QuestionnaireState>()(
     (set, get) => ({
       currentStep: 0,
       tripDna: createTripDNA(),
+      editingTripId: null,
       errors: {},
       isGenerating: false,
       generationProgress: 0,
 
       setStep: (step) => set({ currentStep: step }),
+
+      setTripDna: (tripDna) => set({ tripDna }),
+      setEditingTripId: (editingTripId) => set({ editingTripId }),
 
       nextStep: () => {
         const { currentStep } = get();
@@ -150,6 +161,7 @@ export const useQuestionnaireStore = create<QuestionnaireState>()(
       reset: () => set({
         currentStep: 0,
         tripDna: createTripDNA(),
+        editingTripId: null,
         errors: {},
         isGenerating: false,
         generationProgress: 0,

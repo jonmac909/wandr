@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuestionnaireStore, QUESTIONNAIRE_STEPS } from '@/lib/questionnaire/store';
 import { TravelerProfileStep } from './steps/traveler-profile';
 import { VibePaceStep } from './steps/vibe-pace';
@@ -7,10 +9,50 @@ import { ConstraintsStep } from './steps/constraints';
 import { InterestsStep } from './steps/interests';
 import { LogisticsStep } from './steps/logistics';
 import { ReviewStep } from './steps/review';
+import { tripDb } from '@/lib/db/indexed-db';
 
-export default function QuestionnairePage() {
+function QuestionnaireContent() {
+  const searchParams = useSearchParams();
+  const editTripId = searchParams.get('edit');
+  const [isLoading, setIsLoading] = useState(!!editTripId);
+
   const currentStep = useQuestionnaireStore((s) => s.currentStep);
+  const setTripDna = useQuestionnaireStore((s) => s.setTripDna);
+  const setEditingTripId = useQuestionnaireStore((s) => s.setEditingTripId);
   const stepId = QUESTIONNAIRE_STEPS[currentStep]?.id;
+
+  // Load existing trip data when editing
+  useEffect(() => {
+    async function loadTripForEdit() {
+      if (!editTripId) return;
+
+      try {
+        const trip = await tripDb.get(editTripId);
+        if (trip?.tripDna) {
+          // Populate the store with existing trip data
+          setTripDna(trip.tripDna);
+          setEditingTripId(editTripId);
+        }
+      } catch (error) {
+        console.error('Failed to load trip for editing:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTripForEdit();
+  }, [editTripId, setTripDna, setEditingTripId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Route to correct step component
   switch (stepId) {
@@ -29,4 +71,21 @@ export default function QuestionnairePage() {
     default:
       return <TravelerProfileStep />;
   }
+}
+
+export default function QuestionnairePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <QuestionnaireContent />
+    </Suspense>
+  );
 }
