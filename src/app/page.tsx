@@ -1,37 +1,25 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { Sparkles, Upload, Plane } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DashboardHeader,
-  MonthCalendar,
-  RecentTripsSidebar,
-  FeaturedTripCard,
-  StatsPanel,
-  WorldMap,
-  CountryBreakdown,
-  WeatherWidget,
-  PlanNewTripButton,
   TripDrawer,
   ImportModal,
-  BucketList,
   ProfileSettings,
-  TravelHighlights,
   DestinationInspiration,
 } from '@/components/dashboard';
-import { useDashboardData, getFeaturedTrip, getRecentTrips } from '@/hooks/useDashboardData';
-import { useTripStats } from '@/hooks/useTripStats';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 export default function Home() {
   const { trips, loading } = useDashboardData();
-  const stats = useTripStats(trips);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
-  // Derived data
-  const featuredTrip = useMemo(() => getFeaturedTrip(trips), [trips]);
-  const recentTrips = useMemo(() => getRecentTrips(trips, 5), [trips]);
 
   if (loading) {
     return (
@@ -49,35 +37,59 @@ export default function Home() {
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2 py-1 min-h-0 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-1.5">
-          {/* Left Column: Weather + Calendar + Recent Trips */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-1.5 min-h-0">
-            <WeatherWidget location="West Kelowna, Canada" />
-            <MonthCalendar trips={trips} />
-            <div className="flex-1 min-h-0">
-              <RecentTripsSidebar trips={trips} excludeTripId={featuredTrip?.id} maxTrips={5} />
-            </div>
-          </aside>
-
-          {/* Center Column: Featured Trip + Travel Highlights + Inspiration */}
-          <section className="lg:col-span-6 flex flex-col gap-1.5 min-h-0">
-            <FeaturedTripCard trip={featuredTrip} />
-            <TravelHighlights stats={stats} trips={trips} />
-            <div className="flex-1 min-h-0">
-              <DestinationInspiration trips={trips} />
-            </div>
-          </section>
-
-          {/* Right Column: Stats + Map + Bucket List */}
-          <aside className="hidden lg:flex lg:flex-col lg:col-span-3 gap-1.5 min-h-0">
-            <StatsPanel stats={stats} />
-            <WorldMap trips={trips} />
-            <div className="flex-1 min-h-0">
-              <BucketList maxItems={6} />
-            </div>
-          </aside>
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 overflow-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+            <Plane className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Where to next?</h1>
+          <p className="text-muted-foreground">Plan your next adventure</p>
         </div>
+
+        {/* CTAs */}
+        <div className="space-y-3 mb-8">
+          <Link href="/plan" className="block">
+            <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Plan New Trip</h3>
+                  <p className="text-sm text-muted-foreground">AI-powered itinerary planning</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <button onClick={() => setImportModalOpen(true)} className="w-full text-left">
+            <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-muted">
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Import Trip</h3>
+                  <p className="text-sm text-muted-foreground">Upload or paste existing itinerary</p>
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-3 text-xs text-muted-foreground">Inspiration</span>
+          </div>
+        </div>
+
+        {/* Destination Inspiration */}
+        <DestinationInspiration trips={trips} />
       </main>
 
       {/* Overlays */}

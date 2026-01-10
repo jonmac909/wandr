@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Calendar, ChevronRight, Plus } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, LayoutList } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -20,12 +20,14 @@ interface TripDrawerProps {
 }
 
 export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
-  // Sort trips by most recent update
-  const sortedTrips = [...trips].sort((a, b) => {
-    const dateA = new Date(a.updatedAt);
-    const dateB = new Date(b.updatedAt);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // Sort trips by most recent update, show max 5
+  const sortedTrips = [...trips]
+    .sort((a, b) => {
+      const dateA = new Date(a.updatedAt);
+      const dateB = new Date(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    })
+    .slice(0, 5);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -42,26 +44,28 @@ export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
             <div className="text-center py-8">
               <div className="text-4xl mb-3">✈️</div>
               <p className="text-muted-foreground mb-4">No trips yet</p>
-              <Link href="/plan-mode">
+              <Link href="/plan">
                 <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
                   Start Planning
                 </Button>
               </Link>
             </div>
           ) : (
             sortedTrips.map((trip) => (
-              <DrawerTripCard key={trip.id} trip={trip} />
+              <DrawerTripCard key={trip.id} trip={trip} onOpenChange={onOpenChange} />
             ))
           )}
         </div>
 
-        {sortedTrips.length > 0 && (
+        {trips.length > 0 && (
           <div className="mt-6 pt-4 border-t">
-            <Link href="/plan-mode" className="block">
+            <Link href="/my-trips" className="block" onClick={() => onOpenChange(false)}>
               <Button variant="outline" className="w-full gap-2">
-                <Plus className="w-4 h-4" />
-                Plan New Trip
+                <LayoutList className="w-4 h-4" />
+                All Trips
+                {trips.length > 5 && (
+                  <Badge variant="secondary" className="ml-auto">{trips.length}</Badge>
+                )}
               </Button>
             </Link>
           </div>
@@ -71,7 +75,7 @@ export function TripDrawer({ open, onOpenChange, trips }: TripDrawerProps) {
   );
 }
 
-function DrawerTripCard({ trip }: { trip: StoredTrip }) {
+function DrawerTripCard({ trip, onOpenChange }: { trip: StoredTrip; onOpenChange: (open: boolean) => void }) {
   const title = trip.itinerary?.meta?.title ||
     trip.tripDna?.interests?.destination ||
     'Untitled Trip';
@@ -86,7 +90,7 @@ function DrawerTripCard({ trip }: { trip: StoredTrip }) {
   const imageUrl = getDestinationImage(photoQuery, 128, 128);
 
   return (
-    <Link href={`/trip/${trip.id}`}>
+    <Link href={`/trip/${trip.id}`} onClick={() => onOpenChange(false)}>
       <div className="group flex items-center gap-3 p-3 rounded-lg border hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer">
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
