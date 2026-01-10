@@ -1343,48 +1343,98 @@ export default function TripPage() {
             </div>
           </div>
 
-          {/* Curation Widgets */}
-          <div className="mb-6">
-            <h2 className="font-semibold mb-3">Curate Your Trip</h2>
-            <PlanningCuration
-              destination={destination}
-              favorites={planningFavorites}
-              onToggleFavorite={(id) => {
-                setPlanningFavorites(prev =>
-                  prev.includes(id)
-                    ? prev.filter(f => f !== id)
-                    : [...prev, id]
-                );
-              }}
-            />
-          </div>
+          {/* Planning View - Pick cities, hotels, restaurants, etc. */}
+          <SwipeablePlanningView
+            tripDna={tripDna}
+            itinerary={null}
+            items={planningItems}
+            onItemsChange={setPlanningItems}
+            duration={duration}
+            isTripLocked={false}
+            onSearchAI={(query, category) => {
+              // Generate items for the category
+              const mockItems: PlanningItem[] = [];
 
-          {/* Generate Action */}
-          <Card className="mb-6 border-primary/20 bg-primary/5">
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Generate Itinerary
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Use the chat assistant to generate a personalized day-by-day itinerary based on your preferences.
-              </p>
-              <Button onClick={() => setChatOpen(true)} className="w-full">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Open Chat to Generate
-              </Button>
-            </CardContent>
-          </Card>
+              if (category === 'cities') {
+                const cityNames = getCitiesForDestination(destination);
+                cityNames.forEach((city, idx) => {
+                  mockItems.push({
+                    id: `city-${idx}`,
+                    name: city,
+                    description: `Explore ${city}`,
+                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(city)},city,travel`,
+                    category: 'activities',
+                    tags: ['cities'],
+                    isFavorited: false,
+                  });
+                });
+              } else if (category === 'experiences') {
+                const experiences = ['Walking Tour', 'Food Tour', 'Museum Visit', 'Historical Site', 'Local Market', 'Sunset Viewpoint', 'Cooking Class', 'Art Gallery', 'Nature Hike'];
+                experiences.forEach((exp, idx) => {
+                  mockItems.push({
+                    id: `exp-${idx}`,
+                    name: exp,
+                    description: `Experience the best ${exp.toLowerCase()}`,
+                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(exp)},travel`,
+                    category: 'activities',
+                    tags: ['experiences'],
+                    rating: parseFloat((4 + Math.random()).toFixed(1)),
+                    priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+                    isFavorited: false,
+                  });
+                });
+              } else if (category === 'hotels') {
+                const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
+                hotelTypes.forEach((hotel, idx) => {
+                  mockItems.push({
+                    id: `hotel-${idx}`,
+                    name: hotel,
+                    description: 'Beautiful accommodations',
+                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(hotel)},hotel,room`,
+                    category: 'hotels',
+                    tags: ['hotels'],
+                    rating: parseFloat((4 + Math.random()).toFixed(1)),
+                    priceInfo: ['$$', '$$$', '$$$$'][Math.floor(Math.random() * 3)],
+                    isFavorited: false,
+                  });
+                });
+              } else if (category === 'restaurants') {
+                const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Brunch Cafe'];
+                restaurants.forEach((resto, idx) => {
+                  mockItems.push({
+                    id: `resto-${idx}`,
+                    name: resto,
+                    description: 'Delicious local cuisine',
+                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(resto)},food,restaurant`,
+                    category: 'restaurants',
+                    tags: ['restaurants'],
+                    rating: parseFloat((4 + Math.random()).toFixed(1)),
+                    priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+                    isFavorited: false,
+                  });
+                });
+              } else if (category === 'cafes') {
+                const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
+                cafes.forEach((cafe, idx) => {
+                  mockItems.push({
+                    id: `cafe-${idx}`,
+                    name: cafe,
+                    description: 'Perfect spot for coffee',
+                    imageUrl: `https://source.unsplash.com/400x300/?${encodeURIComponent(cafe)},coffee,cafe`,
+                    category: 'cafes',
+                    tags: ['cafes'],
+                    rating: parseFloat((4 + Math.random()).toFixed(1)),
+                    priceInfo: '$',
+                    isFavorited: false,
+                  });
+                });
+              }
 
-          {/* Edit Link */}
-          <div className="text-center">
-            <Link href="/plan">
-              <Button variant="outline" size="sm">
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Trip Preferences
-              </Button>
-            </Link>
-          </div>
+              const existingIds = new Set(planningItems.map(i => i.id));
+              const newItems = mockItems.filter(i => !existingIds.has(i.id));
+              setPlanningItems([...planningItems, ...newItems]);
+            }}
+          />
         </main>
 
         {/* Delete Confirmation Modal */}

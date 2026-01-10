@@ -183,6 +183,22 @@ export function SwipeablePlanningView({
 
   const stepItems = getStepItems(currentStep.id);
 
+  // Auto-load items when entering a step with no items
+  useEffect(() => {
+    if (phase === 'picking' && stepItems.length === 0 && onSearchAI) {
+      // Auto-trigger load for current step
+      if (currentStep.id === 'cities') {
+        const query = destinations.length > 1
+          ? `top cities to visit in ${destinations.join(' and ')}`
+          : `top 10 cities to visit in ${destinations[0]}`;
+        onSearchAI(query, 'cities');
+      } else if (selectedCities.length > 0) {
+        const citiesQuery = selectedCities.join(', ');
+        onSearchAI(`best ${currentStep.id} in ${citiesQuery}`, currentStep.id);
+      }
+    }
+  }, [phase, currentStepIndex, stepItems.length, onSearchAI, currentStep.id, destinations, selectedCities]);
+
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
     return items.filter((i) => i.isFavorited);
