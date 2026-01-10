@@ -23,16 +23,28 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfi
           </h1>
         </Link>
 
-        {/* Left side - Chat button */}
+        {/* Left side - Chat button (only active on trip pages) */}
         <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenChat}
-            title="Trip Assistant"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </Button>
+          {onOpenChat ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenChat}
+              title="Trip Assistant"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled
+              title="Open a trip to chat with AI"
+              className="opacity-40"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+          )}
         </div>
 
         {/* Right side actions */}
