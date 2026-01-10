@@ -72,10 +72,6 @@ function PlanPageContent() {
   const [mainDestination, setMainDestination] = useState(''); // Country/region
   const [mustVisitPlaces, setMustVisitPlaces] = useState<string[]>([]); // Specific cities
   const [mustVisitInput, setMustVisitInput] = useState('');
-  const [avoidCrowds, setAvoidCrowds] = useState(false);
-  const [avoidLongDrives, setAvoidLongDrives] = useState(false);
-  const [avoidCities, setAvoidCities] = useState<string[]>([]);
-  const [avoidCityInput, setAvoidCityInput] = useState('');
 
   // Pre-fill destination from URL query param
   useEffect(() => {
@@ -105,17 +101,6 @@ function PlanPageContent() {
     setMustVisitPlaces(mustVisitPlaces.filter(p => p !== place));
   };
 
-  const addAvoidCity = () => {
-    const trimmed = avoidCityInput.trim();
-    if (trimmed && !avoidCities.includes(trimmed)) {
-      setAvoidCities([...avoidCities, trimmed]);
-      setAvoidCityInput('');
-    }
-  };
-
-  const removeAvoidCity = (city: string) => {
-    setAvoidCities(avoidCities.filter(c => c !== city));
-  };
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [durationType, setDurationType] = useState<DurationType>('days');
   const [durationDays, setDurationDays] = useState(14);
@@ -193,11 +178,6 @@ function PlanPageContent() {
           mainDestination: destinationMode === 'known' ? mainDestination : '',
           mustVisitPlaces: destinationMode === 'known' ? mustVisitPlaces : [],
           tripTypes,
-        },
-        preferences: {
-          avoidCrowds,
-          avoidLongDrives,
-          avoidCities,
         },
         constraints: {
           duration: { days: actualDuration },
@@ -351,73 +331,6 @@ function PlanPageContent() {
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
-                      </div>
-                    </div>
-
-                    {/* Avoid Section */}
-                    <div className="pt-2 border-t">
-                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                        Avoid <span className="text-muted-foreground/60">(optional)</span>
-                      </label>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={avoidCrowds}
-                            onChange={(e) => setAvoidCrowds(e.target.checked)}
-                            className="rounded"
-                          />
-                          <span>Crowded tourist areas</span>
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={avoidLongDrives}
-                            onChange={(e) => setAvoidLongDrives(e.target.checked)}
-                            className="rounded"
-                          />
-                          <span>Long drives (2+ hours)</span>
-                        </label>
-                        {/* Specific cities to avoid */}
-                        {avoidCities.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {avoidCities.map((city) => (
-                              <Badge key={city} variant="outline" className="pl-2 pr-1 py-1 gap-1 text-red-600 border-red-200">
-                                {city}
-                                <button
-                                  onClick={() => removeAvoidCity(city)}
-                                  className="ml-1 hover:bg-red-100 rounded-full p-0.5"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2 mt-1">
-                          <Input
-                            placeholder="Skip specific cities..."
-                            value={avoidCityInput}
-                            onChange={(e) => setAvoidCityInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                addAvoidCity();
-                              }
-                            }}
-                            className="bg-background flex-1 text-sm h-8"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={addAvoidCity}
-                            disabled={!avoidCityInput.trim()}
-                            className="h-8"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   </div>
