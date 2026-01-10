@@ -15,7 +15,6 @@ interface SeasonalDestination {
   months: string;
   why: string;
   imageUrl: string;
-  gradient: string;
 }
 
 const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
@@ -26,8 +25,7 @@ const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
     season: 'Spring',
     months: 'Mar-Apr',
     why: 'Cherry blossom season',
-    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=400&fit=crop',
-    gradient: 'from-pink-400/80 to-rose-500/80',
+    imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80',
   },
   {
     id: 'santorini-summer',
@@ -36,8 +34,7 @@ const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
     season: 'Summer',
     months: 'Jun-Aug',
     why: 'Perfect beach weather',
-    imageUrl: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=400&fit=crop',
-    gradient: 'from-blue-400/80 to-cyan-500/80',
+    imageUrl: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600&q=80',
   },
   {
     id: 'munich-fall',
@@ -46,8 +43,7 @@ const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
     season: 'Fall',
     months: 'Sep-Oct',
     why: 'Oktoberfest celebrations',
-    imageUrl: 'https://images.unsplash.com/photo-1599982890963-3aba55f01fd4?w=400&h=400&fit=crop',
-    gradient: 'from-amber-400/80 to-orange-500/80',
+    imageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=600&q=80',
   },
   {
     id: 'tromso-winter',
@@ -56,8 +52,7 @@ const SEASONAL_DESTINATIONS: SeasonalDestination[] = [
     season: 'Winter',
     months: 'Dec-Feb',
     why: 'Northern lights season',
-    imageUrl: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400&h=400&fit=crop',
-    gradient: 'from-indigo-400/80 to-purple-500/80',
+    imageUrl: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=600&q=80',
   },
 ];
 
@@ -101,28 +96,25 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
 
-          {/* Gradient Overlay */}
-          <div className={`absolute inset-0 bg-gradient-to-t ${dest.gradient} opacity-70`} />
-
-          {/* Dark overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {/* Subtle dark gradient at bottom for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
           {/* Content */}
           <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
             {/* Season Badge */}
             <div className="self-start">
-              <span className="text-xs font-medium bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+              <span className="text-xs font-medium bg-black/30 backdrop-blur-sm px-2.5 py-1 rounded-full">
                 {dest.months}
               </span>
             </div>
 
             {/* Destination Info */}
             <div>
-              <h3 className="font-bold text-lg leading-tight">
+              <h3 className="font-bold text-lg leading-tight drop-shadow-md">
                 {dest.destination}
               </h3>
-              <p className="text-sm opacity-90">{dest.country}</p>
-              <p className="text-xs mt-1 opacity-80 font-medium">
+              <p className="text-sm opacity-90 drop-shadow-sm">{dest.country}</p>
+              <p className="text-xs mt-1 opacity-80 font-medium drop-shadow-sm">
                 {dest.why}
               </p>
             </div>
