@@ -1093,9 +1093,9 @@ function ActivityDisplay({ activity, effectiveCategory, priority, date, hotelNig
   const displayCategory = effectiveCategory || activity.category;
   const categoryIcon = CATEGORY_ICONS[displayCategory] || <Compass className="w-3.5 h-3.5" />;
   const isAccommodation = ['accommodation', 'hotel', 'checkin'].includes(displayCategory);
-  const isFlightOrAccommodation = ['flight', 'accommodation', 'hotel', 'checkin'].includes(displayCategory);
-  // Show booking UI for flights (detected or actual) and accommodations
-  const showBooking = activity.bookingRequired || isFlightOrAccommodation;
+  const isTransportOrAccommodation = ['flight', 'transit', 'accommodation', 'hotel', 'checkin'].includes(displayCategory);
+  // Show booking UI for flights, transit (bus/van/train), and accommodations
+  const showBooking = activity.bookingRequired || isTransportOrAccommodation;
 
   // Strip "(X nights)" from hotel names since we show it separately on the right
   const displayName = isAccommodation
