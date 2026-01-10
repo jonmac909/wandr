@@ -839,39 +839,33 @@ export function SwipeablePlanningView({
         <Badge variant="secondary" className="text-xs">{selectedIds.size} selected</Badge>
       </div>
 
-      {/* Labeled progress bar */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pb-1">
+      {/* Numbered progress bar: 1 - 2 - 3 - 4 - 5 */}
+      <div className="flex items-center justify-center gap-0">
         {PLANNING_STEPS.map((step, index) => {
-          const StepIcon = step.icon;
           const isComplete = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
           return (
             <div key={step.id} className="flex items-center">
               <button
                 onClick={() => {
-                  if (index < currentStepIndex) {
+                  if (index <= currentStepIndex) {
                     setCurrentStepIndex(index);
                     setGridOffset(0);
                   }
                 }}
                 disabled={index > currentStepIndex}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                   isCurrent
                     ? 'bg-primary text-primary-foreground'
                     : isComplete
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      ? 'bg-green-500 text-white'
                       : 'bg-muted text-muted-foreground'
                 }`}
               >
-                {isComplete ? (
-                  <Check className="w-3 h-3" />
-                ) : (
-                  <StepIcon className="w-3 h-3" />
-                )}
-                <span className="hidden sm:inline">{step.id === 'cities' ? 'Cities' : step.id === 'experiences' ? 'Activities' : step.id.charAt(0).toUpperCase() + step.id.slice(1)}</span>
+                {isComplete ? <Check className="w-3.5 h-3.5" /> : index + 1}
               </button>
               {index < PLANNING_STEPS.length - 1 && (
-                <ChevronRight className={`w-3 h-3 mx-0.5 flex-shrink-0 ${isComplete ? 'text-green-500' : 'text-muted-foreground'}`} />
+                <div className={`w-6 h-0.5 ${index < currentStepIndex ? 'bg-green-500' : 'bg-muted'}`} />
               )}
             </div>
           );
