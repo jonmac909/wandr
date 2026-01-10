@@ -962,6 +962,34 @@ export function SwipeablePlanningView({
         <Badge variant="secondary">{selectedIds.size} selected</Badge>
       </div>
 
+      {/* Your picks - always visible at top */}
+      {selectedItems.length > 0 && (
+        <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20 rounded-xl p-3 border border-pink-100 dark:border-pink-900/30">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+              Your Picks ({selectedItems.length})
+            </h3>
+            <span className="text-xs text-muted-foreground">Tap to view</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {selectedItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setDetailItem(item)}
+                className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-pink-200 dark:ring-pink-800"
+              >
+                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <span className="absolute bottom-0.5 left-0.5 right-0.5 text-[8px] text-white font-medium truncate text-center">
+                  {item.name.split(' ')[0]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Destination filter tabs (for multiple destinations) */}
       {currentStep.id === 'cities' && destinations.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -1048,27 +1076,6 @@ export function SwipeablePlanningView({
             </>
           )}
         </Button>
-      )}
-
-      {/* Your picks summary */}
-      {selectedItems.length > 0 && (
-        <div className="pt-4 border-t">
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-            Your Picks ({selectedItems.length})
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {selectedItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setDetailItem(item)}
-                className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0"
-              >
-                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        </div>
       )}
 
       {/* Item detail modal */}
