@@ -60,7 +60,7 @@ export default function PlanPage() {
 function PlanPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { trips } = useDashboardData();
+  const { trips, refresh } = useDashboardData();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -120,7 +120,8 @@ function PlanPageContent() {
   const [durationType, setDurationType] = useState<DurationType>('days');
   const [durationDays, setDurationDays] = useState(14);
   const [durationMonths, setDurationMonths] = useState(1);
-  const [startDate, setStartDate] = useState('');
+  const [startMonth, setStartMonth] = useState<number | null>(null);
+  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
   const [flexibleDates, setFlexibleDates] = useState(true);
   const [pace, setPace] = useState<Pace>('balanced');
 
@@ -200,7 +201,8 @@ function PlanPageContent() {
         },
         constraints: {
           duration: { days: actualDuration },
-          startDate: startDate || undefined,
+          startMonth: startMonth !== null ? startMonth : undefined,
+          startYear: startMonth !== null ? startYear : undefined,
           flexibleDates,
           budget: {
             currency: 'USD',
@@ -513,15 +515,41 @@ function PlanPageContent() {
                     )}
                   </div>
 
-                  {/* Start Date */}
+                  {/* Start Month/Year */}
                   <div>
-                    <div className="text-sm text-muted-foreground mb-2">Start date (optional)</div>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full"
-                    />
+                    <div className="text-sm text-muted-foreground mb-2">When? (optional)</div>
+                    <div className="flex gap-2">
+                      <select
+                        value={startMonth ?? ''}
+                        onChange={(e) => setStartMonth(e.target.value ? parseInt(e.target.value) : null)}
+                        className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="">Any month</option>
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                      </select>
+                      <select
+                        value={startYear}
+                        onChange={(e) => setStartYear(parseInt(e.target.value))}
+                        disabled={startMonth === null}
+                        className="w-24 h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
+                      >
+                        {[0, 1, 2].map((offset) => {
+                          const year = new Date().getFullYear() + offset;
+                          return <option key={year} value={year}>{year}</option>;
+                        })}
+                      </select>
+                    </div>
                     <label className="flex items-center gap-2 mt-2 text-sm">
                       <input
                         type="checkbox"
@@ -529,7 +557,7 @@ function PlanPageContent() {
                         onChange={(e) => setFlexibleDates(e.target.checked)}
                         className="rounded"
                       />
-                      <span className="text-muted-foreground">My dates are flexible</span>
+                      <span className="text-muted-foreground">Flexible dates</span>
                     </label>
                   </div>
                 </div>
@@ -738,6 +766,7 @@ function PlanPageContent() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         trips={trips}
+        onRefresh={refresh}
       />
 
       <ProfileSettings

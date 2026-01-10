@@ -13,7 +13,7 @@ export interface StoredTrip {
   createdAt: Date;
   updatedAt: Date;
   syncedAt: Date | null;
-  status: 'draft' | 'generated' | 'active' | 'completed';
+  status: 'draft' | 'generated' | 'active' | 'completed' | 'archived';
 }
 
 // Document attachment (photos, PDFs, bookings)

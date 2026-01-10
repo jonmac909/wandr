@@ -25,7 +25,7 @@ import type { StoredTrip } from '@/lib/db/indexed-db';
 
 export default function MyTripsPage() {
   const router = useRouter();
-  const { trips, loading } = useDashboardData();
+  const { trips, loading, refresh } = useDashboardData();
   const stats = useTripStats(trips);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -188,6 +188,7 @@ export default function MyTripsPage() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         trips={trips}
+        onRefresh={refresh}
       />
 
       <ProfileSettings

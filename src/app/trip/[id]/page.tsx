@@ -91,7 +91,7 @@ export default function TripPage() {
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Get all trips for the drawer
-  const { trips } = useDashboardData();
+  const { trips, refresh: refreshTrips } = useDashboardData();
 
 
   // Drag and drop state
@@ -1381,7 +1381,7 @@ export default function TripPage() {
         )}
 
         {/* Overlays */}
-        <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} />
+        <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} onRefresh={refreshTrips} />
         <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
         <GeneralChatSheet open={chatOpen} onOpenChange={setChatOpen} />
       </div>
@@ -2905,6 +2905,7 @@ export default function TripPage() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         trips={trips}
+        onRefresh={refreshTrips}
       />
 
       <ProfileSettings

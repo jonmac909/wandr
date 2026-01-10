@@ -16,7 +16,7 @@ import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 export default function Home() {
-  const { trips, loading } = useDashboardData();
+  const { trips, loading, refresh } = useDashboardData();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -100,6 +100,7 @@ export default function Home() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         trips={trips}
+        onRefresh={refresh}
       />
 
       <ImportModal
