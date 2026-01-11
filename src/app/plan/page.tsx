@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft,
   ArrowRight,
   Sparkles,
   MapPin,
@@ -473,27 +472,6 @@ function PlanPageContent() {
       />
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Page Header with Back Button */}
-        <div className="flex items-center gap-3 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={() => {
-              if (step === 1) {
-                router.push('/');
-              } else {
-                setStep(step - 1);
-              }
-            }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="font-semibold">Plan Trip</h1>
-          </div>
-        </div>
-
         {/* 3-Step Progress Indicator - Clickable */}
         <div className="mb-6">
           <div className="flex items-center justify-center gap-0">
