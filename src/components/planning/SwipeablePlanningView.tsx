@@ -267,6 +267,7 @@ export function SwipeablePlanningView({
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
+  const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -502,6 +503,28 @@ export function SwipeablePlanningView({
     const newOrder = [...routeOrder];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     setRouteOrder(newOrder);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedCityIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedCityIndex === null || draggedCityIndex === index) return;
+
+    // Reorder in real-time as user drags
+    const newOrder = [...routeOrder];
+    const [draggedCity] = newOrder.splice(draggedCityIndex, 1);
+    newOrder.splice(index, 0, draggedCity);
+    setRouteOrder(newOrder);
+    setDraggedCityIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCityIndex(null);
   };
 
   // Swap country order
@@ -843,8 +866,19 @@ export function SwipeablePlanningView({
 
             return (
               <div key={city}>
-                {/* City card */}
-                <div className="flex items-center gap-3 p-3 bg-background rounded-xl border group">
+                {/* City card - Draggable */}
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-3 p-3 bg-background rounded-xl border cursor-grab active:cursor-grabbing transition-all ${
+                    draggedCityIndex === index ? 'opacity-50 scale-95 shadow-lg' : ''
+                  }`}
+                >
+                  {/* Drag handle */}
+                  <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+
                   {/* Order number */}
                   <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
                     {index + 1}
@@ -863,24 +897,6 @@ export function SwipeablePlanningView({
                     {country && (
                       <div className="text-xs text-muted-foreground">{country}</div>
                     )}
-                  </div>
-
-                  {/* Reorder buttons */}
-                  <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => moveCityUp(index)}
-                      disabled={index === 0}
-                      className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft className="w-4 h-4 rotate-90" />
-                    </button>
-                    <button
-                      onClick={() => moveCityDown(index)}
-                      disabled={index === routeOrder.length - 1}
-                      className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRight className="w-4 h-4 rotate-90" />
-                    </button>
                   </div>
                 </div>
 
