@@ -263,6 +263,7 @@ export function SwipeablePlanningView({
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
+  const [highlightTab, setHighlightTab] = useState<string>('photos'); // Active tab for city highlights
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
@@ -1408,7 +1409,7 @@ export function SwipeablePlanningView({
       </Dialog>
 
       {/* City Detail Modal */}
-      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); }}>
+      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab('photos'); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 [&>button]:hidden">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
@@ -1585,116 +1586,132 @@ export function SwipeablePlanningView({
                     </div>
                   )}
 
-                  {/* Categorized Highlights */}
+                  {/* Categorized Highlights - Tabbed */}
                   {cityInfo.highlights && (
                     <div className="space-y-3">
-                      {/* Landmarks */}
-                      {cityInfo.highlights.landmarks && cityInfo.highlights.landmarks.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Landmark className="w-4 h-4 text-amber-600" />
-                            <span className="text-sm font-semibold">Landmarks</span>
+                      {/* Tab Buttons */}
+                      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                        {[
+                          { id: 'photos', icon: Image, label: 'Photos', color: 'text-blue-600' },
+                          ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', icon: Landmark, label: 'Landmarks', color: 'text-amber-600' }] : []),
+                          ...(cityInfo.highlights.history?.length ? [{ id: 'history', icon: ScrollText, label: 'History', color: 'text-orange-600' }] : []),
+                          ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', icon: Building, label: 'Museums', color: 'text-purple-600' }] : []),
+                          ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', icon: ShoppingBag, label: 'Markets', color: 'text-green-600' }] : []),
+                          ...(cityInfo.highlights.food?.length ? [{ id: 'food', icon: Utensils, label: 'Food', color: 'text-red-500' }] : []),
+                          ...(cityInfo.highlights.nature?.length ? [{ id: 'nature', icon: TreePine, label: 'Nature', color: 'text-emerald-600' }] : []),
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setHighlightTab(tab.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
+                              highlightTab === tab.id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted hover:bg-muted/80'
+                            }`}
+                          >
+                            <tab.icon className={`w-3.5 h-3.5 ${highlightTab === tab.id ? '' : tab.color}`} />
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Tab Content */}
+                      <div className="border rounded-lg p-3 min-h-[200px]">
+                        {/* Photos Tab */}
+                        {highlightTab === 'photos' && (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                              {cityInfo.topSites.slice(0, 4).map((site, idx) => (
+                                <div
+                                  key={site}
+                                  className="aspect-video bg-muted rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                                  onClick={() => setCityImageIndex(idx + 1)}
+                                >
+                                  <div className="text-center p-2">
+                                    <Image className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
+                                    <span className="text-xs text-muted-foreground">{site}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Tap a photo to view in full screen
+                            </p>
                           </div>
-                          <div className="space-y-2">
+                        )}
+
+                        {/* Landmarks Tab */}
+                        {highlightTab === 'landmarks' && cityInfo.highlights.landmarks && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.landmarks.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* History */}
-                      {cityInfo.highlights.history && cityInfo.highlights.history.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ScrollText className="w-4 h-4 text-orange-600" />
-                            <span className="text-sm font-semibold">History</span>
-                          </div>
-                          <div className="space-y-2">
+                        {/* History Tab */}
+                        {highlightTab === 'history' && cityInfo.highlights.history && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.history.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Museums */}
-                      {cityInfo.highlights.museums && cityInfo.highlights.museums.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Building className="w-4 h-4 text-purple-600" />
-                            <span className="text-sm font-semibold">Museums & Sites</span>
-                          </div>
-                          <div className="space-y-2">
+                        {/* Museums Tab */}
+                        {highlightTab === 'museums' && cityInfo.highlights.museums && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.museums.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Markets */}
-                      {cityInfo.highlights.markets && cityInfo.highlights.markets.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ShoppingBag className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-semibold">Markets & Shopping</span>
-                          </div>
-                          <div className="space-y-2">
+                        {/* Markets Tab */}
+                        {highlightTab === 'markets' && cityInfo.highlights.markets && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.markets.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Food */}
-                      {cityInfo.highlights.food && cityInfo.highlights.food.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Utensils className="w-4 h-4 text-red-500" />
-                            <span className="text-sm font-semibold">Food & Drink</span>
-                          </div>
-                          <div className="space-y-2">
+                        {/* Food Tab */}
+                        {highlightTab === 'food' && cityInfo.highlights.food && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.food.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Nature */}
-                      {cityInfo.highlights.nature && cityInfo.highlights.nature.length > 0 && (
-                        <div className="border rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <TreePine className="w-4 h-4 text-emerald-600" />
-                            <span className="text-sm font-semibold">Nature & Outdoors</span>
-                          </div>
-                          <div className="space-y-2">
+                        {/* Nature Tab */}
+                        {highlightTab === 'nature' && cityInfo.highlights.nature && (
+                          <div className="space-y-3">
                             {cityInfo.highlights.nature.map((item) => (
-                              <div key={item.name} className="text-xs">
+                              <div key={item.name} className="text-sm">
                                 <span className="font-medium">{item.name}</span>
                                 <p className="text-muted-foreground mt-0.5">{item.description}</p>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )}
 
