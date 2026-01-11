@@ -378,6 +378,29 @@ function PlanPageContent() {
     });
   };
 
+  // Auto-calculate end date based on duration
+  useEffect(() => {
+    if (!startDate) return;
+
+    const start = new Date(startDate);
+    let end: Date;
+
+    if (durationType === 'days') {
+      end = new Date(start);
+      end.setDate(start.getDate() + durationDays);
+    } else if (durationType === 'weeks') {
+      end = new Date(start);
+      end.setDate(start.getDate() + durationWeeks * 7);
+    } else {
+      end = new Date(start);
+      end.setMonth(start.getMonth() + durationMonths);
+    }
+
+    // Format as YYYY-MM-DD
+    const formatted = end.toISOString().split('T')[0];
+    setEndDate(formatted);
+  }, [startDate, durationType, durationDays, durationWeeks, durationMonths]);
+
   const getDurationLabel = () => {
     if (durationType === 'days') {
       if (durationDays >= 30) return '30+ days';
