@@ -48,6 +48,23 @@ type TripType =
   | 'street-food' | 'fine-dining' | 'food-tours'
   // Other
   | 'nightlife' | 'shopping' | 'photography';
+
+// Valid trip type IDs for filtering old/invalid data
+const VALID_TRIP_TYPES: TripType[] = [
+  'beach', 'mountains', 'gardens', 'countryside',
+  'museums', 'theater', 'history', 'local-traditions',
+  'spa', 'lounges',
+  'hiking', 'water-sports', 'wildlife',
+  'street-food', 'fine-dining', 'food-tours',
+  'nightlife', 'shopping', 'photography'
+];
+
+// Filter and normalize trip types from saved data
+const filterValidTripTypes = (types: string[]): TripType[] => {
+  return types
+    .map(t => t.toLowerCase() as TripType)
+    .filter(t => VALID_TRIP_TYPES.includes(t));
+};
 type Budget = '$' | '$$' | '$$$';
 type TravelerType = 'solo' | 'couple' | 'friends' | 'family';
 
@@ -222,11 +239,11 @@ function PlanPageContent() {
             setPace(dna.vibeAndPace.tripPace as Pace);
           }
 
-          // Pre-fill trip types
+          // Pre-fill trip types (filter to only valid current IDs)
           if (dna.interests?.tripTypes?.length > 0) {
-            setTripTypes(dna.interests.tripTypes as TripType[]);
+            setTripTypes(filterValidTripTypes(dna.interests.tripTypes));
           } else if (dna.travelerProfile?.travelIdentities?.length > 0) {
-            setTripTypes(dna.travelerProfile.travelIdentities as TripType[]);
+            setTripTypes(filterValidTripTypes(dna.travelerProfile.travelIdentities));
           }
 
           // Pre-fill budget
