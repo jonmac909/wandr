@@ -54,6 +54,21 @@ export type TransportType = 'train' | 'flight' | 'car' | 'scooter' | 'ferry' | '
 
 export type AgeGroup = 'children' | 'teens' | 'adults' | 'seniors';
 
+// Things to avoid - negative preferences
+export type TravelAvoid =
+  | 'polluted'      // Polluted/dirty areas
+  | 'crowds'        // Overcrowded places
+  | 'rude-service'  // Rude people/bad service
+  | 'noisy'         // Noisy environments
+  | 'long-waits'    // Long queues/waiting times
+  | 'disorganized'  // Disorganized/chaotic places
+  | 'touristy'      // Overly touristy spots
+  | 'expensive'     // Overpriced places
+  | 'unsafe'        // Unsafe areas
+  | 'scams'         // Tourist traps/scams
+  | 'hot-weather'   // Hot weather (>35°C)
+  | 'cold-weather'; // Cold weather (<10°C)
+
 // Main Trip DNA interface
 export interface TripDNA {
   id: string;
@@ -121,6 +136,7 @@ export interface TripDNA {
       cuisinePreferences?: string[];
     };
     hobbies: Hobby[];
+    avoid?: TravelAvoid[]; // Things to avoid in recommendations
   };
 
   // E. Logistics

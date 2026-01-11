@@ -3,7 +3,7 @@
 import { StepContainer } from '@/components/questionnaire/step-container';
 import { SelectableCard, RankedSelectableCard } from '@/components/questionnaire/selectable-card';
 import { useQuestionnaireStore } from '@/lib/questionnaire/store';
-import { DepthPreference, FoodImportance, Hobby } from '@/types/trip-dna';
+import { DepthPreference, FoodImportance, Hobby, TravelAvoid } from '@/types/trip-dna';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Layers, Maximize, Coffee, Utensils, ChefHat, CalendarCheck } from 'lucide-react';
@@ -73,9 +73,24 @@ const HOBBY_OPTIONS: { value: Hobby; label: string; emoji: string }[] = [
 
 const MAX_HOBBIES = 5;
 
+const AVOID_OPTIONS: { value: TravelAvoid; label: string; emoji: string }[] = [
+  { value: 'polluted', label: 'Polluted / Dirty', emoji: '🏭' },
+  { value: 'crowds', label: 'Overcrowded', emoji: '👥' },
+  { value: 'rude-service', label: 'Rude Service', emoji: '😤' },
+  { value: 'noisy', label: 'Noisy / Loud', emoji: '🔊' },
+  { value: 'long-waits', label: 'Long Waits', emoji: '⏳' },
+  { value: 'disorganized', label: 'Disorganized', emoji: '🌀' },
+  { value: 'touristy', label: 'Too Touristy', emoji: '📸' },
+  { value: 'expensive', label: 'Overpriced', emoji: '💸' },
+  { value: 'unsafe', label: 'Unsafe Areas', emoji: '⚠️' },
+  { value: 'scams', label: 'Tourist Traps', emoji: '🪤' },
+  { value: 'hot-weather', label: 'Hot Weather (>35°C)', emoji: '🥵' },
+  { value: 'cold-weather', label: 'Cold Weather (<10°C)', emoji: '🥶' },
+];
+
 export function InterestsStep() {
   const { tripDna, updateInterests } = useQuestionnaireStore();
-  const { depthPreference, food, hobbies, destination, destinations } = tripDna.interests;
+  const { depthPreference, food, hobbies, destination, destinations, avoid } = tripDna.interests;
 
   const updateFood = (data: Partial<typeof food>) => {
     updateInterests({ food: { ...food, ...data } });
@@ -87,6 +102,15 @@ export function InterestsStep() {
       updateInterests({ hobbies: current.filter((h) => h !== hobby) });
     } else if (current.length < MAX_HOBBIES) {
       updateInterests({ hobbies: [...current, hobby] });
+    }
+  };
+
+  const toggleAvoid = (item: TravelAvoid) => {
+    const current = avoid || [];
+    if (current.includes(item)) {
+      updateInterests({ avoid: current.filter((a) => a !== item) });
+    } else {
+      updateInterests({ avoid: [...current, item] });
     }
   };
 
@@ -198,6 +222,33 @@ export function InterestsStep() {
                 maxSelections={MAX_HOBBIES}
                 currentSelections={hobbies.length}
               />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Things to Avoid */}
+      <div className="space-y-3 mt-8">
+        <h2 className="text-lg font-semibold">What do you want to avoid?</h2>
+        <p className="text-sm text-muted-foreground">
+          We&apos;ll filter out places that match these criteria.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {AVOID_OPTIONS.map((item) => {
+            const isSelected = (avoid || []).includes(item.value);
+            return (
+              <button
+                key={item.value}
+                onClick={() => toggleAvoid(item.value)}
+                className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-all ${
+                  isSelected
+                    ? 'bg-red-50 border-red-300 text-red-700'
+                    : 'bg-background border-muted hover:border-red-200 hover:bg-red-50/50'
+                }`}
+              >
+                <span className="text-lg">{item.emoji}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
             );
           })}
         </div>
