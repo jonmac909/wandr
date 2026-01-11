@@ -1519,7 +1519,7 @@ export function SwipeablePlanningView({
       </Dialog>
 
       {/* City Detail Modal */}
-      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab('photos'); }}>
+      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab('landmarks'); setShowCityDetails(false); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 [&>button]:hidden">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
@@ -1681,75 +1681,93 @@ export function SwipeablePlanningView({
                     Best time: <span className="text-foreground font-medium">{cityInfo.bestTime}</span>
                   </p>
 
-                  {/* Ideal For - who should visit */}
-                  {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="text-xs font-semibold text-muted-foreground mb-1.5">Perfect for</div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {cityInfo.idealFor.map((type) => (
-                          <span key={type} className="text-xs bg-background px-2 py-1 rounded-full border">
-                            {type}
-                          </span>
-                        ))}
-                      </div>
+                  {/* Must-See Sites - always visible as chips */}
+                  <div>
+                    <div className="text-sm font-semibold mb-1.5">Must-See Sites</div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {cityInfo.topSites.map((site, idx) => (
+                        <button
+                          key={site}
+                          onClick={() => setCityImageIndex(idx + 1)}
+                          className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                            cityImageIndex === idx + 1
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80'
+                          }`}
+                        >
+                          {site}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
-                  {/* Categorized Highlights - Tabbed */}
-                  {cityInfo.highlights && (
-                    <div className="space-y-3">
-                      {/* Tab Buttons */}
-                      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-                        {[
-                          { id: 'photos', icon: Image, label: 'Photos', color: 'text-blue-600' },
-                          ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', icon: Landmark, label: 'Landmarks', color: 'text-amber-600' }] : []),
-                          ...(cityInfo.highlights.history?.length ? [{ id: 'history', icon: ScrollText, label: 'History', color: 'text-orange-600' }] : []),
-                          ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', icon: Building, label: 'Museums', color: 'text-purple-600' }] : []),
-                          ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', icon: ShoppingBag, label: 'Markets', color: 'text-green-600' }] : []),
-                          ...(cityInfo.highlights.food?.length ? [{ id: 'food', icon: Utensils, label: 'Food', color: 'text-red-500' }] : []),
-                          ...(cityInfo.highlights.nature?.length ? [{ id: 'nature', icon: TreePine, label: 'Nature', color: 'text-emerald-600' }] : []),
-                        ].map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => setHighlightTab(tab.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
-                              highlightTab === tab.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted hover:bg-muted/80'
-                            }`}
-                          >
-                            <tab.icon className={`w-3.5 h-3.5 ${highlightTab === tab.id ? '' : tab.color}`} />
-                            {tab.label}
-                          </button>
-                        ))}
-                      </div>
+                  {/* Local tip */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
+                      <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
+                    </div>
+                  </div>
 
-                      {/* Tab Content */}
-                      <div className="border rounded-lg p-3 min-h-[200px]">
-                        {/* Photos Tab */}
-                        {highlightTab === 'photos' && (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-2">
-                              {cityInfo.topSites.slice(0, 4).map((site, idx) => (
-                                <div
-                                  key={site}
-                                  className="aspect-video bg-muted rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
-                                  onClick={() => setCityImageIndex(idx + 1)}
-                                >
-                                  <div className="text-center p-2">
-                                    <Image className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
-                                    <span className="text-xs text-muted-foreground">{site}</span>
-                                  </div>
-                                </div>
-                              ))}
+                  {/* Collapsible Explore More Section */}
+                  {(cityInfo.highlights || (cityInfo.idealFor && cityInfo.idealFor.length > 0)) && (
+                    <div className="border rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setShowCityDetails(!showCityDetails)}
+                        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="text-sm font-medium">Explore More Details</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showCityDetails ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showCityDetails && (
+                        <div className="p-3 space-y-3 border-t">
+                          {/* Ideal For - who should visit */}
+                          {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
+                            <div className="bg-muted/50 rounded-lg p-3">
+                              <div className="text-xs font-semibold text-muted-foreground mb-1.5">Perfect for</div>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {cityInfo.idealFor.map((type) => (
+                                  <span key={type} className="text-xs bg-background px-2 py-1 rounded-full border">
+                                    {type}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                            <p className="text-xs text-muted-foreground text-center">
-                              Tap a photo to view in full screen
-                            </p>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Landmarks Tab */}
+                          {/* Categorized Highlights - Tabbed */}
+                          {cityInfo.highlights && (
+                            <div className="space-y-3">
+                              {/* Tab Buttons */}
+                              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                                {[
+                                  ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', icon: Landmark, label: 'Landmarks', color: 'text-amber-600' }] : []),
+                                  ...(cityInfo.highlights.history?.length ? [{ id: 'history', icon: ScrollText, label: 'History', color: 'text-orange-600' }] : []),
+                                  ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', icon: Building, label: 'Museums', color: 'text-purple-600' }] : []),
+                                  ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', icon: ShoppingBag, label: 'Markets', color: 'text-green-600' }] : []),
+                                  ...(cityInfo.highlights.food?.length ? [{ id: 'food', icon: Utensils, label: 'Food', color: 'text-red-500' }] : []),
+                                  ...(cityInfo.highlights.nature?.length ? [{ id: 'nature', icon: TreePine, label: 'Nature', color: 'text-emerald-600' }] : []),
+                                ].map((tab) => (
+                                  <button
+                                    key={tab.id}
+                                    onClick={() => setHighlightTab(tab.id)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
+                                      highlightTab === tab.id
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted hover:bg-muted/80'
+                                    }`}
+                                  >
+                                    <tab.icon className={`w-3.5 h-3.5 ${highlightTab === tab.id ? '' : tab.color}`} />
+                                    {tab.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Tab Content */}
+                              <div className="border rounded-lg p-3 min-h-[150px]">
+                                {/* Landmarks Tab */}
                         {highlightTab === 'landmarks' && cityInfo.highlights.landmarks && (
                           <div className="space-y-3">
                             {cityInfo.highlights.landmarks.map((item) => (
@@ -1810,50 +1828,23 @@ export function SwipeablePlanningView({
                         )}
 
                         {/* Nature Tab */}
-                        {highlightTab === 'nature' && cityInfo.highlights.nature && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.nature.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                            {highlightTab === 'nature' && cityInfo.highlights.nature && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.nature.map((item) => (
+                                  <div key={item.name} className="text-sm">
+                                    <span className="font-medium">{item.name}</span>
+                                    <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  {/* Top Sites list - only show if no highlights */}
-                  {!cityInfo.highlights && (
-                    <div>
-                      <div className="text-sm font-semibold mb-1.5">Must-See Sites</div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {cityInfo.topSites.map((site, idx) => (
-                          <button
-                            key={site}
-                            onClick={() => setCityImageIndex(idx + 1)}
-                            className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                              cityImageIndex === idx + 1
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted hover:bg-muted/80'
-                            }`}
-                          >
-                            {site}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Local tip */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
-                      <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
-                    </div>
-                  </div>
 
                   {/* Action button */}
                   <Button
