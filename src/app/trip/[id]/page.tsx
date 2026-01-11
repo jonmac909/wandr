@@ -1447,6 +1447,7 @@ export default function TripPage() {
           {/* Planning View - Pick cities, hotels, restaurants, etc. */}
           <SwipeablePlanningView
             tripDna={tripDna}
+            tripId={tripId}
             itinerary={null}
             items={planningItems}
             onItemsChange={setPlanningItems}
@@ -1736,6 +1737,7 @@ export default function TripPage() {
           <div className="max-w-2xl mx-auto">
             <SwipeablePlanningView
               tripDna={tripDna}
+              tripId={tripId}
               itinerary={itinerary}
               items={planningItems}
               onItemsChange={setPlanningItems}
