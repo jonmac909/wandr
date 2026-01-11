@@ -307,6 +307,33 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   'Istanbul': 'Turkey', 'Cappadocia': 'Turkey', 'Antalya': 'Turkey',
 };
 
+// Recommended nights per city (based on typical travel patterns)
+const RECOMMENDED_NIGHTS: Record<string, number> = {
+  // Japan - major cities need more time
+  'Tokyo': 4, 'Kyoto': 3, 'Osaka': 2, 'Hakone': 2, 'Nara': 1, 'Hiroshima': 2, 'Fukuoka': 2,
+  // Thailand
+  'Bangkok': 3, 'Chiang Mai': 3, 'Chiang Rai': 2, 'Phuket': 4, 'Krabi': 3,
+  'Koh Samui': 4, 'Koh Phangan': 3, 'Sukhothai': 1, 'Ayutthaya': 1,
+  // Vietnam
+  'Hanoi': 3, 'Ho Chi Minh City': 3, 'Da Nang': 2, 'Hoi An': 3, 'Hue': 2,
+  'Nha Trang': 3, 'Ha Long Bay': 2, 'Ninh Binh': 2,
+  // Hawaii
+  'Honolulu': 4, 'Maui': 4, 'Kauai': 3, 'Big Island': 3,
+  // Spain
+  'Barcelona': 4, 'Madrid': 3, 'Seville': 3, 'Valencia': 2, 'Granada': 2,
+  'San Sebastian': 2, 'Bilbao': 2, 'Malaga': 2, 'Toledo': 1, 'Cordoba': 1,
+  // Portugal
+  'Lisbon': 4, 'Porto': 3, 'Lagos': 3, 'Sintra': 1, 'Cascais': 1, 'Faro': 2,
+  // France
+  'Paris': 4, 'Nice': 3, 'Lyon': 2, 'Marseille': 2,
+  // Italy
+  'Rome': 4, 'Florence': 3, 'Venice': 2, 'Milan': 2, 'Naples': 2, 'Amalfi': 3,
+  // Greece
+  'Athens': 3, 'Santorini': 3, 'Mykonos': 3,
+  // Turkey
+  'Istanbul': 4, 'Cappadocia': 3, 'Antalya': 4,
+};
+
 // Generate Google Flights URL for checking real prices
 function getGoogleFlightsUrl(fromCity: string, toCity: string): string {
   const fromAirport = CITY_AIRPORTS[fromCity] || fromCity.substring(0, 3).toUpperCase();
@@ -1688,81 +1715,122 @@ export function SwipeablePlanningView({
           </div>
         </div>
 
-        {/* City cards - clickable to open modal */}
-        <div className="space-y-3">
-          {favCities.map((city, cityIdx) => {
-            const cityFavs = byCity[city];
-            const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
-            const cityCountry = getCityCountry(city);
-            const totalCityFavs = cityFavs.hotels.length + cityFavs.restaurants.length +
-                                  cityFavs.cafes.length + cityFavs.activities.length;
+        {/* Cities organized by country */}
+        <div className="space-y-4">
+          {(() => {
+            // Group cities by country
+            const citiesByCountry: Record<string, string[]> = {};
+            favCities.forEach(city => {
+              const country = getCityCountry(city) || 'Other';
+              if (!citiesByCountry[country]) citiesByCountry[country] = [];
+              citiesByCountry[country].push(city);
+            });
 
-            return (
-              <div
-                key={city}
-                className="bg-muted/30 rounded-xl p-3 cursor-pointer hover:bg-muted/50 transition-colors active:scale-[0.99]"
-                onClick={() => {
-                  setFavoriteCityModal(city);
-                  setFavoriteCityTab('hotels');
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  {/* City image */}
-                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                    {cityItem?.imageUrl ? (
-                      <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                        <Building2 className="w-6 h-6 text-primary" />
-                      </div>
-                    )}
-                  </div>
+            // Sort countries by destination order
+            const sortedCountries = Object.keys(citiesByCountry).sort((a, b) => {
+              const idxA = destinations.indexOf(a);
+              const idxB = destinations.indexOf(b);
+              if (idxA === -1 && idxB === -1) return 0;
+              if (idxA === -1) return 1;
+              if (idxB === -1) return -1;
+              return idxA - idxB;
+            });
 
-                  {/* City info */}
-                  <div className="flex-1 min-w-0">
+            return sortedCountries.map((country) => {
+              const countryCities = citiesByCountry[country];
+              const totalCountryNights = countryCities.reduce((sum, city) => sum + (RECOMMENDED_NIGHTS[city] || 2), 0);
+
+              return (
+                <div key={country} className="bg-muted/20 rounded-xl overflow-hidden">
+                  {/* Country header */}
+                  <div className="bg-primary/10 px-4 py-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{city}</h3>
-                      {cityIdx < favCities.length - 1 && (
-                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                      )}
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span className="font-semibold">{country}</span>
+                      <span className="text-xs text-muted-foreground">({countryCities.length} {countryCities.length === 1 ? 'city' : 'cities'})</span>
                     </div>
-                    {cityCountry && (
-                      <p className="text-xs text-muted-foreground">{cityCountry}</p>
-                    )}
-
-                    {/* Favorites summary chips */}
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {cityFavs.hotels.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
-                          <Hotel className="w-2.5 h-2.5" /> {cityFavs.hotels.length}
-                        </span>
-                      )}
-                      {cityFavs.restaurants.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium">
-                          <UtensilsCrossed className="w-2.5 h-2.5" /> {cityFavs.restaurants.length}
-                        </span>
-                      )}
-                      {cityFavs.cafes.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
-                          <Coffee className="w-2.5 h-2.5" /> {cityFavs.cafes.length}
-                        </span>
-                      )}
-                      {cityFavs.activities.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
-                          <Ticket className="w-2.5 h-2.5" /> {cityFavs.activities.length}
-                        </span>
-                      )}
-                      {totalCityFavs === 0 && (
-                        <span className="text-[10px] text-muted-foreground">Tap to add favorites</span>
-                      )}
-                    </div>
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
+                      ~{totalCountryNights} nights
+                    </span>
                   </div>
 
-                  <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  {/* Cities in this country */}
+                  <div className="p-2 space-y-2">
+                    {countryCities.map((city) => {
+                      const cityFavs = byCity[city];
+                      const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+                      const recommendedNights = RECOMMENDED_NIGHTS[city] || 2;
+                      const totalCityFavs = cityFavs.hotels.length + cityFavs.restaurants.length +
+                                            cityFavs.cafes.length + cityFavs.activities.length;
+
+                      return (
+                        <div
+                          key={city}
+                          className="bg-background rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors active:scale-[0.99]"
+                          onClick={() => {
+                            setFavoriteCityModal(city);
+                            setFavoriteCityTab('hotels');
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* City image */}
+                            <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                              {cityItem?.imageUrl ? (
+                                <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                                  <Building2 className="w-5 h-5 text-primary" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* City info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-sm">{city}</h3>
+                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                                  {recommendedNights} {recommendedNights === 1 ? 'night' : 'nights'}
+                                </span>
+                              </div>
+
+                              {/* Favorites summary chips */}
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {cityFavs.hotels.length > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
+                                    <Hotel className="w-2.5 h-2.5" /> {cityFavs.hotels.length}
+                                  </span>
+                                )}
+                                {cityFavs.restaurants.length > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium">
+                                    <UtensilsCrossed className="w-2.5 h-2.5" /> {cityFavs.restaurants.length}
+                                  </span>
+                                )}
+                                {cityFavs.cafes.length > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+                                    <Coffee className="w-2.5 h-2.5" /> {cityFavs.cafes.length}
+                                  </span>
+                                )}
+                                {cityFavs.activities.length > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+                                    <Ticket className="w-2.5 h-2.5" /> {cityFavs.activities.length}
+                                  </span>
+                                )}
+                                {totalCityFavs === 0 && (
+                                  <span className="text-[10px] text-muted-foreground">Tap to add favorites</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
 
         {/* Empty state */}
