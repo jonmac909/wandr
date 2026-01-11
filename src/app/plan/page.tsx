@@ -66,6 +66,20 @@ const filterValidTripTypes = (types: string[]): TripType[] => {
 };
 type Budget = '$' | '$$' | '$$$';
 type TravelerType = 'solo' | 'couple' | 'friends' | 'family';
+type LodgingType = 'hotel' | 'boutique' | 'apartment' | 'resort';
+type AreaType = 'quiet' | 'central';
+
+const LODGING_OPTIONS: { id: LodgingType; label: string }[] = [
+  { id: 'hotel', label: 'Hotel' },
+  { id: 'boutique', label: 'Boutique' },
+  { id: 'apartment', label: 'Apartment' },
+  { id: 'resort', label: 'Resort' },
+];
+
+const AREA_OPTIONS: { id: AreaType; label: string; desc: string }[] = [
+  { id: 'quiet', label: 'Quiet', desc: 'Peaceful neighborhood' },
+  { id: 'central', label: 'Central', desc: 'Walkable to attractions' },
+];
 
 // Common things to avoid
 const AVOIDANCE_OPTIONS = [
@@ -333,6 +347,8 @@ function PlanPageContent() {
   const [tripTypes, setTripTypes] = useState<TripType[]>([]);
   const [budget, setBudget] = useState<Budget>('$$');
   const [travelerType, setTravelerType] = useState<TravelerType>('couple');
+  const [lodging, setLodging] = useState<LodgingType>('hotel');
+  const [area, setArea] = useState<AreaType>('central');
 
   // Step 3: Preferences
   const [avoidances, setAvoidances] = useState<string[]>([]);
@@ -424,6 +440,8 @@ function PlanPageContent() {
             dailySpend: { min: 50, max: budget === '$' ? 100 : budget === '$$' ? 200 : 400 },
             splurgeMoments: budget === '$$$' ? 3 : budget === '$$' ? 2 : 1,
           },
+          lodging,
+          area,
           avoidances: avoidances.length > 0 ? avoidances.join(', ') : undefined,
         },
         preferences: {
@@ -1026,6 +1044,79 @@ function PlanPageContent() {
                           {p === 'balanced' && 'Mix of both'}
                           {p === 'active' && 'Packed schedule'}
                         </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Lodging - Collapsible */}
+            <div className="border rounded-lg">
+              <button
+                onClick={() => toggleSection('lodging')}
+                className="w-full p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">Lodging</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{lodging.charAt(0).toUpperCase() + lodging.slice(1)}</Badge>
+                  {expandedSections.includes('lodging') ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+
+              {expandedSections.includes('lodging') && (
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-4 gap-2">
+                    {LODGING_OPTIONS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => setLodging(id)}
+                        className={`p-2 rounded-lg border text-center transition-all ${
+                          lodging === id ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Area - Collapsible */}
+            <div className="border rounded-lg">
+              <button
+                onClick={() => toggleSection('area')}
+                className="w-full p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">Area</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{area === 'central' ? 'Central' : 'Quiet'}</Badge>
+                  {expandedSections.includes('area') ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+
+              {expandedSections.includes('area') && (
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    {AREA_OPTIONS.map(({ id, label, desc }) => (
+                      <button
+                        key={id}
+                        onClick={() => setArea(id)}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          area === id ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{label}</div>
+                        <div className="text-xs text-muted-foreground">{desc}</div>
                       </button>
                     ))}
                   </div>
