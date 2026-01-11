@@ -67,6 +67,22 @@ const filterValidTripTypes = (types: string[]): TripType[] => {
 type Budget = '$' | '$$' | '$$$';
 type TravelerType = 'solo' | 'couple' | 'friends' | 'family';
 
+// Common things to avoid
+const AVOIDANCE_OPTIONS = [
+  { id: 'big-cities', label: 'Big cities' },
+  { id: 'crowds', label: 'Crowds' },
+  { id: 'tourist-traps', label: 'Tourist traps' },
+  { id: 'heat', label: 'Hot weather' },
+  { id: 'cold', label: 'Cold weather' },
+  { id: 'long-drives', label: 'Long drives' },
+  { id: 'long-walks', label: 'Long walks' },
+  { id: 'early-mornings', label: 'Early mornings' },
+  { id: 'late-nights', label: 'Late nights' },
+  { id: 'spicy-food', label: 'Spicy food' },
+  { id: 'seafood', label: 'Seafood' },
+  { id: 'public-transit', label: 'Public transit' },
+];
+
 interface TripTypeCategory {
   label: string;
   types: { id: TripType; label: string; icon: typeof Compass }[];
@@ -319,8 +335,14 @@ function PlanPageContent() {
   const [travelerType, setTravelerType] = useState<TravelerType>('couple');
 
   // Step 3: Preferences
-  const [avoidances, setAvoidances] = useState('');
+  const [avoidances, setAvoidances] = useState<string[]>([]);
   const [specialRequests, setSpecialRequests] = useState('');
+
+  const toggleAvoidance = (id: string) => {
+    setAvoidances((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
+    );
+  };
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<string[]>(['timing', 'tripType']);
@@ -402,10 +424,10 @@ function PlanPageContent() {
             dailySpend: { min: 50, max: budget === '$' ? 100 : budget === '$$' ? 200 : 400 },
             splurgeMoments: budget === '$$$' ? 3 : budget === '$$' ? 2 : 1,
           },
-          avoidances: avoidances.trim() || undefined,
+          avoidances: avoidances.length > 0 ? avoidances.join(', ') : undefined,
         },
         preferences: {
-          avoidances: avoidances.trim() || undefined,
+          avoidances: avoidances.length > 0 ? avoidances.join(', ') : undefined,
           specialRequests: specialRequests.trim() || undefined,
         },
         travelers: {
@@ -829,47 +851,6 @@ function PlanPageContent() {
               )}
             </div>
 
-            {/* Pace - Collapsible */}
-            <div className="border rounded-lg">
-              <button
-                onClick={() => toggleSection('pace')}
-                className="w-full p-4 flex items-center justify-between"
-              >
-                <span className="font-medium">Pace</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{pace.charAt(0).toUpperCase() + pace.slice(1)}</Badge>
-                  {expandedSections.includes('pace') ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-              </button>
-
-              {expandedSections.includes('pace') && (
-                <div className="px-4 pb-4">
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['relaxed', 'balanced', 'active'] as Pace[]).map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setPace(p)}
-                        className={`p-3 rounded-lg border text-center transition-all ${
-                          pace === p ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="font-medium text-sm">{p.charAt(0).toUpperCase() + p.slice(1)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {p === 'relaxed' && 'Slow days'}
-                          {p === 'balanced' && 'Mix of both'}
-                          {p === 'active' && 'Packed schedule'}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Next Button */}
             <Button
               className="w-full"
@@ -1011,6 +992,47 @@ function PlanPageContent() {
               )}
             </div>
 
+            {/* Pace - Collapsible */}
+            <div className="border rounded-lg">
+              <button
+                onClick={() => toggleSection('pace')}
+                className="w-full p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">Pace</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{pace.charAt(0).toUpperCase() + pace.slice(1)}</Badge>
+                  {expandedSections.includes('pace') ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+
+              {expandedSections.includes('pace') && (
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['relaxed', 'balanced', 'active'] as Pace[]).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPace(p)}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          pace === p ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{p.charAt(0).toUpperCase() + p.slice(1)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {p === 'relaxed' && 'Slow days'}
+                          {p === 'balanced' && 'Mix of both'}
+                          {p === 'active' && 'Packed schedule'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Next Button */}
             <Button
               className="w-full"
@@ -1032,16 +1054,27 @@ function PlanPageContent() {
 
             {/* Things to Avoid */}
             <div className="border rounded-lg p-4">
-              <label className="font-medium block mb-2">Things to avoid</label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Tell us what you don&apos;t like or want to skip
-              </p>
-              <Textarea
-                placeholder="e.g., crowded tourist spots, spicy food, long walks, early mornings..."
-                className="min-h-[100px]"
-                value={avoidances}
-                onChange={(e) => setAvoidances(e.target.value)}
-              />
+              <div className="flex items-center justify-between mb-3">
+                <label className="font-medium">Things to avoid</label>
+                {avoidances.length > 0 && (
+                  <span className="text-sm text-muted-foreground">{avoidances.length} selected</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {AVOIDANCE_OPTIONS.map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => toggleAvoidance(id)}
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
+                      avoidances.includes(id)
+                        ? 'bg-destructive/10 text-destructive border-destructive/30'
+                        : 'border-muted hover:border-destructive/30'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Special Requests */}
