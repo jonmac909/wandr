@@ -106,13 +106,43 @@ function getCityInfo(cityName: string): CityInfo {
   return POPULAR_CITY_INFO[cityName] || DEFAULT_CITY_INFO;
 }
 
+// Known big/major cities that should be penalized when "avoid big cities" is selected
+const BIG_CITIES = [
+  'Bangkok', 'Tokyo', 'Beijing', 'Shanghai', 'Hong Kong', 'Singapore',
+  'Seoul', 'Manila', 'Jakarta', 'Mumbai', 'Delhi', 'Kuala Lumpur',
+  'New York', 'Los Angeles', 'Chicago', 'London', 'Paris', 'Rome',
+  'Barcelona', 'Madrid', 'Berlin', 'Istanbul', 'Cairo', 'Dubai',
+  'Sydney', 'Melbourne', 'Toronto', 'Mexico City', 'São Paulo', 'Rio de Janeiro'
+];
+
+// Heavily touristed cities
+const TOURIST_TRAP_CITIES = [
+  'Bangkok', 'Phuket', 'Bali', 'Cancun', 'Venice', 'Florence',
+  'Barcelona', 'Amsterdam', 'Paris', 'Prague', 'Dubrovnik'
+];
+
 // Generate personalized recommendation based on TripDNA preferences
-function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA): { match: 'great' | 'good' | 'mixed'; reasons: string[]; concerns: string[] } {
+function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA, cityName?: string): { match: 'great' | 'good' | 'mixed'; reasons: string[]; concerns: string[] } {
   const reasons: string[] = [];
   const concerns: string[] = [];
 
   const { travelerProfile, vibeAndPace, interests, constraints } = tripDna;
   const travelIdentities = travelerProfile?.travelIdentities || [];
+
+  // Parse avoidances from preferences
+  const avoidancesStr = (tripDna as unknown as { preferences?: { avoidances?: string } }).preferences?.avoidances || '';
+  const avoidances = avoidancesStr.split(',').map(a => a.trim()).filter(Boolean);
+
+  // Check avoidances and add concerns
+  if (avoidances.includes('big-cities') && cityName && BIG_CITIES.includes(cityName)) {
+    concerns.push('This is a major city - you wanted to avoid big cities');
+  }
+  if (avoidances.includes('crowds') && (cityInfo.crowdLevel === 'High' || cityInfo.crowdLevel === 'Very High')) {
+    concerns.push(`${cityInfo.crowdLevel} crowd levels - you prefer avoiding crowds`);
+  }
+  if (avoidances.includes('tourist-traps') && cityName && TOURIST_TRAP_CITIES.includes(cityName)) {
+    concerns.push('Very touristy - you wanted to avoid tourist traps');
+  }
 
   // Check food preferences
   if (interests?.food?.importance === 'food-focused' && cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) {
@@ -176,11 +206,34 @@ function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA): { 
   return { match, reasons: reasons.slice(0, 3), concerns: concerns.slice(0, 2) };
 }
 
-// Calculate match score for sorting cities
-function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA): number {
+// Calculate match score for sorting cities based on preferences and avoidances
+function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA, cityName?: string): number {
   let score = 0;
   const { vibeAndPace, interests, travelerProfile } = tripDna;
   const travelIdentities = travelerProfile?.travelIdentities || [];
+
+  // Parse avoidances from preferences (stored as comma-separated string)
+  const avoidancesStr = (tripDna as unknown as { preferences?: { avoidances?: string } }).preferences?.avoidances || '';
+  const avoidances = avoidancesStr.split(',').map(a => a.trim()).filter(Boolean);
+
+  // HEAVY PENALTIES FOR AVOIDANCES - these should override positive scores
+
+  // Avoid big cities
+  if (avoidances.includes('big-cities') && cityName && BIG_CITIES.includes(cityName)) {
+    score -= 100; // Major penalty - should push to bottom
+  }
+
+  // Avoid crowds
+  if (avoidances.includes('crowds')) {
+    if (cityInfo.crowdLevel === 'Very High') score -= 80;
+    else if (cityInfo.crowdLevel === 'High') score -= 50;
+    else if (cityInfo.crowdLevel === 'Moderate') score -= 10;
+  }
+
+  // Avoid tourist traps
+  if (avoidances.includes('tourist-traps') && cityName && TOURIST_TRAP_CITIES.includes(cityName)) {
+    score -= 60;
+  }
 
   // Boost for matching travel identities
   if (travelIdentities.includes('relaxation') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) score += 20;
@@ -196,7 +249,7 @@ function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA): number {
   // Boost for food match
   if (interests?.food?.importance === 'food-focused' && cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) score += 15;
 
-  // Penalty for crowd level vs pace
+  // Penalty for crowd level vs pace (lighter since we handle crowds above)
   if (vibeAndPace?.tripPace === 'relaxed' && cityInfo.crowdLevel === 'Very High') score -= 10;
   if (vibeAndPace?.tripPace === 'fast' && cityInfo.crowdLevel === 'Low') score += 10;
 
@@ -263,7 +316,8 @@ export function SwipeablePlanningView({
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
-  const [highlightTab, setHighlightTab] = useState<string>('photos'); // Active tab for city highlights
+  const [highlightTab, setHighlightTab] = useState<string>('landmarks'); // Active tab for city highlights
+  const [showCityDetails, setShowCityDetails] = useState(false); // Collapsible details section
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
@@ -1242,14 +1296,14 @@ export function SwipeablePlanningView({
             {stepItems
               .map(item => ({
                 item,
-                score: getCityMatchScore(getCityInfo(item.name), tripDna)
+                score: getCityMatchScore(getCityInfo(item.name), tripDna, item.name)
               }))
               .sort((a, b) => b.score - a.score)
               .slice(0, 3)
               .map(({ item }) => {
                 const isSelected = selectedIds.has(item.id);
                 const cityInfo = getCityInfo(item.name);
-                const recommendation = getPersonalizedRecommendation(cityInfo, tripDna);
+                const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, item.name);
                 return (
                   <div
                     key={`top-${item.id}`}
@@ -1470,8 +1524,7 @@ export function SwipeablePlanningView({
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
-            const cityName = cityDetailItem.name.toLowerCase().replace(/\s+/g, '');
-            const recommendation = getPersonalizedRecommendation(cityInfo, tripDna);
+            const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, cityDetailItem.name);
 
             // Create image slides: city overview + top sites (using real Unsplash images)
             const country = destinations.length > 0 ? destinations[0] : undefined;
