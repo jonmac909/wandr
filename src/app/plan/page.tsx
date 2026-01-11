@@ -320,9 +320,6 @@ function PlanPageContent() {
       if (prev.includes(type)) {
         return prev.filter((t) => t !== type);
       }
-      if (prev.length >= 3) {
-        return [...prev.slice(1), type];
-      }
       return [...prev, type];
     });
   };
@@ -467,7 +464,7 @@ function PlanPageContent() {
             className="shrink-0"
             onClick={() => {
               if (step === 1) {
-                isEditMode ? router.push(`/trip/${editTripId}`) : router.push('/');
+                router.push('/');
               } else {
                 setStep(step - 1);
               }
@@ -476,38 +473,73 @@ function PlanPageContent() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-semibold">{isEditMode ? 'Edit Trip' : 'Plan New Trip'}</h1>
+            <h1 className="font-semibold">Plan Trip</h1>
           </div>
         </div>
 
-        {/* 3-Step Progress Indicator */}
+        {/* 3-Step Progress Indicator - Clickable */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            {[
-              { num: 1, label: 'Where & When' },
-              { num: 2, label: 'Trip Style' },
-              { num: 3, label: 'Preferences' },
-            ].map(({ num, label }, idx) => (
-              <div key={num} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold mb-1 transition-colors ${
-                    step >= num ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {num}
-                  </div>
-                  <span className={`text-xs font-medium transition-colors ${
-                    step >= num ? 'text-primary' : 'text-muted-foreground'
-                  }`}>
-                    {label}
-                  </span>
-                </div>
-                {idx < 2 && (
-                  <div className={`h-0.5 flex-1 mx-1 rounded transition-colors ${
-                    step > num ? 'bg-primary' : 'bg-muted'
-                  }`} />
-                )}
+          <div className="flex items-center justify-center gap-0">
+            {/* Step 1 */}
+            <button
+              onClick={() => setStep(1)}
+              className="flex flex-col items-center w-24"
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold mb-1 transition-colors ${
+                step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>
+                1
               </div>
-            ))}
+              <span className={`text-xs font-medium text-center transition-colors ${
+                step >= 1 ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                Where & When
+              </span>
+            </button>
+
+            {/* Connector 1-2 */}
+            <div className={`h-0.5 w-16 -mx-2 rounded transition-colors ${
+              step > 1 ? 'bg-primary' : 'bg-muted'
+            }`} />
+
+            {/* Step 2 */}
+            <button
+              onClick={() => setStep(2)}
+              className="flex flex-col items-center w-24"
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold mb-1 transition-colors ${
+                step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>
+                2
+              </div>
+              <span className={`text-xs font-medium text-center transition-colors ${
+                step >= 2 ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                Trip Style
+              </span>
+            </button>
+
+            {/* Connector 2-3 */}
+            <div className={`h-0.5 w-16 -mx-2 rounded transition-colors ${
+              step > 2 ? 'bg-primary' : 'bg-muted'
+            }`} />
+
+            {/* Step 3 */}
+            <button
+              onClick={() => setStep(3)}
+              className="flex flex-col items-center w-24"
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold mb-1 transition-colors ${
+                step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+              }`}>
+                3
+              </div>
+              <span className={`text-xs font-medium text-center transition-colors ${
+                step >= 3 ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                Preferences
+              </span>
+            </button>
           </div>
         </div>
         {step === 1 && (
