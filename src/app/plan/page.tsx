@@ -288,6 +288,33 @@ function PlanPageContent() {
             setTravelerType(dna.travelers.type as TravelerType);
           }
 
+          // Pre-fill lodging
+          if (dna.constraints?.lodging) {
+            setLodging(dna.constraints.lodging as LodgingType);
+          }
+
+          // Pre-fill area
+          if (dna.constraints?.area) {
+            setArea(dna.constraints.area as AreaType);
+          }
+
+          // Pre-fill avoidances
+          if (dna.preferences?.avoidances || dna.constraints?.avoidances) {
+            const avoidStr = dna.preferences?.avoidances || dna.constraints?.avoidances;
+            if (typeof avoidStr === 'string') {
+              // Parse comma-separated string back to array
+              const avoidArr = avoidStr.split(',').map((a: string) => a.trim()).filter(Boolean);
+              setAvoidances(avoidArr);
+            } else if (Array.isArray(avoidStr)) {
+              setAvoidances(avoidStr);
+            }
+          }
+
+          // Pre-fill special requests
+          if (dna.preferences?.specialRequests) {
+            setSpecialRequests(dna.preferences.specialRequests);
+          }
+
           setDestinationMode('known');
         }
       } catch (error) {
