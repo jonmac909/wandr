@@ -32,21 +32,80 @@ import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashb
 import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
-type DurationType = 'days' | 'months';
+type DurationType = 'days' | 'weeks' | 'months';
 type Pace = 'relaxed' | 'balanced' | 'active';
 type DestinationMode = 'known' | 'surprise';
-type TripType = 'culture' | 'food' | 'nature' | 'beach' | 'adventure' | 'luxury' | 'family';
+type TripType =
+  // Scenery
+  | 'beach' | 'mountains' | 'gardens' | 'countryside'
+  // Culture
+  | 'museums' | 'theater' | 'history' | 'local-traditions'
+  // Relaxation
+  | 'spa' | 'lounges'
+  // Active
+  | 'hiking' | 'water-sports' | 'wildlife'
+  // Food
+  | 'street-food' | 'fine-dining' | 'food-tours'
+  // Other
+  | 'nightlife' | 'shopping' | 'photography';
 type Budget = '$' | '$$' | '$$$';
 type TravelerType = 'solo' | 'couple' | 'friends' | 'family';
 
-const TRIP_TYPES: { id: TripType; label: string; icon: typeof Compass }[] = [
-  { id: 'culture', label: 'Culture & History', icon: Compass },
-  { id: 'food', label: 'Food & Drink', icon: Utensils },
-  { id: 'nature', label: 'Nature & Outdoors', icon: Mountain },
-  { id: 'beach', label: 'Beach & Relax', icon: Palmtree },
-  { id: 'adventure', label: 'Adventure', icon: Tent },
-  { id: 'luxury', label: 'Luxury', icon: Crown },
-  { id: 'family', label: 'Family-friendly', icon: Heart },
+interface TripTypeCategory {
+  label: string;
+  types: { id: TripType; label: string; icon: typeof Compass }[];
+}
+
+const TRIP_TYPE_CATEGORIES: TripTypeCategory[] = [
+  {
+    label: 'Scenery',
+    types: [
+      { id: 'beach', label: 'Beach', icon: Palmtree },
+      { id: 'mountains', label: 'Mountains', icon: Mountain },
+      { id: 'gardens', label: 'Gardens & Parks', icon: Heart },
+      { id: 'countryside', label: 'Countryside', icon: Tent },
+    ],
+  },
+  {
+    label: 'Culture',
+    types: [
+      { id: 'museums', label: 'Museums & Art', icon: Compass },
+      { id: 'theater', label: 'Shows & Theater', icon: Sparkles },
+      { id: 'history', label: 'History & Architecture', icon: Crown },
+      { id: 'local-traditions', label: 'Local Traditions', icon: Heart },
+    ],
+  },
+  {
+    label: 'Relaxation',
+    types: [
+      { id: 'spa', label: 'Spa & Wellness', icon: Heart },
+      { id: 'lounges', label: 'Lounges & Rooftops', icon: Crown },
+    ],
+  },
+  {
+    label: 'Active',
+    types: [
+      { id: 'hiking', label: 'Hiking & Trekking', icon: Mountain },
+      { id: 'water-sports', label: 'Water Sports', icon: Palmtree },
+      { id: 'wildlife', label: 'Wildlife & Safari', icon: Tent },
+    ],
+  },
+  {
+    label: 'Food',
+    types: [
+      { id: 'street-food', label: 'Street Food', icon: Utensils },
+      { id: 'fine-dining', label: 'Fine Dining', icon: Crown },
+      { id: 'food-tours', label: 'Food Tours', icon: Utensils },
+    ],
+  },
+  {
+    label: 'Other',
+    types: [
+      { id: 'nightlife', label: 'Nightlife', icon: Sparkles },
+      { id: 'shopping', label: 'Shopping', icon: Heart },
+      { id: 'photography', label: 'Photography', icon: Compass },
+    ],
+  },
 ];
 
 export default function PlanPage() {
@@ -66,34 +125,161 @@ function PlanPageContent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Edit mode
+  const editTripId = searchParams.get('edit');
+  const isEditMode = !!editTripId;
 
   // Step 1: Basics
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
-  const [mainDestination, setMainDestination] = useState(''); // Country/region
+  const [destinations, setDestinations] = useState<string[]>([]); // Countries/regions (e.g., ["Turkey", "Spain"])
+  const [destinationInput, setDestinationInput] = useState(''); // Input for adding destinations
   const [mustVisitPlaces, setMustVisitPlaces] = useState<string[]>([]); // Specific cities
   const [mustVisitInput, setMustVisitInput] = useState('');
 
-  // Pre-fill destination from URL query param
+  // Add destination helper
+  // Helper to capitalize country/place names
+  const capitalizePlace = (str: string) => {
+    return str
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const addDestination = () => {
+    const trimmed = destinationInput.trim();
+    if (trimmed) {
+      const capitalized = capitalizePlace(trimmed);
+      if (!destinations.includes(capitalized)) {
+        setDestinations([...destinations, capitalized]);
+        setDestinationInput('');
+      }
+    }
+  };
+
+  // Remove destination helper
+  const removeDestination = (dest: string) => {
+    setDestinations(destinations.filter(d => d !== dest));
+  };
+
+  // Load existing trip data when editing
   useEffect(() => {
+    async function loadTripForEdit() {
+      if (!editTripId) return;
+      setIsLoading(true);
+
+      try {
+        const trip = await tripDb.get(editTripId);
+        if (trip?.tripDna) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const dna = trip.tripDna as any;
+
+          // Pre-fill destinations (countries)
+          if (dna.interests?.destinations?.length > 0) {
+            setDestinations(dna.interests.destinations);
+          } else if (dna.interests?.destination) {
+            // Parse "Turkey → Spain" format
+            const dest = dna.interests.destination;
+            if (dest.includes('→')) {
+              setDestinations(dest.split('→').map((d: string) => d.trim()));
+            } else {
+              setDestinations([dest]);
+            }
+          }
+
+          // Pre-fill must visit places (cities)
+          if (dna.interests?.mustVisitPlaces?.length > 0) {
+            setMustVisitPlaces(dna.interests.mustVisitPlaces);
+          }
+
+          // Pre-fill duration
+          const days = dna.constraints?.duration?.days || 14;
+          if (days >= 30) {
+            setDurationType('months');
+            setDurationMonths(Math.round(days / 30));
+          } else if (days >= 7 && days % 7 === 0) {
+            setDurationType('weeks');
+            setDurationWeeks(Math.round(days / 7));
+          } else {
+            setDurationType('days');
+            setDurationDays(days);
+          }
+
+          // Pre-fill dates
+          if (dna.constraints?.startDate) {
+            setStartDate(dna.constraints.startDate);
+          }
+          if (dna.constraints?.endDate) {
+            setEndDate(dna.constraints.endDate);
+          }
+          if (dna.constraints?.dateFlexibility !== undefined) {
+            setDateFlexibility(dna.constraints.dateFlexibility);
+          }
+
+          // Pre-fill pace
+          if (dna.vibeAndPace?.tripPace) {
+            setPace(dna.vibeAndPace.tripPace as Pace);
+          }
+
+          // Pre-fill trip types
+          if (dna.interests?.tripTypes?.length > 0) {
+            setTripTypes(dna.interests.tripTypes as TripType[]);
+          } else if (dna.travelerProfile?.travelIdentities?.length > 0) {
+            setTripTypes(dna.travelerProfile.travelIdentities as TripType[]);
+          }
+
+          // Pre-fill budget
+          if (dna.constraints?.budget?.level) {
+            setBudget(dna.constraints.budget.level as Budget);
+          }
+
+          // Pre-fill traveler type
+          if (dna.travelerProfile?.partyType) {
+            setTravelerType(dna.travelerProfile.partyType as TravelerType);
+          } else if (dna.travelers?.type) {
+            setTravelerType(dna.travelers.type as TravelerType);
+          }
+
+          setDestinationMode('known');
+        }
+      } catch (error) {
+        console.error('Failed to load trip for editing:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTripForEdit();
+  }, [editTripId]);
+
+  // Pre-fill destination from URL query param (for new trips)
+  useEffect(() => {
+    if (editTripId) return; // Skip if editing
     const destParam = searchParams.get('destination');
     if (destParam) {
       // If it looks like "City, Country", extract both
       if (destParam.includes(',')) {
-        const [city, country] = destParam.split(',').map(s => s.trim());
-        setMainDestination(country);
-        setMustVisitPlaces([city]);
+        const parts = destParam.split(',').map(s => s.trim());
+        if (parts.length >= 2) {
+          setDestinations([parts[parts.length - 1]]); // Country is last
+          setMustVisitPlaces([parts[0]]); // City is first
+        }
       } else {
-        setMainDestination(destParam);
+        setDestinations([destParam]);
       }
       setDestinationMode('known');
     }
-  }, [searchParams]);
+  }, [searchParams, editTripId]);
 
   const addMustVisitPlace = () => {
     const trimmed = mustVisitInput.trim();
-    if (trimmed && !mustVisitPlaces.includes(trimmed)) {
-      setMustVisitPlaces([...mustVisitPlaces, trimmed]);
-      setMustVisitInput('');
+    if (trimmed) {
+      const capitalized = capitalizePlace(trimmed);
+      if (!mustVisitPlaces.includes(capitalized)) {
+        setMustVisitPlaces([...mustVisitPlaces, capitalized]);
+        setMustVisitInput('');
+      }
     }
   };
 
@@ -104,16 +290,21 @@ function PlanPageContent() {
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [durationType, setDurationType] = useState<DurationType>('days');
   const [durationDays, setDurationDays] = useState(14);
+  const [durationWeeks, setDurationWeeks] = useState(2);
   const [durationMonths, setDurationMonths] = useState(1);
-  const [startMonth, setStartMonth] = useState<number | null>(null);
-  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
-  const [flexibleDates, setFlexibleDates] = useState(true);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [dateFlexibility, setDateFlexibility] = useState<number>(0); // 0 = exact, 1-7 = +/- days
   const [pace, setPace] = useState<Pace>('balanced');
 
   // Step 2: Style
   const [tripTypes, setTripTypes] = useState<TripType[]>([]);
   const [budget, setBudget] = useState<Budget>('$$');
   const [travelerType, setTravelerType] = useState<TravelerType>('couple');
+
+  // Step 3: Preferences
+  const [avoidances, setAvoidances] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<string[]>(['timing', 'tripType']);
@@ -141,6 +332,9 @@ function PlanPageContent() {
       if (durationDays >= 30) return '30+ days';
       if (durationDays === 1) return '1 day';
       return `${durationDays} days`;
+    } else if (durationType === 'weeks') {
+      if (durationWeeks === 1) return '1 week';
+      return `${durationWeeks} weeks`;
     } else {
       if (durationMonths === 1) return '1 month';
       return `${durationMonths} months`;
@@ -151,21 +345,24 @@ function PlanPageContent() {
     setIsGenerating(true);
 
     try {
-      // Create trip DNA
-      const tripId = crypto.randomUUID();
-      const actualDuration = durationType === 'days' ? durationDays : durationMonths * 30;
+      // Use existing ID if editing, otherwise create new
+      const tripId = editTripId || crypto.randomUUID();
+      const actualDuration = durationType === 'days'
+        ? durationDays
+        : durationType === 'weeks'
+          ? durationWeeks * 7
+          : durationMonths * 30;
 
-      // Build destination string
-      const allPlaces = mustVisitPlaces.length > 0
-        ? mustVisitPlaces.join(' → ')
-        : mainDestination;
-      const destinationDisplay = mainDestination + (mustVisitPlaces.length > 0 ? ` (${allPlaces})` : '');
+      // Build destination string - multi-country with arrow
+      const destinationDisplay = destinations.length > 1
+        ? destinations.join(' → ')
+        : destinations[0] || '';
 
       // Build tripDna in the expected format for the trip page
       const tripDna = {
         id: tripId,
         version: '1.0',
-        createdAt: new Date().toISOString(),
+        createdAt: isEditMode ? undefined : new Date().toISOString(), // Preserve original createdAt
         travelerProfile: {
           partyType: travelerType,
           travelIdentities: tripTypes, // Trip types serve as travel identities
@@ -175,15 +372,16 @@ function PlanPageContent() {
         },
         interests: {
           destination: destinationMode === 'known' ? destinationDisplay : surpriseDescription,
-          mainDestination: destinationMode === 'known' ? mainDestination : '',
+          destinations: destinations.length > 0 ? destinations : [], // Array of countries
+          mainDestination: destinations[0] || '',
           mustVisitPlaces: destinationMode === 'known' ? mustVisitPlaces : [],
           tripTypes,
         },
         constraints: {
           duration: { days: actualDuration },
-          startMonth: startMonth !== null ? startMonth : undefined,
-          startYear: startMonth !== null ? startYear : undefined,
-          flexibleDates,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          dateFlexibility: dateFlexibility,
           budget: {
             currency: 'USD',
             level: budget,
@@ -191,6 +389,11 @@ function PlanPageContent() {
             dailySpend: { min: 50, max: budget === '$' ? 100 : budget === '$$' ? 200 : 400 },
             splurgeMoments: budget === '$$$' ? 3 : budget === '$$' ? 2 : 1,
           },
+          avoidances: avoidances.trim() || undefined,
+        },
+        preferences: {
+          avoidances: avoidances.trim() || undefined,
+          specialRequests: specialRequests.trim() || undefined,
         },
         travelers: {
           type: travelerType,
@@ -198,28 +401,54 @@ function PlanPageContent() {
         },
       };
 
-      // Save to DB
-      await tripDb.save({
-        id: tripId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tripDna: tripDna as any,
-        itinerary: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        syncedAt: null,
-        status: 'draft',
-      });
+      if (isEditMode) {
+        // Update existing trip
+        const existingTrip = await tripDb.get(tripId);
+        if (existingTrip) {
+          await tripDb.save({
+            ...existingTrip,
+            id: tripId,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            tripDna: tripDna as any,
+            updatedAt: new Date(),
+          });
+        }
+      } else {
+        // Save new trip to DB
+        await tripDb.save({
+          id: tripId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tripDna: tripDna as any,
+          itinerary: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          syncedAt: null,
+          status: 'draft',
+        });
+      }
 
       // Navigate to trip page
       router.push(`/trip/${tripId}`);
     } catch (error) {
-      console.error('Error creating trip:', error);
+      console.error('Error saving trip:', error);
       setIsGenerating(false);
     }
   };
 
-  const canProceedStep1 = destinationMode === 'known' ? mainDestination.trim() : surpriseDescription.trim();
+  const canProceedStep1 = destinationMode === 'known' ? destinations.length > 0 : surpriseDescription.trim();
   const canBuild = tripTypes.length > 0;
+
+  // Loading state for edit mode
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading trip...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -236,20 +465,50 @@ function PlanPageContent() {
             variant="ghost"
             size="icon"
             className="shrink-0"
-            onClick={() => step === 1 ? router.push('/') : setStep(1)}
+            onClick={() => {
+              if (step === 1) {
+                isEditMode ? router.push(`/trip/${editTripId}`) : router.push('/');
+              } else {
+                setStep(step - 1);
+              }
+            }}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-semibold">Plan New Trip</h1>
-            <p className="text-xs text-muted-foreground">Step {step} of 2</p>
+            <h1 className="font-semibold">{isEditMode ? 'Edit Trip' : 'Plan New Trip'}</h1>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="flex items-center gap-2 mb-6">
-          <div className={`flex-1 h-1 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex-1 h-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+        {/* 3-Step Progress Indicator */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            {[
+              { num: 1, label: 'Where & When' },
+              { num: 2, label: 'Trip Style' },
+              { num: 3, label: 'Preferences' },
+            ].map(({ num, label }, idx) => (
+              <div key={num} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold mb-1 transition-colors ${
+                    step >= num ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {num}
+                  </div>
+                  <span className={`text-xs font-medium transition-colors ${
+                    step >= num ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {label}
+                  </span>
+                </div>
+                {idx < 2 && (
+                  <div className={`h-0.5 flex-1 mx-1 rounded transition-colors ${
+                    step > num ? 'bg-primary' : 'bg-muted'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
         {step === 1 && (
           <div className="space-y-6">
@@ -276,33 +535,20 @@ function PlanPageContent() {
                 </div>
                 {destinationMode === 'known' && (
                   <div className="mt-4 pl-7 space-y-4" onClick={(e) => e.stopPropagation()}>
-                    {/* Main Destination (Country/Region) */}
+                    {/* Destinations (Countries/Regions) */}
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Where to go
+                        Countries / Regions
                       </label>
-                      <Input
-                        placeholder="e.g., Switzerland, Japan, Southeast Asia..."
-                        value={mainDestination}
-                        onChange={(e) => setMainDestination(e.target.value)}
-                        className="bg-background"
-                      />
-                    </div>
-
-                    {/* Must-Visit Places (Optional) */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Must-visit places <span className="text-muted-foreground/60">(optional)</span>
-                      </label>
-                      {mustVisitPlaces.length > 0 && (
+                      {destinations.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {mustVisitPlaces.map((place) => (
-                            <Badge key={place} variant="secondary" className="pl-2 pr-1 py-1 gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {place}
+                          {destinations.map((dest, idx) => (
+                            <Badge key={dest} variant="default" className="pl-2 pr-1 py-1 gap-1 bg-primary/10 text-primary border border-primary/20">
+                              {idx > 0 && <span className="text-xs mr-1">→</span>}
+                              {dest}
                               <button
-                                onClick={() => removeMustVisitPlace(place)}
-                                className="ml-1 hover:bg-muted rounded-full p-0.5"
+                                onClick={() => removeDestination(dest)}
+                                className="ml-1 hover:bg-primary/20 rounded-full p-0.5"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -312,13 +558,13 @@ function PlanPageContent() {
                       )}
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Add specific cities..."
-                          value={mustVisitInput}
-                          onChange={(e) => setMustVisitInput(e.target.value)}
+                          placeholder="e.g., Thailand, Vietnam, Japan..."
+                          value={destinationInput}
+                          onChange={(e) => setDestinationInput(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              addMustVisitPlace();
+                              addDestination();
                             }
                           }}
                           className="bg-background flex-1"
@@ -327,13 +573,64 @@ function PlanPageContent() {
                           type="button"
                           size="icon"
                           variant="outline"
-                          onClick={addMustVisitPlace}
-                          disabled={!mustVisitInput.trim()}
+                          onClick={addDestination}
+                          disabled={!destinationInput.trim()}
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Add multiple countries for a multi-destination trip
+                      </p>
                     </div>
+
+                    {/* Must-Visit Cities (Optional) */}
+                    {destinations.length > 0 && (
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Must-visit cities <span className="text-muted-foreground/60">(optional)</span>
+                        </label>
+                        {mustVisitPlaces.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {mustVisitPlaces.map((place) => (
+                              <Badge key={place} variant="secondary" className="pl-2 pr-1 py-1 gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {place}
+                                <button
+                                  onClick={() => removeMustVisitPlace(place)}
+                                  className="ml-1 hover:bg-muted rounded-full p-0.5"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Add specific cities..."
+                            value={mustVisitInput}
+                            onChange={(e) => setMustVisitInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addMustVisitPlace();
+                              }
+                            }}
+                            className="bg-background flex-1"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={addMustVisitPlace}
+                            disabled={!mustVisitInput.trim()}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </button>
@@ -394,6 +691,13 @@ function PlanPageContent() {
                         Days
                       </Button>
                       <Button
+                        variant={durationType === 'weeks' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setDurationType('weeks')}
+                      >
+                        Weeks
+                      </Button>
+                      <Button
                         variant={durationType === 'months' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setDurationType('months')}
@@ -402,25 +706,39 @@ function PlanPageContent() {
                       </Button>
                     </div>
 
-                    {durationType === 'days' ? (
+                    {durationType === 'days' && (
                       <div>
                         <Slider
                           value={[durationDays]}
                           onValueChange={([v]) => setDurationDays(v)}
-                          min={3}
-                          max={30}
+                          min={1}
+                          max={14}
                           step={1}
                           className="mb-2"
                         />
                         <div className="text-center text-sm font-medium">{getDurationLabel()}</div>
                       </div>
-                    ) : (
+                    )}
+                    {durationType === 'weeks' && (
+                      <div>
+                        <Slider
+                          value={[durationWeeks]}
+                          onValueChange={([v]) => setDurationWeeks(v)}
+                          min={1}
+                          max={8}
+                          step={1}
+                          className="mb-2"
+                        />
+                        <div className="text-center text-sm font-medium">{getDurationLabel()}</div>
+                      </div>
+                    )}
+                    {durationType === 'months' && (
                       <div>
                         <Slider
                           value={[durationMonths]}
                           onValueChange={([v]) => setDurationMonths(v)}
                           min={1}
-                          max={6}
+                          max={12}
                           step={1}
                           className="mb-2"
                         />
@@ -429,50 +747,56 @@ function PlanPageContent() {
                     )}
                   </div>
 
-                  {/* Start Month/Year */}
+                  {/* Start & End Dates */}
                   <div>
-                    <div className="text-sm text-muted-foreground mb-2">When? (optional)</div>
-                    <div className="flex gap-2">
-                      <select
-                        value={startMonth ?? ''}
-                        onChange={(e) => setStartMonth(e.target.value ? parseInt(e.target.value) : null)}
-                        className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        <option value="">Any month</option>
-                        <option value="0">January</option>
-                        <option value="1">February</option>
-                        <option value="2">March</option>
-                        <option value="3">April</option>
-                        <option value="4">May</option>
-                        <option value="5">June</option>
-                        <option value="6">July</option>
-                        <option value="7">August</option>
-                        <option value="8">September</option>
-                        <option value="9">October</option>
-                        <option value="10">November</option>
-                        <option value="11">December</option>
-                      </select>
-                      <select
-                        value={startYear}
-                        onChange={(e) => setStartYear(parseInt(e.target.value))}
-                        disabled={startMonth === null}
-                        className="w-24 h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
-                      >
-                        {[0, 1, 2].map((offset) => {
-                          const year = new Date().getFullYear() + offset;
-                          return <option key={year} value={year}>{year}</option>;
-                        })}
-                      </select>
+                    <div className="text-sm text-muted-foreground mb-2">Travel dates</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Start date</label>
+                        <Input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="bg-background"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">End date</label>
+                        <Input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          min={startDate}
+                          className="bg-background"
+                        />
+                      </div>
                     </div>
-                    <label className="flex items-center gap-2 mt-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={flexibleDates}
-                        onChange={(e) => setFlexibleDates(e.target.checked)}
-                        className="rounded"
-                      />
-                      <span className="text-muted-foreground">Flexible dates</span>
-                    </label>
+                  </div>
+
+                  {/* Date Flexibility */}
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Date flexibility</div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 0, label: 'Exact dates' },
+                        { value: 1, label: '± 1 day' },
+                        { value: 2, label: '± 2 days' },
+                        { value: 3, label: '± 3 days' },
+                        { value: 7, label: '± 1 week' },
+                      ].map(({ value, label }) => (
+                        <button
+                          key={value}
+                          onClick={() => setDateFlexibility(value)}
+                          className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                            dateFlexibility === value
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'border-muted hover:border-primary/30'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -538,15 +862,53 @@ function PlanPageContent() {
               <h2 className="text-xl font-bold">What kind of trip?</h2>
             </div>
 
-            {/* Trip Type - Collapsible */}
+            {/* Who's Going - Collapsible (FIRST) */}
+            <div className="border rounded-lg">
+              <button
+                onClick={() => toggleSection('travelers')}
+                className="w-full p-4 flex items-center justify-between"
+              >
+                <span className="font-medium">Who&apos;s going?</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{travelerType.charAt(0).toUpperCase() + travelerType.slice(1)}</Badge>
+                  {expandedSections.includes('travelers') ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+
+              {expandedSections.includes('travelers') && (
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-4 gap-2">
+                    {(['solo', 'couple', 'friends', 'family'] as TravelerType[]).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setTravelerType(t)}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          travelerType === t ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="text-sm font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Trip Type - Collapsible with Categories */}
             <div className="border rounded-lg">
               <button
                 onClick={() => toggleSection('tripType')}
                 className="w-full p-4 flex items-center justify-between"
               >
-                <span className="font-medium">Trip Type</span>
+                <span className="font-medium">Interests</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Pick up to 3</span>
+                  {tripTypes.length > 0 && (
+                    <span className="text-sm text-muted-foreground">{tripTypes.length} selected</span>
+                  )}
                   {expandedSections.includes('tripType') ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
                   ) : (
@@ -556,21 +918,27 @@ function PlanPageContent() {
               </button>
 
               {expandedSections.includes('tripType') && (
-                <div className="px-4 pb-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {TRIP_TYPES.map(({ id, label, icon: Icon }) => (
-                      <button
-                        key={id}
-                        onClick={() => toggleTripType(id)}
-                        className={`p-3 rounded-lg border text-left transition-all flex items-center gap-2 ${
-                          tripTypes.includes(id) ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="text-sm">{label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="px-4 pb-4 space-y-4">
+                  {TRIP_TYPE_CATEGORIES.map((category) => (
+                    <div key={category.label}>
+                      <div className="text-xs font-semibold text-muted-foreground mb-2">{category.label}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {category.types.map(({ id, label }) => (
+                          <button
+                            key={id}
+                            onClick={() => toggleTripType(id)}
+                            className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
+                              tripTypes.includes(id)
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'border-muted hover:border-primary/30'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -616,43 +984,54 @@ function PlanPageContent() {
               )}
             </div>
 
-            {/* Who's Going - Collapsible */}
-            <div className="border rounded-lg">
-              <button
-                onClick={() => toggleSection('travelers')}
-                className="w-full p-4 flex items-center justify-between"
-              >
-                <span className="font-medium">Who&apos;s going?</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{travelerType.charAt(0).toUpperCase() + travelerType.slice(1)}</Badge>
-                  {expandedSections.includes('travelers') ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-              </button>
+            {/* Next Button */}
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => setStep(3)}
+            >
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        )}
 
-              {expandedSections.includes('travelers') && (
-                <div className="px-4 pb-4">
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['solo', 'couple', 'friends', 'family'] as TravelerType[]).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setTravelerType(t)}
-                        className={`p-3 rounded-lg border text-center transition-all ${
-                          travelerType === t ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="text-sm font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold">Any preferences?</h2>
+              <p className="text-sm text-muted-foreground mt-1">Optional - skip if none</p>
             </div>
 
-            {/* Build Trip Button */}
+            {/* Things to Avoid */}
+            <div className="border rounded-lg p-4">
+              <label className="font-medium block mb-2">Things to avoid</label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Tell us what you don&apos;t like or want to skip
+              </p>
+              <Textarea
+                placeholder="e.g., crowded tourist spots, spicy food, long walks, early mornings..."
+                className="min-h-[100px]"
+                value={avoidances}
+                onChange={(e) => setAvoidances(e.target.value)}
+              />
+            </div>
+
+            {/* Special Requests */}
+            <div className="border rounded-lg p-4">
+              <label className="font-medium block mb-2">Special requests</label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Anything else we should know?
+              </p>
+              <Textarea
+                placeholder="e.g., celebrating anniversary, need wheelchair access, traveling with a baby..."
+                className="min-h-[80px]"
+                value={specialRequests}
+                onChange={(e) => setSpecialRequests(e.target.value)}
+              />
+            </div>
+
+            {/* Save Preferences Button */}
             <Button
               className="w-full"
               size="lg"
@@ -662,12 +1041,12 @@ function PlanPageContent() {
               {isGenerating ? (
                 <>
                   <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Building...
+                  Saving...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Build Trip
+                  Save & Start Planning
                 </>
               )}
             </Button>

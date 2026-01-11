@@ -9,7 +9,9 @@
     "lint": "eslint",
     "build:cloudflare": "npx @opennextjs/cloudflare build",
     "preview": "npm run build:cloudflare && wrangler dev",
-    "deploy": "npm run build:cloudflare && wrangler deploy"
+    "deploy": "npm run build:cloudflare && wrangler deploy",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -45,6 +47,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@opennextjs/cloudflare": "^1.14.8",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -1396,8 +1396,10 @@ export default function TripPage() {
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-xl font-bold">{destination}</h1>
-              <p className="text-sm text-muted-foreground">Draft Trip</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold">{destination}</h1>
+                <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs font-medium rounded">Draft</span>
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -1433,7 +1435,7 @@ export default function TripPage() {
                 )}
               </div>
               <button
-                onClick={() => router.push(`/questionnaire?edit=${tripId}`)}
+                onClick={() => router.push(`/plan?edit=${tripId}`)}
                 className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-muted flex-shrink-0"
                 title="Edit preferences"
               >
@@ -1482,68 +1484,135 @@ export default function TripPage() {
                     });
                   });
                 });
-              } else if (category === 'experiences') {
-                const experiences = ['Walking Tour', 'Food Tour', 'Museum Visit', 'Historical Site', 'Local Market', 'Sunset Viewpoint', 'Cooking Class', 'Art Gallery', 'Nature Hike'];
-                experiences.forEach((exp, idx) => {
-                  const seed = exp.toLowerCase().replace(/[^a-z0-9]/g, '');
-                  mockItems.push({
-                    id: `exp-${idx}`,
-                    name: exp,
-                    description: `Experience the best ${exp.toLowerCase()}`,
-                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
-                    category: 'activities',
-                    tags: ['experiences'],
-                    rating: parseFloat((4 + Math.random()).toFixed(1)),
-                    priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
-                    isFavorited: false,
-                  });
-                });
               } else if (category === 'hotels') {
-                const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
-                hotelTypes.forEach((hotel, idx) => {
-                  const seed = `hotel${hotel.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-                  mockItems.push({
-                    id: `hotel-${idx}`,
-                    name: hotel,
-                    description: 'Beautiful accommodations',
-                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
-                    category: 'hotels',
-                    tags: ['hotels'],
-                    rating: parseFloat((4 + Math.random()).toFixed(1)),
-                    priceInfo: ['$$', '$$$', '$$$$'][Math.floor(Math.random() * 3)],
-                    isFavorited: false,
+                // Get selected cities from current planning items
+                const selectedCities = planningItems
+                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
+                  .map(item => item.name);
+                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
+
+                // Generate hotels for each selected city
+                const hotelsByCity: Record<string, string[]> = {
+                  'Istanbul': ['Pera Palace Hotel', 'Four Seasons Sultanahmet', 'Raffles Istanbul', 'St. Regis Istanbul', 'Ciragan Palace'],
+                  'Cappadocia': ['Museum Hotel', 'Argos in Cappadocia', 'Sultan Cave Suites', 'Kelebek Cave Hotel', 'Kayakapi Premium Caves'],
+                  'Antalya': ['Mardan Palace', 'Rixos Premium', 'Akra Hotel', 'Titanic Beach', 'Regnum Carya'],
+                  'Barcelona': ['Hotel Arts', 'W Barcelona', 'Mandarin Oriental', 'El Palace', 'Casa Camper'],
+                  'Madrid': ['The Westin Palace', 'Hotel Ritz', 'Four Seasons Madrid', 'Rosewood Villa Magna', 'Urso Hotel'],
+                };
+                const defaultHotels = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Luxury Resort', 'Charming B&B'];
+
+                citiesToUse.forEach((city, cityIdx) => {
+                  const cityHotels = hotelsByCity[city] || defaultHotels;
+                  cityHotels.forEach((hotel, idx) => {
+                    const seed = `hotel${city}${hotel}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    mockItems.push({
+                      id: `hotel-${cityIdx}-${idx}`,
+                      name: hotel,
+                      description: `${city} • ${['$150-250', '$200-400', '$300-600', '$400-800', '$500+'][idx % 5]}/night`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      category: 'hotels',
+                      tags: ['hotels', city],
+                      neighborhood: city,
+                      rating: parseFloat((4.2 + Math.random() * 0.7).toFixed(1)),
+                      priceInfo: ['$$', '$$$', '$$$$'][idx % 3],
+                      isFavorited: false,
+                    });
                   });
                 });
               } else if (category === 'restaurants') {
-                const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Brunch Cafe'];
-                restaurants.forEach((resto, idx) => {
-                  const seed = `food${resto.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-                  mockItems.push({
-                    id: `resto-${idx}`,
-                    name: resto,
-                    description: 'Delicious local cuisine',
-                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
-                    category: 'restaurants',
-                    tags: ['restaurants'],
-                    rating: parseFloat((4 + Math.random()).toFixed(1)),
-                    priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
-                    isFavorited: false,
+                const selectedCities = planningItems
+                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
+                  .map(item => item.name);
+                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
+
+                const restaurantsByCity: Record<string, string[]> = {
+                  'Istanbul': ['Mikla', 'Nusr-Et Steakhouse', 'Karaköy Lokantası', 'Çiya Sofrası', 'Asitane'],
+                  'Cappadocia': ['Seki Restaurant', 'Topdeck Cave', 'Ziggy Cafe', 'Old Greek House', 'Dibek'],
+                  'Barcelona': ['Tickets', 'Can Culleretes', 'El Xampanyet', 'Cervecería Catalana', 'Cal Pep'],
+                  'Madrid': ['Sobrino de Botín', 'DiverXO', 'Mercado San Miguel', 'La Barraca', 'Casa Lucio'],
+                };
+                const defaultRestaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food', 'Fine Dining', 'Seafood'];
+
+                citiesToUse.forEach((city, cityIdx) => {
+                  const cityRestos = restaurantsByCity[city] || defaultRestaurants;
+                  cityRestos.forEach((resto, idx) => {
+                    const seed = `resto${city}${resto}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    mockItems.push({
+                      id: `resto-${cityIdx}-${idx}`,
+                      name: resto,
+                      description: `${city} • ${['Turkish', 'Mediterranean', 'Local', 'International', 'Seafood'][idx % 5]}`,
+                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      category: 'restaurants',
+                      tags: ['restaurants', city],
+                      neighborhood: city,
+                      rating: parseFloat((4 + Math.random() * 0.9).toFixed(1)),
+                      priceInfo: ['$', '$$', '$$$'][idx % 3],
+                      isFavorited: false,
+                    });
                   });
                 });
-              } else if (category === 'cafes') {
-                const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
-                cafes.forEach((cafe, idx) => {
-                  const seed = `cafe${cafe.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-                  mockItems.push({
-                    id: `cafe-${idx}`,
-                    name: cafe,
-                    description: 'Perfect spot for coffee',
-                    imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
-                    category: 'cafes',
-                    tags: ['cafes'],
-                    rating: parseFloat((4 + Math.random()).toFixed(1)),
-                    priceInfo: '$',
-                    isFavorited: false,
+              } else if (category === 'activities') {
+                const selectedCities = planningItems
+                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
+                  .map(item => item.name);
+                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
+
+                // Get user's trip preferences (culture, beach, food, etc.)
+                const userPreferences = dna.interests?.tripTypes || ['culture', 'food'];
+
+                // Activities by category/preference
+                const activitiesByPreference: Record<string, Record<string, string[]>> = {
+                  'culture': {
+                    'Istanbul': ['Hagia Sophia Tour', 'Blue Mosque Visit', 'Topkapi Palace', 'Byzantine Museum', 'Sufi Ceremony'],
+                    'Cappadocia': ['Underground City Tour', 'Cave Churches', 'Goreme Open Air Museum', 'Local Village Visit', 'Turkish Night Show'],
+                    'Barcelona': ['Sagrada Familia Tour', 'Gothic Quarter Walk', 'Picasso Museum', 'Flamenco Show', 'Catalan History Tour'],
+                    '_default': ['Museum Tour', 'Historical Walking Tour', 'Cultural Performance', 'Art Gallery', 'Local Traditions'],
+                  },
+                  'beach': {
+                    'Istanbul': ['Princes Islands Day Trip', 'Bosphorus Beach Club', 'Black Sea Coast Trip', 'Beach Sunset Cruise', 'Swimming at Kilyos'],
+                    'Antalya': ['Konyaaltı Beach', 'Lara Beach Day', 'Boat Trip to Waterfalls', 'Beach Club Experience', 'Cleopatra Beach Trip'],
+                    '_default': ['Beach Day', 'Coastal Walk', 'Sunset Beach', 'Water Sports', 'Beach Club'],
+                  },
+                  'food': {
+                    'Istanbul': ['Food Walking Tour', 'Cooking Class', 'Spice Bazaar Visit', 'Street Food Tour', 'Turkish Breakfast Experience'],
+                    'Cappadocia': ['Wine Tasting Tour', 'Pottery & Lunch', 'Local Cuisine Night', 'Farm to Table Dinner', 'Turkish Coffee Ritual'],
+                    'Barcelona': ['Tapas Tour', 'La Boqueria Market', 'Paella Cooking Class', 'Wine & Cheese Tasting', 'Michelin Star Experience'],
+                    '_default': ['Food Tour', 'Cooking Class', 'Market Visit', 'Wine Tasting', 'Local Cuisine Night'],
+                  },
+                  'adventure': {
+                    'Istanbul': ['Bosphorus Kayaking', 'Paragliding Experience', 'Sailing Trip', 'Night Fishing Tour', 'Off-Road City Tour'],
+                    'Cappadocia': ['Hot Air Balloon Ride', 'ATV Valley Tour', 'Horseback Riding', 'Hiking Red Valley', 'Sunrise Jeep Safari'],
+                    '_default': ['Adventure Tour', 'Hiking', 'Outdoor Activity', 'Nature Excursion', 'Active Experience'],
+                  },
+                  'relaxation': {
+                    'Istanbul': ['Turkish Bath (Hammam)', 'Spa Day', 'Bosphorus Sunset Cruise', 'Tea Garden Experience', 'Rooftop Lounge'],
+                    'Cappadocia': ['Cave Spa Treatment', 'Hot Springs Visit', 'Sunrise Viewing', 'Vineyard Relaxation', 'Yoga Session'],
+                    '_default': ['Spa Day', 'Wellness Experience', 'Scenic Relaxation', 'Nature Retreat', 'Peaceful Excursion'],
+                  },
+                };
+
+                // Generate activities based on user preferences for each city
+                citiesToUse.forEach((city, cityIdx) => {
+                  userPreferences.forEach((pref: string, prefIdx: number) => {
+                    const prefActivities = activitiesByPreference[pref.toLowerCase()]?.[city]
+                      || activitiesByPreference[pref.toLowerCase()]?.['_default']
+                      || ['Local Experience', 'Guided Tour', 'Day Activity'];
+
+                    prefActivities.slice(0, 3).forEach((act, idx) => {
+                      const seed = `act${city}${pref}${act}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+                      mockItems.push({
+                        id: `act-${cityIdx}-${prefIdx}-${idx}`,
+                        name: act,
+                        description: `${city} • ${pref.charAt(0).toUpperCase() + pref.slice(1)} • ${['2-3 hours', '3-4 hours', 'Half day'][idx % 3]}`,
+                        imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                        category: 'activities',
+                        tags: ['activities', city, pref],
+                        neighborhood: city,
+                        rating: parseFloat((4.3 + Math.random() * 0.6).toFixed(1)),
+                        priceInfo: ['$30-50', '$50-100', '$100-200'][idx % 3],
+                        isFavorited: false,
+                      });
+                    });
                   });
                 });
               }

@@ -38,6 +38,16 @@ import {
   X,
   Users2,
   Image,
+  Route,
+  ArrowRight,
+  ArrowDown,
+  Plane,
+  Landmark,
+  ScrollText,
+  Building,
+  ShoppingBag,
+  Utensils,
+  TreePine,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { Itinerary } from '@/types/itinerary';
@@ -48,6 +58,7 @@ import {
   getItineraryDuration,
 } from '@/lib/planning/itinerary-to-planning';
 import { getCityImage, getSiteImage } from '@/lib/planning/city-images';
+import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
 
 interface SwipeablePlanningViewProps {
   tripDna: TripDNA;
@@ -78,50 +89,121 @@ const DAY_COLORS = [
   { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' },
 ];
 
-// City information database for rich detail modals
-interface CityInfo {
-  bestFor: string[];
-  crowdLevel: 'Low' | 'Moderate' | 'High' | 'Very High';
-  bestTime: string;
-  topSites: string[];
-  localTip: string;
-  avgDays: string;
-  pros: string[];
-  cons: string[];
-}
-
-const CITY_INFO: Record<string, CityInfo> = {
-  // Turkey
-  'Istanbul': { bestFor: ['History', 'Culture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Hagia Sophia', 'Blue Mosque', 'Grand Bazaar', 'Topkapi Palace'], localTip: 'Take a Bosphorus ferry at sunset for stunning views', avgDays: '3-4 days', pros: ['Incredible history spanning millennia', 'Amazing food scene', 'Great value for money'], cons: ['Can be overwhelming for first-timers', 'Traffic congestion', 'Persistent street vendors'] },
-  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance, especially for sunrise flights', avgDays: '2-3 days', pros: ['Otherworldly landscapes', 'Unique cave hotels', 'Bucket-list balloon rides'], cons: ['Balloon flights often cancelled due to weather', 'Limited nightlife', 'Remote location'] },
-  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days', pros: ['Beautiful beaches', 'Ancient ruins nearby', 'Good weather most of year'], cons: ['Very touristy in summer', 'Resort-heavy areas', 'Can feel commercialized'] },
-  'Ephesus': { bestFor: ['History', 'Architecture'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Library of Celsus', 'Temple of Artemis', 'Terrace Houses', 'Great Theatre'], localTip: 'Arrive early morning to beat tour groups, enter from upper gate', avgDays: '1 day', pros: ['Best-preserved ancient city', 'UNESCO World Heritage', 'Fascinating history'], cons: ['Cruise ship crowds', 'Very hot in summer', 'Not much else nearby'] },
-  'Pamukkale': { bestFor: ['Nature', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Travertine Terraces', 'Hierapolis Ancient City', 'Cleopatra Pool', 'Necropolis'], localTip: 'Visit at sunset when the terraces glow pink and gold', avgDays: '1-2 days', pros: ['Unique natural wonder', 'Ancient spa experience', 'Great photo opportunities'], cons: ['Terraces can be slippery', 'Remote location', 'Limited accommodation options'] },
-  // Switzerland
-  'Zurich': { bestFor: ['Culture', 'Shopping', 'Food'], crowdLevel: 'Moderate', bestTime: 'Jun-Sep', topSites: ['Old Town (Altstadt)', 'Lake Zurich', 'Kunsthaus', 'Bahnhofstrasse'], localTip: 'Take the free bikes from Züri rollt stations to explore', avgDays: '1-2 days', pros: ['Clean and efficient', 'Beautiful lake setting', 'Excellent public transport'], cons: ['Very expensive', 'Can feel sterile', 'Not as charming as other Swiss cities'] },
-  'Lucerne': { bestFor: ['Scenery', 'Culture', 'Nature'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Chapel Bridge', 'Mt. Pilatus', 'Lake Lucerne', 'Lion Monument'], localTip: 'Take the Golden Round Trip combining boat, cogwheel train, and cable car', avgDays: '2-3 days', pros: ['Stunning mountain views', 'Charming old town', 'Gateway to Swiss Alps'], cons: ['Crowded in peak season', 'Expensive mountain excursions', 'Weather dependent'] },
-  'Interlaken': { bestFor: ['Adventure', 'Nature', 'Photography'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Jungfraujoch', 'Harder Kulm', 'Paragliding', 'Lake Thun'], localTip: 'Get the Jungfrau Travel Pass for unlimited transport in the region', avgDays: '2-3 days', pros: ['Adventure sports capital', 'Stunning alpine scenery', 'Excellent hiking'], cons: ['Very touristy', 'Extremely expensive', 'Town itself is unremarkable'] },
-  'Zermatt': { bestFor: ['Skiing', 'Hiking', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr (ski), Jul-Sep (hike)', topSites: ['Matterhorn', 'Gornergrat', '5 Lakes Walk', 'Glacier Paradise'], localTip: 'The town is car-free - arrive by train for the full experience', avgDays: '2-3 days', pros: ['Iconic Matterhorn views', 'Car-free village', 'Year-round skiing'], cons: ['Very expensive', 'Remote access', 'Matterhorn often hidden in clouds'] },
-  'Geneva': { bestFor: ['Culture', 'Luxury', 'Food'], crowdLevel: 'Moderate', bestTime: 'May-Sep', topSites: ['Jet d\'Eau', 'Old Town', 'CERN', 'Lake Geneva'], localTip: 'Free public transport with your hotel stay - ask for the Geneva Transport Card', avgDays: '1-2 days', pros: ['International atmosphere', 'Beautiful lake', 'Excellent museums'], cons: ['Very expensive', 'Can feel corporate', 'French-speaking (language barrier)'] },
-  // Spain
-  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days', pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'], cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'] },
-  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days', pros: ['World-class art museums', 'Fantastic food scene', 'Less touristy than Barcelona'], cons: ['Hot summers', 'Late schedule takes adjustment', 'No beach'] },
-  'Seville': { bestFor: ['History', 'Architecture', 'Flamenco'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alcázar', 'Cathedral & Giralda', 'Plaza de España', 'Triana'], localTip: 'Visit during Feria de Abril for the ultimate Seville experience', avgDays: '2-3 days', pros: ['Authentic flamenco culture', 'Stunning Moorish architecture', 'Great tapas'], cons: ['Extremely hot in summer', 'Siesta shuts everything down', 'Can be humid'] },
-  'Granada': { bestFor: ['History', 'Architecture', 'Food'], crowdLevel: 'Moderate', bestTime: 'Mar-May, Sep-Nov', topSites: ['Alhambra', 'Albaicín', 'Sacromonte', 'Granada Cathedral'], localTip: 'Tapas are free with drinks - bar hop through Albaicín', avgDays: '2-3 days', pros: ['Alhambra is breathtaking', 'Free tapas culture', 'Affordable'], cons: ['Alhambra tickets sell out fast', 'Steep hills to climb', 'Limited beach access'] },
-  // Italy
-  'Rome': { bestFor: ['History', 'Art', 'Food'], crowdLevel: 'Very High', bestTime: 'Apr-May, Sep-Oct', topSites: ['Colosseum', 'Vatican Museums', 'Trevi Fountain', 'Roman Forum'], localTip: 'Book skip-the-line tickets for Vatican and Colosseum', avgDays: '3-4 days', pros: ['2,500+ years of history', 'Incredible food everywhere', 'Art at every corner'], cons: ['Overwhelming crowds', 'Tourist traps near attractions', 'Hot and chaotic in summer'] },
-  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days', pros: ['Renaissance art capital', 'Walkable historic center', 'Tuscan food and wine'], cons: ['Very crowded', 'Expensive near center', 'Can feel like a museum'] },
-  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience away from crowds', avgDays: '2-3 days', pros: ['Truly unique city', 'Romantic atmosphere', 'No cars'], cons: ['Extremely crowded', 'Very expensive', 'Flooding risk (acqua alta)'] },
-  'Amalfi Coast': { bestFor: ['Scenery', 'Beach', 'Food'], crowdLevel: 'High', bestTime: 'May-Jun, Sep', topSites: ['Positano', 'Ravello', 'Amalfi', 'Path of the Gods'], localTip: 'Take SITA buses - much cheaper than taxis on the winding roads', avgDays: '3-4 days', pros: ['Stunning coastal scenery', 'Charming villages', 'Excellent seafood'], cons: ['Narrow winding roads', 'Very crowded in summer', 'Expensive accommodations'] },
-  // Default fallback
-  '_default': { bestFor: ['Exploration'], crowdLevel: 'Moderate', bestTime: 'Varies by season', topSites: ['Local landmarks', 'City center', 'Markets', 'Museums'], localTip: 'Ask locals for their favorite hidden spots', avgDays: '2-3 days', pros: ['New discoveries await', 'Authentic experiences', 'Off the beaten path'], cons: ['Less tourist infrastructure', 'Language barriers possible', 'Less online info available'] },
+// Default city info for cities not in database (while loading from AI)
+const DEFAULT_CITY_INFO: CityInfo = {
+  bestFor: ['Exploration'],
+  crowdLevel: 'Moderate',
+  bestTime: 'Varies by season',
+  topSites: ['Loading...'],
+  localTip: 'Loading local insights...',
+  avgDays: '2-3 days',
+  pros: ['Discover something new'],
+  cons: ['More research needed'],
 };
 
+// Get city info from the database, or return default while AI fetches
 function getCityInfo(cityName: string): CityInfo {
-  return CITY_INFO[cityName] || CITY_INFO['_default'];
+  return POPULAR_CITY_INFO[cityName] || DEFAULT_CITY_INFO;
 }
 
-// Planning flow steps
+// Generate personalized recommendation based on TripDNA preferences
+function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA): { match: 'great' | 'good' | 'mixed'; reasons: string[]; concerns: string[] } {
+  const reasons: string[] = [];
+  const concerns: string[] = [];
+
+  const { travelerProfile, vibeAndPace, interests, constraints } = tripDna;
+  const travelIdentities = travelerProfile?.travelIdentities || [];
+
+  // Check food preferences
+  if (interests?.food?.importance === 'food-focused' && cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) {
+    reasons.push('Amazing food scene matches your foodie preferences');
+  }
+
+  // Check pace preferences
+  if (vibeAndPace?.tripPace === 'relaxed' && cityInfo.crowdLevel === 'Very High') {
+    concerns.push('Very crowded - might feel rushed for your relaxed pace');
+  }
+  if (vibeAndPace?.tripPace === 'fast' && cityInfo.crowdLevel === 'Low') {
+    reasons.push('Fewer crowds means you can see more in less time');
+  }
+
+  // Check adventure/nature preferences
+  if (interests?.hobbies?.includes('hiking') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nature') || b.toLowerCase().includes('hiking'))) {
+    reasons.push('Great hiking and nature experiences');
+  }
+
+  // Check culture preferences (from travelIdentities)
+  if (travelIdentities.includes('history') && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('history'))) {
+    reasons.push('Rich cultural experiences align with your interests');
+  }
+
+  // Check beach preferences
+  if (travelIdentities.includes('relaxation') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) {
+    reasons.push('Beach vibes match what you are looking for');
+  }
+
+  // Check nightlife preferences
+  if (travelIdentities.includes('nightlife') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) {
+    reasons.push('Vibrant nightlife scene');
+  }
+
+  // Check photography hobby
+  if (interests?.hobbies?.includes('photography') && cityInfo.bestFor.some(b => b.toLowerCase().includes('photography') || b.toLowerCase().includes('scenery'))) {
+    reasons.push('Incredible photo opportunities');
+  }
+
+  // Check family travel
+  if (travelerProfile?.partyType === 'family' && cityInfo.crowdLevel === 'Very High') {
+    concerns.push('Very crowded areas can be challenging with family');
+  }
+
+  // Check budget
+  const budgetLevel = constraints?.budget?.dailySpend?.max;
+  if (budgetLevel && budgetLevel < 100 && cityInfo.cons.some(c => c.toLowerCase().includes('expensive'))) {
+    concerns.push('Can be pricey - look for budget options');
+  }
+
+  // Determine match level
+  let match: 'great' | 'good' | 'mixed' = 'good';
+  if (reasons.length >= 2 && concerns.length === 0) match = 'great';
+  else if (concerns.length >= 2) match = 'mixed';
+
+  // Add default reasons if none found
+  if (reasons.length === 0) {
+    reasons.push(`Known for ${cityInfo.bestFor.slice(0, 2).join(' and ')}`);
+  }
+
+  return { match, reasons: reasons.slice(0, 3), concerns: concerns.slice(0, 2) };
+}
+
+// Calculate match score for sorting cities
+function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA): number {
+  let score = 0;
+  const { vibeAndPace, interests, travelerProfile } = tripDna;
+  const travelIdentities = travelerProfile?.travelIdentities || [];
+
+  // Boost for matching travel identities
+  if (travelIdentities.includes('relaxation') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) score += 20;
+  if ((travelIdentities.includes('history') || travelIdentities.includes('local-culture')) && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('history'))) score += 20;
+  if (travelIdentities.includes('nightlife') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) score += 20;
+  if ((travelIdentities.includes('adventure') || travelIdentities.includes('nature')) && cityInfo.bestFor.some(b => b.toLowerCase().includes('adventure') || b.toLowerCase().includes('nature'))) score += 20;
+
+  // Boost for matching hobbies
+  if (interests?.hobbies?.includes('hiking') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nature') || b.toLowerCase().includes('hiking'))) score += 15;
+  if (interests?.hobbies?.includes('photography') && cityInfo.bestFor.some(b => b.toLowerCase().includes('photography') || b.toLowerCase().includes('scenery'))) score += 15;
+  if (interests?.hobbies?.includes('diving') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach') || b.toLowerCase().includes('snorkeling'))) score += 15;
+
+  // Boost for food match
+  if (interests?.food?.importance === 'food-focused' && cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) score += 15;
+
+  // Penalty for crowd level vs pace
+  if (vibeAndPace?.tripPace === 'relaxed' && cityInfo.crowdLevel === 'Very High') score -= 10;
+  if (vibeAndPace?.tripPace === 'fast' && cityInfo.crowdLevel === 'Low') score += 10;
+
+  return score;
+}
+
+// Planning flow steps: cities → hotels → restaurants → activities
 const PLANNING_STEPS: CategoryStep[] = [
   {
     id: 'cities',
@@ -131,36 +213,29 @@ const PLANNING_STEPS: CategoryStep[] = [
     gridSize: 18,
   },
   {
-    id: 'experiences',
-    title: 'Must-do experiences',
-    subtitle: 'Activities and attractions for your trip',
-    icon: Ticket,
-    gridSize: 9,
-  },
-  {
     id: 'hotels',
-    title: 'Where to stay',
-    subtitle: 'Hotels matching your style',
+    title: 'Best hotels',
+    subtitle: 'Where to stay with prices',
     icon: Hotel,
-    gridSize: 6,
+    gridSize: 18,
   },
   {
     id: 'restaurants',
     title: 'Where to eat',
-    subtitle: 'Top restaurants and local spots',
+    subtitle: 'Top restaurants and cafes',
     icon: UtensilsCrossed,
-    gridSize: 9,
+    gridSize: 18,
   },
   {
-    id: 'cafes',
-    title: 'Coffee & Cafes',
-    subtitle: 'Best cafes and coffee spots',
-    icon: Coffee,
-    gridSize: 6,
+    id: 'activities',
+    title: 'Things to do',
+    subtitle: 'Activities and experiences',
+    icon: Ticket,
+    gridSize: 18,
   },
 ];
 
-type PlanningPhase = 'picking' | 'favorites-library' | 'day-planning';
+type PlanningPhase = 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
 
 export function SwipeablePlanningView({
   tripDna,
@@ -189,6 +264,8 @@ export function SwipeablePlanningView({
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
+  const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names
+  const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -339,10 +416,22 @@ export function SwipeablePlanningView({
 
   // Go to next step
   const goToNextStep = () => {
+    // After cities step, go to route planning
+    if (currentStep.id === 'cities' && selectedCities.length > 0) {
+      // Initialize route order with selected cities
+      setRouteOrder([...selectedCities]);
+      // Initialize country order if multi-country
+      if (destinations.length > 1) {
+        setCountryOrder([...destinations]);
+      }
+      setPhase('route-planning');
+      return;
+    }
+
     if (currentStepIndex < PLANNING_STEPS.length - 1) {
       const nextStep = PLANNING_STEPS[currentStepIndex + 1];
       if (onSearchAI && selectedCities.length > 0) {
-        const citiesQuery = selectedCities.join(', ');
+        const citiesQuery = routeOrder.length > 0 ? routeOrder.join(', ') : selectedCities.join(', ');
         onSearchAI(`best ${nextStep.id} in ${citiesQuery}`, nextStep.id);
       }
       setCurrentStepIndex(currentStepIndex + 1);
@@ -375,10 +464,66 @@ export function SwipeablePlanningView({
       setPhase('picking');
       setCurrentStepIndex(PLANNING_STEPS.length - 1); // Go back to last picking step
       setGridOffset(0);
+    } else if (phase === 'route-planning') {
+      setPhase('picking');
+      setCurrentStepIndex(0); // Go back to cities step
+      setGridOffset(0);
     } else if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
       setGridOffset(0);
     }
+  };
+
+  // Confirm route and proceed to hotels
+  const confirmRoute = () => {
+    // Update selectedCities to match the route order
+    setSelectedCities([...routeOrder]);
+    // Move to hotels step
+    setCurrentStepIndex(1); // hotels is index 1
+    setPhase('picking');
+    // Load hotels for the cities in route order
+    if (onSearchAI) {
+      onSearchAI(`best hotels in ${routeOrder.join(', ')}`, 'hotels');
+    }
+  };
+
+  // Move city up in route order
+  const moveCityUp = (index: number) => {
+    if (index <= 0) return;
+    const newOrder = [...routeOrder];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    setRouteOrder(newOrder);
+  };
+
+  // Move city down in route order
+  const moveCityDown = (index: number) => {
+    if (index >= routeOrder.length - 1) return;
+    const newOrder = [...routeOrder];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    setRouteOrder(newOrder);
+  };
+
+  // Swap country order
+  const swapCountryOrder = () => {
+    setCountryOrder([...countryOrder].reverse());
+    // Reorder cities based on new country order
+    const citiesByCountry: Record<string, string[]> = {};
+    destinations.forEach(dest => { citiesByCountry[dest] = []; });
+    routeOrder.forEach(city => {
+      const cityItem = items.find(i => i.name === city);
+      const country = cityItem?.tags?.find(t => destinations.includes(t));
+      if (country) {
+        citiesByCountry[country].push(city);
+      }
+    });
+    const newOrder = countryOrder.flatMap(country => citiesByCountry[country] || []);
+    setRouteOrder(newOrder);
+  };
+
+  // Get country for a city
+  const getCityCountry = (cityName: string): string | undefined => {
+    const cityItem = items.find(i => i.name === cityName);
+    return cityItem?.tags?.find(t => destinations.includes(t));
   };
 
   // Start day planning
@@ -631,6 +776,154 @@ export function SwipeablePlanningView({
     );
   }
 
+  // ============ ROUTE PLANNING PHASE ============
+  if (phase === 'route-planning') {
+    // Group cities by country
+    const citiesByCountry: Record<string, { city: string; item?: PlanningItem }[]> = {};
+    destinations.forEach(dest => { citiesByCountry[dest] = []; });
+    routeOrder.forEach(city => {
+      const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+      const country = cityItem?.tags?.find(t => destinations.includes(t)) || destinations[0];
+      if (!citiesByCountry[country]) citiesByCountry[country] = [];
+      citiesByCountry[country].push({ city, item: cityItem });
+    });
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={goToPrevStep}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Route className="w-5 h-5 text-primary" />
+              Plan Your Route
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Drag to reorder your travel path
+            </p>
+          </div>
+        </div>
+
+        {/* Country order selector (for multi-country trips) */}
+        {destinations.length > 1 && (
+          <div className="bg-muted/50 rounded-xl p-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Plane className="w-4 h-4" />
+              Which country first?
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center gap-2">
+                {countryOrder.map((country, idx) => (
+                  <div key={country} className="flex items-center gap-2">
+                    <div className="px-4 py-2 bg-background rounded-lg font-medium text-sm border">
+                      {country}
+                    </div>
+                    {idx < countryOrder.length - 1 && (
+                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={swapCountryOrder}>
+                Swap
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Route visualization */}
+        <div className="space-y-2">
+          {routeOrder.map((city, index) => {
+            const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+            const country = getCityCountry(city);
+            const isLastInCountry = index < routeOrder.length - 1 && getCityCountry(routeOrder[index + 1]) !== country;
+
+            return (
+              <div key={city}>
+                {/* City card */}
+                <div className="flex items-center gap-3 p-3 bg-background rounded-xl border group">
+                  {/* Order number */}
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+
+                  {/* City image */}
+                  {cityItem?.imageUrl && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                      <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  {/* City info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold">{city}</div>
+                    {country && (
+                      <div className="text-xs text-muted-foreground">{country}</div>
+                    )}
+                  </div>
+
+                  {/* Reorder buttons */}
+                  <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => moveCityUp(index)}
+                      disabled={index === 0}
+                      className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="w-4 h-4 rotate-90" />
+                    </button>
+                    <button
+                      onClick={() => moveCityDown(index)}
+                      disabled={index === routeOrder.length - 1}
+                      className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="w-4 h-4 rotate-90" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Connector line */}
+                {index < routeOrder.length - 1 && (
+                  <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
+                    <div className={`w-0.5 h-6 ${isLastInCountry ? 'bg-orange-400' : 'bg-muted-foreground/30'}`} />
+                    <span className="text-xs text-muted-foreground">
+                      {isLastInCountry ? (
+                        <span className="flex items-center gap-1 text-orange-600">
+                          <Plane className="w-3 h-3" />
+                          Flight to {getCityCountry(routeOrder[index + 1])}
+                        </span>
+                      ) : (
+                        '↓ Next stop'
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Route summary */}
+        <div className="bg-muted/30 rounded-lg p-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            <span>
+              {routeOrder.length} cities · {destinations.length > 1 ? `${destinations.length} countries` : destinations[0]}
+            </span>
+          </div>
+        </div>
+
+        {/* Confirm button */}
+        <Button className="w-full" size="lg" onClick={confirmRoute}>
+          <Check className="w-4 h-4 mr-2" />
+          Confirm Route & Find Hotels
+          <ChevronRight className="w-4 h-4 ml-2" />
+        </Button>
+      </div>
+    );
+  }
+
   // ============ DAY PLANNING PHASE ============
   if (phase === 'day-planning') {
     return (
@@ -836,105 +1129,105 @@ export function SwipeablePlanningView({
   // ============ PICKING PHASE ============
   return (
     <div className="space-y-2">
-      {/* Compact header row: back button, icon, title, progress dots, selected count */}
-      <div className="flex items-center gap-2">
+      {/* Step title row: "Pick your cities" with back button and tabs */}
+      <div className="flex items-center gap-2 flex-wrap">
         {currentStepIndex > 0 && (
           <Button variant="ghost" size="sm" className="p-1 h-7 w-7" onClick={goToPrevStep}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         )}
-        <currentStep.icon className="w-4 h-4 text-primary flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-bold">{currentStep.title}</h2>
-          <p className="text-[11px] text-muted-foreground truncate">{currentStep.subtitle}</p>
-        </div>
-        <Badge variant="secondary" className="text-[10px] h-5">{selectedIds.size} selected</Badge>
-      </div>
+        <h2 className="text-base font-bold">{currentStep.title}</h2>
 
-      {/* Inline progress + picks row */}
-      <div className="flex items-center gap-3">
-        {/* Compact progress dots */}
-        <div className="flex items-center gap-0 flex-shrink-0">
-          {PLANNING_STEPS.map((step, index) => {
-            const isComplete = index < currentStepIndex;
-            const isCurrent = index === currentStepIndex;
-            return (
-              <div key={step.id} className="flex items-center">
-                <button
-                  onClick={() => {
-                    if (index <= currentStepIndex) {
-                      setCurrentStepIndex(index);
-                      setGridOffset(0);
-                    }
-                  }}
-                  disabled={index > currentStepIndex}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                    isCurrent
-                      ? 'bg-primary text-primary-foreground'
-                      : isComplete
-                        ? 'bg-green-500 text-white'
-                        : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {isComplete ? <Check className="w-3 h-3" /> : index + 1}
-                </button>
-                {index < PLANNING_STEPS.length - 1 && (
-                  <div className={`w-4 h-0.5 ${index < currentStepIndex ? 'bg-green-500' : 'bg-muted'}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Picks thumbnails - inline with progress */}
-        {selectedItems.length > 0 && (
-          <div className="flex items-center gap-1 flex-1 min-w-0">
-            <Heart className="w-3 h-3 text-pink-500 fill-pink-500 flex-shrink-0" />
-            <div className="flex gap-0.5 overflow-hidden">
-              {selectedItems.slice(0, 5).map((item) => (
-                <div
-                  key={item.id}
-                  className="w-6 h-6 rounded overflow-hidden flex-shrink-0 ring-1 ring-pink-200"
-                >
-                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                </div>
-              ))}
-              {selectedItems.length > 5 && (
-                <span className="text-[10px] text-muted-foreground self-center ml-0.5">+{selectedItems.length - 5}</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Destination filter tabs (for multiple destinations) - no "All" option */}
-      {currentStep.id === 'cities' && destinations.length > 1 && (
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-          {destinations.map((dest) => {
-            const destCount = allStepItems.filter(item => item.tags?.includes(dest)).length;
-            return (
+        {/* Destination filter tabs (for cities step) */}
+        {currentStep.id === 'cities' && destinations.length > 1 && (
+          <div className="flex gap-1.5 ml-auto">
+            {destinations.map((dest) => (
               <button
                 key={dest}
                 onClick={() => { setActiveDestinationFilter(dest); setGridOffset(0); }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
                   activeDestinationFilter === dest
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                <MapPin className="w-2.5 h-2.5" />
-                {dest} ({destCount})
+                {dest}
               </button>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+        {/* Favs count (for all steps) */}
+        {selectedItems.length > 0 && (
+          <div className="flex items-center gap-1 ml-auto">
+            <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+            <span className="text-sm text-muted-foreground">{selectedItems.length}</span>
+          </div>
+        )}
+      </div>
 
       {/* Selected cities reminder (for non-cities steps) */}
       {currentStep.id !== 'cities' && selectedCities.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-          <MapPin className="w-4 h-4" />
-          <span>For: {selectedCities.join(', ')}</span>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <MapPin className="w-3 h-3" />
+          <span>{selectedCities.join(', ')}</span>
+        </div>
+      )}
+
+      {/* Top Picks for You - only show on cities step with items */}
+      {currentStep.id === 'cities' && stepItems.length > 3 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Top Picks for You</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {stepItems
+              .map(item => ({
+                item,
+                score: getCityMatchScore(getCityInfo(item.name), tripDna)
+              }))
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 3)
+              .map(({ item }) => {
+                const isSelected = selectedIds.has(item.id);
+                const cityInfo = getCityInfo(item.name);
+                const recommendation = getPersonalizedRecommendation(cityInfo, tripDna);
+                return (
+                  <div
+                    key={`top-${item.id}`}
+                    className="flex-shrink-0 w-[140px] rounded-xl overflow-hidden border bg-card cursor-pointer hover:border-primary/30 transition-all"
+                    onClick={() => setCityDetailItem(item)}
+                  >
+                    <div className="relative h-20">
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                        recommendation.match === 'great' ? 'bg-green-500 text-white' :
+                        recommendation.match === 'mixed' ? 'bg-amber-500 text-white' :
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {recommendation.match === 'great' ? 'Great' : recommendation.match === 'mixed' ? 'Mixed' : 'Good'}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelect(item.id, item.name);
+                        }}
+                        className={`absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center ${
+                          isSelected ? 'bg-white' : 'bg-black/40 backdrop-blur-sm'
+                        }`}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                      </button>
+                    </div>
+                    <div className="p-2">
+                      <div className="font-semibold text-sm truncate">{item.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{cityInfo.bestFor.slice(0, 2).join(' · ')}</div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
@@ -982,7 +1275,7 @@ export function SwipeablePlanningView({
         </div>
       )}
 
-      {/* Continue button */}
+      {/* Continue button - shows what's next */}
       {selectedIds.size > 0 && stepItems.length > 0 && (
         <Button className="w-full" onClick={goToNextStep}>
           {currentStepIndex === PLANNING_STEPS.length - 1 ? (
@@ -990,9 +1283,25 @@ export function SwipeablePlanningView({
               Plan Your Days
               <ChevronRight className="w-4 h-4 ml-2" />
             </>
+          ) : currentStep.id === 'cities' ? (
+            <>
+              <Route className="w-4 h-4 mr-2" />
+              Plan your route
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </>
+          ) : currentStep.id === 'hotels' ? (
+            <>
+              Best restaurants in {selectedCities.length > 0 ? selectedCities[0] : 'your cities'}
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </>
+          ) : currentStep.id === 'restaurants' ? (
+            <>
+              Things to do & activities
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </>
           ) : (
             <>
-              Continue with {selectedIds.size} {currentStep.id}
+              Next: {PLANNING_STEPS[currentStepIndex + 1]?.title || 'Continue'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </>
           )}
@@ -1105,6 +1414,7 @@ export function SwipeablePlanningView({
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
             const cityName = cityDetailItem.name.toLowerCase().replace(/\s+/g, '');
+            const recommendation = getPersonalizedRecommendation(cityInfo, tripDna);
 
             // Create image slides: city overview + top sites (using real Unsplash images)
             const country = destinations.length > 0 ? destinations[0] : undefined;
@@ -1198,73 +1508,225 @@ export function SwipeablePlanningView({
                 </div>
 
                 <div className="p-4 space-y-3">
-                  {/* City name and meta */}
-                  <div>
-                    <h2 className="text-xl font-bold">{cityDetailItem.name}</h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {cityInfo.crowdLevel} crowds · {cityInfo.avgDays}
-                    </p>
+                  {/* City name and match indicator */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold">{cityDetailItem.name}</h2>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {cityInfo.crowdLevel} crowds · {cityInfo.avgDays}
+                      </p>
+                    </div>
+                    {/* Match badge */}
+                    <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      recommendation.match === 'great' ? 'bg-green-100 text-green-700' :
+                      recommendation.match === 'mixed' ? 'bg-amber-100 text-amber-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {recommendation.match === 'great' ? 'Great Match' :
+                       recommendation.match === 'mixed' ? 'Mixed Fit' : 'Good Choice'}
+                    </div>
                   </div>
 
-                  {/* Best time - separate line */}
+                  {/* Famous for - prominent section */}
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3">
+                    <div className="text-xs font-semibold text-primary mb-1">Famous for</div>
+                    <p className="text-sm font-medium">{cityInfo.bestFor.join(' · ')}</p>
+                  </div>
+
+                  {/* Personalized recommendation */}
+                  {recommendation.reasons.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-green-600 flex items-center gap-1.5">
+                        <Heart className="w-4 h-4" />
+                        Why you will love it
+                      </div>
+                      {recommendation.reasons.map((reason, i) => (
+                        <div key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <span className="text-green-500 mt-0.5">+</span>
+                          <span>{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Concerns based on preferences */}
+                  {recommendation.concerns.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-amber-600 flex items-center gap-1.5">
+                        <Zap className="w-4 h-4" />
+                        Watch out for
+                      </div>
+                      {recommendation.concerns.map((concern, i) => (
+                        <div key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <span className="text-amber-500 mt-0.5">!</span>
+                          <span>{concern}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Best time */}
                   <p className="text-sm text-muted-foreground">
                     <Calendar className="w-3.5 h-3.5 inline mr-1.5" />
                     Best time: <span className="text-foreground font-medium">{cityInfo.bestTime}</span>
                   </p>
 
-                  {/* Tags - separate line */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    {cityInfo.bestFor.map((tag) => (
-                      <span key={tag} className="px-2.5 py-1 bg-muted text-foreground text-xs font-medium rounded-full">{tag}</span>
-                    ))}
-                  </div>
+                  {/* Ideal For - who should visit */}
+                  {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-muted-foreground mb-1.5">Perfect for</div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {cityInfo.idealFor.map((type) => (
+                          <span key={type} className="text-xs bg-background px-2 py-1 rounded-full border">
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                  {/* Top Sites list */}
-                  <div>
-                    <div className="text-sm font-semibold mb-1.5">Top Sites</div>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {cityInfo.topSites.map((site, idx) => (
-                        <button
-                          key={site}
-                          onClick={() => setCityImageIndex(idx + 1)}
-                          className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                            cityImageIndex === idx + 1
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted hover:bg-muted/80'
-                          }`}
-                        >
-                          {site}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Categorized Highlights */}
+                  {cityInfo.highlights && (
+                    <div className="space-y-3">
+                      {/* Landmarks */}
+                      {cityInfo.highlights.landmarks && cityInfo.highlights.landmarks.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Landmark className="w-4 h-4 text-amber-600" />
+                            <span className="text-sm font-semibold">Landmarks</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.landmarks.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Pros & Cons - simplified colors */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="font-semibold text-sm mb-1.5">Pros</div>
-                      {cityInfo.pros.slice(0, 3).map((pro, i) => (
-                        <div key={i} className="text-xs text-muted-foreground mb-1 flex items-start gap-1.5">
-                          <span className="text-primary mt-0.5">+</span>
-                          <span>{pro}</span>
+                      {/* History */}
+                      {cityInfo.highlights.history && cityInfo.highlights.history.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <ScrollText className="w-4 h-4 text-orange-600" />
+                            <span className="text-sm font-semibold">History</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.history.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm mb-1.5">Cons</div>
-                      {cityInfo.cons.slice(0, 3).map((con, i) => (
-                        <div key={i} className="text-xs text-muted-foreground mb-1 flex items-start gap-1.5">
-                          <span className="mt-0.5">-</span>
-                          <span>{con}</span>
+                      )}
+
+                      {/* Museums */}
+                      {cityInfo.highlights.museums && cityInfo.highlights.museums.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Building className="w-4 h-4 text-purple-600" />
+                            <span className="text-sm font-semibold">Museums & Sites</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.museums.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Markets */}
+                      {cityInfo.highlights.markets && cityInfo.highlights.markets.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <ShoppingBag className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-semibold">Markets & Shopping</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.markets.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Food */}
+                      {cityInfo.highlights.food && cityInfo.highlights.food.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Utensils className="w-4 h-4 text-red-500" />
+                            <span className="text-sm font-semibold">Food & Drink</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.food.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nature */}
+                      {cityInfo.highlights.nature && cityInfo.highlights.nature.length > 0 && (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TreePine className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-semibold">Nature & Outdoors</span>
+                          </div>
+                          <div className="space-y-2">
+                            {cityInfo.highlights.nature.map((item) => (
+                              <div key={item.name} className="text-xs">
+                                <span className="font-medium">{item.name}</span>
+                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {/* Top Sites list - only show if no highlights */}
+                  {!cityInfo.highlights && (
+                    <div>
+                      <div className="text-sm font-semibold mb-1.5">Must-See Sites</div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {cityInfo.topSites.map((site, idx) => (
+                          <button
+                            key={site}
+                            onClick={() => setCityImageIndex(idx + 1)}
+                            className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                              cityImageIndex === idx + 1
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted hover:bg-muted/80'
+                            }`}
+                          >
+                            {site}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Local tip */}
-                  <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">{cityInfo.localTip}</p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
+                      <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
+                    </div>
                   </div>
 
                   {/* Action button */}
