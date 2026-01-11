@@ -489,6 +489,8 @@ interface SwipeablePlanningViewProps {
   onSearchAI?: (query: string, category: string) => void;
   duration?: number; // Trip duration in days
   isTripLocked?: boolean; // When Trip View is locked, only allow adding (not removing/editing)
+  controlledPhase?: PlanningPhase; // When provided, parent controls the phase
+  onPhaseChange?: (phase: PlanningPhase) => void; // Callback when phase changes internally
 }
 
 interface CategoryStep {
@@ -807,7 +809,7 @@ const PLANNING_STEPS: CategoryStep[] = [
   },
 ];
 
-type PlanningPhase = 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
+export type PlanningPhase = 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
 
 export function SwipeablePlanningView({
   tripDna,
@@ -818,6 +820,8 @@ export function SwipeablePlanningView({
   onSearchAI,
   duration: propDuration,
   isTripLocked = false,
+  controlledPhase,
+  onPhaseChange,
 }: SwipeablePlanningViewProps) {
   // Calculate duration from itinerary or props
   const duration = propDuration || getItineraryDuration(itinerary) || 7;
@@ -826,7 +830,16 @@ export function SwipeablePlanningView({
   const hasExistingItinerary = Boolean(itinerary && itinerary.days.length > 0);
 
   // For imported trips, start in favorites-library phase to review picks before day planning
-  const [phase, setPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'favorites-library' : 'picking');
+  const [internalPhase, setInternalPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'favorites-library' : 'picking');
+
+  // Use controlled phase if provided, otherwise use internal state
+  const phase = controlledPhase ?? internalPhase;
+  const setPhase = (newPhase: PlanningPhase) => {
+    if (controlledPhase === undefined) {
+      setInternalPhase(newPhase);
+    }
+    onPhaseChange?.(newPhase);
+  };
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -895,8 +908,14 @@ export function SwipeablePlanningView({
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
-  const [highlightTab, setHighlightTab] = useState<string>('landmarks'); // Active tab for city highlights
-  const [showCityDetails, setShowCityDetails] = useState(false); // Collapsible details section
+  const [highlightTab, setHighlightTab] = useState<string>(''); // Active accordion category for city highlights (empty = all closed)
+  const [modalMainTab, setModalMainTab] = useState<'overview' | 'explore'>('overview'); // Main modal tab
+  const [showCityDetails, setShowCityDetails] = useState(false); // Collapsible Explore section
+  const [showWhyLove, setShowWhyLove] = useState(false); // Expanded "Why you'll love it"
+  const [showWatchOut, setShowWatchOut] = useState(false); // Expanded "Watch out for"
+  const [showLocalTip, setShowLocalTip] = useState(false); // Expanded local tip
+  const [enrichedCityInfo, setEnrichedCityInfo] = useState<CityInfo | null>(null); // AI-generated city data
+  const [isLoadingCityInfo, setIsLoadingCityInfo] = useState(false); // Loading state for city info
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [favoriteCityModal, setFavoriteCityModal] = useState<string | null>(null); // City modal in favorites view
   const [favoriteCityTab, setFavoriteCityTab] = useState<'hotels' | 'restaurants' | 'cafes' | 'activities'>('hotels');
@@ -993,6 +1012,37 @@ export function SwipeablePlanningView({
       }
     }
   }, [phase, currentStepIndex, stepItems.length, onSearchAI, currentStep.id, destinations, selectedCities]);
+
+  // Fetch enriched city info when modal opens (if not already in database)
+  useEffect(() => {
+    if (!cityDetailItem) {
+      setEnrichedCityInfo(null);
+      return;
+    }
+
+    const basicInfo = getCityInfo(cityDetailItem.name);
+    // If city already has highlights and ratings, use it directly
+    if (basicInfo.highlights && basicInfo.ratings) {
+      setEnrichedCityInfo(basicInfo);
+      return;
+    }
+
+    // Otherwise fetch from API to get AI-generated data
+    setIsLoadingCityInfo(true);
+    const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
+
+    fetch(`/api/city-info?city=${encodeURIComponent(cityDetailItem.name)}&country=${encodeURIComponent(country || '')}`)
+      .then(res => res.json())
+      .then(data => {
+        setEnrichedCityInfo(data);
+        setIsLoadingCityInfo(false);
+      })
+      .catch(err => {
+        console.error('Error fetching city info:', err);
+        setEnrichedCityInfo(basicInfo);
+        setIsLoadingCityInfo(false);
+      });
+  }, [cityDetailItem, destinations]);
 
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
@@ -1267,9 +1317,20 @@ export function SwipeablePlanningView({
       setRouteOrder(updatedRoute);
       setParkedCities(updatedParked);
 
+      // Extract unique countries from selected cities (not just from destinations)
+      const countriesFromCities = new Set<string>();
+      updatedRoute.forEach(city => {
+        const cityItem = items.find(i => i.name === city);
+        // Get country from city tags - check against destinations first, then use any country-like tag
+        const country = cityItem?.tags?.find(t => destinations.includes(t))
+          || cityItem?.tags?.find(t => !['cities', 'hotels', 'restaurants', 'activities'].includes(t));
+        if (country) countriesFromCities.add(country);
+      });
+      const uniqueCountries = Array.from(countriesFromCities);
+
       // Initialize country order geographically from Canada (Pacific route)
       // Order: Japan first (closest), then SE Asia, Hawaii last (on way home)
-      if (destinations.length > 1 && countryOrder.length === 0) {
+      if (uniqueCountries.length > 1 && countryOrder.length === 0) {
         const COUNTRY_ORDER_FROM_CANADA: Record<string, number> = {
           // Pacific route (flying west from Canada)
           'Japan': 1,      // First stop - 10hr from Vancouver
@@ -1296,7 +1357,7 @@ export function SwipeablePlanningView({
           'Switzerland': 37,
           'Germany': 38,
         };
-        const sortedCountries = [...destinations].sort((a, b) => {
+        const sortedCountries = [...uniqueCountries].sort((a, b) => {
           const orderA = COUNTRY_ORDER_FROM_CANADA[a] ?? 50;
           const orderB = COUNTRY_ORDER_FROM_CANADA[b] ?? 50;
           return orderA - orderB;
@@ -1308,14 +1369,15 @@ export function SwipeablePlanningView({
           sortedCountries.forEach(c => { citiesByCountry[c] = []; });
           updatedRoute.forEach(city => {
             const cityItem = items.find(i => i.name === city);
-            const country = cityItem?.tags?.find(t => destinations.includes(t));
+            const country = cityItem?.tags?.find(t => sortedCountries.includes(t));
             if (country) citiesByCountry[country].push(city);
           });
           const geoOrderedRoute = sortedCountries.flatMap(c => citiesByCountry[c] || []);
           setRouteOrder(geoOrderedRoute);
         }, 0);
       } else if (countryOrder.length === 0) {
-        setCountryOrder([...destinations]);
+        // Use unique countries from cities, or fallback to destinations
+        setCountryOrder(uniqueCountries.length > 0 ? uniqueCountries : [...destinations]);
       }
       setPhase('route-planning');
       return;
@@ -2013,6 +2075,7 @@ export function SwipeablePlanningView({
     const optimizeRoute = () => {
       const optimizedOrder: string[] = [];
       const countryGroups: Record<string, string[]> = {};
+      const processedCountries = new Set<string>();
 
       // Group cities by country
       routeOrder.forEach(city => {
@@ -2021,16 +2084,10 @@ export function SwipeablePlanningView({
         countryGroups[country].push(city);
       });
 
-      // For each country in countryOrder, optimize the cities within
-      const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
-      orderedCountries.forEach(country => {
-        const cities = countryGroups[country] || [];
-        if (cities.length <= 1) {
-          optimizedOrder.push(...cities);
-          return;
-        }
+      // Helper to optimize cities within a group using nearest neighbor
+      const optimizeCityGroup = (cities: string[]): string[] => {
+        if (cities.length <= 1) return cities;
 
-        // Nearest neighbor: start from first city, always go to nearest unvisited
         const remaining = [...cities];
         const optimized: string[] = [remaining.shift()!];
 
@@ -2049,11 +2106,30 @@ export function SwipeablePlanningView({
 
           optimized.push(remaining.splice(nearestIdx, 1)[0]);
         }
+        return optimized;
+      };
 
-        optimizedOrder.push(...optimized);
+      // For each country in countryOrder, optimize the cities within
+      const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
+      orderedCountries.forEach(country => {
+        const cities = countryGroups[country] || [];
+        if (cities.length > 0) {
+          optimizedOrder.push(...optimizeCityGroup(cities));
+          processedCountries.add(country);
+        }
       });
 
-      setRouteOrder(optimizedOrder);
+      // Include any cities from countries not in orderedCountries (prevent losing cities)
+      Object.keys(countryGroups).forEach(country => {
+        if (!processedCountries.has(country)) {
+          optimizedOrder.push(...optimizeCityGroup(countryGroups[country]));
+        }
+      });
+
+      // Only update if we have cities (prevent clearing the route)
+      if (optimizedOrder.length > 0) {
+        setRouteOrder(optimizedOrder);
+      }
     };
 
     return (
@@ -2094,41 +2170,6 @@ export function SwipeablePlanningView({
           </div>
         )}
 
-        {/* Country order - drag and drop (no header, page header is enough) */}
-        {destinations.length > 1 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {countryOrder.map((country, idx) => (
-              <div key={country} className="flex items-center gap-2">
-                <div
-                  draggable
-                  onDragStart={() => setDraggedCountryIndex(idx)}
-                  onDragEnd={() => setDraggedCountryIndex(null)}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
-                      const newOrder = [...countryOrder];
-                      const [dragged] = newOrder.splice(draggedCountryIndex, 1);
-                      newOrder.splice(idx, 0, dragged);
-                      setCountryOrder(newOrder);
-                      setDraggedCountryIndex(idx);
-                    }
-                  }}
-                  className={`px-4 py-2 bg-background rounded-lg font-medium text-sm border cursor-grab active:cursor-grabbing flex items-center gap-2 transition-all ${
-                    draggedCountryIndex === idx ? 'opacity-50 scale-95 border-primary' : 'hover:border-primary hover:bg-primary/5'
-                  }`}
-                >
-                  <GripVertical className="w-3 h-3 text-muted-foreground" />
-                  {country}
-                  {idx === 0 && <span className="text-[10px] text-primary">(first)</span>}
-                </div>
-                {idx < countryOrder.length - 1 && (
-                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Route Preferences */}
         <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -2136,6 +2177,44 @@ export function SwipeablePlanningView({
             Route Options
           </h3>
           <div className="space-y-3">
+            {/* Country order - drag and drop */}
+            {countryOrder.length > 1 && (
+              <div className="pb-3 border-b">
+                <div className="text-xs text-muted-foreground mb-2">Country order (drag to reorder)</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {countryOrder.map((country, idx) => (
+                    <div key={country} className="flex items-center gap-1">
+                      <div
+                        draggable
+                        onDragStart={() => setDraggedCountryIndex(idx)}
+                        onDragEnd={() => setDraggedCountryIndex(null)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
+                            const newOrder = [...countryOrder];
+                            const [dragged] = newOrder.splice(draggedCountryIndex, 1);
+                            newOrder.splice(idx, 0, dragged);
+                            setCountryOrder(newOrder);
+                            setDraggedCountryIndex(idx);
+                          }
+                        }}
+                        className={`px-3 py-1.5 bg-white rounded-lg font-medium text-xs border cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition-all ${
+                          draggedCountryIndex === idx ? 'opacity-50 scale-95 border-primary' : 'hover:border-primary hover:bg-primary/5'
+                        }`}
+                      >
+                        <GripVertical className="w-3 h-3 text-muted-foreground" />
+                        {country}
+                        {idx === 0 && <span className="text-[10px] text-primary">(1st)</span>}
+                      </div>
+                      {idx < countryOrder.length - 1 && (
+                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Shortest flights toggle */}
             <label className="flex items-center justify-between cursor-pointer">
               <span className="text-xs">Shortest flight routes</span>
@@ -2767,6 +2846,10 @@ export function SwipeablePlanningView({
 
   const goToRoute = () => {
     if (selectedCities.length > 0) {
+      // Copy selectedCities to routeOrder if not already set
+      if (routeOrder.length === 0) {
+        setRouteOrder([...selectedCities]);
+      }
       setPhase('route-planning');
     }
   };
@@ -3123,10 +3206,11 @@ export function SwipeablePlanningView({
       </Dialog>
 
       {/* City Detail Modal */}
-      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab('landmarks'); setShowCityDetails(false); }}>
-        <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 max-h-[90vh] overflow-hidden [&>button]:hidden">
+      <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab(''); setModalMainTab('overview'); setShowCityDetails(false); setShowWhyLove(false); setShowWatchOut(false); setShowLocalTip(false); }}>
+        <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 h-[95vh] max-h-[800px] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
-            const cityInfo = getCityInfo(cityDetailItem.name);
+            // Use enriched city info if available, otherwise fallback to basic
+            const cityInfo = enrichedCityInfo || getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
             const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, cityDetailItem.name);
 
@@ -3157,8 +3241,63 @@ export function SwipeablePlanningView({
               }
             };
 
+            // Dot rating component - compact and black/white
+            const DotRating = ({ label, value }: { label: string; value: number }) => (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-medium w-12">{label}</span>
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((dot) => (
+                    <div
+                      key={dot}
+                      className={`w-1.5 h-1.5 rounded-full ${dot <= value ? 'bg-foreground' : 'bg-gray-300'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+
+            // Accordion section component
+            const AccordionSection = ({
+              id,
+              label,
+              icon,
+              items
+            }: {
+              id: string;
+              label: string;
+              icon: React.ReactNode;
+              items: { name: string; description: string }[]
+            }) => {
+              const isOpen = highlightTab === id;
+              return (
+                <div className="border-b last:border-b-0">
+                  <button
+                    onClick={() => setHighlightTab(isOpen ? '' : id)}
+                    className="w-full flex items-center justify-between py-3 text-sm font-medium"
+                  >
+                    <span className="flex items-center gap-2">
+                      {icon}
+                      {label}
+                      <span className="text-xs text-muted-foreground">({items.length})</span>
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="pb-3 space-y-2">
+                      {items.map((item) => (
+                        <div key={item.name} className="text-sm pl-6">
+                          <span className="font-medium">{item.name}</span>
+                          <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
             return (
-              <div className="flex flex-col max-h-[85vh]">
+              <div className="flex flex-col h-full">
                 {/* Hero Image with Overlay Info */}
                 <div
                   className="relative h-48 flex-shrink-0"
@@ -3219,187 +3358,201 @@ export function SwipeablePlanningView({
                   </div>
                 </div>
 
-                {/* Scrollable Content */}
+                {/* Main Tab Buttons */}
+                <div className="flex border-b flex-shrink-0">
+                  <button
+                    onClick={() => setModalMainTab('overview')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      modalMainTab === 'overview'
+                        ? 'text-primary border-b-2 border-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => { setModalMainTab('explore'); if (!highlightTab) setHighlightTab('landmarks'); }}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      modalMainTab === 'explore'
+                        ? 'text-primary border-b-2 border-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Explore
+                  </button>
+                </div>
+
+                {/* Tab Content Area */}
                 <div className="flex-1 overflow-y-auto">
-                  <div className="p-4 space-y-4">
-                    {/* Quick Stats Row */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {cityInfo.avgDays}
-                      </span>
-                      <span>{cityInfo.crowdLevel} crowds</span>
-                      <span>Best: {cityInfo.bestTime}</span>
-                    </div>
+                  {/* Overview Tab */}
+                  {modalMainTab === 'overview' && (
+                    <div className="p-4 space-y-4">
+                      {/* Meta Info Row */}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {cityInfo.avgDays}
+                        </span>
+                        <span>{cityInfo.crowdLevel} crowds</span>
+                        <span>Best: {cityInfo.bestTime}</span>
+                      </div>
 
-                    {/* Why You'll Love It */}
-                    {recommendation.reasons.length > 0 && (
-                      <div className="bg-green-50 rounded-lg p-3">
-                        <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
-                          <Heart className="w-3.5 h-3.5" /> Why you&apos;ll love it
+                      {/* Why You'll Love It */}
+                      {recommendation.reasons.length > 0 && (
+                        <div className="bg-green-50 rounded-lg p-3">
+                          <div className="text-xs font-semibold text-green-700 mb-2">Why you&apos;ll love it</div>
+                          <ul className="text-sm text-green-800 space-y-1">
+                            {recommendation.reasons.map((reason, i) => (
+                              <li key={i}>• {reason}</li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="text-sm text-green-800 space-y-1">
-                          {recommendation.reasons.slice(0, 2).map((reason, i) => (
-                            <li key={i}>• {reason}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Concerns */}
-                    {recommendation.concerns.length > 0 && (
-                      <div className="bg-amber-50 rounded-lg p-3">
-                        <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5" /> Watch out for
+                      {/* Good to Know (cons/concerns) */}
+                      {(recommendation.concerns.length > 0 || cityInfo.cons?.length > 0) && (
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="text-xs font-semibold text-slate-700 mb-2">Good to know</div>
+                          <ul className="text-sm text-slate-600 space-y-1">
+                            {recommendation.concerns.map((concern, i) => (
+                              <li key={i}>• {concern}</li>
+                            ))}
+                            {cityInfo.cons?.filter(con => !recommendation.concerns.some(c => c.includes(con.substring(0, 20)))).slice(0, 2).map((con, i) => (
+                              <li key={`con-${i}`}>• {con}</li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="text-sm text-amber-800 space-y-1">
-                          {recommendation.concerns.slice(0, 2).map((concern, i) => (
-                            <li key={i}>• {concern}</li>
+                      )}
+
+                      {/* Must-See Sites */}
+                      <div>
+                        <div className="text-sm font-semibold mb-2">Must-See</div>
+                        <div className="flex gap-2 flex-wrap">
+                          {cityInfo.topSites.map((site, idx) => (
+                            <button
+                              key={site}
+                              onClick={() => {
+                                setCityImageIndex(idx + 1);
+                              }}
+                              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                                cityImageIndex === idx + 1 ? 'bg-primary text-primary-foreground border-primary' : 'hover:border-primary/50'
+                              }`}
+                            >
+                              {site}
+                            </button>
                           ))}
-                        </ul>
+                        </div>
                       </div>
-                    )}
 
-                    {/* Must-See Sites */}
-                    <div>
-                      <div className="text-sm font-semibold mb-2">Must-See</div>
-                      <div className="flex gap-2 flex-wrap">
-                        {cityInfo.topSites.map((site, idx) => (
-                          <button
-                            key={site}
-                            onClick={() => setCityImageIndex(idx + 1)}
-                            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                              cityImageIndex === idx + 1 ? 'bg-primary text-primary-foreground border-primary' : 'hover:border-primary/50'
-                            }`}
-                          >
-                            {site}
-                          </button>
-                        ))}
+                      {/* Local Tip */}
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
+                          <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Local Tip - Simple */}
-                    <div className="flex items-start gap-2 text-sm">
-                      <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-muted-foreground"><span className="font-medium text-foreground">Tip:</span> {cityInfo.localTip}</p>
-                    </div>
+                  {/* Explore Tab */}
+                  {modalMainTab === 'explore' && (
+                    <div className="p-4">
+                      {isLoadingCityInfo && !cityInfo.highlights ? (
+                        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          Loading highlights...
+                        </div>
+                      ) : cityInfo.highlights ? (
+                        <div className="space-y-4">
+                          {/* Category Tabs */}
+                          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                            {[
+                              ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', label: 'Landmarks' }] : []),
+                              ...(cityInfo.highlights.history?.length ? [{ id: 'history', label: 'History' }] : []),
+                              ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', label: 'Museums' }] : []),
+                              ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', label: 'Markets' }] : []),
+                              ...(cityInfo.highlights.food?.length ? [{ id: 'food', label: 'Food' }] : []),
+                            ].map((tab, idx) => (
+                              <button
+                                key={tab.id}
+                                onClick={() => setHighlightTab(tab.id)}
+                                className={`px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
+                                  highlightTab === tab.id || (!highlightTab && idx === 0)
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted hover:bg-muted/80'
+                                }`}
+                              >
+                                {tab.label}
+                              </button>
+                            ))}
+                          </div>
 
-                    {/* Detailed Info Accordion */}
-                    {cityInfo.highlights && (
-                      <div className="border-t pt-4">
-                        <button
-                          onClick={() => setShowCityDetails(!showCityDetails)}
-                          className="flex items-center justify-between w-full text-sm font-medium"
-                        >
-                          <span>Explore {cityDetailItem.name}</span>
-                          <ChevronDown className={`w-4 h-4 transition-transform ${showCityDetails ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {showCityDetails && (
-                          <div className="mt-3 space-y-3">
-                            {/* Perfect For */}
-                            {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
-                              <div className="flex gap-1.5 flex-wrap">
-                                {cityInfo.idealFor.map((type) => (
-                                  <span key={type} className="text-xs bg-muted px-2 py-1 rounded-full">{type}</span>
+                          {/* Category Content */}
+                          <div className="space-y-4">
+                            {(highlightTab === 'landmarks' || !highlightTab) && cityInfo.highlights.landmarks && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.landmarks.map((item) => (
+                                  <div key={item.name} className="bg-muted/50 rounded-lg p-3">
+                                    <div className="font-medium text-sm">{item.name}</div>
+                                    <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
+                                  </div>
                                 ))}
                               </div>
                             )}
-
-                            {/* Tabs - ordered by user preferences */}
-                            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-                              {(() => {
-                                // Map user's travel identities to highlight categories
-                                const identityToTab: Record<string, { id: string; label: string }> = {
-                                  'history': { id: 'history', label: 'History' },
-                                  'food': { id: 'food', label: 'Food' },
-                                  'shopping': { id: 'markets', label: 'Markets' },
-                                  'photography': { id: 'landmarks', label: 'Landmarks' },
-                                  'nature': { id: 'landmarks', label: 'Landmarks' },
-                                  'adventure': { id: 'landmarks', label: 'Landmarks' },
-                                };
-
-                                // All available tabs based on city data
-                                const allTabs = [
-                                  ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', label: 'Landmarks' }] : []),
-                                  ...(cityInfo.highlights.history?.length ? [{ id: 'history', label: 'History' }] : []),
-                                  ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', label: 'Museums' }] : []),
-                                  ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', label: 'Markets' }] : []),
-                                  ...(cityInfo.highlights.food?.length ? [{ id: 'food', label: 'Food' }] : []),
-                                ];
-
-                                // Get user's preferred categories from travelIdentities
-                                const userIdentities = tripDna.travelerProfile?.travelIdentities || [];
-
-                                // Sort tabs: user preferences first, then others
-                                const preferredTabIds = userIdentities
-                                  .map(id => identityToTab[id]?.id)
-                                  .filter(Boolean);
-
-                                const sortedTabs = [
-                                  ...allTabs.filter(t => preferredTabIds.includes(t.id)),
-                                  ...allTabs.filter(t => !preferredTabIds.includes(t.id))
-                                ].filter((tab, idx, arr) => arr.findIndex(t => t.id === tab.id) === idx); // Remove duplicates
-
-                                return sortedTabs.map((tab) => (
-                                  <button
-                                    key={tab.id}
-                                    onClick={() => setHighlightTab(tab.id)}
-                                    className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-                                      highlightTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                                    }`}
-                                  >
-                                    {tab.label}
-                                    {preferredTabIds.includes(tab.id) && (
-                                      <span className="ml-1 text-[8px]">★</span>
-                                    )}
-                                  </button>
-                                ));
-                              })()}
-                            </div>
-
-                            {/* Tab Content - fixed height to prevent jumping */}
-                            <div className="space-y-2 min-h-[180px]">
-                              {highlightTab === 'landmarks' && cityInfo.highlights.landmarks?.map((item) => (
-                                <div key={item.name} className="text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                                </div>
-                              ))}
-                              {highlightTab === 'history' && cityInfo.highlights.history?.map((item) => (
-                                <div key={item.name} className="text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                                </div>
-                              ))}
-                              {highlightTab === 'museums' && cityInfo.highlights.museums?.map((item) => (
-                                <div key={item.name} className="text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                                </div>
-                              ))}
-                              {highlightTab === 'markets' && cityInfo.highlights.markets?.map((item) => (
-                                <div key={item.name} className="text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                                </div>
-                              ))}
-                              {highlightTab === 'food' && cityInfo.highlights.food?.map((item) => (
-                                <div key={item.name} className="text-sm">
-                                  <span className="font-medium">{item.name}</span>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
-                                </div>
-                              ))}
-                            </div>
+                            {highlightTab === 'history' && cityInfo.highlights.history && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.history.map((item) => (
+                                  <div key={item.name} className="bg-muted/50 rounded-lg p-3">
+                                    <div className="font-medium text-sm">{item.name}</div>
+                                    <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {highlightTab === 'museums' && cityInfo.highlights.museums && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.museums.map((item) => (
+                                  <div key={item.name} className="bg-muted/50 rounded-lg p-3">
+                                    <div className="font-medium text-sm">{item.name}</div>
+                                    <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {highlightTab === 'markets' && cityInfo.highlights.markets && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.markets.map((item) => (
+                                  <div key={item.name} className="bg-muted/50 rounded-lg p-3">
+                                    <div className="font-medium text-sm">{item.name}</div>
+                                    <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {highlightTab === 'food' && cityInfo.highlights.food && (
+                              <div className="space-y-3">
+                                {cityInfo.highlights.food.map((item) => (
+                                  <div key={item.name} className="bg-muted/50 rounded-lg p-3">
+                                    <div className="font-medium text-sm">{item.name}</div>
+                                    <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 text-muted-foreground text-sm">
+                          No detailed highlights available for this city yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Fixed Action Button */}
-                <div className="p-4 border-t bg-background flex-shrink-0">
+                {/* Sticky Action Bar */}
+                <div className="p-4 border-t bg-background flex-shrink-0 shadow-lg">
                   <Button
                     className="w-full"
                     variant={isSelected ? 'outline' : 'default'}

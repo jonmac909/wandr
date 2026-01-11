@@ -22,7 +22,7 @@ npm run lint     # Run ESLint
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
 - **AI:** Anthropic Claude API for itinerary generation
 - **Icons:** lucide-react
-- **Deployment:** Netlify (auto-deploys from GitHub main branch)
+- **Deployment:** Cloudflare Workers
 
 ## Architecture
 
@@ -120,9 +120,9 @@ Trip page overview shows countries/cities count:
 ## Ground Rules
 
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
-- **Live site: https://www.trippified.com** - User tests here, NOT localhost
+- **Live testing site: https://wandr.jon-c95.workers.dev/** - User tests here, NOT localhost
 - **ALWAYS push to deploy:** `git add -A && git commit -m "..." && git push`
-- Netlify auto-deploys from GitHub main branch (~1-2 min)
+- Cloudflare Workers auto-deploys from GitHub main branch
 
 ## Key Patterns
 

@@ -1,0 +1,83 @@
+'use client';
+
+import { cn } from '@/lib/utils';
+
+export type PlanningSection = 'where' | 'prefs' | 'cities' | 'route' | 'itinerary';
+
+interface PlanningNavProps {
+  currentSection: PlanningSection;
+  onSectionChange: (section: PlanningSection) => void;
+  completedSections: PlanningSection[];
+}
+
+const SECTIONS: { id: PlanningSection; label: string }[] = [
+  { id: 'where', label: 'Where & When' },
+  { id: 'prefs', label: 'Preferences' },
+  { id: 'cities', label: 'Cities' },
+  { id: 'route', label: 'Route' },
+  { id: 'itinerary', label: 'Itinerary' },
+];
+
+export function PlanningNav({ currentSection, onSectionChange, completedSections }: PlanningNavProps) {
+  const currentIndex = SECTIONS.findIndex(s => s.id === currentSection);
+
+  const canNavigateTo = (sectionId: PlanningSection) => {
+    const sectionIndex = SECTIONS.findIndex(s => s.id === sectionId);
+    // Can navigate to completed sections or the next one after last completed
+    if (completedSections.includes(sectionId)) return true;
+    // Can go to current
+    if (sectionId === currentSection) return true;
+    // Can go to next if previous is completed
+    const prevSection = SECTIONS[sectionIndex - 1];
+    if (prevSection && completedSections.includes(prevSection.id)) return true;
+    return false;
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-center gap-0">
+        {SECTIONS.map((section, index) => {
+          const isCompleted = completedSections.includes(section.id);
+          const isCurrent = section.id === currentSection;
+          const isActive = isCompleted || isCurrent;
+          const isClickable = canNavigateTo(section.id);
+
+          return (
+            <div key={section.id} className="flex items-center">
+              {/* Section button */}
+              <button
+                onClick={() => isClickable && onSectionChange(section.id)}
+                disabled={!isClickable}
+                className={cn(
+                  "flex flex-col items-center w-16 sm:w-20 transition-opacity",
+                  isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold mb-1 transition-colors",
+                  isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {index + 1}
+                </div>
+                <span className={cn(
+                  "text-[10px] sm:text-xs font-medium text-center transition-colors leading-tight",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {section.label}
+                </span>
+              </button>
+
+              {/* Connector line (not after last) */}
+              {index < SECTIONS.length - 1 && (
+                <div className={cn(
+                  "h-0.5 w-6 sm:w-10 -mx-1 rounded transition-colors",
+                  currentIndex > index ? "bg-primary" : "bg-muted"
+                )} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

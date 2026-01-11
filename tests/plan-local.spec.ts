@@ -10,10 +10,10 @@ test('verify plan page progress indicator locally', async ({ page }) => {
   // Take screenshot
   await page.screenshot({ path: 'plan-page-screenshot.png', fullPage: true });
 
-  // Check header says "Plan Trip" not "Edit Trip"
-  const headerText = await page.getByRole('heading', { name: 'Plan Trip' }).textContent();
-  console.log('Header text:', headerText);
-  expect(headerText).toBe('Plan Trip');
+  // Check step 1 heading is visible
+  const step1Heading = page.getByRole('heading', { name: 'Where are you going?' });
+  await expect(step1Heading).toBeVisible();
+  console.log('Step 1 heading visible');
 
   // Check for progress indicator steps
   const stepButtons = page.locator('button:has-text("Where & When"), button:has-text("Trip Style"), button:has-text("Preferences")');
