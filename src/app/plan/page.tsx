@@ -1040,9 +1040,9 @@ function PlanPageContent() {
                       >
                         <div className="font-medium text-sm">{p.charAt(0).toUpperCase() + p.slice(1)}</div>
                         <div className="text-xs text-muted-foreground">
-                          {p === 'relaxed' && '1-2 activities/day'}
-                          {p === 'balanced' && '2-3 activities/day'}
-                          {p === 'active' && '4+ activities/day'}
+                          {p === 'relaxed' && 'Lots of free time'}
+                          {p === 'balanced' && 'Some free time'}
+                          {p === 'active' && 'Fully scheduled'}
                         </div>
                       </button>
                     ))}
