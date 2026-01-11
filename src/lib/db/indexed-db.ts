@@ -34,6 +34,17 @@ export interface PackingState {
   updatedAt: Date;
 }
 
+// Planning state (for trip curation progress)
+export interface PlanningState {
+  tripId: string;
+  selectedIds: string[]; // IDs of selected/favorited items
+  selectedCities: string[];
+  routeOrder: string[];
+  phase: 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
+  currentStepIndex: number;
+  updatedAt: Date;
+}
+
 // User preferences
 export interface UserPreferences {
   id: string;
@@ -53,6 +64,7 @@ class TravelerDatabase extends Dexie {
   trips!: EntityTable<StoredTrip, 'id'>;
   documents!: EntityTable<StoredDocument, 'id'>;
   packingStates!: EntityTable<PackingState, 'tripId'>;
+  planningStates!: EntityTable<PlanningState, 'tripId'>;
   preferences!: EntityTable<UserPreferences, 'id'>;
 
   constructor() {
@@ -62,6 +74,15 @@ class TravelerDatabase extends Dexie {
       trips: 'id, status, createdAt, updatedAt',
       documents: 'id, tripId, type, createdAt',
       packingStates: 'tripId, updatedAt',
+      preferences: 'id',
+    });
+
+    // Add planning states in version 2
+    this.version(2).stores({
+      trips: 'id, status, createdAt, updatedAt',
+      documents: 'id, tripId, type, createdAt',
+      packingStates: 'tripId, updatedAt',
+      planningStates: 'tripId, updatedAt',
       preferences: 'id',
     });
   }
@@ -338,5 +359,32 @@ export const preferencesDb = {
       ...updates,
       id: 'user',
     });
+  },
+};
+
+// Planning state operations (for trip curation progress)
+export const planningDb = {
+  // Get planning state for a trip
+  async get(tripId: string): Promise<PlanningState | undefined> {
+    return db.planningStates.get(tripId);
+  },
+
+  // Update planning state
+  async update(tripId: string, updates: Partial<Omit<PlanningState, 'tripId' | 'updatedAt'>>): Promise<void> {
+    const existing = await db.planningStates.get(tripId);
+    await db.planningStates.put({
+      tripId,
+      selectedIds: updates.selectedIds ?? existing?.selectedIds ?? [],
+      selectedCities: updates.selectedCities ?? existing?.selectedCities ?? [],
+      routeOrder: updates.routeOrder ?? existing?.routeOrder ?? [],
+      phase: updates.phase ?? existing?.phase ?? 'picking',
+      currentStepIndex: updates.currentStepIndex ?? existing?.currentStepIndex ?? 0,
+      updatedAt: new Date(),
+    });
+  },
+
+  // Delete planning state
+  async delete(tripId: string): Promise<void> {
+    await db.planningStates.delete(tripId);
   },
 };

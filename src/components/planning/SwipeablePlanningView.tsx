@@ -48,6 +48,8 @@ import {
   ShoppingBag,
   Utensils,
   TreePine,
+  Settings,
+  AlertCircle,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { Itinerary } from '@/types/itinerary';
@@ -59,9 +61,367 @@ import {
 } from '@/lib/planning/itinerary-to-planning';
 import { getCityImage, getSiteImage } from '@/lib/planning/city-images';
 import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
+import { planningDb } from '@/lib/db/indexed-db';
+
+// City region info for geography context
+const CITY_REGIONS: Record<string, { region: string; tip?: string }> = {
+  // Thailand
+  'Bangkok': { region: 'Central Thailand', tip: 'Main hub - good starting point' },
+  'Chiang Mai': { region: 'Northern Thailand', tip: 'Pair with Chiang Rai & Pai (all north)' },
+  'Chiang Rai': { region: 'Northern Thailand', tip: '3hr drive from Chiang Mai' },
+  'Pai': { region: 'Northern Thailand', tip: '3hr drive from Chiang Mai' },
+  'Sukhothai': { region: 'Northern Thailand', tip: 'Between Bangkok & Chiang Mai' },
+  'Ayutthaya': { region: 'Central Thailand', tip: '1hr from Bangkok - easy day trip' },
+  'Kanchanaburi': { region: 'Central Thailand', tip: '2hr from Bangkok' },
+  'Hua Hin': { region: 'Central Thailand', tip: '3hr south of Bangkok' },
+  'Phuket': { region: 'Southern Thailand', tip: 'Pair with Krabi & islands (all south)' },
+  'Krabi': { region: 'Southern Thailand', tip: '2hr from Phuket' },
+  'Koh Phi Phi': { region: 'Southern Thailand', tip: 'Ferry from Phuket or Krabi' },
+  'Koh Lanta': { region: 'Southern Thailand', tip: 'Ferry from Krabi' },
+  'Koh Samui': { region: 'Gulf Coast', tip: 'Fly from Bangkok (1hr) or ferry' },
+  'Koh Tao': { region: 'Gulf Coast', tip: 'Ferry from Koh Samui' },
+  'Koh Phangan': { region: 'Gulf Coast', tip: 'Ferry from Koh Samui' },
+  'Koh Chang': { region: 'Eastern Thailand', tip: '5hr from Bangkok, near Cambodia' },
+  // Vietnam
+  'Hanoi': { region: 'Northern Vietnam', tip: 'Pair with Ha Long Bay & Sapa' },
+  'Ha Long Bay': { region: 'Northern Vietnam', tip: '3hr from Hanoi' },
+  'Sapa': { region: 'Northern Vietnam', tip: '6hr from Hanoi' },
+  'Hoi An': { region: 'Central Vietnam', tip: 'Pair with Da Nang & Hue' },
+  'Da Nang': { region: 'Central Vietnam', tip: '30min from Hoi An' },
+  'Hue': { region: 'Central Vietnam', tip: '2hr from Hoi An' },
+  'Ho Chi Minh City': { region: 'Southern Vietnam', tip: 'Pair with Mekong Delta' },
+  'Nha Trang': { region: 'South-Central', tip: 'Beach between HCMC & Hoi An' },
+  // Japan
+  'Tokyo': { region: 'Kanto', tip: 'Main hub - pair with Hakone & Nikko' },
+  'Hakone': { region: 'Kanto', tip: '1.5hr from Tokyo' },
+  'Nikko': { region: 'Kanto', tip: '2hr from Tokyo' },
+  'Kyoto': { region: 'Kansai', tip: 'Pair with Osaka & Nara (all close)' },
+  'Osaka': { region: 'Kansai', tip: '15min train from Kyoto' },
+  'Nara': { region: 'Kansai', tip: '45min from Kyoto or Osaka' },
+  'Hiroshima': { region: 'Western Japan', tip: '2hr shinkansen from Osaka' },
+  // Hawaii
+  'Honolulu': { region: 'Oahu', tip: 'Main island - Waikiki is here' },
+  'Waikiki': { region: 'Oahu', tip: 'Part of Honolulu' },
+  'Maui': { region: 'Maui Island', tip: 'Flight from Honolulu' },
+  'Kauai': { region: 'Kauai Island', tip: 'Flight from Honolulu' },
+  'Big Island': { region: 'Hawaii Island', tip: 'Volcanoes - flight from Honolulu' },
+};
+
+// Get region for a city
+function getCityRegion(cityName: string): string | undefined {
+  return CITY_REGIONS[cityName]?.region;
+}
+
+// Get route tip for a city
+function getCityRouteTip(cityName: string): string | undefined {
+  return CITY_REGIONS[cityName]?.tip;
+}
+
+// City coordinates for distance calculation
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  // Thailand
+  'Bangkok': { lat: 13.7563, lng: 100.5018 },
+  'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
+  'Phuket': { lat: 7.8804, lng: 98.3923 },
+  'Krabi': { lat: 8.0863, lng: 98.9063 },
+  'Koh Samui': { lat: 9.5120, lng: 100.0134 },
+  'Ayutthaya': { lat: 14.3532, lng: 100.5685 },
+  'Pai': { lat: 19.3622, lng: 98.4411 },
+  'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
+  'Koh Phi Phi': { lat: 7.7407, lng: 98.7784 },
+  'Koh Lanta': { lat: 7.6500, lng: 99.0833 },
+  'Koh Tao': { lat: 10.0956, lng: 99.8374 },
+  'Hua Hin': { lat: 12.5684, lng: 99.9577 },
+  'Koh Chang': { lat: 12.0559, lng: 102.3426 },
+  'Sukhothai': { lat: 17.0074, lng: 99.8226 },
+  'Kanchanaburi': { lat: 14.0041, lng: 99.5483 },
+  'Koh Phangan': { lat: 9.7500, lng: 100.0333 },
+  // Vietnam
+  'Hanoi': { lat: 21.0285, lng: 105.8542 },
+  'Ho Chi Minh City': { lat: 10.8231, lng: 106.6297 },
+  'Hoi An': { lat: 15.8801, lng: 108.3380 },
+  'Da Nang': { lat: 16.0544, lng: 108.2022 },
+  'Hue': { lat: 16.4637, lng: 107.5909 },
+  'Nha Trang': { lat: 12.2388, lng: 109.1967 },
+  'Ha Long Bay': { lat: 20.9101, lng: 107.1839 },
+  'Sapa': { lat: 22.3364, lng: 103.8438 },
+  // Japan
+  'Tokyo': { lat: 35.6762, lng: 139.6503 },
+  'Kyoto': { lat: 35.0116, lng: 135.7681 },
+  'Osaka': { lat: 34.6937, lng: 135.5023 },
+  'Hiroshima': { lat: 34.3853, lng: 132.4553 },
+  'Nara': { lat: 34.6851, lng: 135.8050 },
+  'Hakone': { lat: 35.2324, lng: 139.1069 },
+  'Nikko': { lat: 36.7198, lng: 139.6982 },
+  // Hawaii
+  'Honolulu': { lat: 21.3069, lng: -157.8583 },
+  'Maui': { lat: 20.7984, lng: -156.3319 },
+  'Kauai': { lat: 22.0964, lng: -159.5261 },
+  'Big Island': { lat: 19.5429, lng: -155.6659 },
+  'Waikiki': { lat: 21.2793, lng: -157.8292 },
+  // Turkey
+  'Istanbul': { lat: 41.0082, lng: 28.9784 },
+  'Cappadocia': { lat: 38.6431, lng: 34.8289 },
+  'Antalya': { lat: 36.8969, lng: 30.7133 },
+  'Bodrum': { lat: 37.0344, lng: 27.4305 },
+  'Ephesus': { lat: 37.9411, lng: 27.3420 },
+  'Pamukkale': { lat: 37.9137, lng: 29.1187 },
+  'Izmir': { lat: 38.4237, lng: 27.1428 },
+  // Spain
+  'Barcelona': { lat: 41.3874, lng: 2.1686 },
+  'Madrid': { lat: 40.4168, lng: -3.7038 },
+  'Seville': { lat: 37.3886, lng: -5.9823 },
+  'Valencia': { lat: 39.4699, lng: -0.3763 },
+  'Granada': { lat: 37.1773, lng: -3.5986 },
+  'San Sebastian': { lat: 43.3183, lng: -1.9812 },
+  'Bilbao': { lat: 43.2630, lng: -2.9350 },
+  'Malaga': { lat: 36.7213, lng: -4.4214 },
+  // Switzerland
+  'Zurich': { lat: 47.3769, lng: 8.5417 },
+  'Lucerne': { lat: 47.0502, lng: 8.3093 },
+  'Interlaken': { lat: 46.6863, lng: 7.8632 },
+  'Zermatt': { lat: 46.0207, lng: 7.7491 },
+  'Geneva': { lat: 46.2044, lng: 6.1432 },
+  'Bern': { lat: 46.9480, lng: 7.4474 },
+};
+
+// Calculate distance between two cities (Haversine formula)
+function calculateDistance(city1: string, city2: string): number | null {
+  const coord1 = CITY_COORDINATES[city1];
+  const coord2 = CITY_COORDINATES[city2];
+  if (!coord1 || !coord2) return null;
+
+  const R = 6371; // Earth's radius in km
+  const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+  const dLng = (coord2.lng - coord1.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(R * c);
+}
+
+// Get travel mode based on distance (no fake flight times)
+function getTravelMode(distance: number): string {
+  if (distance < 100) return 'by car/bus';
+  if (distance < 300) return 'by train/bus';
+  if (distance < 500) return 'by train';
+  return 'flight'; // Over 500km needs a flight - don't estimate times
+}
+
+// City to airport code mapping for Google Flights links
+const CITY_AIRPORTS: Record<string, string> = {
+  // Home airports (Canada)
+  'Kelowna': 'YLW',
+  'Vancouver': 'YVR',
+  // Thailand
+  'Bangkok': 'BKK',
+  'Chiang Mai': 'CNX',
+  'Chiang Rai': 'CEI',
+  'Phuket': 'HKT',
+  'Krabi': 'KBV',
+  'Koh Samui': 'USM',
+  // Vietnam
+  'Ho Chi Minh City': 'SGN',
+  'Hanoi': 'HAN',
+  'Da Nang': 'DAD',
+  'Hoi An': 'DAD', // Use Da Nang airport
+  'Nha Trang': 'CXR',
+  // Japan
+  'Tokyo': 'NRT',
+  'Osaka': 'KIX',
+  'Kyoto': 'KIX', // Use Osaka
+  'Hiroshima': 'HIJ',
+  'Fukuoka': 'FUK',
+  // Hawaii
+  'Honolulu': 'HNL',
+  'Maui': 'OGG',
+  'Kauai': 'LIH',
+};
+
+// City coordinates for geographic routing [lat, lng]
+const CITY_COORDS: Record<string, [number, number]> = {
+  // Japan
+  'Tokyo': [35.7, 139.7], 'Hakone': [35.2, 139.0], 'Kyoto': [35.0, 135.8],
+  'Nara': [34.7, 135.8], 'Osaka': [34.7, 135.5], 'Hiroshima': [34.4, 132.5], 'Fukuoka': [33.6, 130.4],
+  // Thailand
+  'Chiang Rai': [19.9, 99.8], 'Chiang Mai': [18.8, 99.0], 'Sukhothai': [17.0, 99.8],
+  'Ayutthaya': [14.4, 100.6], 'Bangkok': [13.8, 100.5], 'Koh Samui': [9.5, 100.0],
+  'Koh Phangan': [9.7, 100.1], 'Phuket': [7.9, 98.4], 'Krabi': [8.1, 98.9],
+  // Vietnam
+  'Hanoi': [21.0, 105.8], 'Ha Long Bay': [20.9, 107.0], 'Ninh Binh': [20.3, 105.9],
+  'Hue': [16.5, 107.6], 'Da Nang': [16.1, 108.2], 'Hoi An': [15.9, 108.3],
+  'Nha Trang': [12.2, 109.2], 'Ho Chi Minh City': [10.8, 106.6],
+  // Hawaii
+  'Honolulu': [21.3, -157.8], 'Maui': [20.8, -156.3], 'Kauai': [22.1, -159.5],
+  // Spain
+  'Barcelona': [41.4, 2.2], 'Valencia': [39.5, -0.4], 'Madrid': [40.4, -3.7],
+  'Granada': [37.2, -3.6], 'Seville': [37.4, -6.0], 'Malaga': [36.7, -4.4],
+  'Cordoba': [37.9, -4.8], 'Toledo': [39.9, -4.0], 'San Sebastian': [43.3, -2.0],
+  'Bilbao': [43.3, -2.9],
+  // Portugal
+  'Lisbon': [38.7, -9.1], 'Porto': [41.2, -8.6], 'Lagos': [37.1, -8.7],
+  'Faro': [37.0, -7.9], 'Sintra': [38.8, -9.4], 'Cascais': [38.7, -9.4],
+  // France
+  'Paris': [48.9, 2.4], 'Nice': [43.7, 7.3], 'Lyon': [45.8, 4.8], 'Marseille': [43.3, 5.4],
+  // Italy
+  'Rome': [41.9, 12.5], 'Florence': [43.8, 11.3], 'Venice': [45.4, 12.3],
+  'Milan': [45.5, 9.2], 'Naples': [40.9, 14.3], 'Amalfi': [40.6, 14.6],
+  // Greece
+  'Athens': [38.0, 23.7], 'Santorini': [36.4, 25.4], 'Mykonos': [37.4, 25.3],
+  // Turkey
+  'Istanbul': [41.0, 29.0], 'Cappadocia': [38.6, 34.8], 'Antalya': [36.9, 30.7],
+};
+
+// Generate Google Flights URL for checking real prices
+function getGoogleFlightsUrl(fromCity: string, toCity: string): string {
+  const fromAirport = CITY_AIRPORTS[fromCity] || fromCity.substring(0, 3).toUpperCase();
+  const toAirport = CITY_AIRPORTS[toCity] || toCity.substring(0, 3).toUpperCase();
+  return `https://www.google.com/travel/flights?q=flights%20from%20${fromAirport}%20to%20${toAirport}`;
+}
+
+// Flight info: time and whether it's direct or has stops
+// Format: { time: string, stops: number } - 0 = direct, 1+ = number of connections
+interface FlightInfo {
+  time: string;
+  stops: number; // 0 = direct, 1 = 1 stop, 2 = 2 stops
+}
+
+const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
+  // From Canada - all require connections to Asia
+  'Kelowna': {
+    'Bangkok': { time: '18-22hr', stops: 2 }, 'Chiang Mai': { time: '20-24hr', stops: 2 }, 'Chiang Rai': { time: '22-26hr', stops: 2 },
+    'Phuket': { time: '20-24hr', stops: 2 }, 'Krabi': { time: '22-26hr', stops: 2 }, 'Koh Samui': { time: '22-26hr', stops: 2 },
+    'Ho Chi Minh City': { time: '18-22hr', stops: 2 }, 'Hanoi': { time: '18-22hr', stops: 2 }, 'Da Nang': { time: '20-24hr', stops: 2 },
+    'Hoi An': { time: '20-24hr', stops: 2 }, 'Nha Trang': { time: '22-26hr', stops: 2 },
+    'Tokyo': { time: '12-14hr', stops: 1 }, 'Osaka': { time: '13-15hr', stops: 1 }, 'Kyoto': { time: '13-15hr', stops: 1 }, 'Hiroshima': { time: '15-18hr', stops: 2 },
+    'Honolulu': { time: '8-10hr', stops: 1 }, 'Maui': { time: '9-11hr', stops: 1 }, 'Kauai': { time: '10-12hr', stops: 2 },
+  },
+  'Vancouver': {
+    'Bangkok': { time: '14-17hr', stops: 1 }, 'Chiang Mai': { time: '16-19hr', stops: 2 }, 'Phuket': { time: '16-19hr', stops: 2 },
+    'Ho Chi Minh City': { time: '15-18hr', stops: 1 }, 'Hanoi': { time: '15-18hr', stops: 1 }, 'Da Nang': { time: '17-20hr', stops: 2 },
+    'Tokyo': { time: '10hr', stops: 0 }, 'Osaka': { time: '11hr', stops: 0 },
+    'Honolulu': { time: '6hr', stops: 0 }, 'Maui': { time: '6.5hr', stops: 0 },
+  },
+  // Within/between Thailand - all direct
+  'Bangkok': {
+    'Chiang Mai': { time: '1.5hr', stops: 0 }, 'Chiang Rai': { time: '1.5hr', stops: 0 }, 'Phuket': { time: '1.5hr', stops: 0 },
+    'Krabi': { time: '1.5hr', stops: 0 }, 'Koh Samui': { time: '1hr', stops: 0 },
+    'Ho Chi Minh City': { time: '1.5hr', stops: 0 }, 'Hanoi': { time: '2hr', stops: 0 }, 'Da Nang': { time: '2hr', stops: 0 },
+    'Tokyo': { time: '6hr', stops: 0 }, 'Osaka': { time: '5.5hr', stops: 0 }, 'Honolulu': { time: '18-20hr', stops: 2 },
+  },
+  'Chiang Mai': {
+    'Bangkok': { time: '1.5hr', stops: 0 }, 'Chiang Rai': { time: '30min', stops: 0 }, 'Phuket': { time: '2hr', stops: 0 }, 'Koh Samui': { time: '2hr', stops: 1 },
+    'Da Nang': { time: '2hr', stops: 0 }, 'Hanoi': { time: '2hr', stops: 0 },
+  },
+  'Chiang Rai': {
+    'Bangkok': { time: '1.5hr', stops: 0 }, 'Chiang Mai': { time: '30min', stops: 0 }, 'Da Nang': { time: '3-4hr', stops: 1 }, 'Hanoi': { time: '2hr', stops: 0 },
+  },
+  'Phuket': {
+    'Bangkok': { time: '1.5hr', stops: 0 }, 'Chiang Mai': { time: '2hr', stops: 0 }, 'Koh Samui': { time: '1hr', stops: 0 }, 'Krabi': { time: '30min', stops: 0 },
+  },
+  // Within/between Vietnam - mostly direct
+  'Ho Chi Minh City': {
+    'Hanoi': { time: '2hr', stops: 0 }, 'Da Nang': { time: '1.5hr', stops: 0 }, 'Hoi An': { time: '1.5hr', stops: 0 }, 'Nha Trang': { time: '1hr', stops: 0 },
+    'Bangkok': { time: '1.5hr', stops: 0 }, 'Tokyo': { time: '5.5hr', stops: 0 }, 'Osaka': { time: '5hr', stops: 0 },
+  },
+  'Hanoi': {
+    'Ho Chi Minh City': { time: '2hr', stops: 0 }, 'Da Nang': { time: '1.5hr', stops: 0 }, 'Hoi An': { time: '1.5hr', stops: 0 },
+    'Bangkok': { time: '2hr', stops: 0 }, 'Tokyo': { time: '4.5hr', stops: 0 },
+  },
+  'Da Nang': {
+    'Hanoi': { time: '1.5hr', stops: 0 }, 'Ho Chi Minh City': { time: '1.5hr', stops: 0 },
+    'Bangkok': { time: '2hr', stops: 0 }, 'Osaka': { time: '4hr', stops: 0 }, 'Tokyo': { time: '5hr', stops: 0 },
+  },
+  // Within/between Japan - mostly direct or train
+  'Tokyo': {
+    'Osaka': { time: '1.5hr', stops: 0 }, 'Kyoto': { time: '2hr train', stops: 0 }, 'Hiroshima': { time: '1.5hr', stops: 0 }, 'Fukuoka': { time: '2hr', stops: 0 },
+    'Bangkok': { time: '6hr', stops: 0 }, 'Ho Chi Minh City': { time: '5.5hr', stops: 0 }, 'Hanoi': { time: '4.5hr', stops: 0 },
+    'Honolulu': { time: '8hr', stops: 0 },
+  },
+  'Osaka': {
+    'Tokyo': { time: '1.5hr', stops: 0 }, 'Kyoto': { time: '15min train', stops: 0 }, 'Hiroshima': { time: '1.5hr', stops: 0 }, 'Fukuoka': { time: '1hr', stops: 0 },
+    'Bangkok': { time: '5.5hr', stops: 0 }, 'Ho Chi Minh City': { time: '5hr', stops: 0 }, 'Da Nang': { time: '4hr', stops: 0 },
+    'Honolulu': { time: '8-9hr', stops: 0 },
+  },
+  // Hawaii - mostly direct to Japan
+  'Honolulu': {
+    'Maui': { time: '30min', stops: 0 }, 'Kauai': { time: '30min', stops: 0 },
+    'Tokyo': { time: '8hr', stops: 0 }, 'Osaka': { time: '8-9hr', stops: 0 },
+    'Kelowna': { time: '8-10hr', stops: 1 }, 'Vancouver': { time: '6hr', stops: 0 },
+  },
+};
+
+// Legacy function for backward compatibility
+const FLIGHT_TIMES: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.entries(FLIGHT_DATA).map(([from, destinations]) => [
+    from,
+    Object.fromEntries(
+      Object.entries(destinations).map(([to, info]) => [to, info.time])
+    )
+  ])
+);
+
+// Get full flight data between two cities
+function getFlightData(fromCity: string, toCity: string): FlightInfo | null {
+  // Direct lookup
+  if (FLIGHT_DATA[fromCity]?.[toCity]) {
+    return FLIGHT_DATA[fromCity][toCity];
+  }
+  // Reverse lookup
+  if (FLIGHT_DATA[toCity]?.[fromCity]) {
+    return FLIGHT_DATA[toCity][fromCity];
+  }
+  return null;
+}
+
+// Get estimated flight time between two cities (legacy)
+function getFlightTime(fromCity: string, toCity: string): string | null {
+  const data = getFlightData(fromCity, toCity);
+  return data?.time || null;
+}
+
+// Format stops info for display
+function formatStops(stops: number): string {
+  if (stops === 0) return 'direct';
+  if (stops === 1) return '1 stop';
+  return `${stops} stops`;
+}
+
+// Get flight info with time estimate and stops
+function getFlightInfo(fromCity: string, toCity: string): { time: string | null; stops: number | null; url: string } {
+  const url = getGoogleFlightsUrl(fromCity, toCity);
+  const data = getFlightData(fromCity, toCity);
+  return { time: data?.time || null, stops: data?.stops ?? null, url };
+}
+
+// Get flight time from home airport to first destination
+function getEntryFlightInfo(homeAirport: string, firstCity: string, firstCountry: string): { route: string; time: string } {
+  // Common routes from North American airports
+  const routes: Record<string, Record<string, { route: string; time: string }>> = {
+    'YLW': { // Kelowna
+      'Thailand': { route: 'YLW → YVR → BKK', time: '~16-18hr total' },
+      'Vietnam': { route: 'YLW → YVR → HAN/SGN', time: '~17-19hr total' },
+      'Japan': { route: 'YLW → YVR → NRT/HND', time: '~12-14hr total' },
+      'Hawaii': { route: 'YLW → YVR/SEA → HNL', time: '~8-10hr total' },
+    },
+    'YVR': { // Vancouver
+      'Thailand': { route: 'YVR → BKK direct or via NRT', time: '~14-17hr' },
+      'Vietnam': { route: 'YVR → HAN/SGN via TPE/HKG', time: '~15-18hr' },
+      'Japan': { route: 'YVR → NRT/HND direct', time: '~10hr direct' },
+      'Hawaii': { route: 'YVR → HNL direct', time: '~6hr direct' },
+    },
+  };
+
+  const airportRoutes = routes[homeAirport] || routes['YLW']; // Default to Kelowna
+  const countryInfo = airportRoutes[firstCountry] || { route: `${homeAirport} → ${firstCountry}`, time: '~15-20hr' };
+
+  return countryInfo;
+}
 
 interface SwipeablePlanningViewProps {
   tripDna: TripDNA;
+  tripId?: string; // For persistence
   itinerary?: Itinerary | null; // Existing itinerary (for imported trips)
   items: PlanningItem[];
   onItemsChange: (items: PlanningItem[]) => void;
@@ -122,15 +482,19 @@ const TOURIST_TRAP_CITIES = [
 ];
 
 // Generate personalized recommendation based on TripDNA preferences
-function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA, cityName?: string): { match: 'great' | 'good' | 'mixed'; reasons: string[]; concerns: string[] } {
+function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA, cityName?: string): { match: 'great' | 'good' | 'neutral' | 'consider'; reasons: string[]; concerns: string[] } {
   const reasons: string[] = [];
   const concerns: string[] = [];
 
   const { travelerProfile, vibeAndPace, interests, constraints } = tripDna;
   const travelIdentities = travelerProfile?.travelIdentities || [];
+  // Also check tripTypes from interests (where plan page stores them)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tripTypes = (interests as any)?.tripTypes || [];
 
-  // Parse avoidances from preferences
-  const avoidancesStr = (tripDna as unknown as { preferences?: { avoidances?: string } }).preferences?.avoidances || '';
+  // Parse avoidances from preferences or constraints
+  const extendedDna = tripDna as unknown as { preferences?: { avoidances?: string }; constraints?: { avoidances?: string } };
+  const avoidancesStr = extendedDna.preferences?.avoidances || extendedDna.constraints?.avoidances || '';
   const avoidances = avoidancesStr.split(',').map(a => a.trim()).filter(Boolean);
 
   // Check avoidances and add concerns
@@ -162,24 +526,74 @@ function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA, cit
     reasons.push('Great hiking and nature experiences');
   }
 
-  // Check culture preferences (from travelIdentities)
-  if (travelIdentities.includes('history') && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('history'))) {
-    reasons.push('Rich cultural experiences align with your interests');
+  // Check culture/history preferences - be specific about what they selected
+  const hasHistory = tripTypes.includes('history') || travelIdentities.includes('history');
+  if (hasHistory && cityInfo.bestFor.some(b => b.toLowerCase().includes('history'))) {
+    if (cityInfo.highlights?.history?.length) {
+      reasons.push(`Explore ${cityInfo.highlights.history[0].name} and other historic sites`);
+    } else {
+      reasons.push(`Rich history - perfect for your history interest`);
+    }
+  }
+  const hasMuseums = tripTypes.includes('museums') || travelIdentities.includes('art');
+  if (hasMuseums && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('art'))) {
+    if (cityInfo.highlights?.museums?.length) {
+      reasons.push(`Visit ${cityInfo.highlights.museums[0].name}`);
+    } else {
+      reasons.push(`Great museums and cultural institutions`);
+    }
   }
 
   // Check beach preferences
-  if (travelIdentities.includes('relaxation') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) {
-    reasons.push('Beach vibes match what you are looking for');
+  const hasBeach = tripTypes.includes('beach') || travelIdentities.includes('relaxation');
+  if (hasBeach && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) {
+    reasons.push('Beautiful beaches for the relaxation you want');
   }
 
   // Check nightlife preferences
-  if (travelIdentities.includes('nightlife') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) {
-    reasons.push('Vibrant nightlife scene');
+  const hasNightlife = tripTypes.includes('nightlife') || travelIdentities.includes('nightlife');
+  if (hasNightlife && cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) {
+    reasons.push('Great nightlife scene for your evening plans');
   }
 
   // Check photography hobby
-  if (interests?.hobbies?.includes('photography') && cityInfo.bestFor.some(b => b.toLowerCase().includes('photography') || b.toLowerCase().includes('scenery'))) {
-    reasons.push('Incredible photo opportunities');
+  const hasPhotography = tripTypes.includes('photography') || interests?.hobbies?.includes('photography');
+  if (hasPhotography && cityInfo.bestFor.some(b => b.toLowerCase().includes('photography') || b.toLowerCase().includes('scenery'))) {
+    reasons.push('Stunning photo opportunities everywhere');
+  }
+
+  // Check street food / food tours selected
+  const hasFood = tripTypes.includes('street-food') || tripTypes.includes('food-tours') || tripTypes.includes('fine-dining');
+  if (hasFood && cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) {
+    if (cityInfo.highlights?.food?.length) {
+      reasons.push(`Try the local ${cityInfo.highlights.food[0].name}`);
+    } else {
+      reasons.push('Amazing food scene to explore');
+    }
+  }
+
+  // Check local markets interest
+  const hasShopping = tripTypes.includes('shopping') || travelIdentities.includes('shopping');
+  if (hasShopping && cityInfo.highlights?.markets?.length) {
+    reasons.push(`Shop at ${cityInfo.highlights.markets[0].name}`);
+  }
+
+  // Check temples/local culture interest
+  const hasLocalCulture = tripTypes.includes('local-traditions') || travelIdentities.includes('local-culture');
+  if (hasLocalCulture && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture'))) {
+    reasons.push('Authentic local traditions to experience');
+  }
+
+  // Check spa/wellness interest
+  const hasSpa = tripTypes.includes('spa');
+  if (hasSpa && cityInfo.bestFor.some(b => b.toLowerCase().includes('wellness') || b.toLowerCase().includes('relaxation'))) {
+    reasons.push('Great wellness and spa options');
+  }
+
+  // Check hiking interest
+  const hasHiking = tripTypes.includes('hiking') || interests?.hobbies?.includes('hiking');
+  if (hasHiking && cityInfo.bestFor.some(b => b.toLowerCase().includes('nature') || b.toLowerCase().includes('hiking'))) {
+    reasons.push('Excellent hiking and nature trails');
   }
 
   // Check family travel
@@ -193,10 +607,19 @@ function getPersonalizedRecommendation(cityInfo: CityInfo, tripDna: TripDNA, cit
     concerns.push('Can be pricey - look for budget options');
   }
 
-  // Determine match level
-  let match: 'great' | 'good' | 'mixed' = 'good';
-  if (reasons.length >= 2 && concerns.length === 0) match = 'great';
-  else if (concerns.length >= 2) match = 'mixed';
+  // Determine match level - concerns from explicit avoidances should weigh heavily
+  let match: 'great' | 'good' | 'neutral' | 'consider' = 'good';
+  if (concerns.length >= 2) {
+    // Multiple concerns from user avoidances = consider, regardless of positives
+    match = 'consider';
+  } else if (concerns.length >= 1) {
+    // Any concern from user avoidances = neutral at best
+    match = 'neutral';
+  } else if (reasons.length >= 2) {
+    // No concerns and multiple matching reasons = great
+    match = 'great';
+  }
+  // Default stays 'good' if no concerns and 0-1 reasons
 
   // Add default reasons if none found
   if (reasons.length === 0) {
@@ -211,9 +634,13 @@ function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA, cityName?: stri
   let score = 0;
   const { vibeAndPace, interests, travelerProfile } = tripDna;
   const travelIdentities = travelerProfile?.travelIdentities || [];
+  // Also check tripTypes from interests (where plan page stores selected interests)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tripTypes: string[] = (interests as any)?.tripTypes || [];
 
-  // Parse avoidances from preferences (stored as comma-separated string)
-  const avoidancesStr = (tripDna as unknown as { preferences?: { avoidances?: string } }).preferences?.avoidances || '';
+  // Parse avoidances from preferences or constraints (stored as comma-separated string)
+  const extendedDna = tripDna as unknown as { preferences?: { avoidances?: string }; constraints?: { avoidances?: string } };
+  const avoidancesStr = extendedDna.preferences?.avoidances || extendedDna.constraints?.avoidances || '';
   const avoidances = avoidancesStr.split(',').map(a => a.trim()).filter(Boolean);
 
   // HEAVY PENALTIES FOR AVOIDANCES - these should override positive scores
@@ -235,11 +662,42 @@ function getCityMatchScore(cityInfo: CityInfo, tripDna: TripDNA, cityName?: stri
     score -= 60;
   }
 
-  // Boost for matching travel identities
-  if (travelIdentities.includes('relaxation') && cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) score += 20;
-  if ((travelIdentities.includes('history') || travelIdentities.includes('local-culture')) && cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('history'))) score += 20;
-  if (travelIdentities.includes('nightlife') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) score += 20;
-  if ((travelIdentities.includes('adventure') || travelIdentities.includes('nature')) && cityInfo.bestFor.some(b => b.toLowerCase().includes('adventure') || b.toLowerCase().includes('nature'))) score += 20;
+  // Boost for matching trip types (from plan page) - check both old and new storage
+  // Beach / relaxation
+  if ((tripTypes.includes('beach') || travelIdentities.includes('relaxation')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('beach'))) score += 25;
+
+  // History
+  if ((tripTypes.includes('history') || travelIdentities.includes('history')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('history'))) score += 20;
+
+  // Culture / Local traditions
+  if ((tripTypes.includes('local-traditions') || travelIdentities.includes('local-culture')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('culture'))) score += 20;
+
+  // Museums / Art
+  if ((tripTypes.includes('museums') || travelIdentities.includes('art')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('culture') || b.toLowerCase().includes('art'))) score += 20;
+
+  // Nature / Gardens
+  if ((tripTypes.includes('gardens') || tripTypes.includes('countryside') || tripTypes.includes('mountains') || travelIdentities.includes('nature')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('nature') || b.toLowerCase().includes('scenery'))) score += 20;
+
+  // Nightlife
+  if ((tripTypes.includes('nightlife') || travelIdentities.includes('nightlife')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('nightlife'))) score += 20;
+
+  // Food
+  if ((tripTypes.includes('street-food') || tripTypes.includes('food-tours') || tripTypes.includes('fine-dining')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('food'))) score += 20;
+
+  // Spa / Wellness
+  if ((tripTypes.includes('spa') || tripTypes.includes('lounges')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('wellness') || b.toLowerCase().includes('relaxation'))) score += 20;
+
+  // Adventure / Hiking
+  if ((tripTypes.includes('hiking') || tripTypes.includes('water-sports') || tripTypes.includes('wildlife') || travelIdentities.includes('adventure')) &&
+      cityInfo.bestFor.some(b => b.toLowerCase().includes('adventure') || b.toLowerCase().includes('nature') || b.toLowerCase().includes('hiking'))) score += 20;
 
   // Boost for matching hobbies
   if (interests?.hobbies?.includes('hiking') && cityInfo.bestFor.some(b => b.toLowerCase().includes('nature') || b.toLowerCase().includes('hiking'))) score += 15;
@@ -292,6 +750,7 @@ type PlanningPhase = 'picking' | 'route-planning' | 'favorites-library' | 'day-p
 
 export function SwipeablePlanningView({
   tripDna,
+  tripId,
   itinerary,
   items,
   onItemsChange,
@@ -313,15 +772,83 @@ export function SwipeablePlanningView({
   const [detailItem, setDetailItem] = useState<PlanningItem | null>(null);
   const [expandedDay, setExpandedDay] = useState<number>(0);
   const [initialized, setInitialized] = useState(false);
+  const [persistenceLoaded, setPersistenceLoaded] = useState(false);
+  const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names (moved here for persistence)
+  const [parkedCities, setParkedCities] = useState<string[]>([]); // Cities saved but not in route
+
+  // Load persisted planning state on mount (only if no current selections)
+  useEffect(() => {
+    if (!tripId || persistenceLoaded) return;
+
+    const loadPersistedState = async () => {
+      try {
+        const saved = await planningDb.get(tripId);
+        // Only load if we have saved data AND no current selections
+        if (saved && saved.selectedIds.length > 0 && selectedIds.size === 0) {
+          setSelectedIds(new Set(saved.selectedIds));
+          setSelectedCities(saved.selectedCities);
+          if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
+
+          // Also update items' isFavorited status
+          if (items.length > 0) {
+            const savedSet = new Set(saved.selectedIds);
+            const updatedItems = items.map(item => ({
+              ...item,
+              isFavorited: savedSet.has(item.id)
+            }));
+            onItemsChange(updatedItems);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load planning state:', error);
+      }
+      setPersistenceLoaded(true);
+    };
+
+    loadPersistedState();
+  }, [tripId, persistenceLoaded, items.length, onItemsChange, selectedIds.size]);
+
+  // Save planning state when it changes
+  useEffect(() => {
+    if (!tripId || !persistenceLoaded) return;
+
+    const saveState = async () => {
+      try {
+        await planningDb.update(tripId, {
+          selectedIds: Array.from(selectedIds),
+          selectedCities,
+          routeOrder,
+          phase,
+          currentStepIndex,
+        });
+      } catch (error) {
+        console.warn('Failed to save planning state:', error);
+      }
+    };
+
+    // Debounce saves
+    const timer = setTimeout(saveState, 500);
+    return () => clearTimeout(timer);
+  }, [tripId, selectedIds, selectedCities, routeOrder, phase, currentStepIndex, persistenceLoaded]);
+
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
   const [highlightTab, setHighlightTab] = useState<string>('landmarks'); // Active tab for city highlights
   const [showCityDetails, setShowCityDetails] = useState(false); // Collapsible details section
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
-  const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names
+  const [favoriteCityModal, setFavoriteCityModal] = useState<string | null>(null); // City modal in favorites view
+  const [favoriteCityTab, setFavoriteCityTab] = useState<'hotels' | 'restaurants' | 'cafes' | 'activities'>('hotels');
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
-  const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop
+  // Route preferences
+  const [routePrefs, setRoutePrefs] = useState({
+    shortestFlights: true,    // Optimize for shortest total flight time
+    maxStops: 1,              // Maximum stops per flight (0=direct only, 1=up to 1 stop, 2=any)
+    maxFlightsPerDay: 2,      // Maximum flights in a single day
+    maxFlightHours: 12,       // Maximum single flight duration in hours
+  });
+  const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop cities
+  const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null); // For drag-and-drop countries
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -410,6 +937,19 @@ export function SwipeablePlanningView({
     return items.filter((i) => i.isFavorited);
   }, [items]);
 
+  // Compute country groups for route style options
+  const countryGroups = useMemo(() => {
+    const groups: Record<string, { city: string; country: string }[]> = {};
+    selectedCities.forEach(city => {
+      // Inline getCityCountry logic to avoid reference before initialization
+      const cityItem = items.find(i => i.name === city);
+      const country = cityItem?.tags?.find(t => destinations.includes(t)) || 'Unknown';
+      if (!groups[country]) groups[country] = [];
+      groups[country].push({ city, country });
+    });
+    return groups;
+  }, [selectedCities, items, destinations]);
+
   // Get unassigned selected items (for day planning)
   const unassignedItems = useMemo(() => {
     return selectedItems.filter((i) => i.dayAssigned === undefined);
@@ -474,10 +1014,242 @@ export function SwipeablePlanningView({
   const goToNextStep = () => {
     // After cities step, go to route planning
     if (currentStep.id === 'cities' && selectedCities.length > 0) {
-      // Initialize route order with selected cities
-      setRouteOrder([...selectedCities]);
-      // Initialize country order if multi-country
-      if (destinations.length > 1) {
+      // Smart multi-country route optimization
+      // Considers: geographic order from Canada, optimal city sequences, logical connections
+
+      const updatedParked = parkedCities.filter(city => selectedCities.includes(city));
+
+      // Group cities by country
+      const countryGroups: Record<string, string[]> = {};
+      destinations.forEach(dest => { countryGroups[dest] = []; });
+      selectedCities.forEach(city => {
+        const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+        const country = cityItem?.tags?.find(t => destinations.includes(t)) || destinations[0];
+        if (!countryGroups[country]) countryGroups[country] = [];
+        countryGroups[country].push(city);
+      });
+
+      // SMART GEOGRAPHIC LOOP ROUTING
+      // Create loops that minimize backtracking - 3hr max between stops when possible
+      // Examples:
+      // - Pacific: Kelowna → Tokyo → Chiang Mai → Phuket → Da Nang → Osaka → Hawaii
+      // - Europe: Barcelona → Valencia → Granada → Seville → Lagos → Lisbon → Porto
+
+      // City coordinates for geographic routing [lat, lng]
+      const CITY_COORDS: Record<string, [number, number]> = {
+        // Japan
+        'Tokyo': [35.7, 139.7], 'Hakone': [35.2, 139.0], 'Kyoto': [35.0, 135.8],
+        'Nara': [34.7, 135.8], 'Osaka': [34.7, 135.5], 'Hiroshima': [34.4, 132.5], 'Fukuoka': [33.6, 130.4],
+        // Thailand
+        'Chiang Rai': [19.9, 99.8], 'Chiang Mai': [18.8, 99.0], 'Sukhothai': [17.0, 99.8],
+        'Ayutthaya': [14.4, 100.6], 'Bangkok': [13.8, 100.5], 'Koh Samui': [9.5, 100.0],
+        'Koh Phangan': [9.7, 100.1], 'Phuket': [7.9, 98.4], 'Krabi': [8.1, 98.9],
+        // Vietnam
+        'Hanoi': [21.0, 105.8], 'Ha Long Bay': [20.9, 107.0], 'Ninh Binh': [20.3, 105.9],
+        'Hue': [16.5, 107.6], 'Da Nang': [16.1, 108.2], 'Hoi An': [15.9, 108.3],
+        'Nha Trang': [12.2, 109.2], 'Ho Chi Minh City': [10.8, 106.6],
+        // Hawaii
+        'Honolulu': [21.3, -157.8], 'Maui': [20.8, -156.3], 'Kauai': [22.1, -159.5],
+        // Spain
+        'Barcelona': [41.4, 2.2], 'Valencia': [39.5, -0.4], 'Madrid': [40.4, -3.7],
+        'Granada': [37.2, -3.6], 'Seville': [37.4, -6.0], 'Malaga': [36.7, -4.4],
+        'Cordoba': [37.9, -4.8], 'Toledo': [39.9, -4.0], 'San Sebastian': [43.3, -2.0],
+        'Bilbao': [43.3, -2.9],
+        // Portugal
+        'Lisbon': [38.7, -9.1], 'Porto': [41.2, -8.6], 'Lagos': [37.1, -8.7],
+        'Faro': [37.0, -7.9], 'Sintra': [38.8, -9.4], 'Cascais': [38.7, -9.4],
+        // France
+        'Paris': [48.9, 2.4], 'Nice': [43.7, 7.3], 'Lyon': [45.8, 4.8], 'Marseille': [43.3, 5.4],
+        // Italy
+        'Rome': [41.9, 12.5], 'Florence': [43.8, 11.3], 'Venice': [45.4, 12.3],
+        'Milan': [45.5, 9.2], 'Naples': [40.9, 14.3], 'Amalfi': [40.6, 14.6],
+        // Greece
+        'Athens': [38.0, 23.7], 'Santorini': [36.4, 25.4], 'Mykonos': [37.4, 25.3],
+        // Turkey
+        'Istanbul': [41.0, 29.0], 'Cappadocia': [38.6, 34.8], 'Antalya': [36.9, 30.7],
+      };
+
+      // Calculate distance between two cities (km)
+      const calcDist = (city1: string, city2: string): number => {
+        const c1 = CITY_COORDS[city1];
+        const c2 = CITY_COORDS[city2];
+        if (!c1 || !c2) return 9999;
+        const R = 6371;
+        const dLat = (c2[0] - c1[0]) * Math.PI / 180;
+        const dLng = (c2[1] - c1[1]) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(c1[0]*Math.PI/180) * Math.cos(c2[0]*Math.PI/180) * Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      };
+
+      // PACIFIC ROUTE: SE Asia FIRST, Japan on the WAY BACK, Hawaii last
+      // Route: Canada → Thailand/Vietnam → Japan (enjoy on return) → Hawaii → Canada
+      // This is the optimal Pacific loop for someone from Western Canada
+
+      const hasJapan = countryGroups['Japan']?.length > 0;
+      const hasHawaii = countryGroups['Hawaii']?.length > 0;
+      const hasSEAsia = (countryGroups['Thailand']?.length || 0) + (countryGroups['Vietnam']?.length || 0) > 0;
+      const hasEurope = ['Spain', 'Portugal', 'France', 'Italy', 'Greece', 'Turkey'].some(c => countryGroups[c]?.length > 0);
+
+      let updatedRoute: string[] = [];
+
+      if (hasSEAsia && hasJapan) {
+        // JAPAN SANDWICH: Use Japan as stopover BOTH ways to break up long flights
+        // Route: Canada → Japan (entry stop) → SE Asia → Japan (exit stop) → Hawaii
+        // Example: Kelowna → Tokyo → Chiang Mai → Phuket → Da Nang → Osaka → Kyoto → Honolulu
+        const thaiCities = countryGroups['Thailand'] || [];
+        const vietCities = countryGroups['Vietnam'] || [];
+        const japanCities = countryGroups['Japan'] || [];
+        const hawaiiCities = countryGroups['Hawaii'] || [];
+
+        // Split Japan: Tokyo area for ENTRY (from Canada), Osaka area for EXIT (to Hawaii)
+        const japanEntry = japanCities.filter(c => ['Tokyo', 'Hakone'].includes(c));
+        const japanExit = japanCities.filter(c => ['Osaka', 'Kyoto', 'Nara', 'Hiroshima', 'Fukuoka'].includes(c));
+        const japanOther = japanCities.filter(c => !japanEntry.includes(c) && !japanExit.includes(c));
+
+        // If only one Japan city, use it as entry stopover
+        let entryStop: string[] = [];
+        let exitStop: string[] = [];
+        if (japanCities.length === 1) {
+          entryStop = japanCities;
+        } else if (japanEntry.length > 0 && japanExit.length > 0) {
+          entryStop = japanEntry;
+          exitStop = [...japanExit, ...japanOther].sort((a, b) => {
+            const order = ['Fukuoka', 'Hiroshima', 'Osaka', 'Kyoto', 'Nara'];
+            return order.indexOf(a) - order.indexOf(b);
+          });
+        } else {
+          // All cities in one area - split them
+          const half = Math.ceil(japanCities.length / 2);
+          entryStop = japanCities.slice(0, 1); // First city as entry
+          exitStop = japanCities.slice(1);      // Rest on exit
+        }
+
+        // SE Asia: Thailand north→south, then Vietnam south→north (toward Japan exit)
+        const thaiSorted = [...thaiCities].sort((a, b) =>
+          (CITY_COORDS[b]?.[0] ?? 15) - (CITY_COORDS[a]?.[0] ?? 15)
+        );
+        const vietSouthToNorth = [...vietCities].sort((a, b) =>
+          (CITY_COORDS[a]?.[0] ?? 15) - (CITY_COORDS[b]?.[0] ?? 15)
+        );
+        const seAsiaRoute = [...thaiSorted, ...vietSouthToNorth];
+
+        // Build route: Japan entry → SE Asia → Japan exit → Hawaii
+        updatedRoute = [...entryStop, ...seAsiaRoute, ...exitStop, ...hawaiiCities];
+
+      } else if (hasSEAsia) {
+        // SE Asia only (no Japan): Thailand N→S, Vietnam S→N
+        const thaiCities = countryGroups['Thailand'] || [];
+        const vietCities = countryGroups['Vietnam'] || [];
+        const hawaiiCities = countryGroups['Hawaii'] || [];
+
+        const thaiSorted = [...thaiCities].sort((a, b) =>
+          (CITY_COORDS[b]?.[0] ?? 15) - (CITY_COORDS[a]?.[0] ?? 15)
+        );
+        const vietSorted = [...vietCities].sort((a, b) =>
+          (CITY_COORDS[b]?.[0] ?? 15) - (CITY_COORDS[a]?.[0] ?? 15)
+        );
+
+        updatedRoute = [...thaiSorted, ...vietSorted, ...hawaiiCities];
+
+      } else if (hasEurope) {
+        // EUROPEAN LOOP: Nearest-neighbor starting from entry city
+        const allCities = selectedCities.filter(c => CITY_COORDS[c]);
+        const europeStart = ['Barcelona', 'Rome', 'Paris', 'Athens', 'Istanbul'].find(c => allCities.includes(c));
+        const startCity = europeStart || allCities[0];
+
+        const remaining = allCities.filter(c => c !== startCity);
+        const loopRoute: string[] = [startCity];
+
+        while (remaining.length > 0) {
+          const lastCity = loopRoute[loopRoute.length - 1];
+          let nearestIdx = 0;
+          let nearestDist = Infinity;
+          remaining.forEach((city, idx) => {
+            const dist = calcDist(lastCity, city);
+            if (dist < nearestDist) { nearestDist = dist; nearestIdx = idx; }
+          });
+          loopRoute.push(remaining.splice(nearestIdx, 1)[0]);
+        }
+        updatedRoute = loopRoute;
+
+      } else {
+        // Other trips: nearest-neighbor, Hawaii always last
+        const allCities = selectedCities.filter(c => CITY_COORDS[c]);
+        const hawaiiCities = countryGroups['Hawaii'] || [];
+        const mainCities = allCities.filter(c => !hawaiiCities.includes(c));
+
+        if (mainCities.length > 0) {
+          const remaining = [...mainCities];
+          const startCity = remaining.shift()!;
+          const loopRoute: string[] = [startCity];
+
+          while (remaining.length > 0) {
+            const lastCity = loopRoute[loopRoute.length - 1];
+            let nearestIdx = 0;
+            let nearestDist = Infinity;
+            remaining.forEach((city, idx) => {
+              const dist = calcDist(lastCity, city);
+              if (dist < nearestDist) { nearestDist = dist; nearestIdx = idx; }
+            });
+            loopRoute.push(remaining.splice(nearestIdx, 1)[0]);
+          }
+          updatedRoute = [...loopRoute, ...hawaiiCities];
+        } else {
+          updatedRoute = [...(countryGroups['Hawaii'] || [])];
+        }
+      }
+
+      setRouteOrder(updatedRoute);
+      setParkedCities(updatedParked);
+
+      // Initialize country order geographically from Canada (Pacific route)
+      // Order: Japan first (closest), then SE Asia, Hawaii last (on way home)
+      if (destinations.length > 1 && countryOrder.length === 0) {
+        const COUNTRY_ORDER_FROM_CANADA: Record<string, number> = {
+          // Pacific route (flying west from Canada)
+          'Japan': 1,      // First stop - 10hr from Vancouver
+          'South Korea': 2,
+          'Taiwan': 3,
+          'Vietnam': 4,    // Further into SE Asia
+          'Thailand': 5,
+          'Cambodia': 6,
+          'Malaysia': 7,
+          'Singapore': 8,
+          'Indonesia': 9,
+          'Philippines': 10,
+          'Australia': 11,
+          'New Zealand': 12,
+          'Hawaii': 20,    // On the way back to Canada
+          // Atlantic route (flying east)
+          'UK': 30,
+          'France': 31,
+          'Spain': 32,
+          'Portugal': 33,
+          'Italy': 34,
+          'Greece': 35,
+          'Turkey': 36,
+          'Switzerland': 37,
+          'Germany': 38,
+        };
+        const sortedCountries = [...destinations].sort((a, b) => {
+          const orderA = COUNTRY_ORDER_FROM_CANADA[a] ?? 50;
+          const orderB = COUNTRY_ORDER_FROM_CANADA[b] ?? 50;
+          return orderA - orderB;
+        });
+        setCountryOrder(sortedCountries);
+        // Also reorder the route by the geographic country order
+        setTimeout(() => {
+          const citiesByCountry: Record<string, string[]> = {};
+          sortedCountries.forEach(c => { citiesByCountry[c] = []; });
+          updatedRoute.forEach(city => {
+            const cityItem = items.find(i => i.name === city);
+            const country = cityItem?.tags?.find(t => destinations.includes(t));
+            if (country) citiesByCountry[country].push(city);
+          });
+          const geoOrderedRoute = sortedCountries.flatMap(c => citiesByCountry[c] || []);
+          setRouteOrder(geoOrderedRoute);
+        }, 0);
+      } else if (countryOrder.length === 0) {
         setCountryOrder([...destinations]);
       }
       setPhase('route-planning');
@@ -581,10 +1353,8 @@ export function SwipeablePlanningView({
     setDraggedCityIndex(null);
   };
 
-  // Swap country order
-  const swapCountryOrder = () => {
-    setCountryOrder([...countryOrder].reverse());
-    // Reorder cities based on new country order
+  // Reorder cities based on a specific country order
+  const reorderByCountryOrder = (newCountryOrder: string[]) => {
     const citiesByCountry: Record<string, string[]> = {};
     destinations.forEach(dest => { citiesByCountry[dest] = []; });
     routeOrder.forEach(city => {
@@ -594,7 +1364,7 @@ export function SwipeablePlanningView({
         citiesByCountry[country].push(city);
       }
     });
-    const newOrder = countryOrder.flatMap(country => citiesByCountry[country] || []);
+    const newOrder = newCountryOrder.flatMap(country => citiesByCountry[country] || []);
     setRouteOrder(newOrder);
   };
 
@@ -633,6 +1403,12 @@ export function SwipeablePlanningView({
     const isSelected = selectedIds.has(item.id);
     const itemIsCity = isCity(item);
 
+    // Get match recommendation for cities
+    const cityMatchInfo = itemIsCity ? (() => {
+      const cityInfo = getCityInfo(item.name);
+      return getPersonalizedRecommendation(cityInfo, tripDna, item.name);
+    })() : null;
+
     return (
       <div className="relative aspect-square rounded-xl overflow-hidden group">
         {/* Main click area - opens modal */}
@@ -654,8 +1430,22 @@ export function SwipeablePlanningView({
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         </button>
 
-        {/* Rating (top-left) */}
-        {item.rating && (
+        {/* Match label for cities (top-right) */}
+        {itemIsCity && cityMatchInfo && (
+          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold pointer-events-none ${
+            cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
+            cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
+            cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
+            'bg-blue-500 text-white'
+          }`}>
+            {cityMatchInfo.match === 'great' ? 'Great Choice' :
+             cityMatchInfo.match === 'good' ? 'Good Choice' :
+             cityMatchInfo.match === 'neutral' ? 'Neutral' : 'Consider'}
+          </div>
+        )}
+
+        {/* Rating (top-left) - only for non-cities */}
+        {!itemIsCity && item.rating && (
           <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 pointer-events-none">
             <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
             <span className="text-[10px] text-white font-medium">{item.rating}</span>
@@ -690,30 +1480,155 @@ export function SwipeablePlanningView({
     );
   };
 
-  // Get favorites by category for library view
-  const getFavoritesByCategory = () => {
-    const byCategory: Record<string, PlanningItem[]> = {
-      cities: [],
-      hotels: [],
-      restaurants: [],
-      cafes: [],
-      activities: [],
-    };
+  // Get favorites organized by city, then category within each city
+  const getFavoritesByCity = () => {
+    // First, identify all cities from selected items or route
+    const cities = routeOrder.length > 0 ? routeOrder : selectedCities;
 
-    selectedItems.forEach(item => {
-      if (item.tags?.includes('cities')) byCategory.cities.push(item);
-      else if (item.tags?.includes('hotels') || item.category === 'hotels') byCategory.hotels.push(item);
-      else if (item.tags?.includes('restaurants') || item.category === 'restaurants') byCategory.restaurants.push(item);
-      else if (item.tags?.includes('cafes') || item.category === 'cafes') byCategory.cafes.push(item);
-      else byCategory.activities.push(item);
+    // Structure: { cityName: { hotels: [], restaurants: [], cafes: [], activities: [] } }
+    const byCity: Record<string, {
+      hotels: PlanningItem[];
+      restaurants: PlanningItem[];
+      cafes: PlanningItem[];
+      activities: PlanningItem[];
+    }> = {};
+
+    // Initialize each city
+    cities.forEach(city => {
+      byCity[city] = { hotels: [], restaurants: [], cafes: [], activities: [] };
     });
 
-    return byCategory;
+    // Categorize non-city items by their city
+    selectedItems.forEach(item => {
+      // Skip city items
+      if (item.tags?.includes('cities')) return;
+
+      // Find which city this item belongs to (from tags or neighborhood)
+      const itemCity = cities.find(city =>
+        item.tags?.includes(city) || item.neighborhood === city
+      );
+
+      if (!itemCity) return; // Skip if no matching city
+
+      // Add to appropriate category within the city
+      if (item.tags?.includes('hotels') || item.category === 'hotels') {
+        byCity[itemCity].hotels.push(item);
+      } else if (item.tags?.includes('restaurants') || item.category === 'restaurants') {
+        byCity[itemCity].restaurants.push(item);
+      } else if (item.tags?.includes('cafes') || item.category === 'cafes') {
+        byCity[itemCity].cafes.push(item);
+      } else {
+        byCity[itemCity].activities.push(item);
+      }
+    });
+
+    return { cities, byCity };
   };
+
+  // Calculate main planning stage for progress indicator (used across all phases)
+  const getMainStage = () => {
+    if (phase === 'route-planning') return 2;
+    if (phase === 'favorites-library' || phase === 'day-planning') return 3;
+    if (phase === 'picking' && currentStepIndex > 0) return 3;
+    return 1; // Cities step
+  };
+  const mainStage = getMainStage();
+
+  // Progress Stepper component - reusable across phases
+  const ProgressStepper = ({ onCitiesClick, onRouteClick, onFavoritesClick }: {
+    onCitiesClick: () => void;
+    onRouteClick: () => void;
+    onFavoritesClick: () => void;
+  }) => (
+    <div className="mb-3">
+      <div className="flex items-center justify-center gap-0">
+        {/* Step 1: Cities */}
+        <button onClick={onCitiesClick} className="flex flex-col items-center w-20">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold mb-0.5 transition-colors ${
+            mainStage >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+          } ${mainStage === 1 ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+            1
+          </div>
+          <span className={`text-[10px] font-medium text-center transition-colors ${
+            mainStage >= 1 ? 'text-primary' : 'text-muted-foreground'
+          }`}>
+            Cities
+          </span>
+        </button>
+
+        {/* Connector 1-2 */}
+        <div className={`h-0.5 w-8 -mx-1 rounded transition-colors ${
+          mainStage > 1 ? 'bg-primary' : 'bg-muted'
+        }`} />
+
+        {/* Step 2: Route */}
+        <button
+          onClick={onRouteClick}
+          disabled={selectedCities.length === 0}
+          className="flex flex-col items-center w-20"
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold mb-0.5 transition-colors ${
+            mainStage >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+          } ${selectedCities.length === 0 ? 'opacity-50' : ''} ${mainStage === 2 ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+            2
+          </div>
+          <span className={`text-[10px] font-medium text-center transition-colors ${
+            mainStage >= 2 ? 'text-primary' : 'text-muted-foreground'
+          } ${selectedCities.length === 0 ? 'opacity-50' : ''}`}>
+            Route
+          </span>
+        </button>
+
+        {/* Connector 2-3 */}
+        <div className={`h-0.5 w-8 -mx-1 rounded transition-colors ${
+          mainStage > 2 ? 'bg-primary' : 'bg-muted'
+        }`} />
+
+        {/* Step 3: Favorites */}
+        <button
+          onClick={onFavoritesClick}
+          disabled={selectedCities.length === 0}
+          className="flex flex-col items-center w-20"
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold mb-0.5 transition-colors ${
+            mainStage >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+          } ${selectedCities.length === 0 ? 'opacity-50' : ''} ${mainStage === 3 ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+            3
+          </div>
+          <span className={`text-[10px] font-medium text-center transition-colors ${
+            mainStage >= 3 ? 'text-primary' : 'text-muted-foreground'
+          } ${selectedCities.length === 0 ? 'opacity-50' : ''}`}>
+            Favorites
+          </span>
+        </button>
+      </div>
+    </div>
+  );
 
   // ============ FAVORITES LIBRARY PHASE ============
   if (phase === 'favorites-library') {
-    const favoritesByCategory = getFavoritesByCategory();
+    const { cities: favCities, byCity } = getFavoritesByCity();
+
+    // Count total favorites (excluding city items)
+    const totalFavorites = selectedItems.filter(i => !i.tags?.includes('cities')).length;
+
+    // Get all items for a city (for the modal)
+    const getCityAllItems = (cityName: string, category: 'hotels' | 'restaurants' | 'cafes' | 'activities') => {
+      return items.filter(item => {
+        const matchesCity = item.tags?.includes(cityName) || item.neighborhood === cityName;
+        const matchesCategory = category === 'hotels' ? (item.tags?.includes('hotels') || item.category === 'hotels') :
+                               category === 'restaurants' ? (item.tags?.includes('restaurants') || item.category === 'restaurants') :
+                               category === 'cafes' ? (item.tags?.includes('cafes') || item.category === 'cafes') :
+                               (!item.tags?.includes('cities') && !item.tags?.includes('hotels') && !item.tags?.includes('restaurants') && !item.tags?.includes('cafes'));
+        return matchesCity && matchesCategory;
+      });
+    };
+
+    // Modal city data
+    const modalCity = favoriteCityModal;
+    const modalCityItem = modalCity ? items.find(i => i.name === modalCity && i.tags?.includes('cities')) : null;
+    const modalCityCountry = modalCity ? getCityCountry(modalCity) : null;
+    const modalCityFavs = modalCity ? byCity[modalCity] : null;
 
     return (
       <div className="space-y-4">
@@ -723,133 +1638,219 @@ export function SwipeablePlanningView({
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <div className="flex-1">
-            <h2 className="text-lg font-bold">Your Favorites</h2>
+            <h2 className="text-lg font-bold">{destinations.length === 1 ? destinations[0] : 'Trip'} Overview</h2>
             <p className="text-sm text-muted-foreground">
-              {selectedItems.length} items saved to your trip
+              {totalFavorites} favorites across {favCities.length} {favCities.length === 1 ? 'city' : 'cities'}
             </p>
           </div>
         </div>
 
-        {/* Favorites by category */}
-        <div className="space-y-4">
-          {/* Cities */}
-          {favoritesByCategory.cities.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                <Building2 className="w-4 h-4 text-primary" />
-                Cities ({favoritesByCategory.cities.length})
-              </h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {favoritesByCategory.cities.map((item) => (
-                  <div key={item.id} className="w-20 flex-shrink-0">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* City cards - clickable to open modal */}
+        <div className="space-y-3">
+          {favCities.map((city, cityIdx) => {
+            const cityFavs = byCity[city];
+            const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+            const cityCountry = getCityCountry(city);
+            const totalCityFavs = cityFavs.hotels.length + cityFavs.restaurants.length +
+                                  cityFavs.cafes.length + cityFavs.activities.length;
 
-          {/* Hotels */}
-          {favoritesByCategory.hotels.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                <Hotel className="w-4 h-4 text-purple-500" />
-                Hotels ({favoritesByCategory.hotels.length})
-              </h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {favoritesByCategory.hotels.map((item) => (
-                  <div key={item.id} className="w-20 flex-shrink-0">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
+            return (
+              <div
+                key={city}
+                className="bg-muted/30 rounded-xl p-3 cursor-pointer hover:bg-muted/50 transition-colors active:scale-[0.99]"
+                onClick={() => {
+                  setFavoriteCityModal(city);
+                  setFavoriteCityTab('hotels');
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  {/* City image */}
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                    {cityItem?.imageUrl ? (
+                      <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                        <Building2 className="w-6 h-6 text-primary" />
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Restaurants */}
-          {favoritesByCategory.restaurants.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                <UtensilsCrossed className="w-4 h-4 text-orange-500" />
-                Restaurants ({favoritesByCategory.restaurants.length})
-              </h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {favoritesByCategory.restaurants.map((item) => (
-                  <div key={item.id} className="w-20 flex-shrink-0">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                  {/* City info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{city}</h3>
+                      {cityIdx < favCities.length - 1 && (
+                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                      )}
                     </div>
-                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                    {cityCountry && (
+                      <p className="text-xs text-muted-foreground">{cityCountry}</p>
+                    )}
 
-          {/* Cafes */}
-          {favoritesByCategory.cafes.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                <Coffee className="w-4 h-4 text-amber-600" />
-                Cafes ({favoritesByCategory.cafes.length})
-              </h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {favoritesByCategory.cafes.map((item) => (
-                  <div key={item.id} className="w-20 flex-shrink-0">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    {/* Favorites summary chips */}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {cityFavs.hotels.length > 0 && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
+                          <Hotel className="w-2.5 h-2.5" /> {cityFavs.hotels.length}
+                        </span>
+                      )}
+                      {cityFavs.restaurants.length > 0 && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium">
+                          <UtensilsCrossed className="w-2.5 h-2.5" /> {cityFavs.restaurants.length}
+                        </span>
+                      )}
+                      {cityFavs.cafes.length > 0 && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+                          <Coffee className="w-2.5 h-2.5" /> {cityFavs.cafes.length}
+                        </span>
+                      )}
+                      {cityFavs.activities.length > 0 && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+                          <Ticket className="w-2.5 h-2.5" /> {cityFavs.activities.length}
+                        </span>
+                      )}
+                      {totalCityFavs === 0 && (
+                        <span className="text-[10px] text-muted-foreground">Tap to add favorites</span>
+                      )}
                     </div>
-                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* Activities */}
-          {favoritesByCategory.activities.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-                <Ticket className="w-4 h-4 text-green-500" />
-                Activities ({favoritesByCategory.activities.length})
-              </h3>
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {favoritesByCategory.activities.map((item) => (
-                  <div key={item.id} className="w-20 flex-shrink-0">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden mb-1">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-xs font-medium text-center line-clamp-1">{item.name}</p>
-                  </div>
-                ))}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })}
         </div>
 
         {/* Empty state */}
-        {selectedItems.length === 0 && (
+        {favCities.length === 0 && (
           <div className="py-12 text-center">
             <Heart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">No favorites yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Go back and pick some items you love</p>
+            <p className="text-sm text-muted-foreground">No cities selected yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Go back to pick your cities</p>
           </div>
         )}
 
         {/* Start Day Planning button */}
-        {selectedItems.length > 0 && (
+        {totalFavorites > 0 && (
           <Button className="w-full" size="lg" onClick={startDayPlanning}>
             <Calendar className="w-4 h-4 mr-2" />
             Plan Your {duration} Days
             <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
         )}
+
+        {/* City Favorites Modal */}
+        <Dialog open={!!favoriteCityModal} onOpenChange={(open) => !open && setFavoriteCityModal(null)}>
+          <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                  {modalCityItem?.imageUrl ? (
+                    <img src={modalCityItem.imageUrl} alt={modalCity || ''} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <DialogTitle>{modalCity}</DialogTitle>
+                  {modalCityCountry && (
+                    <p className="text-sm text-muted-foreground">{modalCityCountry}</p>
+                  )}
+                </div>
+              </div>
+            </DialogHeader>
+
+            {/* Category tabs */}
+            <div className="flex gap-1 border-b pb-2 flex-shrink-0">
+              {[
+                { id: 'hotels' as const, icon: Hotel, label: 'Hotels', activeBg: 'bg-purple-100', activeText: 'text-purple-700', countBg: 'bg-purple-200' },
+                { id: 'restaurants' as const, icon: UtensilsCrossed, label: 'Food', activeBg: 'bg-orange-100', activeText: 'text-orange-700', countBg: 'bg-orange-200' },
+                { id: 'cafes' as const, icon: Coffee, label: 'Cafes', activeBg: 'bg-amber-100', activeText: 'text-amber-700', countBg: 'bg-amber-200' },
+                { id: 'activities' as const, icon: Ticket, label: 'Activities', activeBg: 'bg-green-100', activeText: 'text-green-700', countBg: 'bg-green-200' },
+              ].map(tab => {
+                const count = modalCityFavs ? modalCityFavs[tab.id].length : 0;
+                const isActive = favoriteCityTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFavoriteCityTab(tab.id)}
+                    className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-colors ${
+                      isActive ? `${tab.activeBg} ${tab.activeText}` : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span className="text-[10px] font-medium">{tab.label}</span>
+                    {count > 0 && (
+                      <span className={`text-[9px] px-1.5 rounded-full ${isActive ? tab.countBg : 'bg-muted'}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Items grid */}
+            <div className="flex-1 overflow-y-auto py-2 min-h-[200px]">
+              {modalCity && (() => {
+                const allItems = getCityAllItems(modalCity, favoriteCityTab);
+                const favoriteIds = new Set(selectedItems.map(i => i.id));
+
+                if (allItems.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">No {favoriteCityTab} loaded for {modalCity}</p>
+                      <p className="text-xs mt-1">Go back to the picking phase to load options</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-3 gap-2">
+                    {allItems.map(item => {
+                      const isFavorited = favoriteIds.has(item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`relative cursor-pointer rounded-lg overflow-hidden transition-all ${
+                            isFavorited ? 'ring-2 ring-primary ring-offset-1' : 'hover:opacity-90'
+                          }`}
+                          onClick={() => toggleSelect(item.id, item.name)}
+                        >
+                          <div className="aspect-square">
+                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-1.5">
+                            <p className="text-[10px] font-medium text-white line-clamp-2">{item.name}</p>
+                            {item.priceInfo && (
+                              <p className="text-[9px] text-white/80">{item.priceInfo}</p>
+                            )}
+                          </div>
+                          {isFavorited && (
+                            <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                              <Check className="w-3 h-3 text-primary-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex-shrink-0 pt-2 border-t">
+              <Button className="w-full" onClick={() => setFavoriteCityModal(null)}>
+                Done
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -866,8 +1867,93 @@ export function SwipeablePlanningView({
       citiesByCountry[country].push({ city, item: cityItem });
     });
 
+    // Calculate total distance and check for inefficient routes
+    let totalDistance = 0;
+    let hasInefficiency = false;
+    const routeDistances: { from: string; to: string; distance: number | null; isLong: boolean }[] = [];
+
+    for (let i = 0; i < routeOrder.length - 1; i++) {
+      const from = routeOrder[i];
+      const to = routeOrder[i + 1];
+      const distance = calculateDistance(from, to);
+      const isLong = distance !== null && distance > 400;
+      routeDistances.push({ from, to, distance, isLong });
+      if (distance) totalDistance += distance;
+
+      // Check for backtracking within same country
+      if (i < routeOrder.length - 2) {
+        const nextCity = routeOrder[i + 2];
+        const fromCountry = getCityCountry(from);
+        const toCountry = getCityCountry(to);
+        const nextCountry = getCityCountry(nextCity);
+
+        // If we go A → B → C where A and C are close but B is far
+        if (fromCountry === toCountry && toCountry === nextCountry) {
+          const distAtoC = calculateDistance(from, nextCity);
+          const distAtoB = calculateDistance(from, to);
+          if (distAtoC && distAtoB && distAtoC < distAtoB * 0.5) {
+            hasInefficiency = true;
+          }
+        }
+      }
+    }
+
+    // Optimize route function - nearest neighbor algorithm within each country
+    const optimizeRoute = () => {
+      const optimizedOrder: string[] = [];
+      const countryGroups: Record<string, string[]> = {};
+
+      // Group cities by country
+      routeOrder.forEach(city => {
+        const country = getCityCountry(city) || 'Unknown';
+        if (!countryGroups[country]) countryGroups[country] = [];
+        countryGroups[country].push(city);
+      });
+
+      // For each country in countryOrder, optimize the cities within
+      const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
+      orderedCountries.forEach(country => {
+        const cities = countryGroups[country] || [];
+        if (cities.length <= 1) {
+          optimizedOrder.push(...cities);
+          return;
+        }
+
+        // Nearest neighbor: start from first city, always go to nearest unvisited
+        const remaining = [...cities];
+        const optimized: string[] = [remaining.shift()!];
+
+        while (remaining.length > 0) {
+          const lastCity = optimized[optimized.length - 1];
+          let nearestIdx = 0;
+          let nearestDist = Infinity;
+
+          remaining.forEach((city, idx) => {
+            const dist = calculateDistance(lastCity, city);
+            if (dist !== null && dist < nearestDist) {
+              nearestDist = dist;
+              nearestIdx = idx;
+            }
+          });
+
+          optimized.push(remaining.splice(nearestIdx, 1)[0]);
+        }
+
+        optimizedOrder.push(...optimized);
+      });
+
+      setRouteOrder(optimizedOrder);
+    };
+
     return (
       <div className="space-y-4">
+        {/* Progress Stepper: Cities → Route → Favorites */}
+        <ProgressStepper
+          onCitiesClick={() => { setPhase('picking'); setCurrentStepIndex(0); setGridOffset(0); }}
+          onRouteClick={() => {}}
+          onFavoritesClick={confirmRoute}
+        />
+
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={goToPrevStep}>
@@ -884,39 +1970,200 @@ export function SwipeablePlanningView({
           </div>
         </div>
 
-        {/* Country order selector (for multi-country trips) */}
-        {destinations.length > 1 && (
-          <div className="bg-muted/50 rounded-xl p-4">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Plane className="w-4 h-4" />
-              Which country first?
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-2">
-                {countryOrder.map((country, idx) => (
-                  <div key={country} className="flex items-center gap-2">
-                    <div className="px-4 py-2 bg-background rounded-lg font-medium text-sm border">
-                      {country}
-                    </div>
-                    {idx < countryOrder.length - 1 && (
-                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" onClick={swapCountryOrder}>
-                Swap
-              </Button>
+        {/* Route efficiency warning */}
+        {hasInefficiency && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
+            <div className="text-amber-600 text-sm flex-1">
+              Your route has some backtracking. Nearby cities are separated.
             </div>
+            <Button size="sm" variant="outline" onClick={optimizeRoute} className="text-amber-700 border-amber-300">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Optimize
+            </Button>
           </div>
         )}
 
+        {/* Country order - drag and drop (no header, page header is enough) */}
+        {destinations.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {countryOrder.map((country, idx) => (
+              <div key={country} className="flex items-center gap-2">
+                <div
+                  draggable
+                  onDragStart={() => setDraggedCountryIndex(idx)}
+                  onDragEnd={() => setDraggedCountryIndex(null)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
+                      const newOrder = [...countryOrder];
+                      const [dragged] = newOrder.splice(draggedCountryIndex, 1);
+                      newOrder.splice(idx, 0, dragged);
+                      setCountryOrder(newOrder);
+                      setDraggedCountryIndex(idx);
+                    }
+                  }}
+                  className={`px-4 py-2 bg-background rounded-lg font-medium text-sm border cursor-grab active:cursor-grabbing flex items-center gap-2 transition-all ${
+                    draggedCountryIndex === idx ? 'opacity-50 scale-95 border-primary' : 'hover:border-primary hover:bg-primary/5'
+                  }`}
+                >
+                  <GripVertical className="w-3 h-3 text-muted-foreground" />
+                  {country}
+                  {idx === 0 && <span className="text-[10px] text-primary">(first)</span>}
+                </div>
+                {idx < countryOrder.length - 1 && (
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Route Preferences */}
+        <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-600" />
+            Route Options
+          </h3>
+          <div className="space-y-3">
+            {/* Shortest flights toggle */}
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-xs">Shortest flight routes</span>
+              <button
+                onClick={() => setRoutePrefs(p => ({ ...p, shortestFlights: !p.shortestFlights }))}
+                className={`w-10 h-5 rounded-full transition-colors ${routePrefs.shortestFlights ? 'bg-green-500' : 'bg-gray-300'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${routePrefs.shortestFlights ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </label>
+
+            {/* Max stops */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs">Max stops per flight</span>
+              <div className="flex gap-1">
+                {[0, 1, 2].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setRoutePrefs(p => ({ ...p, maxStops: n }))}
+                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxStops === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    {n === 0 ? 'Direct' : n === 1 ? '1 stop' : 'Any'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Max flights per day */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs">Max flights per day</span>
+              <div className="flex gap-1">
+                {[1, 2, 3].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setRoutePrefs(p => ({ ...p, maxFlightsPerDay: n }))}
+                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightsPerDay === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Max flight duration */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs">Max flight duration</span>
+              <div className="flex gap-1">
+                {[8, 12, 16].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setRoutePrefs(p => ({ ...p, maxFlightHours: n }))}
+                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightHours === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    {n}hr
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Warning if preferences conflict */}
+          {routePrefs.maxStops === 0 && routeOrder.some(city => {
+            const flight = getFlightData('Kelowna', city);
+            return flight && flight.stops > 0;
+          }) && (
+            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Some routes require connections - no direct flights available
+            </p>
+          )}
+        </div>
+
+        {/* Optimize Route Button - after options */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            optimizeRoute();
+            reorderByCountryOrder(countryOrder);
+          }}
+          className="w-full"
+        >
+          <Zap className="w-3.5 h-3.5 mr-1.5" />
+          Optimize Route
+        </Button>
+
         {/* Route visualization */}
         <div className="space-y-2">
+          {/* Home airport - starting point */}
+          {routeOrder.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                  <Plane className="w-4 h-4" />
+                </div>
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
+                  <MapPin className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-orange-800">Kelowna (YLW)</div>
+                  <div className="text-xs text-orange-600">Your home base</div>
+                </div>
+              </div>
+              {/* Flight connector to first city */}
+              {(() => {
+                const flightInfo = getFlightInfo('Kelowna', routeOrder[0]);
+                return (
+                  <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
+                    <div className="w-0.5 h-8 bg-orange-400" />
+                    <a
+                      href={flightInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 hover:underline"
+                    >
+                      <Plane className="w-3 h-3" />
+                      Flight to {routeOrder[0]} · {flightInfo.time || 'Check time'}
+                      {flightInfo.stops !== null && (
+                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
+                          flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {formatStops(flightInfo.stops)}
+                        </span>
+                      )}
+                      <span className="text-orange-400 ml-1">→</span>
+                    </a>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
           {routeOrder.map((city, index) => {
             const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
             const country = getCityCountry(city);
             const isLastInCountry = index < routeOrder.length - 1 && getCityCountry(routeOrder[index + 1]) !== country;
+            const routeInfo = routeDistances[index];
 
             return (
               <div key={city}>
@@ -948,49 +2195,166 @@ export function SwipeablePlanningView({
                   {/* City info */}
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold">{city}</div>
-                    {country && (
-                      <div className="text-xs text-muted-foreground">{country}</div>
-                    )}
+                    <div className="text-xs text-muted-foreground">
+                      {getCityRegion(city) || country}
+                      {getCityRouteTip(city) && (
+                        <span className="text-primary/70 ml-1">· {getCityRouteTip(city)}</span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Remove from route button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Move to parked cities
+                      setParkedCities(prev => [...prev, city]);
+                      setRouteOrder(prev => prev.filter(c => c !== city));
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
 
-                {/* Connector line */}
-                {index < routeOrder.length - 1 && (
-                  <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
-                    <div className={`w-0.5 h-6 ${isLastInCountry ? 'bg-orange-400' : 'bg-muted-foreground/30'}`} />
-                    <span className="text-xs text-muted-foreground">
-                      {isLastInCountry ? (
-                        <span className="flex items-center gap-1 text-orange-600">
-                          <Plane className="w-3 h-3" />
-                          Flight to {getCityCountry(routeOrder[index + 1])}
-                        </span>
-                      ) : (
-                        '↓ Next stop'
-                      )}
-                    </span>
-                  </div>
-                )}
+                {/* Connector with distance/flight time */}
+                {index < routeOrder.length - 1 && (() => {
+                  const nextCity = routeOrder[index + 1];
+                  const flightInfo = getFlightInfo(city, nextCity);
+                  const needsFlight = isLastInCountry || (routeInfo?.distance && routeInfo.distance > 500);
+
+                  return (
+                    <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
+                      <div className={`w-0.5 h-8 ${isLastInCountry ? 'bg-orange-400' : needsFlight ? 'bg-amber-400' : 'bg-muted-foreground/30'}`} />
+                      <div className="flex flex-col">
+                        {needsFlight ? (
+                          <a
+                            href={flightInfo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-1 text-xs ${isLastInCountry ? 'text-orange-600 hover:text-orange-700' : 'text-amber-600 hover:text-amber-700'} hover:underline`}
+                          >
+                            <Plane className="w-3 h-3" />
+                            {isLastInCountry
+                              ? `Flight to ${getCityCountry(nextCity)} · ${flightInfo.time || 'Check time'}`
+                              : `${routeInfo?.distance || ''} km · ${flightInfo.time || 'Flight needed'}`
+                            }
+                            {flightInfo.stops !== null && (
+                              <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
+                                flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {formatStops(flightInfo.stops)}
+                              </span>
+                            )}
+                            <span className={`${isLastInCountry ? 'text-orange-400' : 'text-amber-400'} ml-1`}>→</span>
+                          </a>
+                        ) : routeInfo?.distance ? (
+                          <span className={`text-xs ${routeInfo.isLong ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
+                            {routeInfo.distance} km · {getTravelMode(routeInfo.distance)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">↓ Next stop</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
         </div>
 
+        {/* Saved for later - parked cities */}
+        {parkedCities.length > 0 && (
+          <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Heart className="w-4 h-4" />
+              Saved for later
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {parkedCities.map(city => {
+                const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
+                return (
+                  <div
+                    key={city}
+                    className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => {
+                      // Add back to route at the end of its country's cities
+                      const cityCountry = getCityCountry(city);
+                      const lastIdxOfCountry = routeOrder.map(c => getCityCountry(c)).lastIndexOf(cityCountry);
+                      if (lastIdxOfCountry >= 0) {
+                        const newOrder = [...routeOrder];
+                        newOrder.splice(lastIdxOfCountry + 1, 0, city);
+                        setRouteOrder(newOrder);
+                      } else {
+                        setRouteOrder(prev => [...prev, city]);
+                      }
+                      setParkedCities(prev => prev.filter(c => c !== city));
+                    }}
+                  >
+                    {cityItem?.imageUrl && (
+                      <img src={cityItem.imageUrl} alt={city} className="w-8 h-8 rounded object-cover" />
+                    )}
+                    <div className="text-sm">
+                      <div className="font-medium">{city}</div>
+                      <div className="text-xs text-muted-foreground">{getCityRegion(city)}</div>
+                    </div>
+                    <Plus className="w-4 h-4 text-primary ml-1" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Route summary */}
         <div className="bg-muted/30 rounded-lg p-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span>
-              {routeOrder.length} cities · {destinations.length > 1 ? `${destinations.length} countries` : destinations[0]}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              <span>
+                {routeOrder.length} cities · {destinations.length > 1 ? `${destinations.length} countries` : destinations[0]}
+              </span>
+            </div>
+            {totalDistance > 0 && (
+              <span className="text-xs">~{totalDistance.toLocaleString()} km total</span>
+            )}
           </div>
         </div>
 
-        {/* Confirm button */}
-        <Button className="w-full" size="lg" onClick={confirmRoute}>
-          <Check className="w-4 h-4 mr-2" />
-          Confirm Route & Find Hotels
-          <ChevronRight className="w-4 h-4 ml-2" />
-        </Button>
+        {/* Confirm button - only enabled when all countries have at least one city */}
+        {(() => {
+          const allCountriesHaveCities = destinations.every(dest => {
+            return routeOrder.some(city => getCityCountry(city) === dest);
+          });
+          const missingCountries = destinations.filter(dest =>
+            !routeOrder.some(city => getCityCountry(city) === dest)
+          );
+
+          return (
+            <div className="space-y-2">
+              {!allCountriesHaveCities && missingCountries.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Pick cities in {missingCountries.join(' & ')} to continue
+                </p>
+              )}
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={confirmRoute}
+                disabled={!allCountriesHaveCities}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Confirm Route & Find Hotels
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          );
+        })()}
       </div>
     );
   }
@@ -1198,26 +2562,85 @@ export function SwipeablePlanningView({
   };
 
   // ============ PICKING PHASE ============
+
+  // Navigation functions for progress stepper
+  const goToCities = () => {
+    setPhase('picking');
+    setCurrentStepIndex(0);
+    setGridOffset(0);
+  };
+
+  const goToRoute = () => {
+    if (selectedCities.length > 0) {
+      setPhase('route-planning');
+    }
+  };
+
+  const goToFavorites = () => {
+    if (selectedCities.length > 0) {
+      setPhase('picking');
+      setCurrentStepIndex(1);
+      setGridOffset(0);
+      if (onSearchAI) {
+        onSearchAI(`best hotels in ${selectedCities.join(', ')}`, 'hotels');
+      }
+    }
+  };
+
   return (
     <div className="space-y-2">
-      {/* Step title row: "Pick your cities" with back button and heart count */}
-      <div className="flex items-center gap-2">
+      {/* Progress Stepper: Cities → Route → Favorites */}
+      <ProgressStepper
+        onCitiesClick={goToCities}
+        onRouteClick={goToRoute}
+        onFavoritesClick={goToFavorites}
+      />
+
+      {/* Sub-step indicator for Favorites phase */}
+      {mainStage === 3 && phase === 'picking' && (
+        <div className="flex justify-center gap-2 -mt-2 mb-2">
+          {PLANNING_STEPS.slice(1).map((step, idx) => (
+            <button
+              key={step.id}
+              onClick={() => {
+                setCurrentStepIndex(idx + 1);
+                setGridOffset(0);
+                if (onSearchAI && selectedCities.length > 0) {
+                  onSearchAI(`best ${step.id} in ${selectedCities.join(', ')}`, step.id);
+                }
+              }}
+              className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                currentStepIndex === idx + 1
+                  ? 'bg-primary/20 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {step.title.replace('Pick your ', '').replace('Find ', '')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Header row - consistent with Route and Favorites */}
+      <div className="flex items-center gap-3">
         {currentStepIndex > 0 && (
-          <Button variant="ghost" size="sm" className="p-1 h-7 w-7" onClick={goToPrevStep}>
+          <Button variant="ghost" size="sm" onClick={goToPrevStep}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         )}
-        <h2 className="text-base font-bold flex-1">{currentStep.title}</h2>
-
-        {/* Favs count - fixed position right side */}
-        <div className="flex items-center gap-1 min-w-[40px] justify-end">
-          {selectedItems.length > 0 && (
-            <>
-              <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-              <span className="text-sm font-medium">{selectedItems.length}</span>
-            </>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold">{currentStep.title}</h2>
+          {currentStep.id === 'cities' && (
+            <p className="text-sm text-muted-foreground">Tap to explore, heart to add</p>
           )}
         </div>
+        {/* Favs count */}
+        {selectedItems.length > 0 && (
+          <div className="flex items-center gap-1">
+            <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+            <span className="text-sm font-medium">{selectedItems.length}</span>
+          </div>
+        )}
       </div>
 
       {/* Destination filter tabs (for cities step with multiple countries) */}
@@ -1258,24 +2681,6 @@ export function SwipeablePlanningView({
         </div>
       )}
 
-      {/* Multi-country reminder - show if some countries have no cities selected */}
-      {currentStep.id === 'cities' && destinations.length > 1 && selectedCities.length > 0 && (() => {
-        const countriesWithoutCities = destinations.filter(dest => {
-          const hasCity = selectedCities.some(city => getCityCountry(city) === dest);
-          return !hasCity;
-        });
-        if (countriesWithoutCities.length > 0) {
-          return (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span>
-                Don&apos;t forget to pick cities in {countriesWithoutCities.join(', ')}
-              </span>
-            </div>
-          );
-        }
-        return null;
-      })()}
 
       {/* Selected cities reminder (for non-cities steps) */}
       {currentStep.id !== 'cities' && selectedCities.length > 0 && (
@@ -1292,14 +2697,14 @@ export function SwipeablePlanningView({
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold">Top Picks for You</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="grid grid-cols-4 gap-2">
             {stepItems
               .map(item => ({
                 item,
                 score: getCityMatchScore(getCityInfo(item.name), tripDna, item.name)
               }))
               .sort((a, b) => b.score - a.score)
-              .slice(0, 3)
+              .slice(0, 4)
               .map(({ item }) => {
                 const isSelected = selectedIds.has(item.id);
                 const cityInfo = getCityInfo(item.name);
@@ -1307,17 +2712,17 @@ export function SwipeablePlanningView({
                 return (
                   <div
                     key={`top-${item.id}`}
-                    className="flex-shrink-0 w-[140px] rounded-xl overflow-hidden border bg-card cursor-pointer hover:border-primary/30 transition-all"
+                    className="rounded-xl overflow-hidden border bg-card cursor-pointer hover:border-primary/30 transition-all"
                     onClick={() => setCityDetailItem(item)}
                   >
-                    <div className="relative h-20">
+                    <div className="relative aspect-square">
                       <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                       <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                         recommendation.match === 'great' ? 'bg-green-500 text-white' :
-                        recommendation.match === 'mixed' ? 'bg-amber-500 text-white' :
+                        recommendation.match === 'neutral' ? 'bg-gray-400 text-white' : recommendation.match === 'consider' ? 'bg-amber-500 text-white' :
                         'bg-blue-500 text-white'
                       }`}>
-                        {recommendation.match === 'great' ? 'Great' : recommendation.match === 'mixed' ? 'Mixed' : 'Good'}
+                        {recommendation.match === 'great' ? 'Great' : recommendation.match === 'good' ? 'Good' : recommendation.match === 'neutral' ? 'Neutral' : 'Consider'}
                       </div>
                       <button
                         onClick={(e) => {
@@ -1387,7 +2792,7 @@ export function SwipeablePlanningView({
       )}
 
       {/* Continue button - shows what's next */}
-      {selectedIds.size > 0 && stepItems.length > 0 && (
+      {(selectedIds.size > 0 || selectedCities.length > 0) && (currentStep.id === 'cities' || stepItems.length > 0) && (
         <Button className="w-full" onClick={goToNextStep}>
           {currentStepIndex === PLANNING_STEPS.length - 1 ? (
             <>
@@ -1419,79 +2824,89 @@ export function SwipeablePlanningView({
         </Button>
       )}
 
-      {/* Item detail modal */}
+      {/* Item detail modal - matching city modal style */}
       <Dialog open={!!detailItem} onOpenChange={() => setDetailItem(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 max-h-[85vh] overflow-hidden [&>button]:hidden">
           {detailItem && (
-            <>
-              <div className="relative w-full h-48 -mt-6 -mx-6 mb-4 overflow-hidden rounded-t-lg">
+            <div className="flex flex-col max-h-[85vh]">
+              {/* Hero Image with Overlay */}
+              <div className="relative h-48 flex-shrink-0">
                 <img src={detailItem.imageUrl} alt={detailItem.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                {/* Close button */}
+                <button
+                  onClick={() => setDetailItem(null)}
+                  className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Rating badge */}
                 {detailItem.rating && (
                   <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
                     <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                     <span className="text-xs text-white font-medium">{detailItem.rating}</span>
                   </div>
                 )}
+
+                {/* Name overlay at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <h2 className="text-2xl font-bold">{detailItem.name}</h2>
+                  {detailItem.tags && detailItem.tags.length > 0 && (
+                    <p className="text-white/80 text-sm">{detailItem.tags.slice(0, 3).join(' · ')}</p>
+                  )}
+                </div>
               </div>
 
-              <DialogHeader>
-                <DialogTitle className="flex items-start justify-between gap-2">
-                  <span>{detailItem.name}</span>
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                      selectedIds.has(detailItem.id) ? 'bg-green-500 text-white' : 'bg-muted'
-                    }`}
-                  >
-                    {selectedIds.has(detailItem.id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-4 space-y-4">
+                  {/* Quick Info Row */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                    {detailItem.neighborhood && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {detailItem.neighborhood}
+                      </span>
+                    )}
+                    {detailItem.priceInfo && (
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        {detailItem.priceInfo}
+                      </span>
+                    )}
+                    {detailItem.hours && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {detailItem.hours}
+                      </span>
+                    )}
                   </div>
-                </DialogTitle>
-              </DialogHeader>
 
-              <div className="space-y-3">
-                {detailItem.neighborhood && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {detailItem.neighborhood}
-                  </p>
-                )}
+                  {/* Description */}
+                  {detailItem.description && (
+                    <p className="text-sm text-muted-foreground">{detailItem.description}</p>
+                  )}
 
-                {detailItem.priceInfo && (
-                  <p className="text-sm flex items-center gap-1">
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    {detailItem.priceInfo}
-                  </p>
-                )}
+                  {/* Tips */}
+                  {detailItem.tips && detailItem.tips.length > 0 && (
+                    <div className="bg-amber-50 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Tips
+                      </div>
+                      <ul className="text-sm text-amber-800 space-y-1">
+                        {detailItem.tips.map((tip, i) => (
+                          <li key={i}>• {tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {detailItem.hours && (
-                  <p className="text-sm flex items-center gap-1">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    {detailItem.hours}
-                  </p>
-                )}
-
-                <p className="text-sm text-muted-foreground">{detailItem.description}</p>
-
-                {detailItem.tips && detailItem.tips.length > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <h4 className="text-xs font-semibold text-amber-800 mb-1">Tips</h4>
-                    <ul className="text-xs text-amber-700 space-y-1">
-                      {detailItem.tips.map((tip, i) => (
-                        <li key={i}>• {tip}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {detailItem.tags && detailItem.tags.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">
-                    {detailItem.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
+              {/* Fixed Action Button */}
+              <div className="p-4 border-t bg-background flex-shrink-0">
                 <Button
                   className="w-full"
                   variant={selectedIds.has(detailItem.id) ? 'outline' : 'default'}
@@ -1501,26 +2916,20 @@ export function SwipeablePlanningView({
                   }}
                 >
                   {selectedIds.has(detailItem.id) ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Selected
-                    </>
+                    <><Check className="w-4 h-4 mr-2" /> Added to Trip</>
                   ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add to Trip
-                    </>
+                    <><Plus className="w-4 h-4 mr-2" /> Add to Trip</>
                   )}
                 </Button>
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* City Detail Modal */}
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab('landmarks'); setShowCityDetails(false); }}>
-        <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 [&>button]:hidden">
+        <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 max-h-[90vh] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
             const cityInfo = getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
@@ -1554,10 +2963,10 @@ export function SwipeablePlanningView({
             };
 
             return (
-              <div className="overflow-hidden rounded-lg">
-                {/* Clean image slider - no text overlay */}
+              <div className="flex flex-col max-h-[85vh]">
+                {/* Hero Image with Overlay Info */}
                 <div
-                  className="relative h-56 sm:h-64"
+                  className="relative h-48 flex-shrink-0"
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
@@ -1566,290 +2975,207 @@ export function SwipeablePlanningView({
                     alt={imageSlides[cityImageIndex].label}
                     className="w-full h-full object-cover"
                   />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                  {/* Close button - top right */}
+                  {/* Close button */}
                   <button
                     onClick={() => { setCityDetailItem(null); setCityImageIndex(0); }}
-                    className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+                    className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60"
                   >
                     <X className="w-4 h-4" />
                   </button>
 
-                  {/* Navigation arrows */}
+                  {/* Image navigation arrows */}
                   {cityImageIndex > 0 && (
-                    <button
-                      onClick={() => setCityImageIndex(i => i - 1)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                    >
+                    <button onClick={() => setCityImageIndex(i => i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white">
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                   )}
                   {cityImageIndex < imageSlides.length - 1 && (
-                    <button
-                      onClick={() => setCityImageIndex(i => i + 1)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                    >
+                    <button onClick={() => setCityImageIndex(i => i + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white">
                       <ChevronRight className="w-5 h-5" />
                     </button>
                   )}
 
+                  {/* City info overlay at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold">{cityDetailItem.name}</h2>
+                        <p className="text-white/80 text-sm">{cityInfo.bestFor.join(' · ')}</p>
+                      </div>
+                      <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        recommendation.match === 'great' ? 'bg-green-500 text-white' :
+                        recommendation.match === 'neutral' ? 'bg-gray-400 text-white' : recommendation.match === 'consider' ? 'bg-amber-500 text-white' :
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {recommendation.match === 'great' ? 'Great Match' :
+                         recommendation.match === 'neutral' ? 'Neutral' : recommendation.match === 'consider' ? 'Consider' : 'Good Choice'}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Dot indicators */}
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5">
                     {imageSlides.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setCityImageIndex(idx)}
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          idx === cityImageIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/70'
-                        }`}
-                      />
+                      <button key={idx} onClick={() => setCityImageIndex(idx)} className={`w-1.5 h-1.5 rounded-full ${idx === cityImageIndex ? 'bg-white' : 'bg-white/40'}`} />
                     ))}
                   </div>
-
-                  {/* Heart button - bottom right */}
-                  <button
-                    onClick={() => toggleSelect(cityDetailItem.id, cityDetailItem.name)}
-                    className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors shadow-lg ${
-                      isSelected ? 'bg-white' : 'bg-black/40 backdrop-blur-sm hover:bg-black/60'
-                    }`}
-                  >
-                    <Heart className={`w-5 h-5 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`} />
-                  </button>
                 </div>
 
-                <div className="p-4 space-y-3">
-                  {/* City name and match indicator */}
-                  <div className="flex items-start justify-between">
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-4 space-y-4">
+                    {/* Quick Stats Row */}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {cityInfo.avgDays}
+                      </span>
+                      <span>{cityInfo.crowdLevel} crowds</span>
+                      <span>Best: {cityInfo.bestTime}</span>
+                    </div>
+
+                    {/* Why You'll Love It */}
+                    {recommendation.reasons.length > 0 && (
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
+                          <Heart className="w-3.5 h-3.5" /> Why you&apos;ll love it
+                        </div>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          {recommendation.reasons.slice(0, 2).map((reason, i) => (
+                            <li key={i}>• {reason}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Concerns */}
+                    {recommendation.concerns.length > 0 && (
+                      <div className="bg-amber-50 rounded-lg p-3">
+                        <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5" /> Watch out for
+                        </div>
+                        <ul className="text-sm text-amber-800 space-y-1">
+                          {recommendation.concerns.slice(0, 2).map((concern, i) => (
+                            <li key={i}>• {concern}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Must-See Sites */}
                     <div>
-                      <h2 className="text-xl font-bold">{cityDetailItem.name}</h2>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {cityInfo.crowdLevel} crowds · {cityInfo.avgDays}
-                      </p>
-                    </div>
-                    {/* Match badge */}
-                    <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      recommendation.match === 'great' ? 'bg-green-100 text-green-700' :
-                      recommendation.match === 'mixed' ? 'bg-amber-100 text-amber-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {recommendation.match === 'great' ? 'Great Match' :
-                       recommendation.match === 'mixed' ? 'Mixed Fit' : 'Good Choice'}
-                    </div>
-                  </div>
-
-                  {/* Famous for - prominent section */}
-                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3">
-                    <div className="text-xs font-semibold text-primary mb-1">Famous for</div>
-                    <p className="text-sm font-medium">{cityInfo.bestFor.join(' · ')}</p>
-                  </div>
-
-                  {/* Personalized recommendation */}
-                  {recommendation.reasons.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-sm font-semibold text-green-600 flex items-center gap-1.5">
-                        <Heart className="w-4 h-4" />
-                        Why you will love it
+                      <div className="text-sm font-semibold mb-2">Must-See</div>
+                      <div className="flex gap-2 flex-wrap">
+                        {cityInfo.topSites.map((site, idx) => (
+                          <button
+                            key={site}
+                            onClick={() => setCityImageIndex(idx + 1)}
+                            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                              cityImageIndex === idx + 1 ? 'bg-primary text-primary-foreground border-primary' : 'hover:border-primary/50'
+                            }`}
+                          >
+                            {site}
+                          </button>
+                        ))}
                       </div>
-                      {recommendation.reasons.map((reason, i) => (
-                        <div key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-green-500 mt-0.5">+</span>
-                          <span>{reason}</span>
-                        </div>
-                      ))}
                     </div>
-                  )}
 
-                  {/* Concerns based on preferences */}
-                  {recommendation.concerns.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-sm font-semibold text-amber-600 flex items-center gap-1.5">
-                        <Zap className="w-4 h-4" />
-                        Watch out for
-                      </div>
-                      {recommendation.concerns.map((concern, i) => (
-                        <div key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-amber-500 mt-0.5">!</span>
-                          <span>{concern}</span>
-                        </div>
-                      ))}
+                    {/* Local Tip - Simple */}
+                    <div className="flex items-start gap-2 text-sm">
+                      <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-muted-foreground"><span className="font-medium text-foreground">Tip:</span> {cityInfo.localTip}</p>
                     </div>
-                  )}
 
-                  {/* Best time */}
-                  <p className="text-sm text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5 inline mr-1.5" />
-                    Best time: <span className="text-foreground font-medium">{cityInfo.bestTime}</span>
-                  </p>
-
-                  {/* Must-See Sites - always visible as chips */}
-                  <div>
-                    <div className="text-sm font-semibold mb-1.5">Must-See Sites</div>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {cityInfo.topSites.map((site, idx) => (
+                    {/* Detailed Info Accordion */}
+                    {cityInfo.highlights && (
+                      <div className="border-t pt-4">
                         <button
-                          key={site}
-                          onClick={() => setCityImageIndex(idx + 1)}
-                          className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                            cityImageIndex === idx + 1
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted hover:bg-muted/80'
-                          }`}
+                          onClick={() => setShowCityDetails(!showCityDetails)}
+                          className="flex items-center justify-between w-full text-sm font-medium"
                         >
-                          {site}
+                          <span>Explore {cityDetailItem.name}</span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showCityDetails ? 'rotate-180' : ''}`} />
                         </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Local tip */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
-                      <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
-                    </div>
-                  </div>
-
-                  {/* Collapsible Explore More Section */}
-                  {(cityInfo.highlights || (cityInfo.idealFor && cityInfo.idealFor.length > 0)) && (
-                    <div className="border rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => setShowCityDetails(!showCityDetails)}
-                        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <span className="text-sm font-medium">Explore More Details</span>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showCityDetails ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showCityDetails && (
-                        <div className="p-3 space-y-3 border-t">
-                          {/* Ideal For - who should visit */}
-                          {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
-                            <div className="bg-muted/50 rounded-lg p-3">
-                              <div className="text-xs font-semibold text-muted-foreground mb-1.5">Perfect for</div>
+                        {showCityDetails && (
+                          <div className="mt-3 space-y-3">
+                            {/* Perfect For */}
+                            {cityInfo.idealFor && cityInfo.idealFor.length > 0 && (
                               <div className="flex gap-1.5 flex-wrap">
                                 {cityInfo.idealFor.map((type) => (
-                                  <span key={type} className="text-xs bg-background px-2 py-1 rounded-full border">
-                                    {type}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Categorized Highlights - Tabbed */}
-                          {cityInfo.highlights && (
-                            <div className="space-y-3">
-                              {/* Tab Buttons */}
-                              <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-                                {[
-                                  ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', icon: Landmark, label: 'Landmarks', color: 'text-amber-600' }] : []),
-                                  ...(cityInfo.highlights.history?.length ? [{ id: 'history', icon: ScrollText, label: 'History', color: 'text-orange-600' }] : []),
-                                  ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', icon: Building, label: 'Museums', color: 'text-purple-600' }] : []),
-                                  ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', icon: ShoppingBag, label: 'Markets', color: 'text-green-600' }] : []),
-                                  ...(cityInfo.highlights.food?.length ? [{ id: 'food', icon: Utensils, label: 'Food', color: 'text-red-500' }] : []),
-                                  ...(cityInfo.highlights.nature?.length ? [{ id: 'nature', icon: TreePine, label: 'Nature', color: 'text-emerald-600' }] : []),
-                                ].map((tab) => (
-                                  <button
-                                    key={tab.id}
-                                    onClick={() => setHighlightTab(tab.id)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-colors ${
-                                      highlightTab === tab.id
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-muted hover:bg-muted/80'
-                                    }`}
-                                  >
-                                    <tab.icon className={`w-3.5 h-3.5 ${highlightTab === tab.id ? '' : tab.color}`} />
-                                    {tab.label}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Tab Content */}
-                              <div className="border rounded-lg p-3 min-h-[150px]">
-                                {/* Landmarks Tab */}
-                        {highlightTab === 'landmarks' && cityInfo.highlights.landmarks && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.landmarks.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* History Tab */}
-                        {highlightTab === 'history' && cityInfo.highlights.history && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.history.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Museums Tab */}
-                        {highlightTab === 'museums' && cityInfo.highlights.museums && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.museums.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Markets Tab */}
-                        {highlightTab === 'markets' && cityInfo.highlights.markets && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.markets.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Food Tab */}
-                        {highlightTab === 'food' && cityInfo.highlights.food && (
-                          <div className="space-y-3">
-                            {cityInfo.highlights.food.map((item) => (
-                              <div key={item.name} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Nature Tab */}
-                            {highlightTab === 'nature' && cityInfo.highlights.nature && (
-                              <div className="space-y-3">
-                                {cityInfo.highlights.nature.map((item) => (
-                                  <div key={item.name} className="text-sm">
-                                    <span className="font-medium">{item.name}</span>
-                                    <p className="text-muted-foreground mt-0.5">{item.description}</p>
-                                  </div>
+                                  <span key={type} className="text-xs bg-muted px-2 py-1 rounded-full">{type}</span>
                                 ))}
                               </div>
                             )}
-                          </div>
-                        </div>
-                      )}
-                        </div>
-                      )}
-                    </div>
-                  )}
 
-                  {/* Action button */}
+                            {/* Tabs */}
+                            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+                              {[
+                                ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', label: 'Landmarks' }] : []),
+                                ...(cityInfo.highlights.history?.length ? [{ id: 'history', label: 'History' }] : []),
+                                ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', label: 'Museums' }] : []),
+                                ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', label: 'Markets' }] : []),
+                                ...(cityInfo.highlights.food?.length ? [{ id: 'food', label: 'Food' }] : []),
+                              ].map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  onClick={() => setHighlightTab(tab.id)}
+                                  className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
+                                    highlightTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                  }`}
+                                >
+                                  {tab.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Tab Content - fixed height to prevent jumping */}
+                            <div className="space-y-2 min-h-[180px]">
+                              {highlightTab === 'landmarks' && cityInfo.highlights.landmarks?.map((item) => (
+                                <div key={item.name} className="text-sm">
+                                  <span className="font-medium">{item.name}</span>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                                </div>
+                              ))}
+                              {highlightTab === 'history' && cityInfo.highlights.history?.map((item) => (
+                                <div key={item.name} className="text-sm">
+                                  <span className="font-medium">{item.name}</span>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                                </div>
+                              ))}
+                              {highlightTab === 'museums' && cityInfo.highlights.museums?.map((item) => (
+                                <div key={item.name} className="text-sm">
+                                  <span className="font-medium">{item.name}</span>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                                </div>
+                              ))}
+                              {highlightTab === 'markets' && cityInfo.highlights.markets?.map((item) => (
+                                <div key={item.name} className="text-sm">
+                                  <span className="font-medium">{item.name}</span>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                                </div>
+                              ))}
+                              {highlightTab === 'food' && cityInfo.highlights.food?.map((item) => (
+                                <div key={item.name} className="text-sm">
+                                  <span className="font-medium">{item.name}</span>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{item.description}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Fixed Action Button */}
+                <div className="p-4 border-t bg-background flex-shrink-0">
                   <Button
                     className="w-full"
-                    size="sm"
                     variant={isSelected ? 'outline' : 'default'}
                     onClick={() => {
                       toggleSelect(cityDetailItem.id, cityDetailItem.name);
@@ -1858,15 +3184,9 @@ export function SwipeablePlanningView({
                     }}
                   >
                     {isSelected ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        Added to Trip
-                      </>
+                      <><Check className="w-4 h-4 mr-2" /> Added to Trip</>
                     ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add to Trip
-                      </>
+                      <><Plus className="w-4 h-4 mr-2" /> Add to Trip</>
                     )}
                   </Button>
                 </div>
