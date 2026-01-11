@@ -273,6 +273,40 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'Istanbul': [41.0, 29.0], 'Cappadocia': [38.6, 34.8], 'Antalya': [36.9, 30.7],
 };
 
+// City to Country mapping - used to group cities by destination
+const CITY_TO_COUNTRY: Record<string, string> = {
+  // Japan
+  'Tokyo': 'Japan', 'Hakone': 'Japan', 'Kyoto': 'Japan', 'Nara': 'Japan',
+  'Osaka': 'Japan', 'Hiroshima': 'Japan', 'Fukuoka': 'Japan',
+  // Thailand
+  'Bangkok': 'Thailand', 'Chiang Mai': 'Thailand', 'Chiang Rai': 'Thailand',
+  'Phuket': 'Thailand', 'Krabi': 'Thailand', 'Koh Samui': 'Thailand',
+  'Koh Phangan': 'Thailand', 'Sukhothai': 'Thailand', 'Ayutthaya': 'Thailand',
+  // Vietnam
+  'Hanoi': 'Vietnam', 'Ho Chi Minh City': 'Vietnam', 'Da Nang': 'Vietnam',
+  'Hoi An': 'Vietnam', 'Hue': 'Vietnam', 'Nha Trang': 'Vietnam',
+  'Ha Long Bay': 'Vietnam', 'Ninh Binh': 'Vietnam',
+  // Hawaii
+  'Honolulu': 'Hawaii', 'Maui': 'Hawaii', 'Kauai': 'Hawaii',
+  'Big Island': 'Hawaii', 'Waikiki': 'Hawaii', 'Oahu': 'Hawaii',
+  // Spain
+  'Barcelona': 'Spain', 'Madrid': 'Spain', 'Valencia': 'Spain',
+  'Seville': 'Spain', 'Granada': 'Spain', 'Malaga': 'Spain',
+  'San Sebastian': 'Spain', 'Bilbao': 'Spain', 'Toledo': 'Spain', 'Cordoba': 'Spain',
+  // Portugal
+  'Lisbon': 'Portugal', 'Porto': 'Portugal', 'Lagos': 'Portugal',
+  'Faro': 'Portugal', 'Sintra': 'Portugal', 'Cascais': 'Portugal',
+  // France
+  'Paris': 'France', 'Nice': 'France', 'Lyon': 'France', 'Marseille': 'France',
+  // Italy
+  'Rome': 'Italy', 'Florence': 'Italy', 'Venice': 'Italy',
+  'Milan': 'Italy', 'Naples': 'Italy', 'Amalfi': 'Italy',
+  // Greece
+  'Athens': 'Greece', 'Santorini': 'Greece', 'Mykonos': 'Greece',
+  // Turkey
+  'Istanbul': 'Turkey', 'Cappadocia': 'Turkey', 'Antalya': 'Turkey',
+};
+
 // Generate Google Flights URL for checking real prices
 function getGoogleFlightsUrl(fromCity: string, toCity: string): string {
   const fromAirport = CITY_AIRPORTS[fromCity] || fromCity.substring(0, 3).toUpperCase();
@@ -941,9 +975,12 @@ export function SwipeablePlanningView({
   const countryGroups = useMemo(() => {
     const groups: Record<string, { city: string; country: string }[]> = {};
     selectedCities.forEach(city => {
-      // Inline getCityCountry logic to avoid reference before initialization
-      const cityItem = items.find(i => i.name === city);
-      const country = cityItem?.tags?.find(t => destinations.includes(t)) || 'Unknown';
+      // Use CITY_TO_COUNTRY mapping first, then fall back to tags
+      let country = CITY_TO_COUNTRY[city];
+      if (!country) {
+        const cityItem = items.find(i => i.name === city);
+        country = cityItem?.tags?.find(t => destinations.includes(t)) || 'Unknown';
+      }
       if (!groups[country]) groups[country] = [];
       groups[country].push({ city, country });
     });
@@ -1368,8 +1405,13 @@ export function SwipeablePlanningView({
     setRouteOrder(newOrder);
   };
 
-  // Get country for a city
+  // Get country for a city - use CITY_TO_COUNTRY mapping first, then fall back to tags
   const getCityCountry = (cityName: string): string | undefined => {
+    // First check the static mapping
+    if (CITY_TO_COUNTRY[cityName]) {
+      return CITY_TO_COUNTRY[cityName];
+    }
+    // Fall back to tags
     const cityItem = items.find(i => i.name === cityName);
     return cityItem?.tags?.find(t => destinations.includes(t));
   };
@@ -2068,19 +2110,24 @@ export function SwipeablePlanningView({
               </div>
             </div>
 
-            {/* Max flight duration */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs">Max flight duration</span>
-              <div className="flex gap-1">
-                {[8, 12, 16].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setRoutePrefs(p => ({ ...p, maxFlightHours: n }))}
-                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightHours === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                  >
-                    {n}hr
-                  </button>
-                ))}
+            {/* Max flight duration - slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs">Max flight duration</span>
+                <span className="text-xs font-medium">{routePrefs.maxFlightHours}hr</span>
+              </div>
+              <input
+                type="range"
+                min="4"
+                max="24"
+                step="1"
+                value={routePrefs.maxFlightHours}
+                onChange={(e) => setRoutePrefs(p => ({ ...p, maxFlightHours: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>4hr</span>
+                <span>24hr</span>
               </div>
             </div>
           </div>

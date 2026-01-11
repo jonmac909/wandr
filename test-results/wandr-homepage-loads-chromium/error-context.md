@@ -1,0 +1,204 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Trippified" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - heading "Trippified" [level=1] [ref=e6]
+        - button "Trip Assistant" [ref=e8]:
+          - img
+        - generic [ref=e9]:
+          - button "Trips" [ref=e10]:
+            - img
+            - generic [ref=e11]: Trips
+          - button [ref=e12]:
+            - img
+          - button "JY" [ref=e14]:
+            - generic [ref=e16] [cursor=pointer]: JY
+    - main [ref=e17]:
+      - generic [ref=e18]:
+        - img [ref=e20]
+        - heading "Where to next?" [level=1] [ref=e22]
+        - paragraph [ref=e23]: Plan your next adventure
+      - generic [ref=e24]:
+        - link "Plan New Trip AI-powered itinerary planning" [ref=e25] [cursor=pointer]:
+          - /url: /plan
+          - generic [ref=e27]:
+            - img [ref=e29]
+            - generic [ref=e32]:
+              - heading "Plan New Trip" [level=3] [ref=e33]
+              - paragraph [ref=e34]: AI-powered itinerary planning
+        - button "Import Trip Upload or paste existing itinerary" [ref=e35]:
+          - generic [ref=e37] [cursor=pointer]:
+            - img [ref=e39]
+            - generic [ref=e42]:
+              - heading "Import Trip" [level=3] [ref=e43]
+              - paragraph [ref=e44]: Upload or paste existing itinerary
+      - generic [ref=e49]: Inspiration
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - generic [ref=e53]: ❄️
+            - heading "Winter" [level=3] [ref=e54]
+            - generic [ref=e55]: Dec-Feb
+          - generic [ref=e56]:
+            - link "Vienna Vienna Austria Christmas markets, opera season, imperial palaces in snow" [ref=e57] [cursor=pointer]:
+              - /url: /plan?destination=Vienna%2C%20Austria
+              - img "Vienna" [ref=e58]
+              - generic [ref=e60]:
+                - heading "Vienna" [level=4] [ref=e61]
+                - paragraph [ref=e62]: Austria
+                - paragraph [ref=e63]: Christmas markets, opera season, imperial palaces in snow
+            - link "Tromsø Tromsø Norway Northern lights peak, dog sledding, Arctic adventures" [ref=e64] [cursor=pointer]:
+              - /url: /plan?destination=Troms%C3%B8%2C%20Norway
+              - img "Tromsø" [ref=e65]
+              - generic [ref=e67]:
+                - heading "Tromsø" [level=4] [ref=e68]
+                - paragraph [ref=e69]: Norway
+                - paragraph [ref=e70]: Northern lights peak, dog sledding, Arctic adventures
+            - link "Thailand Thailand Southeast Asia Dry season, escape winter, temple tours & beaches" [ref=e71] [cursor=pointer]:
+              - /url: /plan?destination=Thailand%2C%20Southeast%20Asia
+              - img "Thailand" [ref=e72]
+              - generic [ref=e74]:
+                - heading "Thailand" [level=4] [ref=e75]
+                - paragraph [ref=e76]: Southeast Asia
+                - paragraph [ref=e77]: Dry season, escape winter, temple tours & beaches
+            - link "Swiss Alps Swiss Alps Switzerland World-class skiing, fondue, scenic train rides" [ref=e78] [cursor=pointer]:
+              - /url: /plan?destination=Swiss%20Alps%2C%20Switzerland
+              - img "Swiss Alps" [ref=e79]
+              - generic [ref=e81]:
+                - heading "Swiss Alps" [level=4] [ref=e82]
+                - paragraph [ref=e83]: Switzerland
+                - paragraph [ref=e84]: World-class skiing, fondue, scenic train rides
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: 🌸
+            - heading "Spring" [level=3] [ref=e88]
+            - generic [ref=e89]: Mar-May
+          - generic [ref=e90]:
+            - link "Kyoto Kyoto Japan Cherry blossoms peak, mild weather, before Golden Week crowds" [ref=e91] [cursor=pointer]:
+              - /url: /plan?destination=Kyoto%2C%20Japan
+              - img "Kyoto" [ref=e92]
+              - generic [ref=e94]:
+                - heading "Kyoto" [level=4] [ref=e95]
+                - paragraph [ref=e96]: Japan
+                - paragraph [ref=e97]: Cherry blossoms peak, mild weather, before Golden Week crowds
+            - link "Amsterdam Amsterdam Netherlands Tulip season at Keukenhof, pleasant cycling weather" [ref=e98] [cursor=pointer]:
+              - /url: /plan?destination=Amsterdam%2C%20Netherlands
+              - img "Amsterdam" [ref=e99]
+              - generic [ref=e101]:
+                - heading "Amsterdam" [level=4] [ref=e102]
+                - paragraph [ref=e103]: Netherlands
+                - paragraph [ref=e104]: Tulip season at Keukenhof, pleasant cycling weather
+            - link "Paris Paris France Gardens in bloom, outdoor cafés, fewer tourists than summer" [ref=e105] [cursor=pointer]:
+              - /url: /plan?destination=Paris%2C%20France
+              - img "Paris" [ref=e106]
+              - generic [ref=e108]:
+                - heading "Paris" [level=4] [ref=e109]
+                - paragraph [ref=e110]: France
+                - paragraph [ref=e111]: Gardens in bloom, outdoor cafés, fewer tourists than summer
+            - link "Queenstown Queenstown New Zealand Autumn colors, wine harvest, adventure sports season" [ref=e112] [cursor=pointer]:
+              - /url: /plan?destination=Queenstown%2C%20New%20Zealand
+              - img "Queenstown" [ref=e113]
+              - generic [ref=e115]:
+                - heading "Queenstown" [level=4] [ref=e116]
+                - paragraph [ref=e117]: New Zealand
+                - paragraph [ref=e118]: Autumn colors, wine harvest, adventure sports season
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]: ☀️
+            - heading "Summer" [level=3] [ref=e122]
+            - generic [ref=e123]: Jun-Aug
+          - generic [ref=e124]:
+            - link "Iceland Iceland Nordic Midnight sun, highland roads open, waterfalls at peak" [ref=e125] [cursor=pointer]:
+              - /url: /plan?destination=Iceland%2C%20Nordic
+              - img "Iceland" [ref=e126]
+              - generic [ref=e128]:
+                - heading "Iceland" [level=4] [ref=e129]
+                - paragraph [ref=e130]: Nordic
+                - paragraph [ref=e131]: Midnight sun, highland roads open, waterfalls at peak
+            - link "Dubrovnik Dubrovnik Croatia Adriatic beaches, Game of Thrones sites, island hopping" [ref=e132] [cursor=pointer]:
+              - /url: /plan?destination=Dubrovnik%2C%20Croatia
+              - img "Dubrovnik" [ref=e133]
+              - generic [ref=e135]:
+                - heading "Dubrovnik" [level=4] [ref=e136]
+                - paragraph [ref=e137]: Croatia
+                - paragraph [ref=e138]: Adriatic beaches, Game of Thrones sites, island hopping
+            - link "Alaska Alaska USA Wildlife viewing, glacier tours, 20+ hours of daylight" [ref=e139] [cursor=pointer]:
+              - /url: /plan?destination=Alaska%2C%20USA
+              - img "Alaska" [ref=e140]
+              - generic [ref=e142]:
+                - heading "Alaska" [level=4] [ref=e143]
+                - paragraph [ref=e144]: USA
+                - paragraph [ref=e145]: Wildlife viewing, glacier tours, 20+ hours of daylight
+            - link "Santorini Santorini Greece Iconic sunsets, beach clubs, perfect swimming weather" [ref=e146] [cursor=pointer]:
+              - /url: /plan?destination=Santorini%2C%20Greece
+              - img "Santorini" [ref=e147]
+              - generic [ref=e149]:
+                - heading "Santorini" [level=4] [ref=e150]
+                - paragraph [ref=e151]: Greece
+                - paragraph [ref=e152]: Iconic sunsets, beach clubs, perfect swimming weather
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - generic [ref=e155]: 🍂
+            - heading "Fall" [level=3] [ref=e156]
+            - generic [ref=e157]: Sep-Nov
+          - generic [ref=e158]:
+            - link "Marrakech Marrakech Morocco Cooler 25°C temps, shoulder season prices, perfect for souks" [ref=e159] [cursor=pointer]:
+              - /url: /plan?destination=Marrakech%2C%20Morocco
+              - img "Marrakech" [ref=e160]
+              - generic [ref=e162]:
+                - heading "Marrakech" [level=4] [ref=e163]
+                - paragraph [ref=e164]: Morocco
+                - paragraph [ref=e165]: Cooler 25°C temps, shoulder season prices, perfect for souks
+            - link "Vermont Vermont USA Peak fall foliage, apple picking, cozy inns" [ref=e166] [cursor=pointer]:
+              - /url: /plan?destination=Vermont%2C%20USA
+              - img "Vermont" [ref=e167]
+              - generic [ref=e169]:
+                - heading "Vermont" [level=4] [ref=e170]
+                - paragraph [ref=e171]: USA
+                - paragraph [ref=e172]: Peak fall foliage, apple picking, cozy inns
+            - link "Munich Munich Germany Oktoberfest (late Sep), beer gardens, Bavarian Alps" [ref=e173] [cursor=pointer]:
+              - /url: /plan?destination=Munich%2C%20Germany
+              - img "Munich" [ref=e174]
+              - generic [ref=e176]:
+                - heading "Munich" [level=4] [ref=e177]
+                - paragraph [ref=e178]: Germany
+                - paragraph [ref=e179]: Oktoberfest (late Sep), beer gardens, Bavarian Alps
+            - link "Patagonia Patagonia Argentina Spring wildflowers, fewer crowds, baby wildlife" [ref=e180] [cursor=pointer]:
+              - /url: /plan?destination=Patagonia%2C%20Argentina
+              - img "Patagonia" [ref=e181]
+              - generic [ref=e183]:
+                - heading "Patagonia" [level=4] [ref=e184]
+                - paragraph [ref=e185]: Argentina
+                - paragraph [ref=e186]: Spring wildflowers, fewer crowds, baby wildlife
+        - generic [ref=e187]:
+          - generic [ref=e188]:
+            - generic [ref=e189]: ⚠️
+            - heading "Skip for Now" [level=3] [ref=e190]
+          - generic [ref=e191]:
+            - generic [ref=e194]:
+              - generic [ref=e195]: 🌧️
+              - generic [ref=e196]:
+                - heading "Bali" [level=4] [ref=e197]
+                - paragraph [ref=e198]: Rainy season
+            - generic [ref=e201]:
+              - generic [ref=e202]: 🌀
+              - generic [ref=e203]:
+                - heading "Caribbean" [level=4] [ref=e204]
+                - paragraph [ref=e205]: Hurricane season
+            - generic [ref=e208]:
+              - generic [ref=e209]: 👥
+              - generic [ref=e210]:
+                - heading "Europe" [level=4] [ref=e211]
+                - paragraph [ref=e212]: Peak crowds
+            - generic [ref=e215]:
+              - generic [ref=e216]: 🔥
+              - generic [ref=e217]:
+                - heading "India" [level=4] [ref=e218]
+                - paragraph [ref=e219]: Extreme heat
+  - alert [ref=e220]
+```
