@@ -883,6 +883,7 @@ export function SwipeablePlanningView({
   });
   const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop cities
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null); // For drag-and-drop countries
+  const [expandedTransport, setExpandedTransport] = useState<number | null>(null); // Which transport segment is expanded
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -2270,26 +2271,47 @@ export function SwipeablePlanningView({
                 {index < routeOrder.length - 1 && (() => {
                   const nextCity = routeOrder[index + 1];
                   const flightInfo = getFlightInfo(city, nextCity);
-                  const needsFlight = isLastInCountry || (routeInfo?.distance && routeInfo.distance > 500);
+                  const distance = routeInfo?.distance || 0;
+                  const isExpanded = expandedTransport === index;
+                  const isCrossCountry = isLastInCountry;
+
+                  // Determine transport type based on distance and country
+                  const isFlight = isCrossCountry || distance > 400;
+                  const isTrain = !isCrossCountry && distance > 150 && distance <= 400;
+                  const isBus = !isCrossCountry && distance <= 150;
+
+                  // Calculate ground travel time (rough estimates)
+                  const busTime = distance > 0 ? `${Math.round(distance / 40)}hr` : '';  // ~40km/hr avg
+                  const trainTime = distance > 0 ? `${Math.round(distance / 80)}hr` : ''; // ~80km/hr avg
+
+                  // Transport mode label and icon color
+                  const transportMode = isFlight ? 'flight' : isTrain ? 'train' : 'bus';
+                  const transportTime = isFlight ? flightInfo.time : isTrain ? trainTime : busTime;
+                  const transportColor = isFlight
+                    ? (flightInfo.stops === 0 ? 'text-green-600' : flightInfo.stops === 1 ? 'text-amber-600' : 'text-red-600')
+                    : 'text-blue-600';
+                  const barColor = isFlight
+                    ? (flightInfo.stops === 0 ? 'bg-green-400' : flightInfo.stops === 1 ? 'bg-amber-400' : 'bg-red-400')
+                    : 'bg-blue-400';
 
                   return (
-                    <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
-                      <div className={`w-0.5 h-8 ${isLastInCountry ? 'bg-orange-400' : needsFlight ? 'bg-amber-400' : 'bg-muted-foreground/30'}`} />
-                      <div className="flex flex-col">
-                        {needsFlight ? (
-                          <a
-                            href={flightInfo.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center gap-1 text-xs ${isLastInCountry ? 'text-orange-600 hover:text-orange-700' : 'text-amber-600 hover:text-amber-700'} hover:underline`}
+                    <div className="pl-[1.25rem]">
+                      <div className="flex items-start gap-2">
+                        <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
+                        <div className="flex-1 py-1">
+                          {/* Clickable transport summary */}
+                          <button
+                            onClick={() => setExpandedTransport(isExpanded ? null : index)}
+                            className={`flex items-center gap-1.5 text-xs ${transportColor} hover:opacity-80 transition-opacity`}
                           >
-                            <Plane className="w-3 h-3" />
-                            {isLastInCountry
-                              ? `Flight to ${getCityCountry(nextCity)} · ${flightInfo.time || 'Check time'}`
-                              : `${routeInfo?.distance || ''} km · ${flightInfo.time || 'Flight needed'}`
-                            }
-                            {flightInfo.stops !== null && (
-                              <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            {isFlight ? <Plane className="w-3.5 h-3.5" /> :
+                             isTrain ? <span className="text-sm">🚄</span> :
+                             <span className="text-sm">🚌</span>}
+                            <span className="font-medium">
+                              {distance > 0 ? `${distance} km` : ''} · {transportTime || 'Check times'}
+                            </span>
+                            {isFlight && flightInfo.stops !== null && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                                 flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
                                 flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
                                 'bg-red-100 text-red-700'
@@ -2297,15 +2319,73 @@ export function SwipeablePlanningView({
                                 {formatStops(flightInfo.stops)}
                               </span>
                             )}
-                            <span className={`${isLastInCountry ? 'text-orange-400' : 'text-amber-400'} ml-1`}>→</span>
-                          </a>
-                        ) : routeInfo?.distance ? (
-                          <span className={`text-xs ${routeInfo.isLong ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
-                            {routeInfo.distance} km · {getTravelMode(routeInfo.distance)}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">↓ Next stop</span>
-                        )}
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {/* Expanded details dropdown */}
+                          {isExpanded && (
+                            <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Route</span>
+                                <span className="font-medium">{city} → {nextCity}</span>
+                              </div>
+                              {isCrossCountry && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Countries</span>
+                                  <span className="font-medium">{getCityCountry(city)} → {getCityCountry(nextCity)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Distance</span>
+                                <span className="font-medium">{distance > 0 ? `${distance} km` : 'Unknown'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Transport</span>
+                                <span className="font-medium capitalize">{transportMode}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Est. time</span>
+                                <span className="font-medium">{transportTime || 'Check availability'}</span>
+                              </div>
+                              {isFlight && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Connections</span>
+                                  <span className={`font-medium ${transportColor}`}>
+                                    {flightInfo.stops === 0 ? 'Direct flight' :
+                                     flightInfo.stops === 1 ? '1 connection' :
+                                     flightInfo.stops !== null ? `${flightInfo.stops} connections` : 'Unknown'}
+                                  </span>
+                                </div>
+                              )}
+                              {isFlight && flightInfo.stops !== null && flightInfo.stops >= 2 && (
+                                <div className="pt-2 border-t text-amber-600">
+                                  ⚠️ Consider an overnight stop to avoid 3+ flights in one day
+                                </div>
+                              )}
+                              {isFlight ? (
+                                <a
+                                  href={flightInfo.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                                >
+                                  Search flights on Google
+                                  <ArrowRight className="w-3 h-3" />
+                                </a>
+                              ) : (
+                                <a
+                                  href={`https://www.rome2rio.com/s/${encodeURIComponent(city)}/${encodeURIComponent(nextCity)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                                >
+                                  Check {transportMode} options on Rome2Rio
+                                  <ArrowRight className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -3158,25 +3238,56 @@ export function SwipeablePlanningView({
                               </div>
                             )}
 
-                            {/* Tabs */}
+                            {/* Tabs - ordered by user preferences */}
                             <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-                              {[
-                                ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', label: 'Landmarks' }] : []),
-                                ...(cityInfo.highlights.history?.length ? [{ id: 'history', label: 'History' }] : []),
-                                ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', label: 'Museums' }] : []),
-                                ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', label: 'Markets' }] : []),
-                                ...(cityInfo.highlights.food?.length ? [{ id: 'food', label: 'Food' }] : []),
-                              ].map((tab) => (
-                                <button
-                                  key={tab.id}
-                                  onClick={() => setHighlightTab(tab.id)}
-                                  className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-                                    highlightTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                                  }`}
-                                >
-                                  {tab.label}
-                                </button>
-                              ))}
+                              {(() => {
+                                // Map user's travel identities to highlight categories
+                                const identityToTab: Record<string, { id: string; label: string }> = {
+                                  'history': { id: 'history', label: 'History' },
+                                  'food': { id: 'food', label: 'Food' },
+                                  'shopping': { id: 'markets', label: 'Markets' },
+                                  'photography': { id: 'landmarks', label: 'Landmarks' },
+                                  'nature': { id: 'landmarks', label: 'Landmarks' },
+                                  'adventure': { id: 'landmarks', label: 'Landmarks' },
+                                };
+
+                                // All available tabs based on city data
+                                const allTabs = [
+                                  ...(cityInfo.highlights.landmarks?.length ? [{ id: 'landmarks', label: 'Landmarks' }] : []),
+                                  ...(cityInfo.highlights.history?.length ? [{ id: 'history', label: 'History' }] : []),
+                                  ...(cityInfo.highlights.museums?.length ? [{ id: 'museums', label: 'Museums' }] : []),
+                                  ...(cityInfo.highlights.markets?.length ? [{ id: 'markets', label: 'Markets' }] : []),
+                                  ...(cityInfo.highlights.food?.length ? [{ id: 'food', label: 'Food' }] : []),
+                                ];
+
+                                // Get user's preferred categories from travelIdentities
+                                const userIdentities = tripDna.travelerProfile?.travelIdentities || [];
+
+                                // Sort tabs: user preferences first, then others
+                                const preferredTabIds = userIdentities
+                                  .map(id => identityToTab[id]?.id)
+                                  .filter(Boolean);
+
+                                const sortedTabs = [
+                                  ...allTabs.filter(t => preferredTabIds.includes(t.id)),
+                                  ...allTabs.filter(t => !preferredTabIds.includes(t.id))
+                                ].filter((tab, idx, arr) => arr.findIndex(t => t.id === tab.id) === idx); // Remove duplicates
+
+                                return sortedTabs.map((tab) => (
+                                  <button
+                                    key={tab.id}
+                                    onClick={() => setHighlightTab(tab.id)}
+                                    className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
+                                      highlightTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                    }`}
+                                  >
+                                    {tab.label}
+                                    {preferredTabIds.includes(tab.id) && (
+                                      <span className="ml-1 text-[8px]">★</span>
+                                    )}
+                                  </button>
+                                ));
+                              })()}
                             </div>
 
                             {/* Tab Content - fixed height to prevent jumping */}
