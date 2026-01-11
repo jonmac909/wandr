@@ -269,6 +269,14 @@ function PlanPageContent() {
             setPace(dna.vibeAndPace.tripPace as Pace);
           }
 
+          // Pre-fill origin
+          if (dna.origin?.city) {
+            setOriginCity(dna.origin.city);
+          }
+          if (dna.origin?.airport) {
+            setOriginAirport(dna.origin.airport);
+          }
+
           // Pre-fill trip types (filter to only valid current IDs)
           if (dna.interests?.tripTypes?.length > 0) {
             setTripTypes(filterValidTripTypes(dna.interests.tripTypes));
@@ -362,6 +370,8 @@ function PlanPageContent() {
   };
 
   const [surpriseDescription, setSurpriseDescription] = useState('');
+  const [originCity, setOriginCity] = useState('');
+  const [originAirport, setOriginAirport] = useState('');
   const [durationType, setDurationType] = useState<DurationType>('days');
   const [durationDays, setDurationDays] = useState(14);
   const [durationWeeks, setDurationWeeks] = useState(2);
@@ -471,6 +481,10 @@ function PlanPageContent() {
         },
         vibeAndPace: {
           tripPace: pace,
+        },
+        origin: {
+          city: originCity.trim() || undefined,
+          airport: originAirport.trim() || undefined,
         },
         interests: {
           destination: destinationMode === 'known' ? destinationDisplay : surpriseDescription,
@@ -630,6 +644,35 @@ function PlanPageContent() {
         </div>
         {step === 1 && (
           <div className="space-y-6">
+            {/* Origin - Where are you traveling from? */}
+            <div className="border rounded-lg p-4">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Where are you traveling from?
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    placeholder="e.g., Vancouver, Los Angeles..."
+                    value={originCity}
+                    onChange={(e) => setOriginCity(e.target.value)}
+                    className="bg-background"
+                  />
+                </div>
+                <div className="w-24">
+                  <Input
+                    placeholder="YVR"
+                    value={originAirport}
+                    onChange={(e) => setOriginAirport(e.target.value.toUpperCase())}
+                    maxLength={3}
+                    className="bg-background text-center uppercase"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                City and airport code (optional)
+              </p>
+            </div>
+
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold">Where are you going?</h2>
             </div>
