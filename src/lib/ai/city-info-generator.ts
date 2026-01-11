@@ -5,6 +5,14 @@ export interface CityHighlight {
   description: string;
 }
 
+// Dot ratings for city vibes (1-5 scale)
+export interface CityRatings {
+  calm: number;      // How peaceful/relaxed (1=chaotic, 5=serene)
+  wow: number;       // Visual/emotional impact (1=ordinary, 5=jaw-dropping)
+  history: number;   // Historical depth (1=modern, 5=ancient layers)
+  friction: number;  // Hassle factor (1=smooth, 5=challenging)
+}
+
 export interface CityInfo {
   bestFor: string[];
   crowdLevel: 'Low' | 'Moderate' | 'High' | 'Very High';
@@ -14,6 +22,8 @@ export interface CityInfo {
   avgDays: string;
   pros: string[];
   cons: string[];
+  // NEW: Dot ratings for quick vibe assessment
+  ratings?: CityRatings;
   // Categorized highlights - detailed "reasons to visit"
   highlights?: {
     landmarks?: CityHighlight[];
@@ -47,19 +57,31 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
   "bestFor": ["3-4 categories like History, Beach, Food, Nature, Nightlife, Art, Adventure, Culture, Shopping, Romance"],
   "crowdLevel": "Low" | "Moderate" | "High" | "Very High",
   "bestTime": "Best months to visit, e.g., 'Apr-Jun, Sep-Oct'",
-  "topSites": ["4 specific famous landmarks/attractions in this city - use actual names like 'Hagia Sophia', not generic like 'Local landmarks'"],
+  "topSites": ["4 specific famous landmarks/attractions in this city - use actual names"],
   "localTip": "One specific insider tip that locals would know",
   "avgDays": "Recommended days to spend, e.g., '2-3 days'",
   "pros": ["3 specific positive things about visiting this city"],
-  "cons": ["3 specific drawbacks or challenges"]
+  "cons": ["3 specific drawbacks or challenges"],
+  "ratings": {
+    "calm": 1-5 (1=chaotic/busy, 5=peaceful/serene),
+    "wow": 1-5 (1=ordinary, 5=jaw-dropping visuals/experiences),
+    "history": 1-5 (1=modern city, 5=ancient layers of history),
+    "friction": 1-5 (1=easy/smooth travel, 5=challenging logistics)
+  },
+  "idealFor": ["3-4 traveler types this city suits best"],
+  "highlights": {
+    "landmarks": [{"name": "Landmark Name", "description": "Brief compelling description"}],
+    "history": [{"name": "Historical Period/Event", "description": "Brief interesting fact"}],
+    "food": [{"name": "Dish or Food Experience", "description": "Why it's special"}]
+  }
 }
 
-Be specific to ${cityName}. Use real landmark names, actual best seasons, and genuine local insights.`;
+Be specific to ${cityName}. Use real landmark names, actual best seasons, and genuine local insights. Include 3-4 items per highlights category.`;
 
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -102,6 +124,7 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
     avgDays: '3-4 days',
     pros: ['Incredible history spanning millennia', 'Amazing food scene', 'Great value for money'],
     cons: ['Can be overwhelming for first-timers', 'Traffic congestion', 'Persistent street vendors'],
+    ratings: { calm: 2, wow: 5, history: 5, friction: 3 },
     idealFor: ['History enthusiasts', 'Foodies', 'Culture lovers', 'Architecture fans', 'Shoppers'],
     highlights: {
       landmarks: [
@@ -132,14 +155,14 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
       ],
     }
   },
-  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance for sunrise flights', avgDays: '2-3 days', pros: ['Otherworldly landscapes', 'Unique cave hotels', 'Bucket-list balloon rides'], cons: ['Balloon flights often cancelled due to weather', 'Limited nightlife', 'Remote location'] },
-  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days', pros: ['Beautiful beaches', 'Ancient ruins nearby', 'Good weather most of year'], cons: ['Very touristy in summer', 'Resort-heavy areas', 'Can feel commercialized'] },
-  'Bodrum': { bestFor: ['Beach', 'Nightlife', 'Sailing'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Bodrum Castle', 'Mausoleum of Halicarnassus', 'Bodrum Marina', 'Gümbet Beach'], localTip: 'Take a blue cruise on a traditional gulet to explore hidden coves', avgDays: '2-3 days', pros: ['Turkish Riviera vibes', 'Great sailing scene', 'Vibrant nightlife'], cons: ['Very crowded in summer', 'Expensive for Turkey', 'Party-focused atmosphere'] },
-  'Trabzon': { bestFor: ['Nature', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'May-Sep', topSites: ['Sumela Monastery', 'Uzungöl Lake', 'Trabzon Hagia Sophia', 'Boztepe Hill'], localTip: 'Drive the scenic highland road to Ayder Plateau for lush green meadows', avgDays: '2-3 days', pros: ['Spectacular mountain scenery', 'Unique Black Sea culture', 'Uncrowded and authentic'], cons: ['Far from other tourist areas', 'Rainy weather possible', 'Limited English spoken'] },
-  'Konya': { bestFor: ['Spirituality', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'Dec (Whirling Dervishes), Apr-Jun', topSites: ['Mevlana Museum', 'Alaeddin Mosque', 'Karatay Medrese', 'Sille Village'], localTip: 'Visit during December for Whirling Dervishes Sema ceremonies', avgDays: '1-2 days', pros: ['Spiritual home of Rumi', 'Rich Seljuk architecture', 'Authentic Turkish experience'], cons: ['Conservative dress expected', 'Very hot in summer', 'Limited tourist amenities'] },
+  'Cappadocia': { bestFor: ['Nature', 'Adventure', 'Photography'], crowdLevel: 'Moderate', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Hot Air Balloon Rides', 'Göreme Open Air Museum', 'Underground Cities', 'Fairy Chimneys'], localTip: 'Book balloon rides weeks in advance for sunrise flights', avgDays: '2-3 days', pros: ['Otherworldly landscapes', 'Unique cave hotels', 'Bucket-list balloon rides'], cons: ['Balloon flights often cancelled due to weather', 'Limited nightlife', 'Remote location'], ratings: { calm: 4, wow: 5, history: 4, friction: 2 } },
+  'Antalya': { bestFor: ['Beach', 'History', 'Relaxation'], crowdLevel: 'Moderate', bestTime: 'May-Jun, Sep-Oct', topSites: ['Kaleiçi Old Town', 'Düden Waterfalls', 'Aspendos Theater', 'Konyaaltı Beach'], localTip: 'Visit Perge and Aspendos ancient ruins nearby', avgDays: '2-3 days', pros: ['Beautiful beaches', 'Ancient ruins nearby', 'Good weather most of year'], cons: ['Very touristy in summer', 'Resort-heavy areas', 'Can feel commercialized'], ratings: { calm: 4, wow: 3, history: 3, friction: 2 } },
+  'Bodrum': { bestFor: ['Beach', 'Nightlife', 'Sailing'], crowdLevel: 'High', bestTime: 'Jun-Sep', topSites: ['Bodrum Castle', 'Mausoleum of Halicarnassus', 'Bodrum Marina', 'Gümbet Beach'], localTip: 'Take a blue cruise on a traditional gulet to explore hidden coves', avgDays: '2-3 days', pros: ['Turkish Riviera vibes', 'Great sailing scene', 'Vibrant nightlife'], cons: ['Very crowded in summer', 'Expensive for Turkey', 'Party-focused atmosphere'], ratings: { calm: 2, wow: 3, history: 2, friction: 2 } },
+  'Trabzon': { bestFor: ['Nature', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'May-Sep', topSites: ['Sumela Monastery', 'Uzungöl Lake', 'Trabzon Hagia Sophia', 'Boztepe Hill'], localTip: 'Drive the scenic highland road to Ayder Plateau for lush green meadows', avgDays: '2-3 days', pros: ['Spectacular mountain scenery', 'Unique Black Sea culture', 'Uncrowded and authentic'], cons: ['Far from other tourist areas', 'Rainy weather possible', 'Limited English spoken'], ratings: { calm: 5, wow: 4, history: 3, friction: 4 } },
+  'Konya': { bestFor: ['Spirituality', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'Dec (Whirling Dervishes), Apr-Jun', topSites: ['Mevlana Museum', 'Alaeddin Mosque', 'Karatay Medrese', 'Sille Village'], localTip: 'Visit during December for Whirling Dervishes Sema ceremonies', avgDays: '1-2 days', pros: ['Spiritual home of Rumi', 'Rich Seljuk architecture', 'Authentic Turkish experience'], cons: ['Conservative dress expected', 'Very hot in summer', 'Limited tourist amenities'], ratings: { calm: 4, wow: 3, history: 5, friction: 3 } },
   // Spain
-  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days', pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'], cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'] },
-  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days', pros: ['World-class art museums', 'Fantastic food scene', 'Less touristy than Barcelona'], cons: ['Hot summers', 'Late schedule takes adjustment', 'No beach'] },
+  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days', pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'], cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'], ratings: { calm: 2, wow: 5, history: 4, friction: 3 } },
+  'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days', pros: ['World-class art museums', 'Fantastic food scene', 'Less touristy than Barcelona'], cons: ['Hot summers', 'Late schedule takes adjustment', 'No beach'], ratings: { calm: 3, wow: 4, history: 4, friction: 2 } },
   // Italy
   'Rome': {
     bestFor: ['History', 'Art', 'Food'],
@@ -150,6 +173,7 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
     avgDays: '3-4 days',
     pros: ['2,500+ years of history', 'Incredible food everywhere', 'Art at every corner'],
     cons: ['Overwhelming crowds', 'Tourist traps near attractions', 'Hot and chaotic in summer'],
+    ratings: { calm: 2, wow: 5, history: 5, friction: 3 },
     idealFor: ['History buffs', 'Art lovers', 'Foodies', 'Architecture enthusiasts', 'Religious pilgrims'],
     highlights: {
       landmarks: [
@@ -180,10 +204,10 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
       ],
     }
   },
-  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days', pros: ['Renaissance art capital', 'Walkable historic center', 'Tuscan food and wine'], cons: ['Very crowded', 'Expensive near center', 'Can feel like a museum'] },
-  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience', avgDays: '2-3 days', pros: ['Truly unique city', 'Romantic atmosphere', 'No cars'], cons: ['Extremely crowded', 'Very expensive', 'Flooding risk'] },
+  'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days', pros: ['Renaissance art capital', 'Walkable historic center', 'Tuscan food and wine'], cons: ['Very crowded', 'Expensive near center', 'Can feel like a museum'], ratings: { calm: 3, wow: 5, history: 5, friction: 2 } },
+  'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience', avgDays: '2-3 days', pros: ['Truly unique city', 'Romantic atmosphere', 'No cars'], cons: ['Extremely crowded', 'Very expensive', 'Flooding risk'], ratings: { calm: 2, wow: 5, history: 5, friction: 4 } },
   // Japan
-  'Tokyo': { bestFor: ['Culture', 'Food', 'Technology'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Senso-ji Temple', 'Shibuya Crossing', 'Meiji Shrine', 'Tsukiji Market'], localTip: 'Get a Suica card for seamless train travel', avgDays: '4-5 days', pros: ['Incredible food scene', 'Perfect blend of old and new', 'Extremely safe'], cons: ['Language barrier', 'Can be overwhelming', 'Expensive accommodations'] },
+  'Tokyo': { bestFor: ['Culture', 'Food', 'Technology'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Senso-ji Temple', 'Shibuya Crossing', 'Meiji Shrine', 'Tsukiji Market'], localTip: 'Get a Suica card for seamless train travel', avgDays: '4-5 days', pros: ['Incredible food scene', 'Perfect blend of old and new', 'Extremely safe'], cons: ['Language barrier', 'Can be overwhelming', 'Expensive accommodations'], ratings: { calm: 2, wow: 5, history: 3, friction: 2 } },
   'Kyoto': {
     bestFor: ['History', 'Culture', 'Nature'],
     crowdLevel: 'High',
@@ -193,6 +217,7 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
     avgDays: '3-4 days',
     pros: ['Ancient temples and shrines', 'Beautiful gardens', 'Traditional Japanese culture'],
     cons: ['Very crowded at popular sites', 'Hot and humid summers', 'Everything closes early'],
+    ratings: { calm: 4, wow: 5, history: 5, friction: 2 },
     idealFor: ['Culture enthusiasts', 'History lovers', 'Temple seekers', 'Garden admirers', 'Photographers'],
     highlights: {
       landmarks: [
@@ -224,8 +249,8 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
     }
   },
   // Thailand
-  'Bangkok': { bestFor: ['Food', 'Culture', 'Nightlife'], crowdLevel: 'High', bestTime: 'Nov-Feb', topSites: ['Grand Palace', 'Wat Pho', 'Chatuchak Market', 'Khao San Road'], localTip: 'Use BTS Skytrain and boats to avoid traffic', avgDays: '2-3 days', pros: ['Amazing street food', 'Incredible temples', 'Great value for money'], cons: ['Extreme heat and humidity', 'Traffic congestion', 'Tourist scams around attractions'] },
-  'Chiang Mai': { bestFor: ['Culture', 'Nature', 'Wellness'], crowdLevel: 'Moderate', bestTime: 'Nov-Feb', topSites: ['Doi Suthep Temple', 'Old City Temples', 'Night Bazaar', 'Elephant Sanctuaries'], localTip: 'Visit ethical elephant sanctuaries, not riding camps', avgDays: '3-4 days', pros: ['Relaxed pace', 'Rich temple culture', 'Great for digital nomads'], cons: ['Smoky season Mar-Apr', 'Over-commercialized in parts', 'Far from beaches'] },
+  'Bangkok': { bestFor: ['Food', 'Culture', 'Nightlife'], crowdLevel: 'High', bestTime: 'Nov-Feb', topSites: ['Grand Palace', 'Wat Pho', 'Chatuchak Market', 'Khao San Road'], localTip: 'Use BTS Skytrain and boats to avoid traffic', avgDays: '2-3 days', pros: ['Amazing street food', 'Incredible temples', 'Great value for money'], cons: ['Extreme heat and humidity', 'Traffic congestion', 'Tourist scams around attractions'], ratings: { calm: 1, wow: 4, history: 3, friction: 3 } },
+  'Chiang Mai': { bestFor: ['Culture', 'Nature', 'Wellness'], crowdLevel: 'Moderate', bestTime: 'Nov-Feb', topSites: ['Doi Suthep Temple', 'Old City Temples', 'Night Bazaar', 'Elephant Sanctuaries'], localTip: 'Visit ethical elephant sanctuaries, not riding camps', avgDays: '3-4 days', pros: ['Relaxed pace', 'Rich temple culture', 'Great for digital nomads'], cons: ['Smoky season Mar-Apr', 'Over-commercialized in parts', 'Far from beaches'], ratings: { calm: 4, wow: 4, history: 4, friction: 2 } },
   'Ayutthaya': {
     bestFor: ['History', 'Architecture', 'Photography'],
     crowdLevel: 'Moderate',
