@@ -106,6 +106,7 @@ function getCitiesForDestination(destination: string): string[] {
     'Kenya': ['Nairobi', 'Masai Mara', 'Mombasa', 'Amboseli', 'Lake Nakuru', 'Diani Beach', 'Lamu', 'Tsavo', 'Mt Kenya'],
     'Tanzania': ['Dar es Salaam', 'Serengeti', 'Zanzibar', 'Kilimanjaro', 'Ngorongoro', 'Arusha', 'Stone Town', 'Lake Manyara', 'Tarangire'],
     'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Banff', 'Quebec City', 'Niagara Falls', 'Ottawa', 'Victoria', 'Whistler'],
+    'Hawaii': ['Honolulu', 'Maui', 'Kauai', 'Big Island', 'Waikiki', 'Oahu', 'North Shore', 'Kona', 'Hilo', 'Lahaina', 'Kaanapali', 'Wailea', 'Hana', 'Poipu', 'Princeville'],
     'Cuba': ['Havana', 'Trinidad', 'Viñales', 'Varadero', 'Cienfuegos', 'Santiago de Cuba', 'Camagüey', 'Baracoa', 'Santa Clara'],
     'Costa Rica': ['San José', 'Arenal', 'Manuel Antonio', 'Monteverde', 'Tamarindo', 'Puerto Viejo', 'Tortuguero', 'Guanacaste', 'La Fortuna'],
   };

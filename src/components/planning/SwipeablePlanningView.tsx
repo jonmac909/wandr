@@ -2134,12 +2134,14 @@ export function SwipeablePlanningView({
 
     return (
       <div className="space-y-4">
-        {/* Progress Stepper: Cities → Route → Favorites */}
-        <ProgressStepper
-          onCitiesClick={() => { setPhase('picking'); setCurrentStepIndex(0); setGridOffset(0); }}
-          onRouteClick={() => {}}
-          onFavoritesClick={confirmRoute}
-        />
+        {/* Progress Stepper: Cities → Route → Favorites (hide when externally controlled) */}
+        {controlledPhase === undefined && (
+          <ProgressStepper
+            onCitiesClick={() => { setPhase('picking'); setCurrentStepIndex(0); setGridOffset(0); }}
+            onRouteClick={() => {}}
+            onFavoritesClick={confirmRoute}
+          />
+        )}
 
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -2867,12 +2869,14 @@ export function SwipeablePlanningView({
 
   return (
     <div className="space-y-2">
-      {/* Progress Stepper: Cities → Route → Favorites */}
-      <ProgressStepper
-        onCitiesClick={goToCities}
-        onRouteClick={goToRoute}
-        onFavoritesClick={goToFavorites}
-      />
+      {/* Progress Stepper: Cities → Route → Favorites (hide when externally controlled) */}
+      {controlledPhase === undefined && (
+        <ProgressStepper
+          onCitiesClick={goToCities}
+          onRouteClick={goToRoute}
+          onFavoritesClick={goToFavorites}
+        />
+      )}
 
       {/* Sub-step indicator for Favorites phase */}
       {mainStage === 3 && phase === 'picking' && (
