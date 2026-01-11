@@ -1146,42 +1146,82 @@ export function SwipeablePlanningView({
   // ============ PICKING PHASE ============
   return (
     <div className="space-y-2">
-      {/* Step title row: "Pick your cities" with back button and tabs */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Step title row: "Pick your cities" with back button and heart count */}
+      <div className="flex items-center gap-2">
         {currentStepIndex > 0 && (
           <Button variant="ghost" size="sm" className="p-1 h-7 w-7" onClick={goToPrevStep}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         )}
-        <h2 className="text-base font-bold">{currentStep.title}</h2>
+        <h2 className="text-base font-bold flex-1">{currentStep.title}</h2>
 
-        {/* Destination filter tabs (for cities step) */}
-        {currentStep.id === 'cities' && destinations.length > 1 && (
-          <div className="flex gap-1.5 ml-auto">
-            {destinations.map((dest) => (
+        {/* Favs count - fixed position right side */}
+        <div className="flex items-center gap-1 min-w-[40px] justify-end">
+          {selectedItems.length > 0 && (
+            <>
+              <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+              <span className="text-sm font-medium">{selectedItems.length}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Destination filter tabs (for cities step with multiple countries) */}
+      {currentStep.id === 'cities' && destinations.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          {destinations.map((dest) => {
+            // Count selected cities for this country
+            const countrySelectedCount = selectedCities.filter(city => {
+              const cityCountry = getCityCountry(city);
+              return cityCountry === dest;
+            }).length;
+
+            return (
               <button
                 key={dest}
                 onClick={() => { setActiveDestinationFilter(dest); setGridOffset(0); }}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
                   activeDestinationFilter === dest
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    : countrySelectedCount === 0
+                      ? 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      : 'bg-muted text-foreground hover:bg-muted/80'
                 }`}
               >
                 {dest}
+                {countrySelectedCount > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    activeDestinationFilter === dest
+                      ? 'bg-white/20'
+                      : 'bg-primary/20 text-primary'
+                  }`}>
+                    {countrySelectedCount}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        {/* Favs count (for all steps) */}
-        {selectedItems.length > 0 && (
-          <div className="flex items-center gap-1 ml-auto">
-            <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
-            <span className="text-sm text-muted-foreground">{selectedItems.length}</span>
-          </div>
-        )}
-      </div>
+      {/* Multi-country reminder - show if some countries have no cities selected */}
+      {currentStep.id === 'cities' && destinations.length > 1 && selectedCities.length > 0 && (() => {
+        const countriesWithoutCities = destinations.filter(dest => {
+          const hasCity = selectedCities.some(city => getCityCountry(city) === dest);
+          return !hasCity;
+        });
+        if (countriesWithoutCities.length > 0) {
+          return (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span>
+                Don&apos;t forget to pick cities in {countriesWithoutCities.join(', ')}
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Selected cities reminder (for non-cities steps) */}
       {currentStep.id !== 'cities' && selectedCities.length > 0 && (
