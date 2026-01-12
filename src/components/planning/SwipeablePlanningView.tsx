@@ -1837,6 +1837,23 @@ export function SwipeablePlanningView({
     return cityItem?.tags?.find(t => destinations.includes(t));
   };
 
+  // Add a stopover city to the route (defined at component level to avoid closure issues)
+  const addStopoverCity = (city: string) => {
+    // Only add if not already in route
+    if (routeOrder.includes(city)) return;
+
+    // Insert at position 1 (after first city) - first city stays as main destination
+    setRouteOrder(prev => {
+      if (prev.length === 0) return [city];
+      return [prev[0], city, ...prev.slice(1)];
+    });
+
+    // Also add to selectedCities if not already there
+    if (!selectedCities.includes(city)) {
+      setSelectedCities(prev => [...prev, city]);
+    }
+  };
+
   // Start day planning
   const startDayPlanning = () => {
     setPhase('day-planning');
@@ -2777,23 +2794,6 @@ export function SwipeablePlanningView({
                 const transportColor = displayStops === 0 ? 'text-green-600' : displayStops === 1 ? 'text-amber-600' : 'text-red-600';
                 const barColor = displayStops === 0 ? 'bg-green-400' : displayStops === 1 ? 'bg-amber-400' : 'bg-red-400';
 
-                // Handler to add a stopover city - inserts AFTER the first city (first city is main destination)
-                const handleAddStopover = (city: string) => {
-                  if (!routeOrder.includes(city)) {
-                    // Insert after first city (index 1), not at beginning
-                    // This keeps the first destination as the "main" destination
-                    setRouteOrder(prev => {
-                      if (prev.length === 0) return [city];
-                      // Insert at position 1 (after first city)
-                      return [prev[0], city, ...prev.slice(1)];
-                    });
-                    // Also add to selected cities if not already there
-                    if (!selectedCities.includes(city)) {
-                      setSelectedCities(prev => [...prev, city]);
-                    }
-                  }
-                };
-
                 return (
                   <div className="pl-[1.25rem]">
                     <div className="flex items-start gap-2">
@@ -2847,14 +2847,10 @@ export function SwipeablePlanningView({
                                       key={route.id}
                                       onClick={() => {
                                         setSelectedRouteId(route.id);
-                                        // Add any stopover cities from this route
+                                        // Add any stopover cities from this route using component-level function
                                         route.connections
                                           .filter(c => c !== 'Vancouver' && c !== 'Seattle')
-                                          .forEach(city => {
-                                            if (!routeOrder.includes(city)) {
-                                              handleAddStopover(city);
-                                            }
-                                          });
+                                          .forEach(city => addStopoverCity(city));
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
