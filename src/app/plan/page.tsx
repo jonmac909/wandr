@@ -626,6 +626,8 @@ function PlanPageContent() {
           status: 'draft',
         });
         setTripId(id);
+        // Update URL so refresh keeps the trip
+        router.replace(`/plan?edit=${id}`, { scroll: false });
       } else {
         // Update existing trip
         const existingTrip = await tripDb.get(id);
