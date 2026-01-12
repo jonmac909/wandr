@@ -55,151 +55,164 @@ interface AutoItineraryViewProps {
   getCityCountry?: (city: string) => string | undefined;
 }
 
-// Mock generated days for initial UI
-function generateMockDays(allocations: CityAllocation[]): GeneratedDay[] {
-  const mockActivities: Record<string, GeneratedActivity[]> = {
-    'Bangkok': [
-      {
-        id: 'bkk-1',
-        name: 'Grand Palace',
-        type: 'attraction',
-        description: 'Thailand\'s most famous landmark with stunning gold spires and intricate architecture',
-        imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-        suggestedTime: '09:00',
-        duration: 120,
-        openingHours: '8:30AM-3:30PM',
-        neighborhood: 'Rattanakosin',
-        matchScore: 95,
-        matchReasons: ['Top attraction', 'Historic site'],
-        priceRange: '$$',
-        tags: ['temple', 'history', 'photography'],
-        walkingTimeToNext: 8,
-      },
-      {
-        id: 'bkk-2',
-        name: 'Wat Pho',
-        type: 'attraction',
-        description: 'Home to the massive reclining Buddha statue and traditional Thai massage school',
-        imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-        suggestedTime: '11:30',
-        duration: 90,
-        openingHours: '8AM-6:30PM',
-        neighborhood: 'Rattanakosin',
-        matchScore: 92,
-        matchReasons: ['Near Grand Palace', 'Must-see temple'],
-        priceRange: '$',
-        tags: ['temple', 'buddha', 'culture'],
-        walkingTimeToNext: 5,
-      },
-      {
-        id: 'bkk-3',
-        name: 'Jay Fai',
-        type: 'restaurant',
-        description: 'Legendary street food stall with Michelin star - famous for crab omelette',
-        imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-        suggestedTime: '13:00',
-        duration: 60,
-        openingHours: '2PM-10PM',
-        neighborhood: 'Old Town',
-        matchScore: 88,
-        matchReasons: ['Michelin star', 'Local favorite'],
-        priceRange: '$$$',
-        tags: ['street food', 'seafood', 'michelin'],
-        walkingTimeToNext: 15,
-      },
-      {
-        id: 'bkk-4',
-        name: 'Chatuchak Weekend Market',
-        type: 'activity',
-        description: 'World\'s largest weekend market with 15,000+ stalls',
-        imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-        suggestedTime: '16:00',
-        duration: 180,
-        openingHours: '6AM-6PM (Sat-Sun)',
-        neighborhood: 'Chatuchak',
-        matchScore: 85,
-        matchReasons: ['Shopping paradise', 'Local culture'],
-        priceRange: '$',
-        tags: ['market', 'shopping', 'local'],
-      },
-    ],
-    'Chiang Mai': [
-      {
-        id: 'cnx-1',
-        name: 'Doi Suthep Temple',
-        type: 'attraction',
-        description: 'Sacred hilltop temple with 309 steps and panoramic city views',
-        imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-        suggestedTime: '08:00',
-        duration: 150,
-        openingHours: '6AM-6PM',
-        neighborhood: 'Doi Suthep',
-        matchScore: 94,
-        matchReasons: ['Most sacred temple', 'Amazing views'],
-        priceRange: '$',
-        tags: ['temple', 'mountain', 'viewpoint'],
-        walkingTimeToNext: 45,
-      },
-      {
-        id: 'cnx-2',
-        name: 'Khao Soi Khun Yai',
-        type: 'restaurant',
-        description: 'Best khao soi in Chiang Mai - creamy coconut curry noodles',
-        imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
-        suggestedTime: '12:00',
-        duration: 45,
-        openingHours: '9AM-4PM',
-        neighborhood: 'Old City',
-        matchScore: 91,
-        matchReasons: ['Local specialty', 'Authentic taste'],
-        priceRange: '$',
-        tags: ['noodles', 'curry', 'local'],
-        walkingTimeToNext: 10,
-      },
-      {
-        id: 'cnx-3',
-        name: 'Sunday Walking Street',
-        type: 'activity',
-        description: 'Weekly night market along Ratchadamnoen Road with crafts and food',
-        imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-        suggestedTime: '17:00',
-        duration: 180,
-        openingHours: '4PM-10PM (Sun)',
-        neighborhood: 'Old City',
-        matchScore: 87,
-        matchReasons: ['Local culture', 'Great food stalls'],
-        priceRange: '$',
-        tags: ['market', 'crafts', 'street food'],
-      },
-    ],
-  };
+// Mock activities data for auto-fill
+const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
+  'Bangkok': [
+    {
+      id: 'bkk-1',
+      name: 'Grand Palace',
+      type: 'attraction',
+      description: 'Thailand\'s most famous landmark with stunning gold spires and intricate architecture',
+      imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
+      suggestedTime: '09:00',
+      duration: 120,
+      openingHours: '8:30AM-3:30PM',
+      neighborhood: 'Rattanakosin',
+      matchScore: 95,
+      matchReasons: ['Top attraction', 'Historic site'],
+      priceRange: '$$',
+      tags: ['temple', 'history', 'photography'],
+      walkingTimeToNext: 8,
+    },
+    {
+      id: 'bkk-2',
+      name: 'Wat Pho',
+      type: 'attraction',
+      description: 'Home to the massive reclining Buddha statue and traditional Thai massage school',
+      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
+      suggestedTime: '11:30',
+      duration: 90,
+      openingHours: '8AM-6:30PM',
+      neighborhood: 'Rattanakosin',
+      matchScore: 92,
+      matchReasons: ['Near Grand Palace', 'Must-see temple'],
+      priceRange: '$',
+      tags: ['temple', 'buddha', 'culture'],
+      walkingTimeToNext: 5,
+    },
+    {
+      id: 'bkk-3',
+      name: 'Jay Fai',
+      type: 'restaurant',
+      description: 'Legendary street food stall with Michelin star - famous for crab omelette',
+      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
+      suggestedTime: '13:00',
+      duration: 60,
+      openingHours: '2PM-10PM',
+      neighborhood: 'Old Town',
+      matchScore: 88,
+      matchReasons: ['Michelin star', 'Local favorite'],
+      priceRange: '$$$',
+      tags: ['street food', 'seafood', 'michelin'],
+      walkingTimeToNext: 15,
+    },
+    {
+      id: 'bkk-4',
+      name: 'Chatuchak Weekend Market',
+      type: 'activity',
+      description: 'World\'s largest weekend market with 15,000+ stalls',
+      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
+      suggestedTime: '16:00',
+      duration: 180,
+      openingHours: '6AM-6PM (Sat-Sun)',
+      neighborhood: 'Chatuchak',
+      matchScore: 85,
+      matchReasons: ['Shopping paradise', 'Local culture'],
+      priceRange: '$',
+      tags: ['market', 'shopping', 'local'],
+    },
+  ],
+  'Chiang Mai': [
+    {
+      id: 'cnx-1',
+      name: 'Doi Suthep Temple',
+      type: 'attraction',
+      description: 'Sacred hilltop temple with 309 steps and panoramic city views',
+      imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
+      suggestedTime: '08:00',
+      duration: 150,
+      openingHours: '6AM-6PM',
+      neighborhood: 'Doi Suthep',
+      matchScore: 94,
+      matchReasons: ['Most sacred temple', 'Amazing views'],
+      priceRange: '$',
+      tags: ['temple', 'mountain', 'viewpoint'],
+      walkingTimeToNext: 45,
+    },
+    {
+      id: 'cnx-2',
+      name: 'Khao Soi Khun Yai',
+      type: 'restaurant',
+      description: 'Best khao soi in Chiang Mai - creamy coconut curry noodles',
+      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+      suggestedTime: '12:00',
+      duration: 45,
+      openingHours: '9AM-4PM',
+      neighborhood: 'Old City',
+      matchScore: 91,
+      matchReasons: ['Local specialty', 'Authentic taste'],
+      priceRange: '$',
+      tags: ['noodles', 'curry', 'local'],
+      walkingTimeToNext: 10,
+    },
+    {
+      id: 'cnx-3',
+      name: 'Sunday Walking Street',
+      type: 'activity',
+      description: 'Weekly night market along Ratchadamnoen Road with crafts and food',
+      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
+      suggestedTime: '17:00',
+      duration: 180,
+      openingHours: '4PM-10PM (Sun)',
+      neighborhood: 'Old City',
+      matchScore: 87,
+      matchReasons: ['Local culture', 'Great food stalls'],
+      priceRange: '$',
+      tags: ['market', 'crafts', 'street food'],
+    },
+  ],
+};
 
+// Generate EMPTY days (no activities) - like Wanderlog
+function generateEmptyDays(allocations: CityAllocation[]): GeneratedDay[] {
   const days: GeneratedDay[] = [];
   let dayNumber = 1;
 
   for (const allocation of allocations) {
-    const cityActivities = mockActivities[allocation.city] || mockActivities['Bangkok'];
-
     for (let i = 0; i < allocation.nights; i++) {
-      // Rotate through activities
-      const dayActivities = cityActivities.map((act, idx) => ({
-        ...act,
-        id: `${allocation.city.toLowerCase()}-day${dayNumber}-${idx}`,
-      }));
-
       days.push({
         dayNumber,
         date: allocation.startDate ? addDays(allocation.startDate, i) : '',
         city: allocation.city,
-        theme: i === 0 ? 'Highlights Day' : i === 1 ? 'Local Discovery' : 'Relaxed Exploration',
-        activities: dayActivities.slice(0, 3 + (i % 2)), // Vary activity count
+        activities: [], // Empty - user will auto-fill
       });
-
       dayNumber++;
     }
   }
 
   return days;
+}
+
+// Fill a single day with activities
+function fillDayWithActivities(day: GeneratedDay, dayIndex: number): GeneratedDay {
+  const cityActivities = MOCK_ACTIVITIES[day.city] || MOCK_ACTIVITIES['Bangkok'] || [];
+
+  // Create unique IDs for this day's activities
+  const dayActivities = cityActivities.map((act, idx) => ({
+    ...act,
+    id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
+  }));
+
+  return {
+    ...day,
+    theme: dayIndex === 0 ? 'Highlights Day' : dayIndex === 1 ? 'Local Discovery' : 'Relaxed Exploration',
+    activities: dayActivities.slice(0, 3 + (dayIndex % 2)),
+  };
+}
+
+// Fill ALL days with activities
+function fillAllDays(days: GeneratedDay[]): GeneratedDay[] {
+  return days.map((day, idx) => fillDayWithActivities(day, idx));
 }
 
 function addDays(dateStr: string, days: number): string {
@@ -323,16 +336,35 @@ export default function AutoItineraryView({
     setIsDateEditorOpen(false);
   };
 
-  // Generate itinerary on mount or when allocations change
+  // Generate EMPTY itinerary on mount or when allocations change
   useEffect(() => {
     setIsLoading(true);
-    // Simulate API call
+    // Generate empty days immediately (no API call needed)
     const timer = setTimeout(() => {
-      setDays(generateMockDays(allocations));
+      setDays(generateEmptyDays(allocations));
       setIsLoading(false);
-    }, 800);
+    }, 300);
     return () => clearTimeout(timer);
   }, [allocations]);
+
+  // Auto-fill a single day
+  const autoFillDay = (dayNumber: number) => {
+    setDays(prev => prev.map((day, idx) => {
+      if (day.dayNumber === dayNumber) {
+        return fillDayWithActivities(day, idx);
+      }
+      return day;
+    }));
+  };
+
+  // Auto-fill entire trip
+  const autoFillEntireTrip = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setDays(prev => fillAllDays(prev));
+      setIsLoading(false);
+    }, 800);
+  };
 
   // Adjust allocation for a city - auto-balances to maintain total days
   const adjustAllocation = (city: string, delta: number) => {
@@ -491,13 +523,7 @@ export default function AutoItineraryView({
       <Button
         variant="default"
         className="w-full bg-primary hover:bg-primary/90"
-        onClick={() => {
-          setIsLoading(true);
-          setTimeout(() => {
-            setDays(generateMockDays(allocations));
-            setIsLoading(false);
-          }, 1000);
-        }}
+        onClick={autoFillEntireTrip}
       >
         <Sparkles className="w-4 h-4 mr-2" />
         Auto-fill entire trip
@@ -622,6 +648,7 @@ export default function AutoItineraryView({
             color={color}
             onActivityTap={handleActivityTap}
             onActivityDelete={handleActivityDelete}
+            onAutoFill={() => autoFillDay(day.dayNumber)}
           />
         );
       })}
@@ -671,12 +698,14 @@ interface DayCardProps {
   color: typeof DAY_COLORS[0];
   onActivityTap: (activity: GeneratedActivity, index: number) => void;
   onActivityDelete: (activityId: string) => void;
+  onAutoFill: () => void;
 }
 
-function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) {
+function DayCard({ day, color, onActivityTap, onActivityDelete, onAutoFill }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
+  const isEmpty = day.activities.length === 0;
 
   // Calculate total time for day
   const totalMinutes = day.activities.reduce((sum, a) => sum + (a.duration || 60), 0);
@@ -710,17 +739,20 @@ function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) 
         <div className="space-y-4">
           {/* Action buttons row */}
           <div className="flex items-center gap-4 text-sm ml-8">
-            <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
+            <button
+              onClick={onAutoFill}
+              className="flex items-center gap-1.5 text-primary font-medium hover:underline"
+            >
               <Sparkles className="w-4 h-4" />
               Auto-fill day
             </button>
-            <span className="text-muted-foreground">•</span>
-            <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
-              <MapPin className="w-4 h-4" />
-              Optimize route
-            </button>
-            {day.activities.length > 0 && (
+            {!isEmpty && (
               <>
+                <span className="text-muted-foreground">•</span>
+                <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
+                  <MapPin className="w-4 h-4" />
+                  Optimize route
+                </button>
                 <span className="text-muted-foreground">•</span>
                 <span className="text-muted-foreground">
                   {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
@@ -729,8 +761,21 @@ function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) 
             )}
           </div>
 
+          {/* Empty state - like Wanderlog */}
+          {isEmpty && (
+            <div className="ml-8 text-center py-8 text-muted-foreground">
+              <p className="text-sm">No activities planned yet</p>
+              <button
+                onClick={onAutoFill}
+                className="mt-2 text-primary font-medium text-sm hover:underline"
+              >
+                Auto-fill with recommendations
+              </button>
+            </div>
+          )}
+
           {/* Hotel prompt - Wanderlog style */}
-          {showHotelPrompt && (
+          {showHotelPrompt && !isEmpty && (
             <div className="ml-8 bg-secondary/50 rounded-xl p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Hotel className="w-5 h-5 text-primary" />
@@ -753,27 +798,29 @@ function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) 
           )}
 
           {/* Activities */}
-          <div className="space-y-0">
-            {day.activities.map((activity, idx) => (
-              <div key={activity.id}>
-                {/* Travel time connector between activities - shows travel from PREVIOUS activity */}
-                {idx > 0 && day.activities[idx - 1].walkingTimeToNext && (
-                  <TravelTimeConnector
-                    minutes={day.activities[idx - 1].walkingTimeToNext || 10}
-                    miles={(day.activities[idx - 1].walkingTimeToNext || 10) * 0.05}
+          {!isEmpty && (
+            <div className="space-y-0">
+              {day.activities.map((activity, idx) => (
+                <div key={activity.id}>
+                  {/* Travel time connector between activities - shows travel from PREVIOUS activity */}
+                  {idx > 0 && day.activities[idx - 1].walkingTimeToNext && (
+                    <TravelTimeConnector
+                      minutes={day.activities[idx - 1].walkingTimeToNext || 10}
+                      miles={(day.activities[idx - 1].walkingTimeToNext || 10) * 0.05}
+                    />
+                  )}
+                  <ActivityCard
+                    activity={activity}
+                    index={idx + 1}
+                    color={color}
+                    onTap={() => onActivityTap(activity, idx + 1)}
+                    onDelete={() => onActivityDelete(activity.id)}
+                    showTravelTime={false}
                   />
-                )}
-                <ActivityCard
-                  activity={activity}
-                  index={idx + 1}
-                  color={color}
-                  onTap={() => onActivityTap(activity, idx + 1)}
-                  onDelete={() => onActivityDelete(activity.id)}
-                  showTravelTime={false}
-                />
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Add a place */}
           <div className="ml-8 flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
