@@ -23,14 +23,18 @@ import {
   Trash2,
   X,
   Check,
+  Lightbulb,
+  Map,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
 import { allocateDays } from '@/lib/planning/itinerary-generator';
+import { POPULAR_CITY_INFO } from '@/lib/ai/city-info-generator';
 import dynamic from 'next/dynamic';
 
-// Dynamically import HotelPicker
+// Dynamically import HotelPicker and RouteMap
 const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
+const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
 
 // Day colors for visual distinction
 const DAY_COLORS = [
@@ -210,6 +214,18 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// Full date format like "Wednesday, February 11th"
+function formatFullDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const suffix = day === 1 || day === 21 || day === 31 ? 'st'
+    : day === 2 || day === 22 ? 'nd'
+    : day === 3 || day === 23 ? 'rd'
+    : 'th';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(/\d+/, `${day}${suffix}`);
+}
+
 export default function AutoItineraryView({
   cities,
   tripDna,
@@ -366,6 +382,39 @@ export default function AutoItineraryView({
           Regenerate
         </Button>
       </div>
+
+      {/* Route Map */}
+      {cities.length > 0 && getCityCountry && (
+        <div className="rounded-xl overflow-hidden border h-48">
+          <RouteMap
+            cities={cities}
+            getCityCountry={getCityCountry}
+            calculateDistance={() => null}
+          />
+        </div>
+      )}
+
+      {/* Tips Section */}
+      {cities.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="w-5 h-5 text-amber-600" />
+            <h3 className="font-semibold text-sm text-amber-800">Local Tips</h3>
+          </div>
+          <div className="space-y-2">
+            {cities.slice(0, 3).map((city) => {
+              const cityInfo = POPULAR_CITY_INFO[city];
+              if (!cityInfo?.localTip) return null;
+              return (
+                <div key={city} className="text-sm">
+                  <span className="font-medium text-amber-800">{city}:</span>{' '}
+                  <span className="text-amber-700">{cityInfo.localTip}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Day Allocation Summary - Collapsible */}
       <div className="bg-muted/30 rounded-xl overflow-hidden">
@@ -553,42 +602,73 @@ interface DayCardProps {
 }
 
 function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const activitySummary = day.activities.map(a => a.name).join(' • ');
+
   return (
-    <div className="space-y-3">
-      {/* Day header */}
-      <div className={`${color.light} px-4 py-2 rounded-lg ${color.border} border`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <span className={`font-bold ${color.text}`}>Day {day.dayNumber}</span>
-            <span className="text-muted-foreground text-sm ml-2">{formatDate(day.date)}</span>
+    <div className="border-b pb-4">
+      {/* Day header - clickable to expand/collapse */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full text-left py-3"
+      >
+        <div className="flex items-center gap-2">
+          <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold">{formatFullDate(day.date)}</h3>
+              <button className="p-1 hover:bg-muted rounded" onClick={(e) => e.stopPropagation()}>
+                <span className="text-muted-foreground">•••</span>
+              </button>
+            </div>
+            {!isExpanded && activitySummary && (
+              <p className="text-sm text-primary truncate mt-1">{activitySummary}</p>
+            )}
           </div>
-          {day.theme && (
-            <Badge variant="secondary" className="text-xs">
-              {day.theme}
-            </Badge>
-          )}
         </div>
-      </div>
+      </button>
 
-      {/* Activities - Wanderlog style cards */}
-      <div className="space-y-3">
-        {day.activities.map((activity, idx) => (
-          <ActivityCard
-            key={activity.id}
-            activity={activity}
-            index={idx + 1}
-            color={color}
-            onTap={() => onActivityTap(activity, idx + 1)}
-            onDelete={() => onActivityDelete(activity.id)}
-          />
-        ))}
+      {/* Expanded content */}
+      {isExpanded && (
+        <div className="pl-7 space-y-4">
+          {/* Action buttons */}
+          <div className="flex items-center gap-4 text-sm">
+            <button className="flex items-center gap-1 text-primary font-medium">
+              <Sparkles className="w-4 h-4" />
+              Auto-fill day
+            </button>
+            <span className="text-muted-foreground">•</span>
+            <button className="flex items-center gap-1 text-primary font-medium">
+              <MapPin className="w-4 h-4" />
+              Optimize route
+            </button>
+          </div>
 
-        {/* Add activity button */}
-        <button className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-primary transition-colors border-2 border-dashed rounded-xl hover:border-primary/50">
-          <Plus className="w-4 h-4" />
-          Add a place
-        </button>
-      </div>
+          {/* Activities */}
+          <div className="space-y-3">
+            {day.activities.map((activity, idx) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                index={idx + 1}
+                color={color}
+                onTap={() => onActivityTap(activity, idx + 1)}
+                onDelete={() => onActivityDelete(activity.id)}
+              />
+            ))}
+          </div>
+
+          {/* Add a place */}
+          <div className="flex items-center gap-2 py-3 px-4 bg-muted/30 rounded-xl">
+            <MapPin className="w-5 h-5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Add a place"
+              className="flex-1 bg-transparent text-sm outline-none"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -705,8 +785,8 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
   const reviewCount = Math.floor(1000 + Math.random() * 8000);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-end">
-      <div className="bg-background w-full sm:w-96 sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col max-h-[85vh] sm:max-h-full">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-end" onClick={onClose}>
+      <div className="bg-background w-full sm:w-96 sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col max-h-[85vh] sm:max-h-full" onClick={(e) => e.stopPropagation()}>
         {/* Header with navigation */}
         <div className="flex items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
