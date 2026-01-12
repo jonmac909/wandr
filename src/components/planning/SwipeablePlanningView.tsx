@@ -2299,11 +2299,25 @@ export function SwipeablePlanningView({
 
                 // Show HotelPicker for hotels tab when no hotels loaded
                 if (allItems.length === 0 && favoriteCityTab === 'hotels') {
+                  // Build hotel preferences from tripDna
+                  const hotelPreferences = {
+                    partyType: tripDna.travelerProfile.partyType as 'solo' | 'couple' | 'family' | 'friends',
+                    accommodationStyle: tripDna.constraints.accommodation.style as 'luxury' | 'boutique' | 'practical' | 'budget',
+                    accommodationPriority: tripDna.constraints.accommodation.priority as 'location' | 'comfort' | 'value',
+                    budgetPerNight: tripDna.constraints.budget.accommodationRange,
+                    interests: tripDna.interests.hobbies,
+                  };
+
+                  // Get favorited activities in this city for proximity matching
+                  const cityActivities = modalCityFavs?.activities.map(a => a.name) || [];
+
                   return (
                     <HotelPicker
                       city={modalCity}
                       country={modalCityCountry || undefined}
                       favoriteHotelIds={hotelFavoriteIds}
+                      preferences={hotelPreferences}
+                      nearbyActivities={cityActivities.length > 0 ? cityActivities : undefined}
                       onSelectHotel={(hotel: HotelInfo) => {
                         // Convert hotel to PlanningItem and add to items
                         const hotelItem: PlanningItem = {
@@ -2318,9 +2332,10 @@ export function SwipeablePlanningView({
                           tags: ['hotels', modalCity],
                           isFavorited: true,
                         };
+                        // Add hotel to items (already marked as favorited)
                         onItemsChange([...items, hotelItem]);
-                        // Auto-select it
-                        toggleSelect(hotelItem.id, hotelItem.name);
+                        // Add to selectedIds set so it appears in favorites
+                        setSelectedIds(prev => new Set([...prev, hotelItem.id]));
                       }}
                     />
                   );
