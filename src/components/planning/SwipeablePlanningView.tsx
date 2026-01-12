@@ -2777,11 +2777,16 @@ export function SwipeablePlanningView({
                 const transportColor = displayStops === 0 ? 'text-green-600' : displayStops === 1 ? 'text-amber-600' : 'text-red-600';
                 const barColor = displayStops === 0 ? 'bg-green-400' : displayStops === 1 ? 'bg-amber-400' : 'bg-red-400';
 
-                // Handler to add a stopover city
+                // Handler to add a stopover city - inserts AFTER the first city (first city is main destination)
                 const handleAddStopover = (city: string) => {
-                  // Add the stopover city at the beginning of the route (after home)
                   if (!routeOrder.includes(city)) {
-                    setRouteOrder(prev => [city, ...prev]);
+                    // Insert after first city (index 1), not at beginning
+                    // This keeps the first destination as the "main" destination
+                    setRouteOrder(prev => {
+                      if (prev.length === 0) return [city];
+                      // Insert at position 1 (after first city)
+                      return [prev[0], city, ...prev.slice(1)];
+                    });
                     // Also add to selected cities if not already there
                     if (!selectedCities.includes(city)) {
                       setSelectedCities(prev => [...prev, city]);
