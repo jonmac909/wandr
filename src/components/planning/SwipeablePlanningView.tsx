@@ -1839,19 +1839,20 @@ export function SwipeablePlanningView({
 
   // Add a stopover city to the route (defined at component level to avoid closure issues)
   const addStopoverCity = (city: string) => {
-    // Only add if not already in route
-    if (routeOrder.includes(city)) return;
-
-    // Insert at position 1 (after first city) - first city stays as main destination
+    // Use functional update to check CURRENT state (not stale closure value)
     setRouteOrder(prev => {
+      // Check inside functional update to use actual current state
+      if (prev.includes(city)) return prev; // Already in route, don't add again
       if (prev.length === 0) return [city];
+      // Insert at position 1 (after first city) - first city stays as main destination
       return [prev[0], city, ...prev.slice(1)];
     });
 
-    // Also add to selectedCities if not already there
-    if (!selectedCities.includes(city)) {
-      setSelectedCities(prev => [...prev, city]);
-    }
+    // Also add to selectedCities (use functional update to check current state)
+    setSelectedCities(prev => {
+      if (prev.includes(city)) return prev;
+      return [...prev, city];
+    });
   };
 
   // Start day planning
