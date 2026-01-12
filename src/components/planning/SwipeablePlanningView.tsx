@@ -2073,6 +2073,7 @@ export function SwipeablePlanningView({
       <AutoItineraryView
         cities={citiesToUse}
         tripDna={tripDna}
+        duration={duration}
         onBack={() => setPhase('route-planning')}
         getCityCountry={getCityCountry}
       />

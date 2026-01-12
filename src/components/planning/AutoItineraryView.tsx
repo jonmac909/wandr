@@ -46,6 +46,7 @@ const DAY_COLORS = [
 interface AutoItineraryViewProps {
   cities: string[];
   tripDna: TripDNA;
+  duration?: number; // Total trip days
   onBack: () => void;
   getCityCountry?: (city: string) => string | undefined;
 }
@@ -212,11 +213,13 @@ function formatDate(dateStr: string): string {
 export default function AutoItineraryView({
   cities,
   tripDna,
+  duration: propDuration,
   onBack,
   getCityCountry,
 }: AutoItineraryViewProps) {
-  // Get total days from TripDNA (check multiple possible paths)
+  // Get total days - prefer prop, then try tripDna paths, then default
   const totalDays =
+    propDuration ||
     tripDna?.constraints?.dates?.totalDays ||
     (tripDna?.constraints as unknown as { duration?: { days?: number } })?.duration?.days ||
     14;
