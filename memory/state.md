@@ -12,7 +12,7 @@
 | **Current Task** | Cleanup complete |
 | **Blockers** | None |
 | **Last Commit** | Codebase cleanup |
-| **Deploy** | Netlify (auto-deploy from main) |
+| **Deploy** | Cloudflare Workers (auto-deploy via GitHub Actions) |
 
 ---
 
@@ -63,5 +63,5 @@
 
 **Important context:**
 - Storage architecture: Supabase (cloud) → IndexedDB (cache) → localStorage (fallback only)
-- Deploy: Netlify auto-deploys from `main` branch
+- Deploy: Cloudflare Workers auto-deploys from `main` branch via GitHub Actions
 - Sample trip "ASIA 2026" is seeded in Supabase

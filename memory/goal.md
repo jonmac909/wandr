@@ -86,7 +86,7 @@ Blockers: None
 | Local DB | Dexie.js (IndexedDB) |
 | Cloud DB | Supabase |
 | Maps | Google Maps API |
-| Deploy | Netlify |
+| Deploy | Cloudflare Workers |
 
 ---
 
@@ -95,7 +95,7 @@ Blockers: None
 | Decision | Rationale | Date |
 |----------|-----------|------|
 | Supabase over Firebase | PostgreSQL, better DX, free tier | Jan 2025 |
-| Netlify over Vercel | Already set up, works well | Jan 2025 |
+| Cloudflare Workers | Edge deployment, fast globally | Jan 2025 |
 | IndexedDB + Supabase | Offline-first with cloud sync | Jan 2025 |
 | No auth yet | Single-user MVP first | Jan 2025 |
 
