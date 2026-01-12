@@ -435,7 +435,11 @@ function PlanPageContent() {
               setCompletedSections(progress.completedSections as PlanningSection[]);
             }
             if (progress.planningPhase) {
-              setPlanningPhase(progress.planningPhase as PlanningPhase);
+              // Migrate old 'favorites-library' phase to new 'auto-itinerary'
+              const phase = progress.planningPhase === 'favorites-library'
+                ? 'auto-itinerary'
+                : progress.planningPhase;
+              setPlanningPhase(phase as PlanningPhase);
             }
           } else {
             // Default for trips without saved progress

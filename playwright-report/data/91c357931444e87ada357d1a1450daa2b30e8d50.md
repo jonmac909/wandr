@@ -1,0 +1,162 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Trippified" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - heading "Trippified" [level=1] [ref=e6]
+        - button "Trip Assistant" [ref=e8]:
+          - img
+        - generic [ref=e9]:
+          - button "Trips" [ref=e10]:
+            - img
+            - generic [ref=e11]: Trips
+          - button [ref=e12]:
+            - img
+          - button "JY" [ref=e14]:
+            - generic [ref=e16] [cursor=pointer]: JY
+    - main [ref=e17]:
+      - generic [ref=e19]:
+        - button "Previous step" [ref=e20]:
+          - img [ref=e21]
+        - button "Where & When" [ref=e24] [cursor=pointer]:
+          - img [ref=e26]
+          - generic [ref=e28]: Where & When
+        - button "2 Preferences" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: "2"
+          - generic [ref=e33]: Preferences
+        - button "3 Cities" [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]: "3"
+          - generic [ref=e38]: Cities
+        - button "4 Route" [disabled] [ref=e41]:
+          - generic [ref=e42]: "4"
+          - generic [ref=e43]: Route
+        - button "5 Itinerary" [disabled] [ref=e46]:
+          - generic [ref=e47]: "5"
+          - generic [ref=e48]: Itinerary
+        - button "Next step" [ref=e49]:
+          - img [ref=e50]
+      - generic [ref=e52]:
+        - heading "Tell us about your trip" [level=2] [ref=e54]
+        - generic [ref=e55]:
+          - generic [ref=e56]: Who's going?
+          - generic [ref=e57]:
+            - button "Solo" [ref=e58]:
+              - generic [ref=e59]: Solo
+            - button "Couple" [ref=e60]:
+              - generic [ref=e61]: Couple
+            - button "Friends" [ref=e62]:
+              - generic [ref=e63]: Friends
+            - button "Family" [ref=e64]:
+              - generic [ref=e65]: Family
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: Budget
+            - generic [ref=e69]:
+              - button "$" [ref=e70]:
+                - generic [ref=e71]: $
+              - button "$$" [ref=e72]:
+                - generic [ref=e73]: $$
+              - button "$$$" [ref=e74]:
+                - generic [ref=e75]: $$$
+          - generic [ref=e76]:
+            - generic [ref=e77]: Pace
+            - generic [ref=e78]:
+              - button "Relaxed" [ref=e79]:
+                - generic [ref=e80]: Relaxed
+              - button "Balanced" [ref=e81]:
+                - generic [ref=e82]: Balanced
+              - button "Active" [ref=e83]:
+                - generic [ref=e84]: Active
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: Lodging
+            - generic [ref=e88]:
+              - button "Hotel" [ref=e89]:
+                - generic [ref=e90]: Hotel
+              - button "Boutique" [ref=e91]:
+                - generic [ref=e92]: Boutique
+              - button "Apartment" [ref=e93]:
+                - generic [ref=e94]: Apartment
+              - button "Resort" [ref=e95]:
+                - generic [ref=e96]: Resort
+          - generic [ref=e97]:
+            - generic [ref=e98]: Area
+            - generic [ref=e99]:
+              - button "Quiet" [ref=e100]:
+                - generic [ref=e101]: Quiet
+              - button "Central" [ref=e102]:
+                - generic [ref=e103]: Central
+        - generic [ref=e104]:
+          - generic [ref=e106]: Interests
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: Scenery
+              - generic [ref=e110]:
+                - button "Beach" [ref=e111]
+                - button "Mountains" [ref=e112]
+                - button "Gardens & Parks" [ref=e113]
+                - button "Countryside" [ref=e114]
+            - generic [ref=e115]:
+              - generic [ref=e116]: Culture
+              - generic [ref=e117]:
+                - button "Museums & Art" [ref=e118]
+                - button "Shows & Theater" [ref=e119]
+                - button "History & Architecture" [ref=e120]
+                - button "Local Traditions" [ref=e121]
+            - generic [ref=e122]:
+              - generic [ref=e123]: Relaxation
+              - generic [ref=e124]:
+                - button "Spa & Wellness" [ref=e125]
+                - button "Lounges & Rooftops" [ref=e126]
+            - generic [ref=e127]:
+              - generic [ref=e128]: Active
+              - generic [ref=e129]:
+                - button "Hiking & Trekking" [ref=e130]
+                - button "Water Sports" [ref=e131]
+                - button "Wildlife & Safari" [ref=e132]
+            - generic [ref=e133]:
+              - generic [ref=e134]: Food
+              - generic [ref=e135]:
+                - button "Street Food" [ref=e136]
+                - button "Fine Dining" [ref=e137]
+                - button "Food Tours" [ref=e138]
+            - generic [ref=e139]:
+              - generic [ref=e140]: Other
+              - generic [ref=e141]:
+                - button "Nightlife" [ref=e142]
+                - button "Shopping" [ref=e143]
+                - button "Photography" [ref=e144]
+        - generic [ref=e145]:
+          - generic [ref=e147]: Things to avoid
+          - generic [ref=e148]:
+            - button "Big cities" [ref=e149]
+            - button "Crowds" [ref=e150]
+            - button "Tourist traps" [ref=e151]
+            - button "Hot weather (>35°C)" [ref=e152]
+            - button "Cold weather (<10°C)" [ref=e153]
+            - button "Polluted/Dirty areas" [ref=e154]
+            - button "Rude service" [ref=e155]
+            - button "Noisy environments" [ref=e156]
+            - button "Long waits" [ref=e157]
+            - button "Disorganized places" [ref=e158]
+            - button "Long drives (3+ hrs)" [ref=e159]
+            - button "Extra long drives (5+ hrs)" [ref=e160]
+            - button "Long walks" [ref=e161]
+            - button "Early mornings" [ref=e162]
+            - button "Late nights" [ref=e163]
+            - button "Spicy food" [ref=e164]
+            - button "Seafood" [ref=e165]
+            - button "Public transit" [ref=e166]
+        - generic [ref=e167]:
+          - generic [ref=e168]: Special requests
+          - paragraph [ref=e169]: Anything else we should know? (optional)
+          - textbox "e.g., celebrating anniversary, need wheelchair access, traveling with a baby..." [ref=e170]
+        - button "Save & Pick Cities" [disabled]:
+          - img
+          - text: Save & Pick Cities
+  - alert [ref=e171]
+```
