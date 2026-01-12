@@ -218,6 +218,7 @@ function PlanPageContent() {
   const [mustVisitPlaces, setMustVisitPlaces] = useState<string[]>([]);
   const [mustVisitInput, setMustVisitInput] = useState('');
   const [draggedDestIdx, setDraggedDestIdx] = useState<number | null>(null);
+  const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null);
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [originCity, setOriginCity] = useState('');
   const [originAirport, setOriginAirport] = useState('');
@@ -271,9 +272,23 @@ function PlanPageContent() {
     setDraggedDestIdx(idx);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', idx.toString());
+    // Create a custom drag image
+    const target = e.currentTarget as HTMLElement;
+    const clone = target.cloneNode(true) as HTMLElement;
+    clone.style.transform = 'scale(1.05)';
+    clone.style.opacity = '0.9';
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, 0, 0);
+    setTimeout(() => document.body.removeChild(clone), 0);
   };
 
   const handleDestDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedDestIdx === null || draggedDestIdx === idx) return;
+    setDropTargetIdx(idx);
+  };
+
+  const handleDestDrop = (e: React.DragEvent, idx: number) => {
     e.preventDefault();
     if (draggedDestIdx === null || draggedDestIdx === idx) return;
 
@@ -282,11 +297,11 @@ function PlanPageContent() {
     const [dragged] = newDests.splice(draggedDestIdx, 1);
     newDests.splice(idx, 0, dragged);
     setDestinations(newDests);
-    setDraggedDestIdx(idx);
   };
 
   const handleDestDragEnd = () => {
     setDraggedDestIdx(null);
+    setDropTargetIdx(null);
   };
 
   const addMustVisitPlace = () => {
@@ -720,24 +735,35 @@ function PlanPageContent() {
                       {destinations.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {destinations.map((dest, idx) => (
-                            <Badge
-                              key={dest}
-                              variant="default"
-                              draggable
-                              onDragStart={(e) => handleDestDragStart(e, idx)}
-                              onDragOver={(e) => handleDestDragOver(e, idx)}
-                              onDragEnd={handleDestDragEnd}
-                              className={`pl-1 pr-1 py-1 gap-1 bg-primary/10 text-primary border border-primary/20 cursor-grab active:cursor-grabbing transition-opacity ${
-                                draggedDestIdx === idx ? 'opacity-50' : ''
-                              }`}
-                            >
-                              <GripVertical className="w-3 h-3 text-primary/50" />
-                              {idx > 0 && <span className="text-xs">→</span>}
-                              {dest}
-                              <button onClick={() => removeDestination(dest)} className="ml-1 hover:bg-primary/20 rounded-full p-0.5">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
+                            <div key={dest} className="relative flex items-center">
+                              {/* Drop indicator before */}
+                              {dropTargetIdx === idx && draggedDestIdx !== null && draggedDestIdx > idx && (
+                                <div className="absolute -left-2 top-0 bottom-0 w-1 bg-primary rounded-full animate-pulse" />
+                              )}
+                              <Badge
+                                variant="default"
+                                draggable
+                                onDragStart={(e) => handleDestDragStart(e, idx)}
+                                onDragOver={(e) => handleDestDragOver(e, idx)}
+                                onDrop={(e) => handleDestDrop(e, idx)}
+                                onDragEnd={handleDestDragEnd}
+                                onDragLeave={() => setDropTargetIdx(null)}
+                                className={`pl-1 pr-1 py-1 gap-1 bg-primary/10 text-primary border border-primary/20 cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                                  draggedDestIdx === idx ? 'opacity-40 scale-95' : ''
+                                } ${dropTargetIdx === idx && draggedDestIdx !== idx ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+                              >
+                                <GripVertical className="w-3 h-3 text-primary/50" />
+                                {idx > 0 && <span className="text-xs">→</span>}
+                                {dest}
+                                <button onClick={() => removeDestination(dest)} className="ml-1 hover:bg-primary/20 rounded-full p-0.5">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                              {/* Drop indicator after */}
+                              {dropTargetIdx === idx && draggedDestIdx !== null && draggedDestIdx < idx && (
+                                <div className="absolute -right-2 top-0 bottom-0 w-1 bg-primary rounded-full animate-pulse" />
+                              )}
+                            </div>
                           ))}
                         </div>
                       )}
