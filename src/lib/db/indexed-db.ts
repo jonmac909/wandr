@@ -41,7 +41,7 @@ export interface PlanningState {
   selectedCities: string[];
   routeOrder: string[];
   countryOrder: string[]; // Order of countries to visit (for multi-country trips)
-  phase: 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
+  phase: 'picking' | 'route-planning' | 'auto-itinerary' | 'favorites-library' | 'day-planning';
   currentStepIndex: number;
   updatedAt: Date;
 }

@@ -69,6 +69,9 @@ const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
 
 // Dynamically import HotelPicker
 const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
+
+// Dynamically import AutoItineraryView
+const AutoItineraryView = dynamic(() => import('./AutoItineraryView'), { ssr: false });
 import type { HotelInfo } from '@/lib/planning/hotel-generator';
 import { getTransportOptions, estimateTransportOptions, getRome2RioUrl, get12GoUrl, TRANSPORT_ICONS, type TransportOption } from '@/lib/planning/transport-options';
 
@@ -1090,7 +1093,7 @@ const PLANNING_STEPS: CategoryStep[] = [
   },
 ];
 
-export type PlanningPhase = 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
+export type PlanningPhase = 'picking' | 'route-planning' | 'auto-itinerary' | 'favorites-library' | 'day-planning';
 
 export function SwipeablePlanningView({
   tripDna,
@@ -1749,7 +1752,7 @@ export function SwipeablePlanningView({
     }
   };
 
-  // Confirm route and proceed to itinerary overview (Step 5)
+  // Confirm route and proceed to auto-generated itinerary
   const confirmRoute = () => {
     // Update selectedCities to match the route order
     const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
@@ -1757,8 +1760,8 @@ export function SwipeablePlanningView({
     if (routeOrder.length === 0 && selectedCities.length > 0) {
       setRouteOrder([...selectedCities]);
     }
-    // Move to favorites-library phase (Itinerary overview)
-    setPhase('favorites-library');
+    // Move to auto-itinerary phase (AI-generated itinerary)
+    setPhase('auto-itinerary');
   };
 
   // Move city up in route order
@@ -1985,7 +1988,7 @@ export function SwipeablePlanningView({
   // Calculate main planning stage for progress indicator (used across all phases)
   const getMainStage = () => {
     if (phase === 'route-planning') return 2;
-    if (phase === 'favorites-library' || phase === 'day-planning') return 3;
+    if (phase === 'auto-itinerary' || phase === 'favorites-library' || phase === 'day-planning') return 3;
     if (phase === 'picking' && currentStepIndex > 0) return 3;
     return 1; // Cities step
   };
@@ -2061,6 +2064,20 @@ export function SwipeablePlanningView({
       </div>
     </div>
   );
+
+  // ============ AUTO ITINERARY PHASE ============
+  if (phase === 'auto-itinerary') {
+    const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
+
+    return (
+      <AutoItineraryView
+        cities={citiesToUse}
+        tripDna={tripDna}
+        onBack={() => setPhase('route-planning')}
+        getCityCountry={getCityCountry}
+      />
+    );
+  }
 
   // ============ FAVORITES LIBRARY PHASE ============
   if (phase === 'favorites-library') {
