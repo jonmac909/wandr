@@ -1477,17 +1477,16 @@ export function SwipeablePlanningView({
     }
   };
 
-  // Confirm route and proceed to hotels
+  // Confirm route and proceed to itinerary overview (Step 5)
   const confirmRoute = () => {
     // Update selectedCities to match the route order
-    setSelectedCities([...routeOrder]);
-    // Move to hotels step
-    setCurrentStepIndex(1); // hotels is index 1
-    setPhase('picking');
-    // Load hotels for the cities in route order
-    if (onSearchAI) {
-      onSearchAI(`best hotels in ${routeOrder.join(', ')}`, 'hotels');
+    const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
+    setSelectedCities([...citiesToUse]);
+    if (routeOrder.length === 0 && selectedCities.length > 0) {
+      setRouteOrder([...selectedCities]);
     }
+    // Move to favorites-library phase (Itinerary overview)
+    setPhase('favorites-library');
   };
 
   // Move city up in route order
