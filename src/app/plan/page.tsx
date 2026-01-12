@@ -672,6 +672,16 @@ function PlanPageContent() {
 
   // Handle section change
   const handleSectionChange = (section: PlanningSection) => {
+    const SECTION_ORDER: PlanningSection[] = ['where', 'prefs', 'cities', 'route', 'itinerary'];
+    const currentIdx = SECTION_ORDER.indexOf(currentSection);
+    const targetIdx = SECTION_ORDER.indexOf(section);
+
+    // If moving forward, mark all sections up to current as complete
+    if (targetIdx > currentIdx) {
+      const sectionsToComplete = SECTION_ORDER.slice(0, targetIdx);
+      setCompletedSections(prev => [...new Set([...prev, ...sectionsToComplete])]);
+    }
+
     // Map section to planning phase for SwipeablePlanningView
     if (section === 'cities') {
       setPlanningPhase('picking');

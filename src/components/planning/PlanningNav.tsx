@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type PlanningSection = 'where' | 'prefs' | 'cities' | 'route' | 'itinerary';
@@ -23,19 +24,51 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
 
   const canNavigateTo = (sectionId: PlanningSection) => {
     const sectionIndex = SECTIONS.findIndex(s => s.id === sectionId);
-    // Can navigate to completed sections or the next one after last completed
+    // Can navigate to completed sections
     if (completedSections.includes(sectionId)) return true;
     // Can go to current
     if (sectionId === currentSection) return true;
+    // Can go to next section from current (one step forward)
+    if (sectionIndex === currentIndex + 1) return true;
     // Can go to next if previous is completed
     const prevSection = SECTIONS[sectionIndex - 1];
     if (prevSection && completedSections.includes(prevSection.id)) return true;
     return false;
   };
 
+  const canGoBack = currentIndex > 0;
+  const canGoForward = currentIndex < SECTIONS.length - 1;
+
+  const goBack = () => {
+    if (canGoBack) {
+      onSectionChange(SECTIONS[currentIndex - 1].id);
+    }
+  };
+
+  const goForward = () => {
+    if (canGoForward) {
+      onSectionChange(SECTIONS[currentIndex + 1].id);
+    }
+  };
+
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-center gap-0">
+      <div className="flex items-center justify-center gap-2">
+        {/* Back button */}
+        <button
+          onClick={goBack}
+          disabled={!canGoBack}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+            canGoBack
+              ? "bg-primary/10 text-primary hover:bg-primary/20"
+              : "bg-muted/50 text-muted-foreground/40 cursor-not-allowed"
+          )}
+          aria-label="Previous step"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
         {SECTIONS.map((section, index) => {
           const isCompleted = completedSections.includes(section.id);
           const isCurrent = section.id === currentSection;
@@ -77,6 +110,21 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
             </div>
           );
         })}
+
+        {/* Forward button */}
+        <button
+          onClick={goForward}
+          disabled={!canGoForward}
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+            canGoForward
+              ? "bg-primary/10 text-primary hover:bg-primary/20"
+              : "bg-muted/50 text-muted-foreground/40 cursor-not-allowed"
+          )}
+          aria-label="Next step"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
