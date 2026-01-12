@@ -284,6 +284,8 @@ const CITY_COORDS: Record<string, [number, number]> = {
 
 // City to Country mapping - used to group cities by destination
 const CITY_TO_COUNTRY: Record<string, string> = {
+  // Canada (home)
+  'Kelowna': 'Canada', 'Vancouver': 'Canada',
   // Japan
   'Tokyo': 'Japan', 'Hakone': 'Japan', 'Kyoto': 'Japan', 'Nara': 'Japan',
   'Osaka': 'Japan', 'Hiroshima': 'Japan', 'Fukuoka': 'Japan',
@@ -2285,7 +2287,7 @@ export function SwipeablePlanningView({
         {/* Route Map */}
         {routeOrder.length > 0 && (
           <RouteMap
-            cities={routeOrder}
+            cities={['Kelowna', ...routeOrder]}
             getCityCountry={getCityCountry}
             calculateDistance={calculateDistance}
           />
