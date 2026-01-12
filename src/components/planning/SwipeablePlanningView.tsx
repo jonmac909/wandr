@@ -1529,16 +1529,22 @@ export function SwipeablePlanningView({
   // Reorder cities based on a specific country order
   const reorderByCountryOrder = (newCountryOrder: string[]) => {
     const citiesByCountry: Record<string, string[]> = {};
-    destinations.forEach(dest => { citiesByCountry[dest] = []; });
+    newCountryOrder.forEach(c => { citiesByCountry[c] = []; });
     routeOrder.forEach(city => {
-      const cityItem = items.find(i => i.name === city);
-      const country = cityItem?.tags?.find(t => destinations.includes(t));
-      if (country) {
+      // Use CITY_TO_COUNTRY mapping first, then fall back to tags
+      let country: string | undefined = CITY_TO_COUNTRY[city];
+      if (!country) {
+        const cityItem = items.find(i => i.name === city);
+        country = cityItem?.tags?.find(t => newCountryOrder.includes(t));
+      }
+      if (country && citiesByCountry[country]) {
         citiesByCountry[country].push(city);
       }
     });
     const newOrder = newCountryOrder.flatMap(country => citiesByCountry[country] || []);
-    setRouteOrder(newOrder);
+    if (newOrder.length > 0) {
+      setRouteOrder(newOrder);
+    }
   };
 
   // Get country for a city - use CITY_TO_COUNTRY mapping first, then fall back to tags
@@ -2235,7 +2241,13 @@ export function SwipeablePlanningView({
                       <div
                         draggable
                         onDragStart={() => setDraggedCountryIndex(idx)}
-                        onDragEnd={() => setDraggedCountryIndex(null)}
+                        onDragEnd={() => {
+                          // Reorder cities based on the new country order
+                          if (draggedCountryIndex !== null) {
+                            reorderByCountryOrder(countryOrder);
+                          }
+                          setDraggedCountryIndex(null);
+                        }}
                         onDragOver={(e) => {
                           e.preventDefault();
                           if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
@@ -2344,10 +2356,7 @@ export function SwipeablePlanningView({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            optimizeRoute();
-            reorderByCountryOrder(countryOrder);
-          }}
+          onClick={optimizeRoute}
           className="w-full"
         >
           <Zap className="w-3.5 h-3.5 mr-1.5" />
