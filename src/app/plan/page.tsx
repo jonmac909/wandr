@@ -494,7 +494,8 @@ function PlanPageContent() {
 
   // Auto-save planning progress when section changes
   useEffect(() => {
-    if (!tripId) return;
+    // Don't save while loading - prevents overwriting saved progress with defaults
+    if (!tripId || isLoading) return;
 
     const saveProgress = async () => {
       try {
@@ -521,7 +522,7 @@ function PlanPageContent() {
     };
 
     saveProgress();
-  }, [tripId, currentSection, completedSections, planningPhase]);
+  }, [tripId, currentSection, completedSections, planningPhase, isLoading]);
 
   const getDurationLabel = () => {
     if (durationType === 'days') {
