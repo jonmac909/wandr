@@ -40,6 +40,7 @@ export interface PlanningState {
   selectedIds: string[]; // IDs of selected/favorited items
   selectedCities: string[];
   routeOrder: string[];
+  countryOrder: string[]; // Order of countries to visit (for multi-country trips)
   phase: 'picking' | 'route-planning' | 'favorites-library' | 'day-planning';
   currentStepIndex: number;
   updatedAt: Date;
@@ -377,6 +378,7 @@ export const planningDb = {
       selectedIds: updates.selectedIds ?? existing?.selectedIds ?? [],
       selectedCities: updates.selectedCities ?? existing?.selectedCities ?? [],
       routeOrder: updates.routeOrder ?? existing?.routeOrder ?? [],
+      countryOrder: updates.countryOrder ?? existing?.countryOrder ?? [],
       phase: updates.phase ?? existing?.phase ?? 'picking',
       currentStepIndex: updates.currentStepIndex ?? existing?.currentStepIndex ?? 0,
       updatedAt: new Date(),

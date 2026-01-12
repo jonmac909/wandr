@@ -858,6 +858,7 @@ export function SwipeablePlanningView({
   const [persistenceLoaded, setPersistenceLoaded] = useState(false);
   const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names (moved here for persistence)
   const [parkedCities, setParkedCities] = useState<string[]>([]); // Cities saved but not in route
+  const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
 
   // Load persisted planning state on mount (only if no current selections)
   useEffect(() => {
@@ -871,6 +872,7 @@ export function SwipeablePlanningView({
           setSelectedIds(new Set(saved.selectedIds));
           setSelectedCities(saved.selectedCities);
           if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
+          if (saved.countryOrder?.length) setCountryOrder(saved.countryOrder);
 
           // Also update items' isFavorited status
           if (items.length > 0) {
@@ -901,6 +903,7 @@ export function SwipeablePlanningView({
           selectedIds: Array.from(selectedIds),
           selectedCities,
           routeOrder,
+          countryOrder,
           phase,
           currentStepIndex,
         });
@@ -912,7 +915,7 @@ export function SwipeablePlanningView({
     // Debounce saves
     const timer = setTimeout(saveState, 500);
     return () => clearTimeout(timer);
-  }, [tripId, selectedIds, selectedCities, routeOrder, phase, currentStepIndex, persistenceLoaded]);
+  }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded]);
 
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
@@ -928,7 +931,6 @@ export function SwipeablePlanningView({
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [favoriteCityModal, setFavoriteCityModal] = useState<string | null>(null); // City modal in favorites view
   const [favoriteCityTab, setFavoriteCityTab] = useState<'hotels' | 'restaurants' | 'cafes' | 'activities'>('hotels');
-  const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
   // Route preferences
   const [routePrefs, setRoutePrefs] = useState({
     shortestFlights: true,    // Optimize for shortest total flight time
