@@ -1113,8 +1113,8 @@ export function SwipeablePlanningView({
   // Determine if this is an imported trip (has existing itinerary)
   const hasExistingItinerary = Boolean(itinerary && itinerary.days.length > 0);
 
-  // For imported trips, start in favorites-library phase to review picks before day planning
-  const [internalPhase, setInternalPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'favorites-library' : 'picking');
+  // For imported trips, start in auto-itinerary phase to show AI-generated itinerary
+  const [internalPhase, setInternalPhase] = useState<PlanningPhase>(hasExistingItinerary ? 'auto-itinerary' : 'picking');
 
   // Use controlled phase if provided, otherwise use internal state
   const phase = controlledPhase ?? internalPhase;
