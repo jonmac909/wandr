@@ -2065,8 +2065,8 @@ export function SwipeablePlanningView({
     </div>
   );
 
-  // ============ AUTO ITINERARY PHASE (also handles legacy favorites-library) ============
-  if (phase === 'auto-itinerary' || phase === 'favorites-library') {
+  // ============ AUTO ITINERARY PHASE ============
+  if (phase === 'auto-itinerary') {
     const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
 
     return (
@@ -2079,8 +2079,8 @@ export function SwipeablePlanningView({
     );
   }
 
-  // ============ LEGACY FAVORITES LIBRARY PHASE (kept for reference, now redirects above) ============
-  if (false && phase === 'favorites-library') {
+  // ============ FAVORITES LIBRARY PHASE ============
+  if (phase === 'favorites-library') {
     const { cities: favCities, byCity } = getFavoritesByCity();
 
     // Count total favorites (excluding city items)
