@@ -97,13 +97,13 @@ const DEFAULT_NIGHTS = 2;
 export function allocateDays(
   cities: string[],
   totalDays: number,
-  tripDna: TripDNA,
+  tripDna: TripDNA | null | undefined,
   startDate?: string
 ): CityAllocation[] {
   if (cities.length === 0) return [];
 
-  // Get pace multiplier
-  const paceMultiplier = getPaceMultiplier(tripDna.vibeAndPace.tripPace);
+  // Get pace multiplier (default to balanced if tripDna not available)
+  const paceMultiplier = getPaceMultiplier(tripDna?.vibeAndPace?.tripPace || 'balanced');
 
   // Calculate base allocation
   const baseAllocations = cities.map(city => {

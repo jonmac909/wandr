@@ -215,9 +215,9 @@ export default function AutoItineraryView({
   onBack,
   getCityCountry,
 }: AutoItineraryViewProps) {
-  // Get total days from TripDNA
-  const totalDays = tripDna.constraints.dates.totalDays || 14;
-  const startDate = tripDna.constraints.dates.startDate || new Date().toISOString().split('T')[0];
+  // Get total days from TripDNA (with safe defaults)
+  const totalDays = tripDna?.constraints?.dates?.totalDays || 14;
+  const startDate = tripDna?.constraints?.dates?.startDate || new Date().toISOString().split('T')[0];
 
   // Day allocation state (can be adjusted by user)
   const [allocations, setAllocations] = useState<CityAllocation[]>(() =>
