@@ -418,17 +418,17 @@ const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
   'Tokyo': {
     'Osaka': { time: '1.5hr', stops: 0 }, 'Kyoto': { time: '2hr train', stops: 0 }, 'Hiroshima': { time: '1.5hr', stops: 0 }, 'Fukuoka': { time: '2hr', stops: 0 },
     'Bangkok': { time: '6hr', stops: 0 }, 'Ho Chi Minh City': { time: '5.5hr', stops: 0 }, 'Hanoi': { time: '4.5hr', stops: 0 },
-    'Honolulu': { time: '8hr', stops: 0 },
+    'Honolulu': { time: '7hr', stops: 0 },
   },
   'Osaka': {
     'Tokyo': { time: '1.5hr', stops: 0 }, 'Kyoto': { time: '15min train', stops: 0 }, 'Hiroshima': { time: '1.5hr', stops: 0 }, 'Fukuoka': { time: '1hr', stops: 0 },
     'Bangkok': { time: '5.5hr', stops: 0 }, 'Ho Chi Minh City': { time: '5hr', stops: 0 }, 'Da Nang': { time: '4hr', stops: 0 },
-    'Honolulu': { time: '8-9hr', stops: 0 },
+    'Honolulu': { time: '8hr', stops: 0 },
   },
   // Hawaii - mostly direct to Japan
   'Honolulu': {
     'Maui': { time: '30min', stops: 0 }, 'Kauai': { time: '30min', stops: 0 },
-    'Tokyo': { time: '8hr', stops: 0 }, 'Osaka': { time: '8-9hr', stops: 0 },
+    'Tokyo': { time: '7hr', stops: 0 }, 'Osaka': { time: '8hr', stops: 0 },
     'Kelowna': { time: '8-10hr', stops: 1 }, 'Vancouver': { time: '6hr', stops: 0 },
   },
 };

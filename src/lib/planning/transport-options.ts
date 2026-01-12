@@ -222,7 +222,7 @@ const ROUTE_TRANSPORT: Record<string, Record<string, TransportOption[]>> = {
       { mode: 'bus', duration: '7-8hr', durationMinutes: 450, priceRange: '$25-50', currency: 'USD', badge: 'cheapest' },
     ],
   },
-  // Hawaii inter-island
+  // Hawaii inter-island and Japan connections
   'Honolulu': {
     'Maui': [
       { mode: 'flight', duration: '30-40min', durationMinutes: 35, priceRange: '$80-150', currency: 'USD', badge: 'best', operator: 'Hawaiian, Southwest', frequency: 'Many daily' },
@@ -232,6 +232,12 @@ const ROUTE_TRANSPORT: Record<string, Record<string, TransportOption[]>> = {
     ],
     'Big Island': [
       { mode: 'flight', duration: '45min', durationMinutes: 45, priceRange: '$80-150', currency: 'USD', badge: 'best', operator: 'Hawaiian, Southwest' },
+    ],
+    'Tokyo': [
+      { mode: 'flight', duration: '7hr', durationMinutes: 420, priceRange: '$500-900', currency: 'USD', badge: 'best', operator: 'Hawaiian, Delta, JAL, Alaska', frequency: 'Multiple daily', notes: 'Nonstop flights available' },
+    ],
+    'Osaka': [
+      { mode: 'flight', duration: '8hr', durationMinutes: 480, priceRange: '$500-900', currency: 'USD', badge: 'best', operator: 'Hawaiian, JAL', frequency: 'Daily', notes: 'Nonstop flights available' },
     ],
   },
 };

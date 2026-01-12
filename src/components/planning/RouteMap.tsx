@@ -126,6 +126,35 @@ function createNumberedMarker(number: number) {
   });
 }
 
+// Create home/start marker - plane icon
+function createHomeMarker() {
+  const html = `
+    <div style="
+      width: 28px;
+      height: 28px;
+      background: #f97316;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    ">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+      </svg>
+    </div>
+  `;
+
+  return L.divIcon({
+    className: 'route-map-marker',
+    html,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
 // Map controller for auto-fitting bounds
 function MapController({ coords, isPacificRoute }: { coords: { lat: number; lng: number }[]; isPacificRoute: boolean }) {
   const map = useMap();
@@ -236,18 +265,23 @@ export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
           />
         )}
 
-        {/* Numbered city markers - hover to see name */}
-        {displayCoords.map((city, index) => (
-          <Marker
-            key={city.city}
-            position={[city.coords.lat, city.displayLng]}
-            icon={createNumberedMarker(index + 1)}
-          >
-            <Tooltip direction="top" offset={[0, -14]}>
-              <div className="font-medium text-xs px-1">{city.city}</div>
-            </Tooltip>
-          </Marker>
-        ))}
+        {/* City markers - home icon for first (Kelowna), numbered for trip cities */}
+        {displayCoords.map((city, index) => {
+          const isHome = index === 0;
+          return (
+            <Marker
+              key={city.city}
+              position={[city.coords.lat, city.displayLng]}
+              icon={isHome ? createHomeMarker() : createNumberedMarker(index)}
+            >
+              <Tooltip direction="top" offset={[0, isHome ? -16 : -14]}>
+                <div className="font-medium text-xs px-1">
+                  {isHome ? `${city.city} (Home)` : city.city}
+                </div>
+              </Tooltip>
+            </Marker>
+          );
+        })}
 
         <MapController coords={boundsCoords} isPacificRoute={isPacificRoute} />
       </MapContainer>
