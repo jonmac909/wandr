@@ -175,6 +175,7 @@ function getCitiesForDestination(destination: string): string[] {
     'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki', 'Naxos', 'Paros', 'Zakynthos', 'Hydra', 'Milos', 'Nafplio'],
     'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc', 'Ninh Binh', 'Dalat', 'Mui Ne', 'Can Tho', 'Phong Nha', 'Quy Nhon'],
     'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya', 'Gili Islands', 'Labuan Bajo', 'Sulawesi', 'Sumatra', 'Flores', 'Malang'],
+    'Hawaii': ['Honolulu', 'Waikiki', 'Maui', 'Kauai', 'Big Island', 'Hilo', 'Kona', 'Lahaina', 'North Shore', 'Pearl Harbor'],
   };
   return cityMap[destination] || [];
 }
