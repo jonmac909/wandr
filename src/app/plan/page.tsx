@@ -204,12 +204,26 @@ function PlanPageContent() {
   const [chatOpen, setChatOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Edit mode
+  // Edit mode - check URL param first, then localStorage for active planning session
   const editTripId = searchParams.get('edit');
   const isEditMode = !!editTripId;
 
   // Trip ID for persistence (created when moving past Section 2)
-  const [tripId, setTripId] = useState<string | null>(editTripId);
+  // On mount, check localStorage for an active planning session
+  const [tripId, setTripId] = useState<string | null>(() => {
+    if (editTripId) return editTripId;
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('activePlanningTripId');
+    }
+    return null;
+  });
+
+  // Persist tripId to localStorage when it changes
+  useEffect(() => {
+    if (tripId) {
+      localStorage.setItem('activePlanningTripId', tripId);
+    }
+  }, [tripId]);
 
   // Section 1: Where & When
   const [destinationMode, setDestinationMode] = useState<DestinationMode>('known');
@@ -334,14 +348,16 @@ function PlanPageContent() {
     });
   };
 
-  // Load existing trip data when editing
+  // Load existing trip data when editing OR resuming from localStorage
   useEffect(() => {
     async function loadTripForEdit() {
-      if (!editTripId) return;
+      // Use tripId which could come from URL param or localStorage
+      const loadId = editTripId || tripId;
+      if (!loadId) return;
       setIsLoading(true);
 
       try {
-        const trip = await tripDb.get(editTripId);
+        const trip = await tripDb.get(loadId);
         if (trip?.tripDna) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const dna = trip.tripDna as any;
@@ -454,7 +470,7 @@ function PlanPageContent() {
     }
 
     loadTripForEdit();
-  }, [editTripId]);
+  }, [editTripId, tripId]);
 
   // Pre-fill destination from URL query param (for new trips)
   useEffect(() => {
