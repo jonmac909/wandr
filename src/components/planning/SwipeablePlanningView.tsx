@@ -1218,6 +1218,7 @@ export function SwipeablePlanningView({
   const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop cities
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null); // For drag-and-drop countries
   const [expandedTransport, setExpandedTransport] = useState<number | null>(null); // Which transport segment is expanded
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null); // Selected flight route option
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -2830,52 +2831,77 @@ export function SwipeablePlanningView({
                             {routingOptions.length > 0 ? (
                               <div className="space-y-2">
                                 <div className="text-muted-foreground font-medium">Route Options:</div>
-                                {routingOptions.map((route, idx) => (
-                                  <div
-                                    key={route.id}
-                                    className={`p-2 rounded-lg border ${route.recommended ? 'border-primary/30 bg-primary/5' : 'border-muted'}`}
-                                  >
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="font-medium flex items-center gap-1">
-                                        {route.recommended && <span className="text-primary">★</span>}
-                                        {route.label}
-                                      </span>
-                                      <span className="text-muted-foreground">{route.totalTime}</span>
-                                    </div>
+                                {routingOptions.map((route) => {
+                                  // Check if this route is selected (explicit selection or default to recommended)
+                                  const isSelected = selectedRouteId
+                                    ? selectedRouteId === route.id
+                                    : route.recommended;
 
-                                    {/* Segment breakdown */}
-                                    <div className="text-[10px] text-muted-foreground mb-2">
-                                      {route.segments.map((seg, i) => (
-                                        <span key={i}>
-                                          {seg.from} → {seg.to} ({seg.time})
-                                          {i < route.segments.length - 1 && ' · '}
+                                  return (
+                                    <button
+                                      key={route.id}
+                                      onClick={() => {
+                                        setSelectedRouteId(route.id);
+                                        // Add any stopover cities from this route
+                                        route.connections
+                                          .filter(c => c !== 'Vancouver' && c !== 'Seattle')
+                                          .forEach(city => {
+                                            if (!routeOrder.includes(city)) {
+                                              handleAddStopover(city);
+                                            }
+                                          });
+                                      }}
+                                      className={`w-full text-left p-2 rounded-lg border transition-all ${
+                                        isSelected
+                                          ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
+                                          : 'border-muted hover:border-primary/30 hover:bg-primary/5'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="font-medium flex items-center gap-1">
+                                          {route.recommended && <span className="text-primary">★</span>}
+                                          {route.label}
                                         </span>
-                                      ))}
-                                    </div>
+                                        <span className="text-muted-foreground">{route.totalTime}</span>
+                                      </div>
 
-                                    {/* Connection cities with add stopover buttons */}
-                                    <div className="flex flex-wrap gap-1">
-                                      {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
-                                        <button
-                                          key={city}
-                                          onClick={() => handleAddStopover(city)}
-                                          disabled={routeOrder.includes(city)}
-                                          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
-                                            routeOrder.includes(city)
-                                              ? 'bg-green-100 text-green-700 cursor-default'
-                                              : 'bg-primary/10 text-primary hover:bg-primary/20'
-                                          }`}
-                                        >
-                                          {routeOrder.includes(city) ? (
-                                            <>✓ {city} added</>
-                                          ) : (
-                                            <>+ Add {city} stopover</>
-                                          )}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
+                                      {/* Segment breakdown - use actual firstCity as final destination */}
+                                      <div className="text-[10px] text-muted-foreground mb-2">
+                                        {route.segments.map((seg, i) => {
+                                          // Replace the final segment's destination with the actual first city
+                                          const isLastSegment = i === route.segments.length - 1;
+                                          const to = isLastSegment ? firstCity : seg.to;
+                                          return (
+                                            <span key={i}>
+                                              {seg.from} → {to} ({seg.time})
+                                              {i < route.segments.length - 1 && ' · '}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {/* Connection cities with status badges */}
+                                      <div className="flex flex-wrap gap-1">
+                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
+                                          <span
+                                            key={city}
+                                            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] ${
+                                              routeOrder.includes(city)
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-primary/10 text-primary'
+                                            }`}
+                                          >
+                                            {routeOrder.includes(city) ? (
+                                              <>✓ {city} added</>
+                                            ) : (
+                                              <>+ Add {city} stopover</>
+                                            )}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             ) : (
                               <>
