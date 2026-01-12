@@ -215,9 +215,15 @@ export default function AutoItineraryView({
   onBack,
   getCityCountry,
 }: AutoItineraryViewProps) {
-  // Get total days from TripDNA (with safe defaults)
-  const totalDays = tripDna?.constraints?.dates?.totalDays || 14;
-  const startDate = tripDna?.constraints?.dates?.startDate || new Date().toISOString().split('T')[0];
+  // Get total days from TripDNA (check multiple possible paths)
+  const totalDays =
+    tripDna?.constraints?.dates?.totalDays ||
+    (tripDna?.constraints as unknown as { duration?: { days?: number } })?.duration?.days ||
+    14;
+  const startDate =
+    tripDna?.constraints?.dates?.startDate ||
+    (tripDna?.constraints as unknown as { startDate?: string })?.startDate ||
+    new Date().toISOString().split('T')[0];
 
   // Day allocation state (can be adjusted by user)
   const [allocations, setAllocations] = useState<CityAllocation[]>(() =>
@@ -263,6 +269,11 @@ export default function AutoItineraryView({
       setSelectedActivity({ activity: allActivities[newIdx], index: newIdx + 1 });
     }
   };
+
+  // Recalculate allocations when cities or totalDays change
+  useEffect(() => {
+    setAllocations(allocateDays(cities, totalDays, tripDna, startDate));
+  }, [cities.join(','), totalDays]);
 
   // Generate itinerary on mount or when allocations change
   useEffect(() => {
@@ -374,11 +385,10 @@ export default function AutoItineraryView({
         {/* City allocations - only show when expanded */}
         {isDurationExpanded && (
           <div className="px-4 pb-4 space-y-2">
-            {allocations.map((alloc, idx) => {
-              const color = getCityColor(idx);
+            {allocations.map((alloc) => {
               return (
-                <div key={alloc.city} className={`flex items-center gap-3 p-2 rounded-lg ${color.light}`}>
-                  <div className={`w-2 h-8 rounded-full ${color.bg}`} />
+                <div key={alloc.city} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                  <div className="w-2 h-8 rounded-full bg-primary/60" />
                   <div className="flex-1">
                     <div className="font-medium text-sm">{alloc.city}</div>
                     <div className="text-xs text-muted-foreground">
