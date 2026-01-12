@@ -494,73 +494,19 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* City sections with days */}
-      {!isLoading && allocations.map((alloc, cityIdx) => {
-        const color = getCityColor(cityIdx);
-        const cityDays = getDaysForCity(alloc.city);
-        const isExpanded = expandedCities.has(alloc.city);
-        const hasHotel = selectedHotels[alloc.city];
+      {/* Days - chronological like Wanderlog */}
+      {!isLoading && days.map((day) => {
+        const cityIdx = allocations.findIndex(a => a.city === day.city);
+        const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
 
         return (
-          <div key={alloc.city} className="space-y-3">
-            {/* City header */}
-            <button
-              onClick={() => toggleCity(alloc.city)}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl ${color.light} ${color.border} border transition-all`}
-            >
-              <div className={`w-10 h-10 rounded-full ${color.bg} flex items-center justify-center text-white font-bold`}>
-                {cityIdx + 1}
-              </div>
-              <div className="flex-1 text-left">
-                <div className="font-bold">{alloc.city}</div>
-                <div className="text-xs text-muted-foreground">
-                  {alloc.nights} nights · {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
-                </div>
-              </div>
-              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-            </button>
-
-            {isExpanded && (
-              <div className="space-y-3 pl-4">
-                {/* Hotel prompt */}
-                <button
-                  onClick={() => setHotelPickerCity(alloc.city)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed transition-all ${
-                    hasHotel
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-muted-foreground/30 hover:border-primary/50'
-                  }`}
-                >
-                  <Hotel className={`w-5 h-5 ${hasHotel ? 'text-green-600' : 'text-muted-foreground'}`} />
-                  <div className="flex-1 text-left">
-                    {hasHotel ? (
-                      <>
-                        <div className="font-medium text-sm text-green-700">{hasHotel.name}</div>
-                        <div className="text-xs text-green-600">Tap to change</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="font-medium text-sm">Add hotel for {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}</div>
-                        <div className="text-xs text-muted-foreground">Tap to browse accommodations</div>
-                      </>
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-
-                {/* Days */}
-                {cityDays.map((day) => (
-                  <DayCard
-                    key={day.dayNumber}
-                    day={day}
-                    color={color}
-                    onActivityTap={handleActivityTap}
-                    onActivityDelete={handleActivityDelete}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <DayCard
+            key={day.dayNumber}
+            day={day}
+            color={color}
+            onActivityTap={handleActivityTap}
+            onActivityDelete={handleActivityDelete}
+          />
         );
       })}
 
@@ -740,76 +686,49 @@ interface ActivityCardProps {
 }
 
 function ActivityCard({ activity, index, onTap, onDelete, showTravelTime = true }: ActivityCardProps) {
-  // Mock rating for now
-  const rating = 4.5 + Math.random() * 0.4;
-  const reviewCount = Math.floor(1000 + Math.random() * 5000);
-
   return (
     <div className="relative">
-      {/* Travel time connector (shown above card except first) */}
-      {showTravelTime && activity.walkingTimeToNext && (
-        <div className="flex items-center gap-3 py-2 pl-8">
+      {/* Main card - Wanderlog style: number | content | small image */}
+      <button onClick={onTap} className="w-full text-left">
+        <div className="flex items-start gap-3 p-4 bg-card rounded-xl border hover:border-primary/30 transition-all">
+          {/* Number badge */}
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+            {index}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-base">{activity.name}</h4>
+            <p className="text-sm text-muted-foreground mt-1">
+              {activity.openingHours && <span>Open {activity.openingHours} • </span>}
+              <span className="line-clamp-2">{activity.description}</span>
+            </p>
+          </div>
+
+          {/* Small image on right */}
+          <div className="w-28 h-24 rounded-lg overflow-hidden flex-shrink-0">
+            <img
+              src={activity.imageUrl}
+              alt={activity.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </button>
+
+      {/* Travel time connector below card */}
+      {activity.walkingTimeToNext && (
+        <div className="flex items-center gap-2 py-3 pl-4 ml-4 border-l-2 border-dashed border-muted">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="w-5 h-5 rounded bg-muted flex items-center justify-center">
-              <Footprints className="w-3 h-3" />
-            </div>
-            <span>{activity.walkingTimeToNext} min · {(activity.walkingTimeToNext * 0.05).toFixed(1)} mi</span>
-            <button className="flex items-center gap-1 text-primary hover:underline">
-              Directions
+            <Footprints className="w-4 h-4" />
+            <span>{activity.walkingTimeToNext} min · {(activity.walkingTimeToNext * 0.05).toFixed(2)} mi</span>
+            <button className="flex items-center gap-1 text-muted-foreground hover:text-primary">
               <ChevronDown className="w-3 h-3" />
+              Directions
             </button>
           </div>
         </div>
       )}
-
-      {/* Main card with number badge */}
-      <div className="flex gap-3">
-        {/* Number badge with vertical line */}
-        <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {index}
-          </div>
-          <div className="w-0.5 flex-1 bg-muted mt-2" />
-        </div>
-
-        {/* Card content */}
-        <button onClick={onTap} className="flex-1 text-left group">
-          {/* Large image */}
-          <div className="w-full h-48 rounded-xl overflow-hidden mb-3">
-            <img
-              src={activity.imageUrl}
-              alt={activity.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-
-          {/* Content */}
-          <div className="pr-4">
-            <h4 className="font-bold text-lg">{activity.name}</h4>
-
-            {/* Rating */}
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-              </div>
-              <span className="text-sm text-muted-foreground">({reviewCount.toLocaleString()} reviews)</span>
-            </div>
-
-            {/* Hours */}
-            {activity.openingHours && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Open {activity.openingHours}
-              </p>
-            )}
-
-            {/* Description */}
-            <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-              {activity.description}
-            </p>
-          </div>
-        </button>
-      </div>
     </div>
   );
 }
