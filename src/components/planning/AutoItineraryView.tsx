@@ -565,17 +565,6 @@ export default function AutoItineraryView({
         Auto-fill entire trip
       </Button>
 
-      {/* Route Map */}
-      {cities.length > 0 && getCityCountry && (
-        <div className="rounded-xl overflow-hidden border h-48">
-          <RouteMap
-            cities={cities}
-            getCityCountry={getCityCountry}
-            calculateDistance={() => null}
-          />
-        </div>
-      )}
-
       {/* Tips Section */}
       {cities.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -672,40 +661,81 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View */}
-      {!isLoading && viewMode === 'map' && (
-        <div className="space-y-4">
-          {/* Full height map */}
-          {cities.length > 0 && getCityCountry && (
-            <div className="rounded-xl overflow-hidden border h-[50vh]">
-              <RouteMap
-                cities={cities}
-                getCityCountry={getCityCountry}
-                calculateDistance={() => null}
-              />
+      {/* Map View - Per-day maps */}
+      {!isLoading && viewMode === 'map' && days.map((day) => {
+        const cityIdx = allocations.findIndex(a => a.city === day.city);
+        const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
+        const isEmpty = day.activities.length === 0;
+
+        return (
+          <div key={day.dayNumber} className="border rounded-xl overflow-hidden">
+            {/* Day header */}
+            <div className={`${color.light} p-3 border-b`}>
+              <h3 className="font-bold">{formatFullDate(day.date)}</h3>
+              <p className={`text-sm ${color.text}`}>{day.city} • {day.activities.length} activities</p>
             </div>
-          )}
-          {/* Activity list below map */}
-          <div className="space-y-2">
-            {days.flatMap(day => day.activities).map((activity, idx) => (
-              <button
-                key={activity.id}
-                onClick={() => handleActivityTap(activity, idx + 1)}
-                className="w-full flex items-center gap-3 p-3 bg-card rounded-lg border hover:border-primary/30 text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                  {idx + 1}
+
+            {/* Map for this day's city */}
+            {getCityCountry && (
+              <div className="h-40 relative">
+                <RouteMap
+                  cities={[day.city]}
+                  getCityCountry={getCityCountry}
+                  calculateDistance={() => null}
+                />
+                {/* Activity pins overlay - positioned relative to city center */}
+                {!isEmpty && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="flex gap-1">
+                      {day.activities.slice(0, 5).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-6 h-6 rounded-full ${color.bg} text-white text-xs font-bold flex items-center justify-center shadow-md`}
+                          style={{ transform: `translateX(${(idx - 2) * 20}px)` }}
+                        >
+                          {idx + 1}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Activity list for this day */}
+            <div className="p-3 space-y-2">
+              {isEmpty ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p className="text-sm">No activities planned</p>
+                  <button
+                    onClick={() => autoFillDay(day.dayNumber)}
+                    className="mt-2 text-primary font-medium text-sm hover:underline"
+                  >
+                    Auto-fill day
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{activity.name}</p>
-                  <p className="text-xs text-muted-foreground">{activity.neighborhood}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </button>
-            ))}
+              ) : (
+                day.activities.map((activity, idx) => (
+                  <button
+                    key={activity.id}
+                    onClick={() => handleActivityTap(activity, idx + 1)}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-left"
+                  >
+                    <div className={`w-6 h-6 rounded-full ${color.bg} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{activity.name}</p>
+                      <p className="text-xs text-muted-foreground">{activity.neighborhood}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}
       {!isLoading && viewMode !== 'map' && days.map((day) => {

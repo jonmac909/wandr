@@ -474,9 +474,12 @@ function PlanPageContent() {
     }
   }, [searchParams, editTripId]);
 
+  // Track if end date was manually changed vs calculated from duration
+  const [endDateSource, setEndDateSource] = useState<'duration' | 'manual'>('duration');
+
   // Auto-calculate end date based on duration
   useEffect(() => {
-    if (!startDate) return;
+    if (!startDate || endDateSource === 'manual') return;
 
     const start = new Date(startDate);
     let end: Date;
@@ -494,7 +497,45 @@ function PlanPageContent() {
 
     const formatted = end.toISOString().split('T')[0];
     setEndDate(formatted);
-  }, [startDate, durationType, durationDays, durationWeeks, durationMonths]);
+  }, [startDate, durationType, durationDays, durationWeeks, durationMonths, endDateSource]);
+
+  // Recalculate duration when end date is manually changed
+  useEffect(() => {
+    if (endDateSource !== 'manual' || !startDate || !endDate) return;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Calculate current duration from state for comparison
+    const currentDuration = durationType === 'days'
+      ? durationDays
+      : durationType === 'weeks'
+        ? durationWeeks * 7
+        : durationMonths * 30;
+
+    if (daysDiff > 0 && daysDiff !== currentDuration) {
+      // Update duration to match the manually set dates
+      if (daysDiff >= 30) {
+        setDurationType('months');
+        setDurationMonths(Math.round(daysDiff / 30));
+      } else if (daysDiff >= 7 && daysDiff % 7 === 0) {
+        setDurationType('weeks');
+        setDurationWeeks(Math.round(daysDiff / 7));
+      } else {
+        setDurationType('days');
+        setDurationDays(Math.min(daysDiff, 14)); // Cap at slider max
+        // If more than 14 days but not weeks/months, switch to weeks
+        if (daysDiff > 14) {
+          setDurationType('weeks');
+          setDurationWeeks(Math.ceil(daysDiff / 7));
+        }
+      }
+    }
+
+    // Reset to duration-driven mode after handling
+    setEndDateSource('duration');
+  }, [endDateSource, startDate, endDate, durationType, durationDays, durationWeeks, durationMonths]);
 
   // Auto-save planning progress when section changes
   useEffect(() => {
@@ -956,7 +997,7 @@ function PlanPageContent() {
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">End date</label>
-                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate} className="bg-background" />
+                    <Input type="date" value={endDate} onChange={(e) => { setEndDateSource('manual'); setEndDate(e.target.value); }} min={startDate} className="bg-background" />
                   </div>
                 </div>
               </div>
