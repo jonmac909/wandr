@@ -329,16 +329,19 @@ export default function TripPage() {
     }
   }, [itinerary?.meta?.estimatedBudget?.total]);
 
-  // Set view mode based on whether trip has a generated itinerary
+  // Redirect draft trips to /plan page for 5-section flow
+  // Set view mode for trips with itinerary
   useEffect(() => {
+    if (loading) return; // Wait for load to complete
+
     if (itinerary && itinerary.days.length > 0) {
       // Has generated itinerary - default to trip view
       setViewMode('trip');
-    } else {
-      // Draft/new trip - stay in planning view
-      setViewMode('planning');
+    } else if (tripDna) {
+      // Draft trip - redirect to /plan for 5-section planning flow
+      router.replace(`/plan?edit=${tripId}`);
     }
-  }, [itinerary]);
+  }, [loading, itinerary, tripDna, tripId, router]);
 
   // Initialize planning items from existing itinerary
   useEffect(() => {
