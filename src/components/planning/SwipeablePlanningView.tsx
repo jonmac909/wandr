@@ -421,6 +421,7 @@ const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
   'Tokyo': {
     'Osaka': { time: '1.5hr', stops: 0 }, 'Kyoto': { time: '2hr train', stops: 0 }, 'Hiroshima': { time: '1.5hr', stops: 0 }, 'Fukuoka': { time: '2hr', stops: 0 },
     'Bangkok': { time: '6hr', stops: 0 }, 'Ho Chi Minh City': { time: '5.5hr', stops: 0 }, 'Hanoi': { time: '4.5hr', stops: 0 },
+    'Chiang Mai': { time: '8-9hr', stops: 1 }, 'Chiang Rai': { time: '9-10hr', stops: 1 }, 'Phuket': { time: '8-9hr', stops: 1 },
     'Honolulu': { time: '7hr', stops: 0 },
   },
   'Osaka': {
@@ -435,6 +436,24 @@ const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
     'Kelowna': { time: '8-10hr', stops: 1 }, 'Vancouver': { time: '6hr', stops: 0 },
   },
 };
+
+// Hub connections - when a flight requires a stop, this shows which hub to connect through
+const HUB_CONNECTIONS: Record<string, Record<string, string>> = {
+  'Tokyo': {
+    'Chiang Mai': 'Bangkok', 'Chiang Rai': 'Bangkok', 'Phuket': 'Bangkok', 'Krabi': 'Bangkok', 'Koh Samui': 'Bangkok',
+  },
+  'Osaka': {
+    'Chiang Mai': 'Bangkok', 'Chiang Rai': 'Bangkok', 'Phuket': 'Bangkok',
+  },
+  'Honolulu': {
+    'Bangkok': 'Tokyo', 'Chiang Mai': 'Tokyo', 'Ho Chi Minh City': 'Tokyo',
+  },
+};
+
+// Get hub connection for a route
+function getHubConnection(fromCity: string, toCity: string): string | null {
+  return HUB_CONNECTIONS[fromCity]?.[toCity] || HUB_CONNECTIONS[toCity]?.[fromCity] || null;
+}
 
 // Legacy function for backward compatibility
 const FLIGHT_TIMES: Record<string, Record<string, string>> = Object.fromEntries(
@@ -3042,6 +3061,10 @@ export function SwipeablePlanningView({
                             <span className="text-sm">{TRANSPORT_ICONS[transportMode] || '🚌'}</span>
                             <span className="font-medium">
                               {distance > 0 ? `${distance} km` : ''} · {transportTime || 'See options'}
+                              {flightInfo.stops && flightInfo.stops > 0 && (() => {
+                                const hub = getHubConnection(city, nextCity);
+                                return hub ? ` via ${hub}` : ` · ${flightInfo.stops} stop${flightInfo.stops > 1 ? 's' : ''}`;
+                              })()}
                             </span>
                             {bestOption?.badge && (
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -3123,6 +3146,35 @@ export function SwipeablePlanningView({
                                     </div>
                                   ))}
                                 </div>
+
+                                {/* Hub stopover suggestion */}
+                                {(() => {
+                                  const hub = getHubConnection(city, nextCity);
+                                  if (!hub || routeOrder.includes(hub)) return null;
+                                  return (
+                                    <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                      <div className="text-xs text-amber-800 mb-1.5">
+                                        This flight connects through <strong>{hub}</strong>. Add it as a stopover?
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          // Insert hub between current city and next city
+                                          setRouteOrder(prev => {
+                                            const idx = prev.indexOf(city);
+                                            if (idx === -1) return prev;
+                                            return [...prev.slice(0, idx + 1), hub, ...prev.slice(idx + 1)];
+                                          });
+                                          setSelectedCities(prev =>
+                                            prev.includes(hub) ? prev : [...prev, hub]
+                                          );
+                                        }}
+                                        className="w-full py-1.5 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200 transition-colors"
+                                      >
+                                        + Add {hub} stopover
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
 
                                 {/* Booking links */}
                                 <div className="flex gap-2 pt-2">
