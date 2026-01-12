@@ -613,26 +613,31 @@ interface DayCardProps {
 
 function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
 
+  // Calculate total time for day
+  const totalMinutes = day.activities.reduce((sum, a) => sum + (a.duration || 60), 0);
+  const totalMiles = day.activities.reduce((sum, a) => sum + (a.walkingTimeToNext || 0) * 0.05, 0);
+
   return (
-    <div className="border-b pb-4">
+    <div className="border-b pb-6">
       {/* Day header - clickable to expand/collapse */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full text-left py-3"
+        className="w-full text-left py-4"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold">{formatFullDate(day.date)}</h3>
               <button className="p-1 hover:bg-muted rounded" onClick={(e) => e.stopPropagation()}>
-                <span className="text-muted-foreground">•••</span>
+                <span className="text-muted-foreground text-lg">•••</span>
               </button>
             </div>
             {!isExpanded && activitySummary && (
-              <p className="text-sm text-primary truncate mt-1">{activitySummary}</p>
+              <p className="text-sm text-primary font-medium truncate mt-1">{activitySummary}</p>
             )}
           </div>
         </div>
@@ -640,41 +645,81 @@ function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) 
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="pl-7 space-y-4">
-          {/* Action buttons */}
-          <div className="flex items-center gap-4 text-sm">
-            <button className="flex items-center gap-1 text-primary font-medium">
+        <div className="space-y-4">
+          {/* Action buttons row */}
+          <div className="flex items-center gap-4 text-sm ml-8">
+            <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
               <Sparkles className="w-4 h-4" />
               Auto-fill day
             </button>
             <span className="text-muted-foreground">•</span>
-            <button className="flex items-center gap-1 text-primary font-medium">
+            <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
               <MapPin className="w-4 h-4" />
               Optimize route
             </button>
+            {day.activities.length > 0 && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">
+                  {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
+                </span>
+              </>
+            )}
           </div>
 
+          {/* Hotel prompt - Wanderlog style */}
+          {showHotelPrompt && (
+            <div className="ml-8 bg-secondary/50 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Hotel className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm">
+                  Looks like you don&apos;t have lodging for {formatDate(day.date)} yet.
+                </p>
+              </div>
+              <Button size="sm" className="bg-primary hover:bg-primary/90">
+                Book hotels
+              </Button>
+              <button
+                onClick={() => setShowHotelPrompt(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Activities */}
-          <div className="space-y-3">
+          <div className="space-y-0">
             {day.activities.map((activity, idx) => (
-              <ActivityCard
-                key={activity.id}
-                activity={activity}
-                index={idx + 1}
-                color={color}
-                onTap={() => onActivityTap(activity, idx + 1)}
-                onDelete={() => onActivityDelete(activity.id)}
-              />
+              <div key={activity.id}>
+                {/* Travel time connector between activities */}
+                {idx > 0 && activity.walkingTimeToNext && (
+                  <TravelTimeConnector
+                    minutes={day.activities[idx - 1].walkingTimeToNext || 10}
+                    miles={(day.activities[idx - 1].walkingTimeToNext || 10) * 0.05}
+                  />
+                )}
+                <ActivityCard
+                  activity={activity}
+                  index={idx + 1}
+                  color={color}
+                  onTap={() => onActivityTap(activity, idx + 1)}
+                  onDelete={() => onActivityDelete(activity.id)}
+                  showTravelTime={false}
+                />
+              </div>
             ))}
           </div>
 
           {/* Add a place */}
-          <div className="flex items-center gap-2 py-3 px-4 bg-muted/30 rounded-xl">
+          <div className="ml-8 flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
             <MapPin className="w-5 h-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Add a place"
-              className="flex-1 bg-transparent text-sm outline-none"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -691,85 +736,98 @@ interface ActivityCardProps {
   color: typeof DAY_COLORS[0];
   onTap: () => void;
   onDelete: () => void;
+  showTravelTime?: boolean;
 }
 
-function ActivityCard({ activity, index, color, onTap, onDelete }: ActivityCardProps) {
+function ActivityCard({ activity, index, onTap, onDelete, showTravelTime = true }: ActivityCardProps) {
+  // Mock rating for now
+  const rating = 4.5 + Math.random() * 0.4;
+  const reviewCount = Math.floor(1000 + Math.random() * 5000);
+
   return (
-    <div className="group bg-card border rounded-xl overflow-hidden hover:border-primary/30 transition-all">
-      <div className="flex">
-        {/* Left side - drag handle, checkbox, number */}
-        <div className="flex items-start gap-1 p-3 pr-0">
-          <button className="p-1 text-muted-foreground/50 hover:text-muted-foreground cursor-grab">
-            <GripVertical className="w-4 h-4" />
-          </button>
-          <div className={`w-7 h-7 rounded-full ${color.bg} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-            {index}
+    <div className="relative">
+      {/* Travel time connector (shown above card except first) */}
+      {showTravelTime && activity.walkingTimeToNext && (
+        <div className="flex items-center gap-3 py-2 pl-8">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="w-5 h-5 rounded bg-muted flex items-center justify-center">
+              <Footprints className="w-3 h-3" />
+            </div>
+            <span>{activity.walkingTimeToNext} min · {(activity.walkingTimeToNext * 0.05).toFixed(1)} mi</span>
+            <button className="flex items-center gap-1 text-primary hover:underline">
+              Directions
+              <ChevronDown className="w-3 h-3" />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Middle - content */}
-        <button onClick={onTap} className="flex-1 p-3 pl-2 text-left">
-          <div className="font-semibold text-sm">{activity.name}</div>
-
-          {/* Opening hours + short description */}
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {activity.openingHours && (
-              <span>Open {activity.openingHours} • </span>
-            )}
-            <span className="line-clamp-2">{activity.description}</span>
+      {/* Main card with number badge */}
+      <div className="flex gap-3">
+        {/* Number badge with vertical line */}
+        <div className="flex flex-col items-center">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+            {index}
           </div>
+          <div className="w-0.5 flex-1 bg-muted mt-2" />
+        </div>
 
-          {/* Notes placeholder */}
-          <div className="text-xs text-muted-foreground/60 italic mt-2">
-            Add notes, links, etc. here
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-            <button className="flex items-center gap-1 hover:text-foreground">
-              <Clock className="w-3 h-3" />
-              Add time
-            </button>
-            <button className="flex items-center gap-1 hover:text-foreground">
-              <DollarSign className="w-3 h-3" />
-              Add cost
-            </button>
-          </div>
-        </button>
-
-        {/* Right side - image */}
-        <div className="p-3 pl-0">
-          <div className="w-24 h-20 rounded-lg overflow-hidden relative">
+        {/* Card content */}
+        <button onClick={onTap} className="flex-1 text-left group">
+          {/* Large image */}
+          <div className="w-full h-48 rounded-xl overflow-hidden mb-3">
             <img
               src={activity.imageUrl}
               alt={activity.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           </div>
-        </div>
 
-        {/* Delete button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="p-3 pl-0 text-muted-foreground/30 hover:text-destructive transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
+          {/* Content */}
+          <div className="pr-4">
+            <h4 className="font-bold text-lg">{activity.name}</h4>
+
+            {/* Rating */}
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+              </div>
+              <span className="text-sm text-muted-foreground">({reviewCount.toLocaleString()} reviews)</span>
+            </div>
+
+            {/* Hours */}
+            {activity.openingHours && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Open {activity.openingHours}
+              </p>
+            )}
+
+            {/* Description */}
+            <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
+              {activity.description}
+            </p>
+          </div>
         </button>
       </div>
+    </div>
+  );
+}
 
-      {/* Walking time footer */}
-      {activity.walkingTimeToNext && (
-        <div className="px-4 py-2 border-t bg-muted/30 flex items-center gap-2 text-xs text-muted-foreground">
-          <Footprints className="w-3 h-3" />
-          <span>{activity.walkingTimeToNext} min</span>
-          <span className="text-muted-foreground/50">·</span>
-          <span>{(activity.walkingTimeToNext * 0.05).toFixed(1)} mi</span>
-          <button className="ml-auto flex items-center gap-1 hover:text-foreground">
-            <span>Directions</span>
-            <ChevronDown className="w-3 h-3" />
-          </button>
+// Travel time connector between activities
+function TravelTimeConnector({ minutes, miles }: { minutes: number; miles: number }) {
+  return (
+    <div className="flex items-center gap-3 py-3 pl-8 ml-4 border-l-2 border-dashed border-muted">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground -ml-6 bg-background px-2">
+        <div className="w-6 h-6 rounded bg-muted/80 flex items-center justify-center">
+          <Footprints className="w-3.5 h-3.5" />
         </div>
-      )}
+        <span>{minutes} min · {miles.toFixed(1)} mi</span>
+        <button className="flex items-center gap-1 text-primary hover:underline">
+          Directions
+          <ChevronDown className="w-3 h-3" />
+        </button>
+      </div>
     </div>
   );
 }
