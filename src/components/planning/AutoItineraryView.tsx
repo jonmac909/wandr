@@ -297,6 +297,14 @@ export default function AutoItineraryView({
   // Activity detail drawer
   const [selectedActivity, setSelectedActivity] = useState<{ activity: GeneratedActivity; index: number } | null>(null);
 
+  // Full-screen map state
+  const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
+
+  // Flatten all activities for map navigation (with city/date info)
+  const allActivitiesWithMeta = useMemo(() => {
+    return days.flatMap(day => day.activities.map(activity => ({ ...activity, city: day.city, date: day.date })));
+  }, [days]);
+
   // Get all activities for drawer navigation
   const allActivities = days.flatMap(d => d.activities);
   const totalActivityCount = allActivities.length;
@@ -667,81 +675,211 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - Per-day maps */}
-      {!isLoading && viewMode === 'map' && days.map((day) => {
-        const cityIdx = allocations.findIndex(a => a.city === day.city);
-        const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
-        const isEmpty = day.activities.length === 0;
+      {/* Full-screen Map View */}
+      {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          {/* Exit button */}
+          <button
+            onClick={() => setViewMode('picture')}
+            className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg text-sm font-medium"
+          >
+            <X className="w-4 h-4" />
+            Exit map
+          </button>
 
-        return (
-          <div key={day.dayNumber} className="border rounded-xl overflow-hidden">
-            {/* Day header */}
-            <div className={`${color.light} p-3 border-b`}>
-              <h3 className="font-bold">{formatFullDate(day.date)}</h3>
-              <p className={`text-sm ${color.text}`}>{day.city} • {day.activities.length} activities</p>
-            </div>
-
-            {/* Map for this day's city */}
+          {/* Map area */}
+          <div className="flex-1 relative">
             {getCityCountry && (
-              <div className="h-40 relative">
-                <RouteMap
-                  cities={[day.city]}
-                  getCityCountry={getCityCountry}
-                  calculateDistance={() => null}
-                />
-                {/* Activity pins overlay - positioned relative to city center */}
-                {!isEmpty && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="flex gap-1">
-                      {day.activities.slice(0, 5).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className={`w-6 h-6 rounded-full ${color.bg} text-white text-xs font-bold flex items-center justify-center shadow-md`}
-                          style={{ transform: `translateX(${(idx - 2) * 20}px)` }}
-                        >
-                          {idx + 1}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <RouteMap
+                cities={cities}
+                getCityCountry={getCityCountry}
+                calculateDistance={() => null}
+              />
             )}
-
-            {/* Activity list for this day */}
-            <div className="p-3 space-y-2">
-              {isEmpty ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  <p className="text-sm">No activities planned</p>
+            {/* Numbered markers overlay */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="flex flex-wrap gap-1 max-w-xs">
+                {allActivitiesWithMeta.slice(0, 9).map((_, idx) => (
                   <button
-                    onClick={() => autoFillDay(day.dayNumber)}
-                    className="mt-2 text-primary font-medium text-sm hover:underline"
+                    key={idx}
+                    onClick={() => setMapSelectedIndex(idx)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg pointer-events-auto cursor-pointer ${
+                      idx === mapSelectedIndex ? 'bg-violet-600 ring-4 ring-violet-200' : 'bg-violet-500'
+                    }`}
+                    style={{ transform: `translate(${(idx % 5 - 2) * 30}px, ${Math.floor(idx / 5) * 25}px)` }}
                   >
-                    Auto-fill day
+                    {idx + 1}
                   </button>
-                </div>
-              ) : (
-                day.activities.map((activity, idx) => (
-                  <button
-                    key={activity.id}
-                    onClick={() => handleActivityTap(activity, idx + 1)}
-                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-left"
-                  >
-                    <div className={`w-6 h-6 rounded-full ${color.bg} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{activity.name}</p>
-                      <p className="text-xs text-muted-foreground">{activity.neighborhood}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))
-              )}
+                ))}
+              </div>
             </div>
           </div>
-        );
-      })}
+
+          {/* Bottom navigation bar */}
+          <div className="absolute bottom-[45%] left-0 right-0 flex items-center justify-center gap-2 px-4 py-2">
+            <button
+              onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
+              disabled={mapSelectedIndex === 0}
+              className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="px-3 py-1.5 bg-white rounded-full shadow-lg text-sm font-medium">
+              {mapSelectedIndex + 1} of {allActivitiesWithMeta.length}
+            </span>
+            <button
+              onClick={() => setMapSelectedIndex(Math.min(allActivitiesWithMeta.length - 1, mapSelectedIndex + 1))}
+              disabled={mapSelectedIndex === allActivitiesWithMeta.length - 1}
+              className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button className="p-2 bg-white rounded-full shadow-lg">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+                <path d="M11 8v6M8 11h6"/>
+              </svg>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-lg text-sm">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18"/>
+              </svg>
+              Optimize route
+              <Badge className="bg-violet-100 text-violet-700 text-xs">PRO</Badge>
+            </button>
+            <button
+              onClick={() => setViewMode('picture')}
+              className="p-2 bg-white rounded-full shadow-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Bottom sheet with activity details */}
+          <div className="bg-white border-t rounded-t-2xl shadow-2xl" style={{ height: '45%' }}>
+            {/* Tabs */}
+            <div className="flex border-b px-4">
+              {['About', 'Reviews', 'Photos', 'Mentions'].map((tab, idx) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-3 text-sm font-medium ${idx === 0 ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Activity content */}
+            {allActivitiesWithMeta[mapSelectedIndex] && (
+              <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(45% - 50px)' }}>
+                {/* Header with image */}
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                    {mapSelectedIndex + 1}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg">{allActivitiesWithMeta[mapSelectedIndex].name}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{allActivitiesWithMeta[mapSelectedIndex].description}</p>
+                  </div>
+                  {allActivitiesWithMeta[mapSelectedIndex].imageUrl && (
+                    <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={allActivitiesWithMeta[mapSelectedIndex].imageUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Added button */}
+                <div className="mb-4">
+                  <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-sm">
+                    <span>🔖</span>
+                    Added
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {allActivitiesWithMeta[mapSelectedIndex].tags?.slice(0, 3).map((tag) => (
+                    <span key={tag} className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Rating */}
+                <div className="flex items-center gap-2 mb-3">
+                  <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                  <span className="font-semibold text-amber-600">4.3</span>
+                  <span className="text-gray-500">(25688)</span>
+                  <span className="text-blue-500 font-bold">G</span>
+                  <span className="text-gray-400 mx-2">•</span>
+                  <span className="text-gray-500 text-sm">Mentioned by</span>
+                  <span className="text-violet-600 text-sm">+118 other lists</span>
+                </div>
+
+                {/* Address */}
+                <div className="flex items-start gap-2 mb-3">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <span className="text-sm text-gray-600">
+                    {allActivitiesWithMeta[mapSelectedIndex].neighborhood}, {allActivitiesWithMeta[mapSelectedIndex].city}
+                  </span>
+                </div>
+
+                {/* Hours */}
+                {allActivitiesWithMeta[mapSelectedIndex].openingHours && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {new Date().toLocaleDateString('en-US', { weekday: 'long' })}: {allActivitiesWithMeta[mapSelectedIndex].openingHours}
+                    </span>
+                  </div>
+                )}
+
+                {/* Day pills */}
+                <div className="flex items-center gap-1 mb-3">
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                    <span key={d} className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-violet-100 text-violet-700 rounded">
+                      {d}
+                    </span>
+                  ))}
+                  <button className="ml-2 text-sm text-violet-600">Show times</button>
+                </div>
+
+                {/* Duration */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-gray-400">⏱</span>
+                  <span className="text-sm text-gray-600">
+                    People typically spend {allActivitiesWithMeta[mapSelectedIndex].duration || 30} min here
+                  </span>
+                </div>
+
+                {/* Open in */}
+                <div className="pt-3 border-t">
+                  <p className="text-sm text-gray-500 mb-2">Open in:</p>
+                  <div className="flex gap-2">
+                    <button className="px-3 py-1.5 bg-gray-100 rounded-lg text-sm">Google Maps</button>
+                    <button className="px-3 py-1.5 bg-gray-100 rounded-lg text-sm">Apple Maps</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state for map view */}
+      {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length === 0 && (
+        <div className="text-center py-12">
+          <Map className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">No activities to show on map</p>
+          <p className="text-sm text-gray-400">Auto-fill your trip to see activities</p>
+        </div>
+      )}
 
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}
       {!isLoading && viewMode !== 'map' && days.map((day) => {
@@ -813,6 +951,7 @@ interface DayCardProps {
 function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
+  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
   const isEmpty = day.activities.length === 0;
 
@@ -936,29 +1075,126 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
 
           {/* Activities - Compact View (no images) */}
           {!isEmpty && viewMode === 'compact' && (
-            <div className="space-y-1 ml-8">
-              {day.activities.map((activity, idx) => (
-                <button
-                  key={activity.id}
-                  onClick={() => onActivityTap(activity, idx + 1)}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-left group"
-                >
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {idx + 1}
+            <div className="space-y-0 ml-4">
+              {day.activities.map((activity, idx) => {
+                const isActivityExpanded = expandedActivityId === activity.id;
+                const walkingTime = activity.walkingTimeToNext || Math.floor(Math.random() * 15) + 5;
+                const walkingMiles = (walkingTime * 0.05).toFixed(2);
+
+                return (
+                  <div key={activity.id}>
+                    {/* Activity row - expandable */}
+                    <div className={`bg-gray-100 rounded-lg ${isActivityExpanded ? 'ring-2 ring-violet-300' : ''}`}>
+                      <button
+                        onClick={() => setExpandedActivityId(isActivityExpanded ? null : activity.id)}
+                        className="w-full flex items-center gap-3 p-3 text-left"
+                      >
+                        {isActivityExpanded && (
+                          <>
+                            <GripVertical className="w-4 h-4 text-gray-400" />
+                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                          </>
+                        )}
+                        <div className="w-7 h-7 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-base text-gray-900">{activity.name}</p>
+                          {isActivityExpanded && activity.openingHours && (
+                            <p className="text-sm text-gray-600">Open {activity.openingHours} • Add notes, links, etc. here</p>
+                          )}
+                        </div>
+                        {isActivityExpanded && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
+                            className="p-1 text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </button>
+
+                      {/* Expanded content */}
+                      {isActivityExpanded && (
+                        <div className="px-3 pb-3 space-y-3">
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-4 text-sm">
+                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
+                              <Clock className="w-4 h-4" />
+                              Add time
+                            </button>
+                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
+                              <span className="text-lg">📎</span>
+                              Attach
+                            </button>
+                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
+                              <DollarSign className="w-4 h-4" />
+                              Add cost
+                            </button>
+                          </div>
+
+                          {/* Rating */}
+                          <div className="flex items-center gap-2">
+                            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                            <span className="font-medium text-gray-900">4.5</span>
+                            <span className="text-gray-500">(1,234)</span>
+                            <span className="text-blue-500 text-lg">G</span>
+                          </div>
+
+                          {/* Address */}
+                          <div className="flex items-start gap-2 text-sm text-gray-600">
+                            <MapPin className="w-4 h-4 mt-0.5 text-gray-400 flex-shrink-0" />
+                            <span>{activity.neighborhood || day.city}</span>
+                          </div>
+
+                          {/* Opening hours */}
+                          {activity.openingHours && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="w-4 h-4 text-gray-400" />
+                              <span className="text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}: {activity.openingHours}</span>
+                            </div>
+                          )}
+
+                          {/* Day pills */}
+                          <div className="flex items-center gap-1">
+                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                              <span key={d} className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-violet-100 text-violet-700 rounded">
+                                {d}
+                              </span>
+                            ))}
+                            <button className="ml-2 text-sm text-violet-600 hover:underline">Show times</button>
+                          </div>
+
+                          {/* Duration */}
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span>⏱</span>
+                            <span>People typically spend {activity.duration || 60} min here</span>
+                          </div>
+
+                          {/* Added by / View on map */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-500">Added by you</span>
+                            <span className="text-gray-300">·</span>
+                            <button className="text-violet-600 hover:underline">View on map</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Walking info below each item */}
+                    <div className="flex items-center justify-center gap-2 py-2 text-gray-500">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/>
+                      </svg>
+                      <span className="text-sm">{walkingTime} min · {walkingMiles} mi</span>
+                      <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                        <ChevronDown className="w-3 h-3" />
+                        Directions
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{activity.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.suggestedTime && <span>{activity.suggestedTime} · </span>}
-                      {activity.openingHours && <span>Open {activity.openingHours}</span>}
-                    </p>
-                  </div>
-                  {activity.walkingTimeToNext && idx < day.activities.length - 1 && (
-                    <span className="text-xs text-muted-foreground">{activity.walkingTimeToNext}min</span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
