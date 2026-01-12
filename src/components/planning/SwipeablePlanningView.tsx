@@ -2426,28 +2426,73 @@ export function SwipeablePlanningView({
               {/* Flight connector to first city */}
               {(() => {
                 const flightInfo = getFlightInfo('Kelowna', routeOrder[0]);
+                const isExpanded = expandedTransport === -1; // Use -1 for home connector
+                const transportColor = flightInfo.stops === 0 ? 'text-green-600' : flightInfo.stops === 1 ? 'text-amber-600' : 'text-red-600';
+                const barColor = flightInfo.stops === 0 ? 'bg-green-400' : flightInfo.stops === 1 ? 'bg-amber-400' : 'bg-red-400';
+
                 return (
-                  <div className="flex items-center gap-2 py-1 pl-[1.25rem]">
-                    <div className="w-0.5 h-8 bg-orange-400" />
-                    <a
-                      href={flightInfo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 hover:underline"
-                    >
-                      <Plane className="w-3 h-3" />
-                      Flight to {routeOrder[0]} · {flightInfo.time || 'Check time'}
-                      {flightInfo.stops !== null && (
-                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
-                          flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {formatStops(flightInfo.stops)}
-                        </span>
-                      )}
-                      <span className="text-orange-400 ml-1">→</span>
-                    </a>
+                  <div className="pl-[1.25rem]">
+                    <div className="flex items-start gap-2">
+                      <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
+                      <div className="flex-1 py-1">
+                        {/* Clickable transport summary */}
+                        <button
+                          onClick={() => setExpandedTransport(isExpanded ? null : -1)}
+                          className={`flex items-center gap-1.5 text-xs ${transportColor} hover:opacity-80 transition-opacity`}
+                        >
+                          <Plane className="w-3.5 h-3.5" />
+                          <span className="font-medium">
+                            Flight to {routeOrder[0]} · {flightInfo.time || 'Check time'}
+                          </span>
+                          {flightInfo.stops !== null && (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
+                              flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {formatStops(flightInfo.stops)}
+                            </span>
+                          )}
+                          <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Expanded details dropdown */}
+                        {isExpanded && (
+                          <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Route</span>
+                              <span className="font-medium">Kelowna → {routeOrder[0]}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Est. time</span>
+                              <span className="font-medium">{flightInfo.time || 'Check availability'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Connections</span>
+                              <span className={`font-medium ${transportColor}`}>
+                                {flightInfo.stops === 0 ? 'Direct flight' :
+                                 flightInfo.stops === 1 ? '1 connection' :
+                                 flightInfo.stops !== null ? `${flightInfo.stops} connections` : 'Unknown'}
+                              </span>
+                            </div>
+                            {flightInfo.stops !== null && flightInfo.stops >= 2 && (
+                              <div className="pt-2 border-t text-amber-600">
+                                ⚠️ Consider breaking this up with a stopover
+                              </div>
+                            )}
+                            <a
+                              href={flightInfo.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                            >
+                              Search flights on Google
+                              <ArrowRight className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })()}

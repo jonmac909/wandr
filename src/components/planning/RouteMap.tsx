@@ -4,8 +4,6 @@ import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Car, Plane, Train } from 'lucide-react';
-import { renderToStaticMarkup } from 'react-dom/server';
 
 // City coordinates
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -110,7 +108,7 @@ function getMidpoint(lat1: number, lng1: number, lat2: number, lng2: number) {
 }
 
 // Create pink pin marker
-function createPinkMarker(cityName: string) {
+function createPinkMarker() {
   const html = `
     <div style="position: relative;">
       <div style="
@@ -170,21 +168,21 @@ function createTransportBadge(mode: 'car' | 'train' | 'flight', time: string) {
 }
 
 // Map controller for auto-fitting bounds
-function MapController({ cities }: { cities: string[] }) {
+function MapController({ coords, isPacificRoute }: { coords: { lat: number; lng: number }[]; isPacificRoute: boolean }) {
   const map = useMap();
 
   useEffect(() => {
-    const coords = cities
-      .map(city => CITY_COORDINATES[city])
-      .filter(Boolean);
-
     if (coords.length === 0) return;
 
-    const bounds = L.latLngBounds(
-      coords.map(c => [c.lat, c.lng] as [number, number])
-    );
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
-  }, [map, cities]);
+    if (isPacificRoute) {
+      // For Pacific routes, use a Pacific-centered view
+      const bounds = L.latLngBounds(coords.map(c => [c.lat, c.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 4 });
+    } else {
+      const bounds = L.latLngBounds(coords.map(c => [c.lat, c.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
+    }
+  }, [map, coords, isPacificRoute]);
 
   return null;
 }
@@ -201,20 +199,51 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
       .filter(c => c.coords);
   }, [cities, getCityCountry]);
 
+  // Check if this is a Pacific route
+  // Pacific route: traveling from Americas to Asia (Thailand, Vietnam, Japan, etc.)
+  // The proper flight path goes WEST across the Pacific, not EAST across Atlantic
+  const isPacificRoute = useMemo(() => {
+    const asianCountries = ['Thailand', 'Vietnam', 'Japan', 'Indonesia', 'Philippines', 'Malaysia', 'Singapore', 'Cambodia', 'Laos', 'Myanmar'];
+    const pacificCountries = ['Hawaii']; // Hawaii is in the Pacific
+
+    const hasAsianDestination = cityCoords.some(c => asianCountries.includes(c.country || ''));
+    const hasPacificDestination = cityCoords.some(c => pacificCountries.includes(c.country || ''));
+    const hasAmericasDestination = cityCoords.some(c => c.coords.lng < -100); // West coast Americas
+
+    // If traveling between Asia and Americas/Hawaii, it's a Pacific route
+    return hasAsianDestination && (hasPacificDestination || hasAmericasDestination);
+  }, [cityCoords]);
+
+  // Shift longitude for Pacific-centered view
+  const shiftLng = (lng: number) => {
+    if (isPacificRoute && lng < 0) {
+      return lng + 360; // Shift -157 to 203
+    }
+    return lng;
+  };
+
+  // Get display coordinates (shifted for Pacific routes)
+  const displayCoords = useMemo(() => {
+    return cityCoords.map(c => ({
+      ...c,
+      displayLng: shiftLng(c.coords.lng),
+    }));
+  }, [cityCoords, isPacificRoute]);
+
   // Build route segments with transport info
   const routeSegments = useMemo(() => {
     const segments: {
-      from: { city: string; lat: number; lng: number };
-      to: { city: string; lat: number; lng: number };
+      from: { city: string; lat: number; lng: number; displayLng: number };
+      to: { city: string; lat: number; lng: number; displayLng: number };
       distance: number;
       mode: 'car' | 'train' | 'flight';
       time: string;
       isCrossCountry: boolean;
     }[] = [];
 
-    for (let i = 0; i < cityCoords.length - 1; i++) {
-      const from = cityCoords[i];
-      const to = cityCoords[i + 1];
+    for (let i = 0; i < displayCoords.length - 1; i++) {
+      const from = displayCoords[i];
+      const to = displayCoords[i + 1];
       const distance = calculateDistance(from.city, to.city) || 0;
       const isCrossCountry = from.country !== to.country;
 
@@ -240,8 +269,8 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
       }
 
       segments.push({
-        from: { city: from.city, lat: from.coords.lat, lng: from.coords.lng },
-        to: { city: to.city, lat: to.coords.lat, lng: to.coords.lng },
+        from: { city: from.city, lat: from.coords.lat, lng: from.coords.lng, displayLng: from.displayLng },
+        to: { city: to.city, lat: to.coords.lat, lng: to.coords.lng, displayLng: to.displayLng },
         distance,
         mode,
         time,
@@ -250,15 +279,20 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
     }
 
     return segments;
-  }, [cityCoords, calculateDistance]);
+  }, [displayCoords, calculateDistance]);
 
-  // Initial center
+  // Initial center - Pacific centered if needed
   const initialCenter = useMemo(() => {
-    if (cityCoords.length === 0) return { lat: 20, lng: 100 };
-    const avgLat = cityCoords.reduce((sum, c) => sum + c.coords.lat, 0) / cityCoords.length;
-    const avgLng = cityCoords.reduce((sum, c) => sum + c.coords.lng, 0) / cityCoords.length;
+    if (displayCoords.length === 0) return { lat: 20, lng: isPacificRoute ? 180 : 100 };
+    const avgLat = displayCoords.reduce((sum, c) => sum + c.coords.lat, 0) / displayCoords.length;
+    const avgLng = displayCoords.reduce((sum, c) => sum + c.displayLng, 0) / displayCoords.length;
     return { lat: avgLat, lng: avgLng };
-  }, [cityCoords]);
+  }, [displayCoords, isPacificRoute]);
+
+  // Bounds coordinates for map controller
+  const boundsCoords = useMemo(() => {
+    return displayCoords.map(c => ({ lat: c.coords.lat, lng: c.displayLng }));
+  }, [displayCoords]);
 
   if (cities.length === 0) {
     return (
@@ -272,10 +306,13 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
     <div className="h-[200px] rounded-xl overflow-hidden border">
       <MapContainer
         center={[initialCenter.lat, initialCenter.lng]}
-        zoom={5}
+        zoom={3}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
+        worldCopyJump={false}
+        maxBounds={isPacificRoute ? [[-90, -30], [90, 390]] : undefined}
+        maxBoundsViscosity={isPacificRoute ? 1.0 : 0}
       >
         {/* Use a cleaner map style similar to Google Maps */}
         <TileLayer
@@ -288,8 +325,8 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
           <Polyline
             key={idx}
             positions={[
-              [segment.from.lat, segment.from.lng],
-              [segment.to.lat, segment.to.lng],
+              [segment.from.lat, segment.from.displayLng],
+              [segment.to.lat, segment.to.displayLng],
             ]}
             pathOptions={{
               color: '#f97316', // Orange
@@ -300,11 +337,11 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
         ))}
 
         {/* City markers with pink pins */}
-        {cityCoords.map((city, idx) => (
+        {displayCoords.map((city) => (
           <Marker
             key={city.city}
-            position={[city.coords.lat, city.coords.lng]}
-            icon={createPinkMarker(city.city)}
+            position={[city.coords.lat, city.displayLng]}
+            icon={createPinkMarker()}
           >
             <Tooltip
               permanent
@@ -320,8 +357,8 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
         {/* Transport badges at midpoints */}
         {routeSegments.map((segment, idx) => {
           const midpoint = getMidpoint(
-            segment.from.lat, segment.from.lng,
-            segment.to.lat, segment.to.lng
+            segment.from.lat, segment.from.displayLng,
+            segment.to.lat, segment.to.displayLng
           );
           return (
             <Marker
@@ -333,7 +370,7 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
           );
         })}
 
-        <MapController cities={cities} />
+        <MapController coords={boundsCoords} isPacificRoute={isPacificRoute} />
       </MapContainer>
 
       {/* Custom styles for tooltips */}
