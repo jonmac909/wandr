@@ -322,10 +322,11 @@ export default function AutoItineraryView({
     }
   };
 
-  // Recalculate allocations when cities or trip dates change
+  // Recalculate allocations when cities, trip dates, or tripDna changes
   useEffect(() => {
     setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
-  }, [cities.join(','), tripTotalDays, tripStartDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities.join(','), tripTotalDays, tripStartDate, tripDna?.vibeAndPace?.tripPace]);
 
   // Handle trip date changes
   const handleDateChange = (newStartDate: string, newEndDate: string) => {
@@ -825,7 +826,10 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
           <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold">{formatFullDate(day.date)}</h3>
+              <div>
+                <h3 className="text-xl font-bold">{formatFullDate(day.date)}</h3>
+                <p className="text-sm text-muted-foreground">{day.city}</p>
+              </div>
               <button className="p-1 hover:bg-muted rounded" onClick={(e) => e.stopPropagation()}>
                 <span className="text-muted-foreground text-lg">•••</span>
               </button>
