@@ -2873,40 +2873,26 @@ export function SwipeablePlanningView({
 
                                       {/* Connection cities - clickable to add as stopover */}
                                       <div className="flex flex-wrap gap-1">
-                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => {
-                                          const isInRoute = routeOrder.includes(city);
-                                          return (
-                                            <button
-                                              key={city}
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation(); // Don't trigger parent button
-                                                if (!isInRoute) {
-                                                  // Add city to route after first city
-                                                  setRouteOrder(prev => {
-                                                    if (prev.length === 0) return [city];
-                                                    if (prev.includes(city)) return prev;
-                                                    return [prev[0], city, ...prev.slice(1)];
-                                                  });
-                                                  setSelectedCities(prev =>
-                                                    prev.includes(city) ? prev : [...prev, city]
-                                                  );
-                                                }
-                                              }}
-                                              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
-                                                isInRoute
-                                                  ? 'bg-green-100 text-green-700 cursor-default'
-                                                  : 'bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer'
-                                              }`}
-                                            >
-                                              {isInRoute ? (
-                                                <>✓ {city} in route</>
-                                              ) : (
-                                                <>+ Add {city} stopover</>
-                                              )}
-                                            </button>
-                                          );
-                                        })}
+                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
+                                          <button
+                                            key={city}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              // Add city as #1 stop (first position in route)
+                                              setRouteOrder(prev => {
+                                                const filtered = prev.filter(c => c !== city);
+                                                return [city, ...filtered];
+                                              });
+                                              setSelectedCities(prev =>
+                                                prev.includes(city) ? prev : [...prev, city]
+                                              );
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer transition-colors"
+                                          >
+                                            + Add {city} stopover
+                                          </button>
+                                        ))}
                                       </div>
                                     </button>
                                   );
