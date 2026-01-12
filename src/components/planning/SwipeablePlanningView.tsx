@@ -1715,8 +1715,8 @@ export function SwipeablePlanningView({
       setCurrentStepIndex(currentStepIndex + 1);
       setGridOffset(0); // Reset pagination
     } else {
-      // Finished all steps, go to favorites library
-      setPhase('favorites-library');
+      // Finished all steps, go to auto-generated itinerary
+      setPhase('auto-itinerary');
     }
   };
 
@@ -1737,11 +1737,11 @@ export function SwipeablePlanningView({
   // Go to previous step
   const goToPrevStep = () => {
     if (phase === 'day-planning') {
-      setPhase('favorites-library');
+      setPhase('auto-itinerary');
     } else if (phase === 'favorites-library') {
-      setPhase('picking');
-      setCurrentStepIndex(PLANNING_STEPS.length - 1); // Go back to last picking step
-      setGridOffset(0);
+      setPhase('auto-itinerary');
+    } else if (phase === 'auto-itinerary') {
+      setPhase('route-planning');
     } else if (phase === 'route-planning') {
       setPhase('picking');
       setCurrentStepIndex(0); // Go back to cities step
