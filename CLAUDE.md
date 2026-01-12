@@ -123,7 +123,21 @@ Trip page overview shows countries/cities count:
 - **NEVER use `npm run deploy`** - The local `@opennextjs/cloudflare build` hangs. Don't waste time on it.
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
 - **Live testing site: https://wandr.jon-c95.workers.dev/** - User tests here, NOT localhost
-- **To deploy: just `git push`** - Cloudflare auto-deploys from GitHub main branch. That's it. Don't overthink it.
+- **To deploy: just `git push`** - GitHub Actions auto-deploys to Cloudflare Workers. That's it.
+
+## Deployment
+
+GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `main`.
+
+**Required GitHub secrets** (Settings → Secrets → Actions):
+- `CLOUDFLARE_API_TOKEN` - Get from Cloudflare dashboard → API Tokens
+- `CLOUDFLARE_ACCOUNT_ID` - Get from Cloudflare dashboard → Overview sidebar
+
+**Playwright tests**: Run against deployed site to verify.
+```bash
+npm test                              # Run all Playwright tests
+npx playwright test tests/foo.spec.ts # Run specific test
+```
 
 ## Key Patterns
 
