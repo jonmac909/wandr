@@ -228,6 +228,7 @@ export default function AutoItineraryView({
   const [days, setDays] = useState<GeneratedDay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set(cities));
+  const [isDurationExpanded, setIsDurationExpanded] = useState(false); // Collapsed by default
 
   // Hotels per city
   const [selectedHotels, setSelectedHotels] = useState<Record<string, { name: string; id: string }>>({});
@@ -352,57 +353,65 @@ export default function AutoItineraryView({
         </Button>
       </div>
 
-      {/* Day Allocation Summary */}
-      <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Day Allocation Summary - Collapsible */}
+      <div className="bg-muted/30 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setIsDurationExpanded(!isDurationExpanded)}
+          className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        >
           <h3 className="font-semibold text-sm flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Trip Duration
           </h3>
-          <Badge variant={currentTotal === totalDays ? 'default' : 'destructive'}>
-            {currentTotal} / {totalDays} days
-          </Badge>
-        </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={currentTotal === totalDays ? 'default' : 'destructive'}>
+              {currentTotal} / {totalDays} days
+            </Badge>
+            {isDurationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
 
-        {/* City allocations */}
-        <div className="space-y-2">
-          {allocations.map((alloc, idx) => {
-            const color = getCityColor(idx);
-            return (
-              <div key={alloc.city} className={`flex items-center gap-3 p-2 rounded-lg ${color.light}`}>
-                <div className={`w-2 h-8 rounded-full ${color.bg}`} />
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{alloc.city}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
+        {/* City allocations - only show when expanded */}
+        {isDurationExpanded && (
+          <div className="px-4 pb-4 space-y-2">
+            {allocations.map((alloc, idx) => {
+              const color = getCityColor(idx);
+              return (
+                <div key={alloc.city} className={`flex items-center gap-3 p-2 rounded-lg ${color.light}`}>
+                  <div className={`w-2 h-8 rounded-full ${color.bg}`} />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{alloc.city}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => { e.stopPropagation(); adjustAllocation(alloc.city, -1); }}
+                      disabled={alloc.nights <= 1}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <span className="w-8 text-center font-semibold text-sm">
+                      {alloc.nights}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => { e.stopPropagation(); adjustAllocation(alloc.city, 1); }}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => adjustAllocation(alloc.city, -1)}
-                    disabled={alloc.nights <= 1}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </Button>
-                  <span className="w-8 text-center font-semibold text-sm">
-                    {alloc.nights}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => adjustAllocation(alloc.city, 1)}
-                  >
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Loading state */}
