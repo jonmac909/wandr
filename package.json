@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
-    "@opennextjs/cloudflare": "^1.14.8",
+    "@opennextjs/cloudflare": "^1.8.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

@@ -1074,6 +1074,43 @@ export function SwipeablePlanningView({
     return groups;
   }, [selectedCities, items, destinations]);
 
+  // Initialize countryOrder when phase is route-planning but countryOrder is empty (e.g., on page refresh)
+  useEffect(() => {
+    if (phase === 'route-planning' && countryOrder.length === 0 && selectedCities.length > 0) {
+      // Extract unique countries from selected cities
+      const countriesFromCities = new Set<string>();
+      selectedCities.forEach(city => {
+        const country = CITY_TO_COUNTRY[city];
+        if (country) countriesFromCities.add(country);
+        else {
+          const cityItem = items.find(i => i.name === city);
+          const countryFromTag = cityItem?.tags?.find(t => destinations.includes(t))
+            || cityItem?.tags?.find(t => !['cities', 'hotels', 'restaurants', 'activities'].includes(t));
+          if (countryFromTag) countriesFromCities.add(countryFromTag);
+        }
+      });
+
+      const uniqueCountries = Array.from(countriesFromCities);
+
+      if (uniqueCountries.length > 0) {
+        // Sort by geographic order from Canada
+        const COUNTRY_ORDER_FROM_CANADA: Record<string, number> = {
+          'Japan': 1, 'South Korea': 2, 'Taiwan': 3, 'Vietnam': 4, 'Thailand': 5,
+          'Cambodia': 6, 'Malaysia': 7, 'Singapore': 8, 'Indonesia': 9, 'Philippines': 10,
+          'Australia': 11, 'New Zealand': 12, 'Hawaii': 20,
+          'UK': 30, 'France': 31, 'Spain': 32, 'Portugal': 33, 'Italy': 34,
+          'Greece': 35, 'Turkey': 36, 'Switzerland': 37, 'Germany': 38,
+        };
+        const sortedCountries = [...uniqueCountries].sort((a, b) => {
+          const orderA = COUNTRY_ORDER_FROM_CANADA[a] ?? 50;
+          const orderB = COUNTRY_ORDER_FROM_CANADA[b] ?? 50;
+          return orderA - orderB;
+        });
+        setCountryOrder(sortedCountries);
+      }
+    }
+  }, [phase, countryOrder.length, selectedCities, items, destinations]);
+
   // Get unassigned selected items (for day planning)
   const unassignedItems = useMemo(() => {
     return selectedItems.filter((i) => i.dayAssigned === undefined);
