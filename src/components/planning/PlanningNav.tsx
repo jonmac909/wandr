@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type PlanningSection = 'where' | 'prefs' | 'cities' | 'route' | 'itinerary';
@@ -88,13 +88,21 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
               >
                 <div className={cn(
                   "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold mb-1 transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  isCurrent
+                    ? "bg-primary text-primary-foreground"
+                    : isCompleted
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground"
                 )}>
-                  {index + 1}
+                  {isCompleted && !isCurrent ? (
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    index + 1
+                  )}
                 </div>
                 <span className={cn(
                   "text-[10px] sm:text-xs font-medium text-center transition-colors leading-tight",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isCurrent ? "text-primary" : "text-muted-foreground"
                 )}>
                   {section.label}
                 </span>
@@ -104,7 +112,7 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
               {index < SECTIONS.length - 1 && (
                 <div className={cn(
                   "h-0.5 w-6 sm:w-10 -mx-1 rounded transition-colors",
-                  currentIndex > index ? "bg-primary" : "bg-muted"
+                  isCompleted ? "bg-primary" : "bg-muted"
                 )} />
               )}
             </div>
