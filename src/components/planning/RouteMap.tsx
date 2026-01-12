@@ -303,6 +303,9 @@ export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
         .leaflet-tooltip::before {
           display: none !important;
         }
+        .leaflet-control-attribution {
+          display: none !important;
+        }
       `}</style>
     </div>
   );

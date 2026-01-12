@@ -181,6 +181,18 @@ const ROUTE_TRANSPORT: Record<string, Record<string, TransportOption[]>> = {
       { mode: 'bus', duration: '7-8hr', durationMinutes: 450, priceRange: '$30-60', currency: 'USD', badge: 'cheapest', notes: 'Night bus' },
     ],
   },
+  'Osaka': {
+    'Hiroshima': [
+      { mode: 'train', duration: '1h 25min', durationMinutes: 85, priceRange: '$90-110', currency: 'USD', badge: 'best', operator: 'Shinkansen Nozomi/Mizuho', notes: 'JR Pass valid on Sakura (1h 32min)' },
+      { mode: 'bus', duration: '5-6hr', durationMinutes: 330, priceRange: '$30-50', currency: 'USD', badge: 'cheapest' },
+    ],
+    'Kyoto': [
+      { mode: 'train', duration: '15-30min', durationMinutes: 22, priceRange: '$5-15', currency: 'USD', badge: 'best', operator: 'JR, Hankyu, Keihan', frequency: 'Every few minutes' },
+    ],
+    'Nara': [
+      { mode: 'train', duration: '30-50min', durationMinutes: 40, priceRange: '$5-10', currency: 'USD', badge: 'best', operator: 'JR or Kintetsu' },
+    ],
+  },
   // Europe routes
   'Paris': {
     'Barcelona': [
