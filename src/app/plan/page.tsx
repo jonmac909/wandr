@@ -691,7 +691,7 @@ function PlanPageContent() {
     } else if (section === 'route') {
       setPlanningPhase('route-planning');
     } else if (section === 'itinerary') {
-      setPlanningPhase('favorites-library');
+      setPlanningPhase('auto-itinerary');
     }
     setCurrentSection(section);
   };
@@ -705,7 +705,7 @@ function PlanPageContent() {
     } else if (phase === 'route-planning') {
       setCurrentSection('route');
       setCompletedSections(prev => [...new Set([...prev, 'cities' as PlanningSection])]);
-    } else if (phase === 'favorites-library' || phase === 'day-planning') {
+    } else if (phase === 'auto-itinerary' || phase === 'favorites-library' || phase === 'day-planning') {
       setCurrentSection('itinerary');
       setCompletedSections(prev => [...new Set([...prev, 'cities' as PlanningSection, 'route' as PlanningSection])]);
     }
