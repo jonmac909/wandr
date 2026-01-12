@@ -262,16 +262,11 @@ export default function AutoItineraryView({
     tripDna?.constraints?.dates?.startDate ||
     new Date().toISOString().split('T')[0];
 
-  // Editable trip dates state
+  // Editable trip dates state - managed locally, NOT synced from props
+  // This allows users to freely edit dates without props overriding their changes
   const [tripStartDate, setTripStartDate] = useState(initialStartDate);
   const [tripTotalDays, setTripTotalDays] = useState(initialTotalDays);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
-
-  // Sync state when props change (e.g., from "When" page)
-  useEffect(() => {
-    setTripStartDate(initialStartDate);
-    setTripTotalDays(initialTotalDays);
-  }, [initialStartDate, initialTotalDays]);
 
   // Computed end date
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
@@ -569,39 +564,7 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Auto-fill entire trip button */}
-      <Button
-        variant="default"
-        className="w-full bg-primary hover:bg-primary/90"
-        onClick={autoFillEntireTrip}
-      >
-        <Sparkles className="w-4 h-4 mr-2" />
-        Auto-fill entire trip
-      </Button>
-
-      {/* Tips Section */}
-      {cities.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-5 h-5 text-amber-600" />
-            <h3 className="font-semibold text-sm text-amber-800">Local Tips</h3>
-          </div>
-          <div className="space-y-2">
-            {cities.slice(0, 3).map((city) => {
-              const cityInfo = POPULAR_CITY_INFO[city];
-              if (!cityInfo?.localTip) return null;
-              return (
-                <div key={city} className="text-sm">
-                  <span className="font-medium text-amber-800">{city}:</span>{' '}
-                  <span className="text-amber-700">{cityInfo.localTip}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Day Allocation Summary - Collapsible */}
+      {/* Day Allocation Summary - Collapsible (moved to top under dates) */}
       <div className="bg-muted/30 rounded-xl overflow-hidden">
         <button
           onClick={() => setIsDurationExpanded(!isDurationExpanded)}
@@ -666,6 +629,38 @@ export default function AutoItineraryView({
           </div>
         )}
       </div>
+
+      {/* Auto-fill entire trip button */}
+      <Button
+        variant="default"
+        className="w-full bg-primary hover:bg-primary/90"
+        onClick={autoFillEntireTrip}
+      >
+        <Sparkles className="w-4 h-4 mr-2" />
+        Auto-fill entire trip
+      </Button>
+
+      {/* Tips Section */}
+      {cities.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="w-5 h-5 text-amber-600" />
+            <h3 className="font-semibold text-sm text-amber-800">Local Tips</h3>
+          </div>
+          <div className="space-y-2">
+            {cities.slice(0, 3).map((city) => {
+              const cityInfo = POPULAR_CITY_INFO[city];
+              if (!cityInfo?.localTip) return null;
+              return (
+                <div key={city} className="text-sm">
+                  <span className="font-medium text-amber-800">{city}:</span>{' '}
+                  <span className="text-amber-700">{cityInfo.localTip}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (
