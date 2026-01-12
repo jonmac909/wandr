@@ -380,6 +380,15 @@ const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
   },
   'Phuket': {
     'Bangkok': { time: '1.5hr', stops: 0 }, 'Chiang Mai': { time: '2hr', stops: 0 }, 'Koh Samui': { time: '1hr', stops: 0 }, 'Krabi': { time: '30min', stops: 0 },
+    'Ho Chi Minh City': { time: '3-4hr', stops: 1 }, 'Hanoi': { time: '4-5hr', stops: 1 }, 'Da Nang': { time: '4-5hr', stops: 1 }, 'Hoi An': { time: '4-5hr', stops: 1 },
+  },
+  'Koh Samui': {
+    'Bangkok': { time: '1hr', stops: 0 }, 'Phuket': { time: '1hr', stops: 0 },
+    'Ho Chi Minh City': { time: '3-4hr', stops: 1 }, 'Da Nang': { time: '4-5hr', stops: 1 }, 'Hoi An': { time: '4-5hr', stops: 1 },
+  },
+  'Krabi': {
+    'Bangkok': { time: '1.5hr', stops: 0 }, 'Phuket': { time: '30min', stops: 0 },
+    'Ho Chi Minh City': { time: '3-4hr', stops: 1 }, 'Da Nang': { time: '4-5hr', stops: 1 }, 'Hoi An': { time: '4-5hr', stops: 1 },
   },
   // Within/between Vietnam - mostly direct
   'Ho Chi Minh City': {
