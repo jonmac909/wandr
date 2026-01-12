@@ -62,6 +62,10 @@ import {
 import { getCityImage, getSiteImage } from '@/lib/planning/city-images';
 import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
 import { planningDb } from '@/lib/db/indexed-db';
+import dynamic from 'next/dynamic';
+
+// Dynamically import RouteMap to avoid SSR issues with Leaflet
+const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
 
 // City region info for geography context
 const CITY_REGIONS: Record<string, { region: string; tip?: string }> = {
@@ -1819,9 +1823,6 @@ export function SwipeablePlanningView({
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={goToPrevStep}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
           <div className="flex-1">
             <h2 className="text-lg font-bold">{destinations.length === 1 ? destinations[0] : 'Trip'} Overview</h2>
             <p className="text-sm text-muted-foreground">
@@ -2243,6 +2244,15 @@ export function SwipeablePlanningView({
             </p>
           </div>
         </div>
+
+        {/* Route Map */}
+        {routeOrder.length > 0 && (
+          <RouteMap
+            cities={routeOrder}
+            getCityCountry={getCityCountry}
+            calculateDistance={calculateDistance}
+          />
+        )}
 
         {/* Route efficiency warning */}
         {hasInefficiency && (
