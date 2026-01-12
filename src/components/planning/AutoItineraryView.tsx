@@ -25,6 +25,8 @@ import {
   Check,
   Lightbulb,
   Map,
+  Image,
+  List,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -283,6 +285,9 @@ export default function AutoItineraryView({
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set(cities));
   const [isDurationExpanded, setIsDurationExpanded] = useState(false); // Collapsed by default
 
+  // View mode: 'picture' | 'compact' | 'map'
+  const [viewMode, setViewMode] = useState<'picture' | 'compact' | 'map'>('picture');
+
   // Hotels per city
   const [selectedHotels, setSelectedHotels] = useState<Record<string, { name: string; id: string }>>({});
   const [hotelPickerCity, setHotelPickerCity] = useState<string | null>(null);
@@ -483,6 +488,37 @@ export default function AutoItineraryView({
         </button>
       </div>
 
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-center gap-1 bg-muted/50 rounded-lg p-1">
+        <button
+          onClick={() => setViewMode('picture')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'picture' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Image className="w-4 h-4" />
+          Picture
+        </button>
+        <button
+          onClick={() => setViewMode('compact')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'compact' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <List className="w-4 h-4" />
+          Compact
+        </button>
+        <button
+          onClick={() => setViewMode('map')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'map' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Map className="w-4 h-4" />
+          Map
+        </button>
+      </div>
+
       {/* Date Editor */}
       {isDateEditorOpen && (
         <div className="bg-card border rounded-xl p-4 space-y-4">
@@ -636,8 +672,43 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Days - chronological like Wanderlog */}
-      {!isLoading && days.map((day) => {
+      {/* Map View */}
+      {!isLoading && viewMode === 'map' && (
+        <div className="space-y-4">
+          {/* Full height map */}
+          {cities.length > 0 && getCityCountry && (
+            <div className="rounded-xl overflow-hidden border h-[50vh]">
+              <RouteMap
+                cities={cities}
+                getCityCountry={getCityCountry}
+                calculateDistance={() => null}
+              />
+            </div>
+          )}
+          {/* Activity list below map */}
+          <div className="space-y-2">
+            {days.flatMap(day => day.activities).map((activity, idx) => (
+              <button
+                key={activity.id}
+                onClick={() => handleActivityTap(activity, idx + 1)}
+                className="w-full flex items-center gap-3 p-3 bg-card rounded-lg border hover:border-primary/30 text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{activity.name}</p>
+                  <p className="text-xs text-muted-foreground">{activity.neighborhood}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Days - chronological like Wanderlog (Picture & Compact views) */}
+      {!isLoading && viewMode !== 'map' && days.map((day) => {
         const cityIdx = allocations.findIndex(a => a.city === day.city);
         const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
 
@@ -646,6 +717,7 @@ export default function AutoItineraryView({
             key={day.dayNumber}
             day={day}
             color={color}
+            viewMode={viewMode}
             onActivityTap={handleActivityTap}
             onActivityDelete={handleActivityDelete}
             onAutoFill={() => autoFillDay(day.dayNumber)}
@@ -696,12 +768,13 @@ export default function AutoItineraryView({
 interface DayCardProps {
   day: GeneratedDay;
   color: typeof DAY_COLORS[0];
+  viewMode: 'picture' | 'compact';
   onActivityTap: (activity: GeneratedActivity, index: number) => void;
   onActivityDelete: (activityId: string) => void;
   onAutoFill: () => void;
 }
 
-function DayCard({ day, color, onActivityTap, onActivityDelete, onAutoFill }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
@@ -797,8 +870,8 @@ function DayCard({ day, color, onActivityTap, onActivityDelete, onAutoFill }: Da
             </div>
           )}
 
-          {/* Activities */}
-          {!isEmpty && (
+          {/* Activities - Picture View */}
+          {!isEmpty && viewMode === 'picture' && (
             <div className="space-y-0">
               {day.activities.map((activity, idx) => (
                 <div key={activity.id}>
@@ -818,6 +891,34 @@ function DayCard({ day, color, onActivityTap, onActivityDelete, onAutoFill }: Da
                     showTravelTime={false}
                   />
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Activities - Compact View (no images) */}
+          {!isEmpty && viewMode === 'compact' && (
+            <div className="space-y-1 ml-8">
+              {day.activities.map((activity, idx) => (
+                <button
+                  key={activity.id}
+                  onClick={() => onActivityTap(activity, idx + 1)}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 text-left group"
+                >
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{activity.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.suggestedTime && <span>{activity.suggestedTime} · </span>}
+                      {activity.openingHours && <span>Open {activity.openingHours}</span>}
+                    </p>
+                  </div>
+                  {activity.walkingTimeToNext && idx < day.activities.length - 1 && (
+                    <span className="text-xs text-muted-foreground">{activity.walkingTimeToNext}min</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                </button>
               ))}
             </div>
           )}
