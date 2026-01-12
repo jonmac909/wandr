@@ -23,7 +23,6 @@ import {
   Trash2,
   X,
   Check,
-  Lightbulb,
   Map,
   Image,
   List,
@@ -31,7 +30,6 @@ import {
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
 import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-generator';
-import { POPULAR_CITY_INFO } from '@/lib/ai/city-info-generator';
 import dynamic from 'next/dynamic';
 
 // Dynamically import HotelPicker and RouteMap
@@ -379,56 +377,27 @@ export default function AutoItineraryView({
     }, 800);
   };
 
-  // Adjust allocation for a city - auto-balances to maintain total days
+  // Adjust allocation for a city - NO auto-balancing, user controls each city independently
   const adjustAllocation = (city: string, delta: number) => {
     setAllocations(prev => {
-      // Find city to adjust and city to balance with
       const cityIndex = prev.findIndex(a => a.city === city);
       if (cityIndex === -1) return prev;
 
       const currentCity = prev[cityIndex];
       const newNights = Math.max(1, currentCity.nights + delta);
-      const actualDelta = newNights - currentCity.nights;
 
       // If no actual change, return as-is
-      if (actualDelta === 0) return prev;
+      if (newNights === currentCity.nights) return prev;
 
-      // Find a city to take from / give to (pick the one with most days if adding, fewest if removing)
-      let balanceIndex = -1;
-      if (actualDelta > 0) {
-        // Adding days - take from city with most days (that has more than 1)
-        let maxNights = 0;
-        prev.forEach((a, idx) => {
-          if (idx !== cityIndex && a.nights > maxNights && a.nights > 1) {
-            maxNights = a.nights;
-            balanceIndex = idx;
-          }
-        });
-      } else {
-        // Removing days - give to city with fewest days
-        let minNights = Infinity;
-        prev.forEach((a, idx) => {
-          if (idx !== cityIndex && a.nights < minNights) {
-            minNights = a.nights;
-            balanceIndex = idx;
-          }
-        });
-      }
-
-      // If no city to balance with, just adjust without balancing
+      // Just update this city's nights - no balancing with other cities
       const newAllocations = prev.map((a, idx) => {
         if (idx === cityIndex) {
           return { ...a, nights: newNights };
         }
-        if (idx === balanceIndex && balanceIndex !== -1) {
-          // Balance: opposite of delta
-          const balancedNights = Math.max(1, a.nights - actualDelta);
-          return { ...a, nights: balancedNights };
-        }
         return a;
       });
 
-      // Recalculate start/end days
+      // Recalculate start/end dates for all cities (they cascade from first city)
       let currentDay = 1;
       return newAllocations.map(a => {
         const startDay = currentDay;
@@ -575,12 +544,26 @@ export default function AutoItineraryView({
             Nights per City
           </h3>
           <div className="flex items-center gap-2">
-            <Badge variant={currentTotal === tripTotalDays ? 'default' : 'destructive'}>
-              {currentTotal} / {tripTotalDays} days
+            <Badge variant={currentTotal === tripTotalDays ? 'default' : currentTotal > tripTotalDays ? 'destructive' : 'secondary'}>
+              {currentTotal} / {tripTotalDays} nights
             </Badge>
             {isDurationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </button>
+
+        {/* Guidance message when nights don't match trip duration */}
+        {currentTotal !== tripTotalDays && (
+          <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm ${
+            currentTotal > tripTotalDays
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
+          }`}>
+            {currentTotal > tripTotalDays
+              ? `⚠️ ${currentTotal - tripTotalDays} nights over — remove nights or extend trip dates`
+              : `📝 ${tripTotalDays - currentTotal} nights remaining to allocate`
+            }
+          </div>
+        )}
 
         {/* City allocations - only show when expanded */}
         {isDurationExpanded && (
@@ -639,28 +622,6 @@ export default function AutoItineraryView({
         <Sparkles className="w-4 h-4 mr-2" />
         Auto-fill entire trip
       </Button>
-
-      {/* Tips Section */}
-      {cities.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-5 h-5 text-amber-600" />
-            <h3 className="font-semibold text-sm text-amber-800">Local Tips</h3>
-          </div>
-          <div className="space-y-2">
-            {cities.slice(0, 3).map((city) => {
-              const cityInfo = POPULAR_CITY_INFO[city];
-              if (!cityInfo?.localTip) return null;
-              return (
-                <div key={city} className="text-sm">
-                  <span className="font-medium text-amber-800">{city}:</span>{' '}
-                  <span className="text-amber-700">{cityInfo.localTip}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Loading state */}
       {isLoading && (
