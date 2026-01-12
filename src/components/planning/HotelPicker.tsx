@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, Star, MapPin, Wifi, Car, UtensilsCrossed, Dumbbell, Waves, Sparkles } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Heart, Star, MapPin, Wifi, Car, UtensilsCrossed, Dumbbell, Waves, Sparkles, CheckCircle } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { HotelInfo } from '@/lib/planning/hotel-generator';
+import type { HotelInfo, HotelPreferences } from '@/lib/planning/hotel-generator';
 
 interface HotelPickerProps {
   city: string;
   country?: string;
   onSelectHotel: (hotel: HotelInfo) => void;
   favoriteHotelIds?: Set<string>;
+  preferences?: HotelPreferences; // User preferences for recommendations
+  nearbyActivities?: string[]; // Activities user has favorited in this city
 }
 
 // Icon mapping for amenities
@@ -48,33 +50,60 @@ function getPriceColor(priceRange: string): string {
   }
 }
 
-export default function HotelPicker({ city, country, onSelectHotel, favoriteHotelIds = new Set() }: HotelPickerProps) {
+export default function HotelPicker({ city, country, onSelectHotel, favoriteHotelIds = new Set(), preferences, nearbyActivities }: HotelPickerProps) {
   const [hotels, setHotels] = useState<HotelInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHotel, setSelectedHotel] = useState<HotelInfo | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
 
-  // Fetch hotels on mount
+  // Fetch hotels on mount - use POST with preferences if available
   useEffect(() => {
     setIsLoading(true);
     setError(null);
 
-    fetch(`/api/hotels?city=${encodeURIComponent(city)}${country ? `&country=${encodeURIComponent(country)}` : ''}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch hotels');
-        return res.json();
-      })
-      .then(data => {
+    const fetchHotels = async () => {
+      try {
+        let data: HotelInfo[];
+
+        // Use POST with preferences if we have them
+        if (preferences || nearbyActivities) {
+          const fullPrefs: HotelPreferences = {
+            ...preferences,
+            nearbyActivities: nearbyActivities,
+          };
+
+          const res = await fetch('/api/hotels', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ city, country, preferences: fullPrefs }),
+          });
+
+          if (!res.ok) throw new Error('Failed to fetch hotels');
+          data = await res.json();
+        } else {
+          // Simple GET without preferences
+          const res = await fetch(`/api/hotels?city=${encodeURIComponent(city)}${country ? `&country=${encodeURIComponent(country)}` : ''}`);
+          if (!res.ok) throw new Error('Failed to fetch hotels');
+          data = await res.json();
+        }
+
+        // Sort by match score if available
+        if (data.some(h => h.matchScore !== undefined)) {
+          data.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+        }
+
         setHotels(data);
-        setIsLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Error fetching hotels:', err);
         setError('Unable to load hotel recommendations');
+      } finally {
         setIsLoading(false);
-      });
-  }, [city, country]);
+      }
+    };
+
+    fetchHotels();
+  }, [city, country, preferences, nearbyActivities]);
 
   if (isLoading) {
     return (
@@ -115,8 +144,15 @@ export default function HotelPicker({ city, country, onSelectHotel, favoriteHote
                 <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium ${getPriceColor(hotel.priceRange)}`}>
                   {hotel.priceRange} {getPriceLabel(hotel.priceRange)}
                 </div>
+                {/* Match score badge */}
+                {hotel.matchScore && hotel.matchScore >= 80 && (
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500 text-white flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    {hotel.matchScore}% match
+                  </div>
+                )}
                 {/* Favorite indicator */}
-                {isFavorited && (
+                {isFavorited && !hotel.matchScore && (
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center">
                     <Heart className="w-3 h-3 text-white fill-white" />
                   </div>
@@ -195,6 +231,24 @@ export default function HotelPicker({ city, country, onSelectHotel, favoriteHote
                   <div className="text-lg font-bold text-primary">{selectedHotel.pricePerNight}</div>
                   <p className="text-xs text-muted-foreground">per night (avg)</p>
                 </div>
+
+                {/* Match Score & Reasons */}
+                {selectedHotel.matchScore && selectedHotel.matchReasons && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="font-medium text-green-700">{selectedHotel.matchScore}% match for you</span>
+                    </div>
+                    <ul className="space-y-1">
+                      {selectedHotel.matchReasons.map((reason, idx) => (
+                        <li key={idx} className="text-xs text-green-600 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-green-500" />
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
