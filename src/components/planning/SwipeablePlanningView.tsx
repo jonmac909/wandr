@@ -2127,6 +2127,11 @@ export function SwipeablePlanningView({
 
     // Optimize route function - nearest neighbor algorithm within each country
     const optimizeRoute = () => {
+      console.log('[OptimizeRoute] Starting...');
+      console.log('[OptimizeRoute] routeOrder:', routeOrder);
+      console.log('[OptimizeRoute] countryOrder:', countryOrder);
+      console.log('[OptimizeRoute] destinations:', destinations);
+
       const optimizedOrder: string[] = [];
       const countryGroups: Record<string, string[]> = {};
       const processedCountries = new Set<string>();
@@ -2134,9 +2139,12 @@ export function SwipeablePlanningView({
       // Group cities by country
       routeOrder.forEach(city => {
         const country = getCityCountry(city) || 'Unknown';
+        console.log(`[OptimizeRoute] City "${city}" -> Country "${country}"`);
         if (!countryGroups[country]) countryGroups[country] = [];
         countryGroups[country].push(city);
       });
+
+      console.log('[OptimizeRoute] countryGroups:', countryGroups);
 
       // Helper to optimize cities within a group using nearest neighbor
       const optimizeCityGroup = (cities: string[]): string[] => {
@@ -2165,24 +2173,38 @@ export function SwipeablePlanningView({
 
       // For each country in countryOrder, optimize the cities within
       const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
+      console.log('[OptimizeRoute] orderedCountries:', orderedCountries);
+
       orderedCountries.forEach(country => {
         const cities = countryGroups[country] || [];
+        console.log(`[OptimizeRoute] Processing "${country}" -> cities:`, cities);
         if (cities.length > 0) {
-          optimizedOrder.push(...optimizeCityGroup(cities));
+          const optimized = optimizeCityGroup(cities);
+          console.log(`[OptimizeRoute] Optimized "${country}":`, optimized);
+          optimizedOrder.push(...optimized);
           processedCountries.add(country);
         }
       });
 
       // Include any cities from countries not in orderedCountries (prevent losing cities)
+      console.log('[OptimizeRoute] processedCountries:', Array.from(processedCountries));
+      console.log('[OptimizeRoute] countryGroups keys:', Object.keys(countryGroups));
+
       Object.keys(countryGroups).forEach(country => {
         if (!processedCountries.has(country)) {
+          console.log(`[OptimizeRoute] Unprocessed country "${country}" - adding cities:`, countryGroups[country]);
           optimizedOrder.push(...optimizeCityGroup(countryGroups[country]));
         }
       });
 
+      console.log('[OptimizeRoute] Final optimizedOrder:', optimizedOrder);
+
       // Only update if we have cities (prevent clearing the route)
       if (optimizedOrder.length > 0) {
+        console.log('[OptimizeRoute] Setting new route order');
         setRouteOrder(optimizedOrder);
+      } else {
+        console.log('[OptimizeRoute] No cities to set - skipping');
       }
     };
 
