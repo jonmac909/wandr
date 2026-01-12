@@ -216,22 +216,28 @@ function fillAllDays(days: GeneratedDay[]): GeneratedDay[] {
   return days.map((day, idx) => fillDayWithActivities(day, idx));
 }
 
+// Parse date string without timezone issues (YYYY-MM-DD -> local date)
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function addDays(dateStr: string, days: number): string {
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 // Full date format like "Wednesday, February 11th"
 function formatFullDate(dateStr: string): string {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   const day = date.getDate();
   const suffix = day === 1 || day === 21 || day === 31 ? 'st'
     : day === 2 || day === 22 ? 'nd'
@@ -325,16 +331,45 @@ export default function AutoItineraryView({
     }
   };
 
-  // Recalculate allocations when cities, trip dates, or tripDna changes
+  // Only recalculate allocations from scratch when CITIES change
+  // When dates change, we just update the dates within existing allocations (preserving night counts)
   useEffect(() => {
     setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cities.join(','), tripTotalDays, tripStartDate, tripDna?.vibeAndPace?.tripPace]);
+  }, [cities.join(',')]); // Only cities - NOT dates or tripDna
+
+  // When trip start date changes, recalculate dates within existing allocations (preserve night counts)
+  useEffect(() => {
+    setAllocations(prev => {
+      let currentDay = 1;
+      return prev.map(a => {
+        const startDay = currentDay;
+        const endDay = currentDay + a.nights - 1;
+        currentDay = endDay + 1;
+
+        const start = parseLocalDate(tripStartDate);
+        start.setDate(start.getDate() + startDay - 1);
+        const end = parseLocalDate(tripStartDate);
+        end.setDate(end.getDate() + endDay - 1);
+
+        const formatLocalDate = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        return {
+          ...a,
+          startDay,
+          endDay,
+          startDate: formatLocalDate(start),
+          endDate: formatLocalDate(end),
+        };
+      });
+    });
+  }, [tripStartDate]); // Only when start date changes
 
   // Handle trip date changes
   const handleDateChange = (newStartDate: string, newEndDate: string) => {
-    const start = new Date(newStartDate);
-    const end = new Date(newEndDate);
+    const start = parseLocalDate(newStartDate);
+    const end = parseLocalDate(newEndDate);
     const newTotalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     if (newTotalDays > 0) {
@@ -404,17 +439,21 @@ export default function AutoItineraryView({
         const endDay = currentDay + a.nights - 1;
         currentDay = endDay + 1;
 
-        const start = new Date(tripStartDate);
+        // Use parseLocalDate to avoid timezone issues
+        const start = parseLocalDate(tripStartDate);
         start.setDate(start.getDate() + startDay - 1);
-        const end = new Date(tripStartDate);
+        const end = parseLocalDate(tripStartDate);
         end.setDate(end.getDate() + endDay - 1);
+
+        const formatLocalDate = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         return {
           ...a,
           startDay,
           endDay,
-          startDate: start.toISOString().split('T')[0],
-          endDate: end.toISOString().split('T')[0],
+          startDate: formatLocalDate(start),
+          endDate: formatLocalDate(end),
         };
       });
     });
@@ -462,37 +501,6 @@ export default function AutoItineraryView({
           <Calendar className="w-4 h-4" />
           {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
           <ChevronDown className={`w-3 h-3 transition-transform ${isDateEditorOpen ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-center gap-1 bg-muted/50 rounded-lg p-1">
-        <button
-          onClick={() => setViewMode('picture')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'picture' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Image className="w-4 h-4" />
-          Picture
-        </button>
-        <button
-          onClick={() => setViewMode('compact')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'compact' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <List className="w-4 h-4" />
-          Compact
-        </button>
-        <button
-          onClick={() => setViewMode('map')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'map' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Map className="w-4 h-4" />
-          Map
         </button>
       </div>
 
@@ -611,6 +619,37 @@ export default function AutoItineraryView({
             })}
           </div>
         )}
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-center gap-1 bg-muted/50 rounded-lg p-1">
+        <button
+          onClick={() => setViewMode('picture')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'picture' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Image className="w-4 h-4" />
+          Picture
+        </button>
+        <button
+          onClick={() => setViewMode('compact')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'compact' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <List className="w-4 h-4" />
+          Compact
+        </button>
+        <button
+          onClick={() => setViewMode('map')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'map' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Map className="w-4 h-4" />
+          Map
+        </button>
       </div>
 
       {/* Auto-fill entire trip button */}
