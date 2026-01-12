@@ -369,19 +369,29 @@ export default function AutoItineraryView({
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Your Itinerary
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            AI-generated based on your preferences
-          </p>
+          <h2 className="text-2xl font-bold">Itinerary</h2>
         </div>
-        <Button variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-1" />
-          Regenerate
-        </Button>
+        <Badge variant="secondary" className="text-sm px-3 py-1">
+          <Calendar className="w-4 h-4 mr-1" />
+          {formatDate(startDate)} - {formatDate(addDays(startDate, totalDays - 1))}
+        </Badge>
       </div>
+
+      {/* Auto-fill entire trip button */}
+      <Button
+        variant="default"
+        className="w-full bg-primary hover:bg-primary/90"
+        onClick={() => {
+          setIsLoading(true);
+          setTimeout(() => {
+            setDays(generateMockDays(allocations));
+            setIsLoading(false);
+          }, 1000);
+        }}
+      >
+        <Sparkles className="w-4 h-4 mr-2" />
+        Auto-fill entire trip
+      </Button>
 
       {/* Route Map */}
       {cities.length > 0 && getCityCountry && (
