@@ -17,6 +17,7 @@ import {
   Crown,
   Plus,
   X,
+  GripVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,6 +217,7 @@ function PlanPageContent() {
   const [destinationInput, setDestinationInput] = useState('');
   const [mustVisitPlaces, setMustVisitPlaces] = useState<string[]>([]);
   const [mustVisitInput, setMustVisitInput] = useState('');
+  const [draggedDestIdx, setDraggedDestIdx] = useState<number | null>(null);
   const [surpriseDescription, setSurpriseDescription] = useState('');
   const [originCity, setOriginCity] = useState('');
   const [originAirport, setOriginAirport] = useState('');
@@ -262,6 +264,29 @@ function PlanPageContent() {
 
   const removeDestination = (dest: string) => {
     setDestinations(destinations.filter(d => d !== dest));
+  };
+
+  // Drag handlers for reordering destinations
+  const handleDestDragStart = (e: React.DragEvent, idx: number) => {
+    setDraggedDestIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', idx.toString());
+  };
+
+  const handleDestDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedDestIdx === null || draggedDestIdx === idx) return;
+
+    // Reorder destinations
+    const newDests = [...destinations];
+    const [dragged] = newDests.splice(draggedDestIdx, 1);
+    newDests.splice(idx, 0, dragged);
+    setDestinations(newDests);
+    setDraggedDestIdx(idx);
+  };
+
+  const handleDestDragEnd = () => {
+    setDraggedDestIdx(null);
   };
 
   const addMustVisitPlace = () => {
@@ -695,8 +720,19 @@ function PlanPageContent() {
                       {destinations.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {destinations.map((dest, idx) => (
-                            <Badge key={dest} variant="default" className="pl-2 pr-1 py-1 gap-1 bg-primary/10 text-primary border border-primary/20">
-                              {idx > 0 && <span className="text-xs mr-1">→</span>}
+                            <Badge
+                              key={dest}
+                              variant="default"
+                              draggable
+                              onDragStart={(e) => handleDestDragStart(e, idx)}
+                              onDragOver={(e) => handleDestDragOver(e, idx)}
+                              onDragEnd={handleDestDragEnd}
+                              className={`pl-1 pr-1 py-1 gap-1 bg-primary/10 text-primary border border-primary/20 cursor-grab active:cursor-grabbing transition-opacity ${
+                                draggedDestIdx === idx ? 'opacity-50' : ''
+                              }`}
+                            >
+                              <GripVertical className="w-3 h-3 text-primary/50" />
+                              {idx > 0 && <span className="text-xs">→</span>}
                               {dest}
                               <button onClick={() => removeDestination(dest)} className="ml-1 hover:bg-primary/20 rounded-full p-0.5">
                                 <X className="w-3 h-3" />
@@ -717,7 +753,10 @@ function PlanPageContent() {
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Add multiple countries for a multi-destination trip</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Add multiple countries for a multi-destination trip
+                        {destinations.length > 1 && ' • Drag to reorder'}
+                      </p>
                     </div>
 
                     {/* Must-Visit Cities */}
