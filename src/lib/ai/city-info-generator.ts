@@ -161,7 +161,41 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
   'Trabzon': { bestFor: ['Nature', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'May-Sep', topSites: ['Sumela Monastery', 'Uzungöl Lake', 'Trabzon Hagia Sophia', 'Boztepe Hill'], localTip: 'Drive the scenic highland road to Ayder Plateau for lush green meadows', avgDays: '2-3 days', pros: ['Spectacular mountain scenery', 'Unique Black Sea culture', 'Uncrowded and authentic'], cons: ['Far from other tourist areas', 'Rainy weather possible', 'Limited English spoken'], ratings: { calm: 5, wow: 4, history: 3, friction: 4 } },
   'Konya': { bestFor: ['Spirituality', 'History', 'Culture'], crowdLevel: 'Low', bestTime: 'Dec (Whirling Dervishes), Apr-Jun', topSites: ['Mevlana Museum', 'Alaeddin Mosque', 'Karatay Medrese', 'Sille Village'], localTip: 'Visit during December for Whirling Dervishes Sema ceremonies', avgDays: '1-2 days', pros: ['Spiritual home of Rumi', 'Rich Seljuk architecture', 'Authentic Turkish experience'], cons: ['Conservative dress expected', 'Very hot in summer', 'Limited tourist amenities'], ratings: { calm: 4, wow: 3, history: 5, friction: 3 } },
   // Spain
-  'Barcelona': { bestFor: ['Architecture', 'Beach', 'Nightlife'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'], localTip: 'Book Sagrada Familia tickets online weeks ahead', avgDays: '3-4 days', pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'], cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'], ratings: { calm: 2, wow: 5, history: 4, friction: 3 } },
+  'Barcelona': {
+    bestFor: ['Architecture', 'Beach', 'Nightlife'],
+    crowdLevel: 'Very High',
+    bestTime: 'May-Jun, Sep-Oct',
+    topSites: ['Sagrada Familia', 'Park Güell', 'La Rambla', 'Gothic Quarter'],
+    localTip: 'Book Sagrada Familia tickets online weeks ahead',
+    avgDays: '3-4 days',
+    pros: ['Unique Gaudí architecture', 'Beach and city combined', 'Vibrant nightlife'],
+    cons: ['Extremely crowded', 'Pickpockets on La Rambla', 'Overtourism concerns'],
+    ratings: { calm: 2, wow: 5, history: 4, friction: 3 },
+    idealFor: ['Architecture lovers', 'Beach seekers', 'Foodies', 'Party goers', 'Art enthusiasts'],
+    highlights: {
+      landmarks: [
+        { name: 'Sagrada Familia', description: 'Gaudí\'s unfinished masterpiece - the world\'s most extraordinary church, under construction since 1882' },
+        { name: 'Park Güell', description: 'Whimsical mosaic-covered park with dragon fountain and panoramic city views' },
+        { name: 'Casa Batlló', description: 'Gaudí\'s surreal house with skull balconies and dragon-scale roof' },
+        { name: 'Gothic Quarter', description: 'Medieval maze of narrow streets, hidden plazas, and Roman ruins' },
+      ],
+      history: [
+        { name: 'Roman Barcino', description: 'Founded in 10 BC - original Roman walls and columns still visible in the Gothic Quarter' },
+        { name: 'Catalan Identity', description: 'Proud capital of Catalonia with its own language, traditions, and independence movement' },
+        { name: 'Modernisme Movement', description: 'Gaudí and other architects created unique Catalan Art Nouveau style (1888-1911)' },
+      ],
+      markets: [
+        { name: 'La Boqueria', description: 'Famous food market on La Rambla with fresh produce, seafood, and tapas stalls since 1217' },
+        { name: 'Mercat de Sant Josep', description: 'Less touristy neighborhood market with excellent Spanish ham and cheese' },
+        { name: 'El Born District', description: 'Trendy area with boutiques, craft cocktail bars, and the Picasso Museum' },
+      ],
+      food: [
+        { name: 'Tapas Crawl', description: 'Hop between bars for patatas bravas, jamón ibérico, and pan con tomate' },
+        { name: 'Paella & Fideuà', description: 'Seafood rice dishes best enjoyed beachside at Barceloneta' },
+        { name: 'Vermouth Hour', description: 'Local tradition - sip vermut with olives and chips before lunch' },
+      ],
+    }
+  },
   'Madrid': { bestFor: ['Art', 'Food', 'Nightlife'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Prado Museum', 'Royal Palace', 'Retiro Park', 'Plaza Mayor'], localTip: 'Dinner starts at 9-10pm - embrace the late Spanish schedule', avgDays: '2-3 days', pros: ['World-class art museums', 'Fantastic food scene', 'Less touristy than Barcelona'], cons: ['Hot summers', 'Late schedule takes adjustment', 'No beach'], ratings: { calm: 3, wow: 4, history: 4, friction: 2 } },
   // Italy
   'Rome': {
@@ -207,7 +241,41 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
   'Florence': { bestFor: ['Art', 'Architecture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Uffizi Gallery', 'Duomo', 'Ponte Vecchio', 'Accademia'], localTip: 'Climb the Duomo dome at sunset for magical views', avgDays: '2-3 days', pros: ['Renaissance art capital', 'Walkable historic center', 'Tuscan food and wine'], cons: ['Very crowded', 'Expensive near center', 'Can feel like a museum'], ratings: { calm: 3, wow: 5, history: 5, friction: 2 } },
   'Venice': { bestFor: ['Romance', 'Art', 'Architecture'], crowdLevel: 'Very High', bestTime: 'Mar-May, Sep-Nov', topSites: ['St. Mark\'s Basilica', 'Grand Canal', 'Rialto Bridge', 'Doge\'s Palace'], localTip: 'Get lost in Dorsoduro for authentic local experience', avgDays: '2-3 days', pros: ['Truly unique city', 'Romantic atmosphere', 'No cars'], cons: ['Extremely crowded', 'Very expensive', 'Flooding risk'], ratings: { calm: 2, wow: 5, history: 5, friction: 4 } },
   // Japan
-  'Tokyo': { bestFor: ['Culture', 'Food', 'Technology'], crowdLevel: 'High', bestTime: 'Mar-May, Sep-Nov', topSites: ['Senso-ji Temple', 'Shibuya Crossing', 'Meiji Shrine', 'Tsukiji Market'], localTip: 'Get a Suica card for seamless train travel', avgDays: '4-5 days', pros: ['Incredible food scene', 'Perfect blend of old and new', 'Extremely safe'], cons: ['Language barrier', 'Can be overwhelming', 'Expensive accommodations'], ratings: { calm: 2, wow: 5, history: 3, friction: 2 } },
+  'Tokyo': {
+    bestFor: ['Culture', 'Food', 'Technology'],
+    crowdLevel: 'High',
+    bestTime: 'Mar-May, Sep-Nov',
+    topSites: ['Senso-ji Temple', 'Shibuya Crossing', 'Meiji Shrine', 'Tsukiji Market'],
+    localTip: 'Get a Suica card for seamless train travel',
+    avgDays: '4-5 days',
+    pros: ['Incredible food scene', 'Perfect blend of old and new', 'Extremely safe'],
+    cons: ['Language barrier', 'Can be overwhelming', 'Expensive accommodations'],
+    ratings: { calm: 2, wow: 5, history: 3, friction: 2 },
+    idealFor: ['Foodies', 'Tech enthusiasts', 'Culture seekers', 'Anime fans', 'Photographers'],
+    highlights: {
+      landmarks: [
+        { name: 'Senso-ji Temple', description: 'Tokyo\'s oldest temple (628 AD) with iconic Kaminarimon gate and Nakamise shopping street' },
+        { name: 'Shibuya Crossing', description: 'World\'s busiest intersection - up to 3,000 people cross at once in organized chaos' },
+        { name: 'Meiji Shrine', description: 'Serene Shinto shrine in a 170-acre forest - a peaceful escape in the heart of the city' },
+        { name: 'Tokyo Skytree', description: 'World\'s tallest tower (634m) with observation decks offering views to Mt. Fuji on clear days' },
+      ],
+      history: [
+        { name: 'Edo Period (1603-1868)', description: 'Tokyo was called Edo - the shogun\'s capital and world\'s largest city by the 1700s' },
+        { name: 'Post-War Rebirth', description: 'Rebuilt from WWII devastation to become the world\'s largest metro area' },
+        { name: 'Imperial Palace', description: 'Emperor\'s residence on the site of the original Edo Castle - gardens open to public' },
+      ],
+      markets: [
+        { name: 'Tsukiji Outer Market', description: 'Legendary fish market (moved to Toyosu) - outer stalls still serve the freshest sushi breakfast' },
+        { name: 'Ameya-Yokocho (Ameyoko)', description: 'Bustling market street near Ueno with food, clothes, and old-school Tokyo vibes' },
+        { name: 'Takeshita Street', description: 'Harajuku\'s colorful teen fashion mecca with crepes, kawaii shops, and street style' },
+      ],
+      food: [
+        { name: 'Sushi & Sashimi', description: 'From Michelin-starred omakase to standing-only counters - Tokyo has the most sushi masters' },
+        { name: 'Ramen Obsession', description: 'Every neighborhood has its own style - try Ichiran for tonkotsu or Fuunji for tsukemen' },
+        { name: 'Depachika (Department Store Basements)', description: 'Food halls with perfect bento, wagashi sweets, and free samples galore' },
+      ],
+    }
+  },
   'Kyoto': {
     bestFor: ['History', 'Culture', 'Nature'],
     crowdLevel: 'High',
@@ -249,8 +317,81 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
     }
   },
   // Thailand
-  'Bangkok': { bestFor: ['Food', 'Culture', 'Nightlife'], crowdLevel: 'High', bestTime: 'Nov-Feb', topSites: ['Grand Palace', 'Wat Pho', 'Chatuchak Market', 'Khao San Road'], localTip: 'Use BTS Skytrain and boats to avoid traffic', avgDays: '2-3 days', pros: ['Amazing street food', 'Incredible temples', 'Great value for money'], cons: ['Extreme heat and humidity', 'Traffic congestion', 'Tourist scams around attractions'], ratings: { calm: 1, wow: 4, history: 3, friction: 3 } },
-  'Chiang Mai': { bestFor: ['Culture', 'Nature', 'Wellness'], crowdLevel: 'Moderate', bestTime: 'Nov-Feb', topSites: ['Doi Suthep Temple', 'Old City Temples', 'Night Bazaar', 'Elephant Sanctuaries'], localTip: 'Visit ethical elephant sanctuaries, not riding camps', avgDays: '3-4 days', pros: ['Relaxed pace', 'Rich temple culture', 'Great for digital nomads'], cons: ['Smoky season Mar-Apr', 'Over-commercialized in parts', 'Far from beaches'], ratings: { calm: 4, wow: 4, history: 4, friction: 2 } },
+  'Bangkok': {
+    bestFor: ['Food', 'Culture', 'Nightlife'],
+    crowdLevel: 'High',
+    bestTime: 'Nov-Feb',
+    topSites: ['Grand Palace', 'Wat Pho', 'Chatuchak Market', 'Khao San Road'],
+    localTip: 'Use BTS Skytrain and boats to avoid traffic',
+    avgDays: '2-3 days',
+    pros: ['Amazing street food', 'Incredible temples', 'Great value for money'],
+    cons: ['Extreme heat and humidity', 'Traffic congestion', 'Tourist scams around attractions'],
+    ratings: { calm: 1, wow: 4, history: 3, friction: 3 },
+    idealFor: ['Foodies', 'Night owls', 'Budget travelers', 'Culture seekers'],
+    highlights: {
+      landmarks: [
+        { name: 'Grand Palace', description: 'Dazzling royal complex with the sacred Emerald Buddha - Thailand\'s most important landmark' },
+        { name: 'Wat Pho', description: 'Home to the 46-meter reclining Buddha and birthplace of Thai massage' },
+        { name: 'Wat Arun', description: 'Iconic "Temple of Dawn" with Khmer-style spires covered in colorful porcelain' },
+        { name: 'Jim Thompson House', description: 'Traditional Thai teakwood house museum showcasing silk merchant\'s art collection' },
+      ],
+      history: [
+        { name: 'Rattanakosin Era (1782-present)', description: 'Bangkok became capital when King Rama I built the Grand Palace' },
+        { name: 'The Venice of the East', description: 'Once a city of canals (klongs) - explore remaining waterways by longtail boat' },
+        { name: 'WWII & Modern Era', description: 'From R&R destination for GIs to modern megacity of 10+ million people' },
+      ],
+      markets: [
+        { name: 'Chatuchak Weekend Market', description: 'One of world\'s largest markets with 15,000 stalls - arrive early to beat the heat' },
+        { name: 'Asiatique Night Bazaar', description: 'Riverside night market in converted warehouses with dining and entertainment' },
+        { name: 'Or Tor Kor Market', description: 'Thailand\'s best fresh market - come hungry for exotic fruits and curry' },
+      ],
+      food: [
+        { name: 'Street Food Paradise', description: 'From pad thai to som tam, Bangkok\'s street vendors are legendary - try Yaowarat (Chinatown)' },
+        { name: 'Tom Yum & Green Curry', description: 'Iconic Thai dishes at their finest - the heat and flavor are unmatched' },
+        { name: 'Mango Sticky Rice', description: 'Sweet, creamy coconut dessert perfected in Thailand - best during mango season (Apr-Jun)' },
+      ],
+    }
+  },
+  'Chiang Mai': {
+    bestFor: ['Culture', 'Nature', 'Wellness'],
+    crowdLevel: 'Moderate',
+    bestTime: 'Nov-Feb',
+    topSites: ['Doi Suthep Temple', 'Old City Temples', 'Night Bazaar', 'Elephant Sanctuaries'],
+    localTip: 'Visit ethical elephant sanctuaries, not riding camps',
+    avgDays: '3-4 days',
+    pros: ['Relaxed pace', 'Rich temple culture', 'Great for digital nomads'],
+    cons: ['Smoky season Mar-Apr', 'Over-commercialized in parts', 'Far from beaches'],
+    ratings: { calm: 4, wow: 4, history: 4, friction: 2 },
+    idealFor: ['Wellness seekers', 'Digital nomads', 'Temple lovers', 'Nature enthusiasts'],
+    highlights: {
+      landmarks: [
+        { name: 'Doi Suthep Temple', description: 'Sacred hilltop temple with 300 naga stairs and panoramic city views' },
+        { name: 'Old City Temples', description: 'Walk among 30+ ancient temples within the moat - Wat Chedi Luang\'s ruins are stunning' },
+        { name: 'Doi Inthanon', description: 'Thailand\'s highest peak with misty trails, waterfalls, and hill tribe villages' },
+        { name: 'White Temple (Wat Rong Khun)', description: 'Otherworldly contemporary temple 3 hours north in Chiang Rai' },
+      ],
+      history: [
+        { name: 'Lanna Kingdom Capital', description: 'Founded in 1296, Chiang Mai was the capital of the Lanna Kingdom for centuries' },
+        { name: 'Hill Tribe Heritage', description: 'Home to Karen, Hmong, and other tribes with distinct cultures and crafts' },
+        { name: 'Buddhist Learning Center', description: 'Meditation retreats and monk chats continue traditions passed down for centuries' },
+      ],
+      markets: [
+        { name: 'Sunday Walking Street', description: 'Massive night market stretching through Old City with crafts, food, and live music' },
+        { name: 'Night Bazaar', description: 'Daily evening market along Chang Klan Road - great for souvenirs and street food' },
+        { name: 'Warorot Market', description: 'Local market for spices, northern Thai food, and authentic shopping' },
+      ],
+      food: [
+        { name: 'Khao Soi', description: 'Chiang Mai\'s signature dish - creamy coconut curry noodles with crispy egg noodles on top' },
+        { name: 'Sai Oua (Northern Sausage)', description: 'Herb-packed pork sausage with lemongrass, galangal, and kaffir lime' },
+        { name: 'Cooking Classes', description: 'Learn Thai cooking at a farm school - includes market tour and hands-on cooking' },
+      ],
+      nature: [
+        { name: 'Elephant Nature Park', description: 'Ethical sanctuary where rescued elephants roam free - no riding, just observing' },
+        { name: 'Sticky Waterfalls', description: 'Unique limestone falls you can climb up - the mineral deposits make it grippy' },
+        { name: 'Mae Sa Valley', description: 'Scenic loop with orchid farms, zip lines, and the Hmong village of Doi Pui' },
+      ],
+    }
+  },
   'Ayutthaya': {
     bestFor: ['History', 'Architecture', 'Photography'],
     crowdLevel: 'Moderate',
@@ -293,9 +434,87 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
   'Koh Samui': { bestFor: ['Beach', 'Luxury', 'Romance'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr', topSites: ['Chaweng Beach', 'Big Buddha Temple', 'Ang Thong Marine Park', 'Fisherman\'s Village'], localTip: 'Visit during full moon for the famous party on nearby Koh Phangan', avgDays: '3-5 days', pros: ['Beautiful palm-fringed beaches', 'Upscale resorts', 'Good infrastructure'], cons: ['More expensive than mainland', 'Rainy Oct-Dec', 'Full moon party crowds'] },
   'Sukhothai': { bestFor: ['History', 'Culture', 'Cycling'], crowdLevel: 'Low', bestTime: 'Nov-Feb', topSites: ['Sukhothai Historical Park', 'Wat Mahathat', 'Ramkhamhaeng Museum', 'Si Satchanalai'], localTip: 'Rent a bicycle at dawn to see the ruins bathed in golden light', avgDays: '1-2 days', pros: ['Birthplace of Thai civilization', 'UNESCO World Heritage ruins', 'Peaceful and uncrowded'], cons: ['Remote location', 'Limited accommodation', 'Very hot midday'] },
   // France
-  'Paris': { bestFor: ['Art', 'Romance', 'Food'], crowdLevel: 'Very High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Eiffel Tower', 'Louvre Museum', 'Notre-Dame', 'Sacré-Cœur'], localTip: 'Skip tourist restaurants - eat where locals queue', avgDays: '4-5 days', pros: ['World-class museums', 'Romantic atmosphere', 'Excellent cuisine'], cons: ['Very expensive', 'Can feel unfriendly', 'Pickpockets at tourist sites'] },
+  'Paris': {
+    bestFor: ['Art', 'Romance', 'Food'],
+    crowdLevel: 'Very High',
+    bestTime: 'Apr-Jun, Sep-Oct',
+    topSites: ['Eiffel Tower', 'Louvre Museum', 'Notre-Dame', 'Sacré-Cœur'],
+    localTip: 'Skip tourist restaurants - eat where locals queue',
+    avgDays: '4-5 days',
+    pros: ['World-class museums', 'Romantic atmosphere', 'Excellent cuisine'],
+    cons: ['Very expensive', 'Can feel unfriendly', 'Pickpockets at tourist sites'],
+    ratings: { calm: 2, wow: 5, history: 5, friction: 3 },
+    idealFor: ['Art lovers', 'Romantics', 'Foodies', 'Fashion enthusiasts', 'History buffs'],
+    highlights: {
+      landmarks: [
+        { name: 'Eiffel Tower', description: 'The world\'s most iconic landmark - dine at Jules Verne or just picnic beneath it' },
+        { name: 'Notre-Dame Cathedral', description: 'Gothic masterpiece on Île de la Cité - under restoration after 2019 fire' },
+        { name: 'Arc de Triomphe', description: 'Napoleon\'s victory arch at the top of Champs-Élysées with rooftop views' },
+        { name: 'Sacré-Cœur', description: 'White-domed basilica atop Montmartre with sweeping city views' },
+      ],
+      history: [
+        { name: 'Roman Lutetia', description: 'Founded over 2,000 years ago - Roman baths and arena still visible in Latin Quarter' },
+        { name: 'French Revolution', description: 'Stormed the Bastille in 1789 - visit Place de la Concorde where the guillotine stood' },
+        { name: 'Belle Époque', description: 'Golden age of cafés, cabarets, and artists (1880-1914) still lives in Montmartre' },
+      ],
+      museums: [
+        { name: 'The Louvre', description: 'World\'s largest museum with 35,000 works including the Mona Lisa - book timed entry' },
+        { name: 'Musée d\'Orsay', description: 'Impressionist masterpieces in a stunning Beaux-Arts train station' },
+        { name: 'Centre Pompidou', description: 'Modern art collection in an inside-out building with colored pipes' },
+      ],
+      markets: [
+        { name: 'Marché des Enfants Rouges', description: 'Paris\'s oldest covered market (1615) with incredible lunch stalls' },
+        { name: 'Rue Mouffetard', description: 'Medieval market street in the Latin Quarter with cheese, bread, and wine shops' },
+        { name: 'Marché aux Puces de Saint-Ouen', description: 'World\'s largest antique market with 2,500+ dealers' },
+      ],
+      food: [
+        { name: 'Croissants & Baguettes', description: 'Start mornings at a local boulangerie - Du Pain et des Idées is legendary' },
+        { name: 'Bistro Classics', description: 'Steak frites, coq au vin, onion soup - timeless French comfort food' },
+        { name: 'Wine & Cheese', description: 'Every neighborhood has caves à vin for natural wine and artisan fromageries' },
+      ],
+    }
+  },
   // Greece
-  'Athens': { bestFor: ['History', 'Culture', 'Food'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Oct', topSites: ['Acropolis', 'Plaka District', 'Ancient Agora', 'National Archaeological Museum'], localTip: 'Watch sunset from Areopagus Hill with views of the Acropolis', avgDays: '2-3 days', pros: ['Birthplace of democracy', 'Ancient ruins everywhere', 'Great food scene'], cons: ['Very hot in summer', 'Air pollution', 'Graffiti in some areas'] },
+  'Athens': {
+    bestFor: ['History', 'Culture', 'Food'],
+    crowdLevel: 'High',
+    bestTime: 'Apr-Jun, Sep-Oct',
+    topSites: ['Acropolis', 'Plaka District', 'Ancient Agora', 'National Archaeological Museum'],
+    localTip: 'Watch sunset from Areopagus Hill with views of the Acropolis',
+    avgDays: '2-3 days',
+    pros: ['Birthplace of democracy', 'Ancient ruins everywhere', 'Great food scene'],
+    cons: ['Very hot in summer', 'Air pollution', 'Graffiti in some areas'],
+    ratings: { calm: 2, wow: 5, history: 5, friction: 2 },
+    idealFor: ['History buffs', 'Culture seekers', 'Foodies', 'Philosophy lovers'],
+    highlights: {
+      landmarks: [
+        { name: 'The Acropolis', description: 'Ancient citadel perched above the city with the iconic Parthenon temple (447 BC)' },
+        { name: 'Parthenon', description: 'Temple to goddess Athena - the defining symbol of ancient Greek civilization' },
+        { name: 'Temple of Olympian Zeus', description: 'Massive temple ruins with 17 of the original 104 columns still standing' },
+        { name: 'Panathenaic Stadium', description: 'Marble stadium from 330 BC where the first modern Olympics were held (1896)' },
+      ],
+      history: [
+        { name: 'Birthplace of Democracy', description: 'Citizens voted in the Agora - the world\'s first democratic system (508 BC)' },
+        { name: 'Classical Golden Age', description: 'Socrates, Plato, Aristotle - philosophy was invented here in the 5th century BC' },
+        { name: 'Ottoman Athens', description: 'Under Ottoman rule for 400 years until Greek independence in 1832' },
+      ],
+      museums: [
+        { name: 'Acropolis Museum', description: 'Stunning modern museum with Parthenon sculptures and ancient artifacts' },
+        { name: 'National Archaeological Museum', description: 'One of the world\'s greatest collections of Greek antiquities' },
+        { name: 'Ancient Agora', description: 'The original marketplace and civic center - walk where Socrates taught' },
+      ],
+      markets: [
+        { name: 'Plaka District', description: 'Charming old neighborhood at the Acropolis foot with shops, tavernas, and winding streets' },
+        { name: 'Monastiraki Flea Market', description: 'Bustling market with antiques, souvenirs, and street food every Sunday' },
+        { name: 'Central Market (Varvakios)', description: 'Authentic meat and fish market surrounded by tavernas serving fresh catches' },
+      ],
+      food: [
+        { name: 'Souvlaki & Gyros', description: 'Grilled meat wrapped in warm pita with tzatziki - Athens does it best' },
+        { name: 'Mezedes', description: 'Small plates culture - order many and share over ouzo or tsipouro' },
+        { name: 'Fresh Seafood', description: 'Head to Piraeus port or Psiri neighborhood for grilled octopus and fish' },
+      ],
+    }
+  },
   'Santorini': { bestFor: ['Romance', 'Scenery', 'Photography'], crowdLevel: 'Very High', bestTime: 'May-Jun, Sep-Oct', topSites: ['Oia Sunset', 'Fira', 'Red Beach', 'Ancient Akrotiri'], localTip: 'Stay in Imerovigli for Oia views without Oia prices', avgDays: '2-3 days', pros: ['Stunning caldera views', 'Iconic white-washed buildings', 'Amazing sunsets'], cons: ['Extremely crowded', 'Very expensive', 'Cruise ship day-trippers'] },
   // Hawaii
   'Honolulu': { bestFor: ['Beach', 'Culture', 'History'], crowdLevel: 'High', bestTime: 'Apr-Jun, Sep-Nov', topSites: ['Waikiki Beach', 'Diamond Head', 'Pearl Harbor', 'Iolani Palace'], localTip: 'Hike Diamond Head at sunrise before the crowds and heat', avgDays: '3-4 days', pros: ['Perfect weather year-round', 'World-famous beaches', 'Rich Hawaiian culture'], cons: ['Expensive accommodations', 'Crowded at Waikiki', 'Traffic congestion'] },
@@ -308,11 +527,170 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
   'Lahaina': { bestFor: ['History', 'Dining', 'Whale Watching'], crowdLevel: 'High', bestTime: 'Dec-Apr (whales), year-round', topSites: ['Front Street', 'Banyan Tree', 'Lahaina Harbor', 'Old Lahaina Luau'], localTip: 'Book whale watching tours Dec-Apr for humpback sightings', avgDays: '1-2 days', pros: ['Historic whaling town charm', 'Great restaurants', 'Whale watching hub'], cons: ['Very hot and dry', 'Crowded streets', 'Limited parking'] },
   'Kona': { bestFor: ['Coffee', 'Beach', 'Snorkeling'], crowdLevel: 'Moderate', bestTime: 'Year-round', topSites: ['Kona Coffee Farms', 'Kealakekua Bay', 'Magic Sands Beach', 'Hulihee Palace'], localTip: 'Snorkel at Two Step (Honaunau) for the best reef experience', avgDays: '2-3 days', pros: ['Sunny weather', 'Famous Kona coffee', 'Great snorkeling'], cons: ['Rocky beaches', 'Resort-heavy areas', 'Can be hot'] },
   // Vietnam
-  'Ho Chi Minh City': { bestFor: ['History', 'Food', 'Culture'], crowdLevel: 'High', bestTime: 'Dec-Apr', topSites: ['War Remnants Museum', 'Cu Chi Tunnels', 'Ben Thanh Market', 'Notre-Dame Cathedral'], localTip: 'Take a street food tour in District 1 for authentic pho and banh mi', avgDays: '2-3 days', pros: ['Amazing street food', 'Fascinating history', 'Very affordable'], cons: ['Chaotic traffic', 'Hot and humid', 'Aggressive street vendors'] },
-  'Hanoi': { bestFor: ['Culture', 'Food', 'History'], crowdLevel: 'Moderate', bestTime: 'Oct-Dec, Mar-Apr', topSites: ['Old Quarter', 'Hoan Kiem Lake', 'Ho Chi Minh Mausoleum', 'Temple of Literature'], localTip: 'Try egg coffee at Giang Cafe - the original inventor', avgDays: '2-3 days', pros: ['Charming Old Quarter', 'Best Vietnamese coffee', 'Rich culture'], cons: ['Crazy motorbike traffic', 'Can be cold in winter', 'Pushy vendors'] },
-  'Ha Long Bay': { bestFor: ['Nature', 'Scenery', 'Cruises'], crowdLevel: 'High', bestTime: 'Oct-Dec, Mar-May', topSites: ['Limestone Karsts', 'Sung Sot Cave', 'Ti Top Island', 'Floating Villages'], localTip: 'Book a 2-night cruise to reach the less crowded Bai Tu Long Bay', avgDays: '2-3 days', pros: ['UNESCO World Heritage scenery', 'Unique kayaking', 'Romantic cruises'], cons: ['Can be foggy', 'Crowded with tour boats', 'Water not always clean'] },
-  'Hoi An': { bestFor: ['Culture', 'Shopping', 'Food'], crowdLevel: 'Moderate', bestTime: 'Feb-May', topSites: ['Ancient Town', 'Japanese Bridge', 'Lantern Festival', 'An Bang Beach'], localTip: 'Get custom tailored clothes - many shops can do 24-hour turnaround', avgDays: '2-3 days', pros: ['Beautiful lantern-lit streets', 'Excellent tailors', 'Charming old town'], cons: ['Floods in rainy season', 'Very hot summers', 'Can feel touristy'] },
-  'Da Nang': { bestFor: ['Beach', 'Mountains', 'Adventure'], crowdLevel: 'Moderate', bestTime: 'Feb-May', topSites: ['Marble Mountains', 'My Khe Beach', 'Dragon Bridge', 'Ba Na Hills'], localTip: 'Visit Dragon Bridge on weekends at 9pm for fire-breathing show', avgDays: '2-3 days', pros: ['Beautiful beaches', 'Good base for day trips', 'Modern city'], cons: ['Less character than Hoi An', 'Beach can be rough', 'Hot summers'] },
+  'Ho Chi Minh City': {
+    bestFor: ['History', 'Food', 'Culture'],
+    crowdLevel: 'High',
+    bestTime: 'Dec-Apr',
+    topSites: ['War Remnants Museum', 'Cu Chi Tunnels', 'Ben Thanh Market', 'Notre-Dame Cathedral'],
+    localTip: 'Take a street food tour in District 1 for authentic pho and banh mi',
+    avgDays: '2-3 days',
+    pros: ['Amazing street food', 'Fascinating history', 'Very affordable'],
+    cons: ['Chaotic traffic', 'Hot and humid', 'Aggressive street vendors'],
+    ratings: { calm: 1, wow: 3, history: 4, friction: 4 },
+    idealFor: ['History buffs', 'Foodies', 'Budget travelers', 'Adventure seekers'],
+    highlights: {
+      landmarks: [
+        { name: 'War Remnants Museum', description: 'Powerful and sobering museum documenting the Vietnam War with artifacts and photos' },
+        { name: 'Notre-Dame Cathedral', description: 'Beautiful French colonial-era cathedral built with red bricks imported from Marseille' },
+        { name: 'Central Post Office', description: 'Gorgeous colonial building designed by Gustave Eiffel - still a working post office' },
+        { name: 'Independence Palace', description: 'Former presidential palace where the Vietnam War ended - original 1960s interiors preserved' },
+      ],
+      history: [
+        { name: 'French Colonial Era', description: 'Known as Saigon until 1976 - French architecture and wide boulevards still visible' },
+        { name: 'Vietnam War', description: 'Fell to North Vietnamese forces in 1975 - Cu Chi Tunnels show guerrilla warfare tactics' },
+        { name: 'Modern Resurgence', description: 'Vietnam\'s economic hub with 9 million people and explosive growth' },
+      ],
+      markets: [
+        { name: 'Ben Thanh Market', description: 'Iconic covered market since 1914 - great for souvenirs but haggle hard' },
+        { name: 'Binh Tay Market (Cholon)', description: 'Huge wholesale market in Chinatown - more authentic, less touristy' },
+        { name: 'Street Food Alley', description: 'District 4 has some of the best street food stalls in the city' },
+      ],
+      food: [
+        { name: 'Pho & Banh Mi', description: 'Southern-style pho with fresh herbs + crispy banh mi - cheaper and better than anywhere' },
+        { name: 'Bánh Xèo', description: 'Crispy Vietnamese crepes filled with shrimp, pork, and bean sprouts' },
+        { name: 'Vietnamese Coffee', description: 'Strong drip coffee with condensed milk - invented here during French era' },
+      ],
+    }
+  },
+  'Hanoi': {
+    bestFor: ['Culture', 'Food', 'History'],
+    crowdLevel: 'Moderate',
+    bestTime: 'Oct-Dec, Mar-Apr',
+    topSites: ['Old Quarter', 'Hoan Kiem Lake', 'Ho Chi Minh Mausoleum', 'Temple of Literature'],
+    localTip: 'Try egg coffee at Giang Cafe - the original inventor',
+    avgDays: '2-3 days',
+    pros: ['Charming Old Quarter', 'Best Vietnamese coffee', 'Rich culture'],
+    cons: ['Crazy motorbike traffic', 'Can be cold in winter', 'Pushy vendors'],
+    ratings: { calm: 2, wow: 4, history: 5, friction: 3 },
+    idealFor: ['Culture lovers', 'Foodies', 'History enthusiasts', 'Coffee addicts'],
+    highlights: {
+      landmarks: [
+        { name: 'Hoan Kiem Lake', description: 'Legendary lake in the heart of Hanoi with the iconic red Huc Bridge and temple' },
+        { name: 'Ho Chi Minh Mausoleum', description: 'Imposing granite memorial where Ho Chi Minh lies in state - strict dress code' },
+        { name: 'Temple of Literature', description: 'Vietnam\'s first university (1070) with peaceful courtyards and ancient architecture' },
+        { name: 'Old Quarter (36 Streets)', description: 'Maze of narrow streets named by trade - best explored on foot or cyclo' },
+      ],
+      history: [
+        { name: '1000+ Years as Capital', description: 'Thang Long (Hanoi) has been Vietnam\'s capital since 1010 AD' },
+        { name: 'French Indochina', description: 'Colonial architecture blends with traditional Vietnamese - see Opera House and St. Joseph\'s' },
+        { name: 'Ho Chi Minh\'s Legacy', description: 'Revolutionary leader lived and worked here - visit his simple stilt house' },
+      ],
+      markets: [
+        { name: 'Dong Xuan Market', description: 'Hanoi\'s largest covered market with three floors of everything imaginable' },
+        { name: 'Old Quarter Night Market', description: 'Friday-Sunday nights the streets close for walking, food, and shopping' },
+        { name: 'Long Bien Market', description: 'Wholesale market under Long Bien Bridge - best at 2-4am for real local experience' },
+      ],
+      food: [
+        { name: 'Egg Coffee (Cà Phê Trứng)', description: 'Hanoi\'s unique invention - whipped egg yolk, sugar, and strong coffee - try at Giang Cafe' },
+        { name: 'Bun Cha', description: 'Obama ate this with Bourdain at Bun Cha Huong Lien - grilled pork with noodles' },
+        { name: 'Pho Bo', description: 'Northern-style beef pho is simpler and more subtle than the southern version' },
+      ],
+    }
+  },
+  'Ha Long Bay': {
+    bestFor: ['Nature', 'Scenery', 'Cruises'],
+    crowdLevel: 'High',
+    bestTime: 'Oct-Dec, Mar-May',
+    topSites: ['Limestone Karsts', 'Sung Sot Cave', 'Ti Top Island', 'Floating Villages'],
+    localTip: 'Book a 2-night cruise to reach the less crowded Bai Tu Long Bay',
+    avgDays: '2-3 days',
+    pros: ['UNESCO World Heritage scenery', 'Unique kayaking', 'Romantic cruises'],
+    cons: ['Can be foggy', 'Crowded with tour boats', 'Water not always clean'],
+    ratings: { calm: 4, wow: 5, history: 2, friction: 2 },
+    idealFor: ['Nature lovers', 'Couples', 'Photographers', 'Adventure seekers'],
+    highlights: {
+      landmarks: [
+        { name: 'Limestone Karsts', description: 'Nearly 2,000 islands and islets rising dramatically from emerald waters' },
+        { name: 'Sung Sot Cave (Surprise Cave)', description: 'Massive cave system with impressive stalactites and stalagmites' },
+        { name: 'Ti Top Island', description: 'Climb 400 steps for panoramic bay views, or swim at the small beach' },
+        { name: 'Dau Go Cave', description: '"Wooden Stakes Cave" - named for weapons hidden here against Mongol invaders' },
+      ],
+      nature: [
+        { name: 'Kayaking Through Karsts', description: 'Paddle through hidden lagoons and caves at your own pace' },
+        { name: 'Floating Fishing Villages', description: 'See traditional life on the water - some families live here year-round' },
+        { name: 'Cat Ba Island', description: 'Largest island in the bay with national park, hiking, and rock climbing' },
+      ],
+      food: [
+        { name: 'Fresh Seafood', description: 'Cruises serve incredible seafood - squid, prawns, and fish caught that morning' },
+        { name: 'Cooking Classes', description: 'Many cruises offer spring roll and Vietnamese cooking classes on board' },
+      ],
+    }
+  },
+  'Hoi An': {
+    bestFor: ['Culture', 'Shopping', 'Food'],
+    crowdLevel: 'Moderate',
+    bestTime: 'Feb-May',
+    topSites: ['Ancient Town', 'Japanese Bridge', 'Lantern Festival', 'An Bang Beach'],
+    localTip: 'Get custom tailored clothes - many shops can do 24-hour turnaround',
+    avgDays: '2-3 days',
+    pros: ['Beautiful lantern-lit streets', 'Excellent tailors', 'Charming old town'],
+    cons: ['Floods in rainy season', 'Very hot summers', 'Can feel touristy'],
+    ratings: { calm: 4, wow: 4, history: 4, friction: 2 },
+    idealFor: ['Culture seekers', 'Shoppers', 'Foodies', 'Photographers', 'Beach lovers'],
+    highlights: {
+      landmarks: [
+        { name: 'Japanese Covered Bridge', description: 'Iconic 400-year-old bridge connecting Chinese and Japanese quarters' },
+        { name: 'Ancient Town (UNESCO)', description: 'Perfectly preserved trading port with Chinese, Japanese, and French influences' },
+        { name: 'Assembly Halls', description: 'Elaborate Chinese clan meeting halls - Fujian and Cantonese are most impressive' },
+        { name: 'Tra Que Vegetable Village', description: 'Traditional farming village where you can learn organic gardening and cooking' },
+      ],
+      markets: [
+        { name: 'Central Market', description: 'Bustling morning market by the river with fresh produce and street food' },
+        { name: 'Lantern Street', description: 'Dozens of shops selling handmade silk lanterns in every color and shape' },
+        { name: 'Tailoring Shops', description: 'World-famous for custom suits, dresses, and shoes - 24-48 hour turnaround' },
+      ],
+      food: [
+        { name: 'Cao Lau', description: 'Hoi An\'s signature noodle dish - thick noodles with pork, herbs, and crispy croutons' },
+        { name: 'White Rose Dumplings', description: 'Delicate shrimp dumplings shaped like roses - invented here' },
+        { name: 'Banh Mi Phuong', description: 'Anthony Bourdain declared this the best banh mi in Vietnam' },
+      ],
+      nature: [
+        { name: 'An Bang Beach', description: 'Peaceful beach 4km from town with beach bars and seafood restaurants' },
+        { name: 'Cua Dai Beach', description: 'Long sandy beach perfect for swimming and cycling from town' },
+        { name: 'Basket Boat Rides', description: 'Traditional round bamboo boats in the coconut forest - learn to paddle one' },
+      ],
+    }
+  },
+  'Da Nang': {
+    bestFor: ['Beach', 'Mountains', 'Adventure'],
+    crowdLevel: 'Moderate',
+    bestTime: 'Feb-May',
+    topSites: ['Marble Mountains', 'My Khe Beach', 'Dragon Bridge', 'Ba Na Hills'],
+    localTip: 'Visit Dragon Bridge on weekends at 9pm for fire-breathing show',
+    avgDays: '2-3 days',
+    pros: ['Beautiful beaches', 'Good base for day trips', 'Modern city'],
+    cons: ['Less character than Hoi An', 'Beach can be rough', 'Hot summers'],
+    ratings: { calm: 3, wow: 4, history: 2, friction: 2 },
+    idealFor: ['Beach lovers', 'Families', 'Adventure seekers', 'Day trippers'],
+    highlights: {
+      landmarks: [
+        { name: 'Marble Mountains', description: 'Five limestone hills with Buddhist temples, caves, and panoramic views' },
+        { name: 'Dragon Bridge', description: 'Unique 666m bridge shaped like a dragon - breathes fire on weekend nights!' },
+        { name: 'Ba Na Hills', description: 'French-built hill station with the famous Golden Bridge held by giant hands' },
+        { name: 'Lady Buddha', description: 'Vietnam\'s tallest Buddha statue (67m) at Linh Ung Pagoda on Son Tra Peninsula' },
+      ],
+      nature: [
+        { name: 'My Khe Beach', description: 'Named by Forbes as one of most attractive beaches in the world - 30km of sand' },
+        { name: 'Son Tra Peninsula', description: 'Forested peninsula with wild monkeys, hidden beaches, and incredible views' },
+        { name: 'Hai Van Pass', description: 'Epic coastal road made famous by Top Gear - rent a motorbike and drive it' },
+      ],
+      food: [
+        { name: 'Mi Quang', description: 'Da Nang\'s signature turmeric noodles with pork, shrimp, and crunchy rice crackers' },
+        { name: 'Banh Trang Cuon Thit Heo', description: 'Fresh rice paper rolls with pork belly and herbs - DIY style' },
+        { name: 'Seafood Street', description: 'An Thuong area has dozens of restaurants with tanks of live seafood' },
+      ],
+    }
+  },
 };
 
 // Get city info - first check cache/popular, then generate

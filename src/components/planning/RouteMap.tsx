@@ -99,71 +99,30 @@ interface RouteMapProps {
   calculateDistance: (from: string, to: string) => number | null;
 }
 
-// Calculate midpoint between two coordinates
-function getMidpoint(lat1: number, lng1: number, lat2: number, lng2: number) {
-  return {
-    lat: (lat1 + lat2) / 2,
-    lng: (lng1 + lng2) / 2,
-  };
-}
-
-// Create pink pin marker
-function createPinkMarker() {
+// Create numbered marker - clean pink circle with number
+function createNumberedMarker(number: number) {
   const html = `
-    <div style="position: relative;">
-      <div style="
-        width: 12px;
-        height: 12px;
-        background: #ec4899;
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      "></div>
-    </div>
+    <div style="
+      width: 24px;
+      height: 24px;
+      background: #ec4899;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 11px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    ">${number}</div>
   `;
 
   return L.divIcon({
     className: 'route-map-marker',
     html,
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
-  });
-}
-
-// Create transport badge marker for route midpoints
-function createTransportBadge(mode: 'car' | 'train' | 'flight', time: string) {
-  const iconSvg = mode === 'flight'
-    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>'
-    : mode === 'train'
-    ? '<span style="font-size:12px;">🚄</span>'
-    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>';
-
-  const bgColor = mode === 'flight' ? '#f97316' : '#3b82f6';
-
-  const html = `
-    <div style="
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: white;
-      padding: 4px 8px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      font-size: 11px;
-      font-weight: 500;
-      white-space: nowrap;
-      color: ${bgColor};
-    ">
-      ${iconSvg}
-      <span>${time}</span>
-    </div>
-  `;
-
-  return L.divIcon({
-    className: 'transport-badge',
-    html,
-    iconSize: [80, 24],
-    iconAnchor: [40, 12],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 
@@ -174,20 +133,14 @@ function MapController({ coords, isPacificRoute }: { coords: { lat: number; lng:
   useEffect(() => {
     if (coords.length === 0) return;
 
-    if (isPacificRoute) {
-      // For Pacific routes, use a Pacific-centered view
-      const bounds = L.latLngBounds(coords.map(c => [c.lat, c.lng] as [number, number]));
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 4 });
-    } else {
-      const bounds = L.latLngBounds(coords.map(c => [c.lat, c.lng] as [number, number]));
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
-    }
+    const bounds = L.latLngBounds(coords.map(c => [c.lat, c.lng] as [number, number]));
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: isPacificRoute ? 3 : 6 });
   }, [map, coords, isPacificRoute]);
 
   return null;
 }
 
-export default function RouteMap({ cities, getCityCountry, calculateDistance }: RouteMapProps) {
+export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
   // Get coordinates for all cities
   const cityCoords = useMemo(() => {
     return cities
@@ -200,24 +153,21 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
   }, [cities, getCityCountry]);
 
   // Check if this is a Pacific route
-  // Pacific route: traveling from Americas to Asia (Thailand, Vietnam, Japan, etc.)
-  // The proper flight path goes WEST across the Pacific, not EAST across Atlantic
   const isPacificRoute = useMemo(() => {
     const asianCountries = ['Thailand', 'Vietnam', 'Japan', 'Indonesia', 'Philippines', 'Malaysia', 'Singapore', 'Cambodia', 'Laos', 'Myanmar'];
-    const pacificCountries = ['Hawaii']; // Hawaii is in the Pacific
+    const pacificCountries = ['Hawaii'];
 
     const hasAsianDestination = cityCoords.some(c => asianCountries.includes(c.country || ''));
     const hasPacificDestination = cityCoords.some(c => pacificCountries.includes(c.country || ''));
-    const hasAmericasDestination = cityCoords.some(c => c.coords.lng < -100); // West coast Americas
+    const hasAmericasDestination = cityCoords.some(c => c.coords.lng < -100);
 
-    // If traveling between Asia and Americas/Hawaii, it's a Pacific route
     return hasAsianDestination && (hasPacificDestination || hasAmericasDestination);
   }, [cityCoords]);
 
   // Shift longitude for Pacific-centered view
   const shiftLng = (lng: number) => {
     if (isPacificRoute && lng < 0) {
-      return lng + 360; // Shift -157 to 203
+      return lng + 360;
     }
     return lng;
   };
@@ -230,58 +180,12 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
     }));
   }, [cityCoords, isPacificRoute]);
 
-  // Build route segments with transport info
-  const routeSegments = useMemo(() => {
-    const segments: {
-      from: { city: string; lat: number; lng: number; displayLng: number };
-      to: { city: string; lat: number; lng: number; displayLng: number };
-      distance: number;
-      mode: 'car' | 'train' | 'flight';
-      time: string;
-      isCrossCountry: boolean;
-    }[] = [];
+  // Build route line coordinates
+  const routeLine = useMemo(() => {
+    return displayCoords.map(c => [c.coords.lat, c.displayLng] as [number, number]);
+  }, [displayCoords]);
 
-    for (let i = 0; i < displayCoords.length - 1; i++) {
-      const from = displayCoords[i];
-      const to = displayCoords[i + 1];
-      const distance = calculateDistance(from.city, to.city) || 0;
-      const isCrossCountry = from.country !== to.country;
-
-      // Determine transport mode
-      const isFlight = isCrossCountry || distance > 400;
-      const isTrain = !isCrossCountry && distance > 150 && distance <= 400;
-      const mode: 'car' | 'train' | 'flight' = isFlight ? 'flight' : isTrain ? 'train' : 'car';
-
-      // Calculate time estimate
-      let time = '';
-      if (distance > 0) {
-        if (mode === 'flight') {
-          const flightHours = Math.max(1, Math.round(distance / 800)); // ~800km/hr
-          time = `${flightHours}h`;
-        } else if (mode === 'train') {
-          const trainHours = Math.round(distance / 80);
-          time = `${trainHours}h`;
-        } else {
-          const carHours = Math.round(distance / 60);
-          const carMins = Math.round((distance / 60 - carHours) * 60);
-          time = carMins > 0 ? `${carHours}h ${carMins}min` : `${carHours}h`;
-        }
-      }
-
-      segments.push({
-        from: { city: from.city, lat: from.coords.lat, lng: from.coords.lng, displayLng: from.displayLng },
-        to: { city: to.city, lat: to.coords.lat, lng: to.coords.lng, displayLng: to.displayLng },
-        distance,
-        mode,
-        time,
-        isCrossCountry,
-      });
-    }
-
-    return segments;
-  }, [displayCoords, calculateDistance]);
-
-  // Initial center - Pacific centered if needed
+  // Initial center
   const initialCenter = useMemo(() => {
     if (displayCoords.length === 0) return { lat: 20, lng: isPacificRoute ? 180 : 100 };
     const avgLat = displayCoords.reduce((sum, c) => sum + c.coords.lat, 0) / displayCoords.length;
@@ -296,14 +200,14 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
 
   if (cities.length === 0) {
     return (
-      <div className="h-[200px] rounded-xl overflow-hidden bg-muted/30 flex items-center justify-center">
+      <div className="h-[180px] rounded-xl overflow-hidden bg-muted/30 flex items-center justify-center">
         <span className="text-sm text-muted-foreground">Add cities to see the route map</span>
       </div>
     );
   }
 
   return (
-    <div className="h-[200px] rounded-xl overflow-hidden border">
+    <div className="h-[180px] rounded-xl overflow-hidden border">
       <MapContainer
         center={[initialCenter.lat, initialCenter.lng]}
         zoom={3}
@@ -314,85 +218,56 @@ export default function RouteMap({ cities, getCityCountry, calculateDistance }: 
         maxBounds={isPacificRoute ? [[-90, -30], [90, 390]] : undefined}
         maxBoundsViscosity={isPacificRoute ? 1.0 : 0}
       >
-        {/* Use a cleaner map style similar to Google Maps */}
+        {/* Clean map style */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
-        {/* Orange route lines */}
-        {routeSegments.map((segment, idx) => (
+        {/* Single orange route line connecting all cities */}
+        {routeLine.length > 1 && (
           <Polyline
-            key={idx}
-            positions={[
-              [segment.from.lat, segment.from.displayLng],
-              [segment.to.lat, segment.to.displayLng],
-            ]}
+            positions={routeLine}
             pathOptions={{
-              color: '#f97316', // Orange
-              weight: 4,
+              color: '#f97316',
+              weight: 3,
               opacity: 0.9,
             }}
           />
-        ))}
+        )}
 
-        {/* City markers with pink pins */}
-        {displayCoords.map((city) => (
+        {/* Numbered city markers - hover to see name */}
+        {displayCoords.map((city, index) => (
           <Marker
             key={city.city}
             position={[city.coords.lat, city.displayLng]}
-            icon={createPinkMarker()}
+            icon={createNumberedMarker(index + 1)}
           >
-            <Tooltip
-              permanent
-              direction="top"
-              offset={[0, -8]}
-              className="city-tooltip"
-            >
-              <div className="font-medium text-xs">{city.city}</div>
+            <Tooltip direction="top" offset={[0, -14]}>
+              <div className="font-medium text-xs px-1">{city.city}</div>
             </Tooltip>
           </Marker>
         ))}
 
-        {/* Transport badges at midpoints */}
-        {routeSegments.map((segment, idx) => {
-          const midpoint = getMidpoint(
-            segment.from.lat, segment.from.displayLng,
-            segment.to.lat, segment.to.displayLng
-          );
-          return (
-            <Marker
-              key={`transport-${idx}`}
-              position={[midpoint.lat, midpoint.lng]}
-              icon={createTransportBadge(segment.mode, segment.time)}
-              interactive={false}
-            />
-          );
-        })}
-
         <MapController coords={boundsCoords} isPacificRoute={isPacificRoute} />
       </MapContainer>
 
-      {/* Custom styles for tooltips */}
+      {/* Minimal custom styles */}
       <style jsx global>{`
-        .city-tooltip {
-          background: white !important;
-          border: none !important;
-          border-radius: 8px !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-          padding: 4px 8px !important;
-          font-family: inherit !important;
-        }
-        .city-tooltip::before {
-          display: none !important;
-        }
         .route-map-marker {
           background: transparent !important;
           border: none !important;
         }
-        .transport-badge {
-          background: transparent !important;
+        .leaflet-tooltip {
+          background: white !important;
           border: none !important;
+          border-radius: 6px !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+          padding: 4px 8px !important;
+          font-family: inherit !important;
+        }
+        .leaflet-tooltip::before {
+          display: none !important;
         }
       `}</style>
     </div>

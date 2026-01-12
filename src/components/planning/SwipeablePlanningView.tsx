@@ -67,6 +67,11 @@ import dynamic from 'next/dynamic';
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
 
+// Dynamically import HotelPicker
+const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
+import type { HotelInfo } from '@/lib/planning/hotel-generator';
+import { getTransportOptions, estimateTransportOptions, getRome2RioUrl, get12GoUrl, TRANSPORT_ICONS, type TransportOption } from '@/lib/planning/transport-options';
+
 // City region info for geography context
 const CITY_REGIONS: Record<string, { region: string; tip?: string }> = {
   // Thailand
@@ -2025,6 +2030,38 @@ export function SwipeablePlanningView({
               {modalCity && (() => {
                 const allItems = getCityAllItems(modalCity, favoriteCityTab);
                 const favoriteIds = new Set(selectedItems.map(i => i.id));
+                const hotelFavoriteIds = new Set(
+                  items.filter(i => i.tags?.includes('hotels')).map(i => i.id)
+                );
+
+                // Show HotelPicker for hotels tab when no hotels loaded
+                if (allItems.length === 0 && favoriteCityTab === 'hotels') {
+                  return (
+                    <HotelPicker
+                      city={modalCity}
+                      country={modalCityCountry || undefined}
+                      favoriteHotelIds={hotelFavoriteIds}
+                      onSelectHotel={(hotel: HotelInfo) => {
+                        // Convert hotel to PlanningItem and add to items
+                        const hotelItem: PlanningItem = {
+                          id: hotel.id,
+                          name: hotel.name,
+                          description: hotel.description,
+                          imageUrl: hotel.imageUrl,
+                          category: 'hotels',
+                          priceInfo: hotel.pricePerNight,
+                          rating: hotel.rating,
+                          neighborhood: hotel.neighborhood,
+                          tags: ['hotels', modalCity],
+                          isFavorited: true,
+                        };
+                        onItemsChange([...items, hotelItem]);
+                        // Auto-select it
+                        toggleSelect(hotelItem.id, hotelItem.name);
+                      }}
+                    />
+                  );
+                }
 
                 if (allItems.length === 0) {
                   return (
@@ -2567,18 +2604,22 @@ export function SwipeablePlanningView({
                   const isExpanded = expandedTransport === index;
                   const isCrossCountry = isLastInCountry;
 
+                  // Get transport options (Rome2Rio style)
+                  const transportOpts = getTransportOptions(city, nextCity) ||
+                    estimateTransportOptions(distance, isCrossCountry);
+
+                  // Get the "best" option (has badge or first one)
+                  const bestOption = transportOpts.find(o => o.badge === 'best') ||
+                    transportOpts.find(o => o.badge === 'fastest') ||
+                    transportOpts[0];
+
                   // Determine transport type based on distance and country
                   const isFlight = isCrossCountry || distance > 400;
                   const isTrain = !isCrossCountry && distance > 150 && distance <= 400;
-                  const isBus = !isCrossCountry && distance <= 150;
-
-                  // Calculate ground travel time (rough estimates)
-                  const busTime = distance > 0 ? `${Math.round(distance / 40)}hr` : '';  // ~40km/hr avg
-                  const trainTime = distance > 0 ? `${Math.round(distance / 80)}hr` : ''; // ~80km/hr avg
 
                   // Transport mode label and icon color
-                  const transportMode = isFlight ? 'flight' : isTrain ? 'train' : 'bus';
-                  const transportTime = isFlight ? flightInfo.time : isTrain ? trainTime : busTime;
+                  const transportMode = bestOption?.mode || (isFlight ? 'flight' : isTrain ? 'train' : 'bus');
+                  const transportTime = bestOption?.duration || flightInfo.time;
                   const transportColor = isFlight
                     ? (flightInfo.stops === 0 ? 'text-green-600' : flightInfo.stops === 1 ? 'text-amber-600' : 'text-red-600')
                     : 'text-blue-600';
@@ -2589,94 +2630,132 @@ export function SwipeablePlanningView({
                   return (
                     <div className="pl-[1.25rem]">
                       <div className="flex items-start gap-2">
-                        <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
+                        <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[6rem]' : 'h-8'} ${barColor}`} />
                         <div className="flex-1 py-1">
                           {/* Clickable transport summary */}
                           <button
                             onClick={() => setExpandedTransport(isExpanded ? null : index)}
                             className={`flex items-center gap-1.5 text-xs ${transportColor} hover:opacity-80 transition-opacity`}
                           >
-                            {isFlight ? <Plane className="w-3.5 h-3.5" /> :
-                             isTrain ? <span className="text-sm">🚄</span> :
-                             <span className="text-sm">🚌</span>}
+                            <span className="text-sm">{TRANSPORT_ICONS[transportMode] || '🚌'}</span>
                             <span className="font-medium">
-                              {distance > 0 ? `${distance} km` : ''} · {transportTime || 'Check times'}
+                              {distance > 0 ? `${distance} km` : ''} · {transportTime || 'See options'}
                             </span>
-                            {isFlight && flightInfo.stops !== null && (
+                            {bestOption?.badge && (
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
-                                flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
+                                bestOption.badge === 'best' ? 'bg-green-100 text-green-700' :
+                                bestOption.badge === 'fastest' ? 'bg-blue-100 text-blue-700' :
+                                'bg-amber-100 text-amber-700'
                               }`}>
-                                {formatStops(flightInfo.stops)}
+                                {bestOption.badge.toUpperCase()}
                               </span>
+                            )}
+                            {transportOpts.length > 1 && (
+                              <span className="text-muted-foreground">+{transportOpts.length - 1} more</span>
                             )}
                             <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                           </button>
 
-                          {/* Expanded details dropdown */}
-                          {isExpanded && (
-                            <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Route</span>
-                                <span className="font-medium">{city} → {nextCity}</span>
-                              </div>
-                              {isCrossCountry && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Countries</span>
-                                  <span className="font-medium">{getCityCountry(city)} → {getCityCountry(nextCity)}</span>
+                          {/* Expanded details dropdown - Rome2Rio style */}
+                          {isExpanded && (() => {
+                            // Get transport options from our data or estimate
+                            const transportOptions = getTransportOptions(city, nextCity) ||
+                              estimateTransportOptions(distance, isCrossCountry);
+
+                            // Determine if this is SE Asia (for 12Go link)
+                            const seAsiaCountries = ['Thailand', 'Vietnam', 'Cambodia', 'Laos', 'Myanmar', 'Malaysia', 'Indonesia'];
+                            const isSEAsia = seAsiaCountries.includes(getCityCountry(city) || '') ||
+                                            seAsiaCountries.includes(getCityCountry(nextCity) || '');
+
+                            return (
+                              <div className="mt-2 space-y-2">
+                                {/* Header */}
+                                <div className="px-3 py-2 bg-muted/30 rounded-t-lg border-b">
+                                  <div className="font-medium text-sm">{transportOptions.length} ways to travel</div>
+                                  <div className="text-xs text-muted-foreground">{city} → {nextCity} · {distance > 0 ? `${distance} km` : ''}</div>
                                 </div>
-                              )}
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Distance</span>
-                                <span className="font-medium">{distance > 0 ? `${distance} km` : 'Unknown'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Transport</span>
-                                <span className="font-medium capitalize">{transportMode}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Est. time</span>
-                                <span className="font-medium">{transportTime || 'Check availability'}</span>
-                              </div>
-                              {isFlight && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Connections</span>
-                                  <span className={`font-medium ${transportColor}`}>
-                                    {flightInfo.stops === 0 ? 'Direct flight' :
-                                     flightInfo.stops === 1 ? '1 connection' :
-                                     flightInfo.stops !== null ? `${flightInfo.stops} connections` : 'Unknown'}
-                                  </span>
+
+                                {/* Transport options list */}
+                                <div className="space-y-1.5">
+                                  {transportOptions.map((option, optIdx) => (
+                                    <div
+                                      key={optIdx}
+                                      className="flex items-center justify-between p-3 bg-background border rounded-lg hover:border-primary/30 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xl">{TRANSPORT_ICONS[option.mode]}</span>
+                                        <div>
+                                          <div className="font-medium text-sm capitalize flex items-center gap-2">
+                                            {option.mode === 'private' ? 'Private Transfer' : option.mode}
+                                            {option.badge && (
+                                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                                option.badge === 'best' ? 'bg-green-100 text-green-700' :
+                                                option.badge === 'fastest' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-amber-100 text-amber-700'
+                                              }`}>
+                                                {option.badge.toUpperCase()}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                            <span>{option.duration}</span>
+                                            {option.operator && <span>· {option.operator}</span>}
+                                          </div>
+                                          {option.notes && (
+                                            <div className="text-[10px] text-muted-foreground mt-0.5">{option.notes}</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className={`font-medium text-sm ${
+                                          option.badge === 'cheapest' ? 'text-green-600' :
+                                          option.priceRange.includes('$1') && !option.priceRange.includes('$10') ? 'text-green-600' :
+                                          'text-foreground'
+                                        }`}>
+                                          {option.priceRange}
+                                        </div>
+                                        {option.frequency && (
+                                          <div className="text-[10px] text-muted-foreground">{option.frequency}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                              )}
-                              {isFlight && flightInfo.stops !== null && flightInfo.stops >= 2 && (
-                                <div className="pt-2 border-t text-amber-600">
-                                  ⚠️ Consider an overnight stop to avoid 3+ flights in one day
+
+                                {/* Booking links */}
+                                <div className="flex gap-2 pt-2">
+                                  {isFlight && (
+                                    <a
+                                      href={flightInfo.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors text-xs font-medium"
+                                    >
+                                      ✈️ Google Flights
+                                    </a>
+                                  )}
+                                  <a
+                                    href={getRome2RioUrl(city, nextCity)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 flex items-center justify-center gap-1 py-2 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 transition-colors text-xs font-medium"
+                                  >
+                                    🗺️ Rome2Rio
+                                  </a>
+                                  {isSEAsia && (
+                                    <a
+                                      href={get12GoUrl(city, nextCity)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors text-xs font-medium"
+                                    >
+                                      🎫 12Go Asia
+                                    </a>
+                                  )}
                                 </div>
-                              )}
-                              {isFlight ? (
-                                <a
-                                  href={flightInfo.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
-                                >
-                                  Search flights on Google
-                                  <ArrowRight className="w-3 h-3" />
-                                </a>
-                              ) : (
-                                <a
-                                  href={`https://www.rome2rio.com/s/${encodeURIComponent(city)}/${encodeURIComponent(nextCity)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
-                                >
-                                  Check {transportMode} options on Rome2Rio
-                                  <ArrowRight className="w-3 h-3" />
-                                </a>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
