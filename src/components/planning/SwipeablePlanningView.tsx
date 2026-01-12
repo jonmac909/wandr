@@ -775,6 +775,7 @@ interface SwipeablePlanningViewProps {
   isTripLocked?: boolean; // When Trip View is locked, only allow adding (not removing/editing)
   controlledPhase?: PlanningPhase; // When provided, parent controls the phase
   onPhaseChange?: (phase: PlanningPhase) => void; // Callback when phase changes internally
+  onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
 }
 
 interface CategoryStep {
@@ -1106,6 +1107,7 @@ export function SwipeablePlanningView({
   isTripLocked = false,
   controlledPhase,
   onPhaseChange,
+  onDatesChange,
 }: SwipeablePlanningViewProps) {
   // Calculate duration from itinerary or props
   const duration = propDuration || getItineraryDuration(itinerary) || 7;
@@ -2076,6 +2078,7 @@ export function SwipeablePlanningView({
         duration={duration}
         onBack={() => setPhase('route-planning')}
         getCityCountry={getCityCountry}
+        onDatesChange={onDatesChange}
       />
     );
   }

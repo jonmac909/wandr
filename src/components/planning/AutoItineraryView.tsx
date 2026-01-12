@@ -55,6 +55,7 @@ interface AutoItineraryViewProps {
   duration?: number; // Total trip days
   onBack: () => void;
   getCityCountry?: (city: string) => string | undefined;
+  onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
 }
 
 // Mock activities data for auto-fill
@@ -247,6 +248,7 @@ export default function AutoItineraryView({
   duration: propDuration,
   onBack,
   getCityCountry,
+  onDatesChange,
 }: AutoItineraryViewProps) {
   // Get initial total days and start date from tripDna
   // Plan page stores at: constraints.duration.days and constraints.startDate
@@ -337,6 +339,8 @@ export default function AutoItineraryView({
     if (newTotalDays > 0) {
       setTripStartDate(newStartDate);
       setTripTotalDays(newTotalDays);
+      // Sync back to parent
+      onDatesChange?.(newStartDate, newTotalDays);
       // Allocations will auto-update via useEffect
     }
     setIsDateEditorOpen(false);
@@ -534,6 +538,7 @@ export default function AutoItineraryView({
                   const newStart = e.target.value;
                   // Keep same duration, just shift dates
                   setTripStartDate(newStart);
+                  onDatesChange?.(newStart, tripTotalDays);
                 }}
                 className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
               />

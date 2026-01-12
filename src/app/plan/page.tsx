@@ -1245,6 +1245,21 @@ function PlanPageContent() {
             isTripLocked={false}
             controlledPhase={planningPhase}
             onPhaseChange={handlePlanningPhaseChange}
+            onDatesChange={(newStartDate, newTotalDays) => {
+              // Sync dates back to plan page state
+              setStartDate(newStartDate);
+              // Update duration to match
+              if (newTotalDays >= 30) {
+                setDurationType('months');
+                setDurationMonths(Math.round(newTotalDays / 30));
+              } else if (newTotalDays >= 14) {
+                setDurationType('weeks');
+                setDurationWeeks(Math.ceil(newTotalDays / 7));
+              } else {
+                setDurationType('days');
+                setDurationDays(newTotalDays);
+              }
+            }}
             onSearchAI={(query, category) => {
               if (category === 'cities') {
                 const mockItems: PlanningItem[] = [];
