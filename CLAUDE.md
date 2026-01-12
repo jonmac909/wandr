@@ -119,11 +119,11 @@ Trip page overview shows countries/cities count:
 
 ## Ground Rules
 
-- **NEVER use `npm run dev`** - Do not start the dev server. It hogs resources (CPU/RAM) and blocks Cloudflare builds. User tests on live site only.
+- **NEVER use `npm run dev`** - Do not start the dev server. It hogs resources (CPU/RAM) and blocks builds. User tests on live site only.
+- **NEVER use `npm run deploy`** - The local `@opennextjs/cloudflare build` hangs. Don't waste time on it.
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
 - **Live testing site: https://wandr.jon-c95.workers.dev/** - User tests here, NOT localhost
-- **ALWAYS push to deploy:** `git add -A && git commit -m "..." && git push`
-- Cloudflare Workers auto-deploys from GitHub main branch
+- **To deploy: just `git push`** - Cloudflare auto-deploys from GitHub main branch. That's it. Don't overthink it.
 
 ## Key Patterns
 
