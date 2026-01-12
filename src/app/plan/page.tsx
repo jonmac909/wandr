@@ -424,8 +424,23 @@ function PlanPageContent() {
           if (dna.preferences?.specialRequests) setSpecialRequests(dna.preferences.specialRequests);
 
           setDestinationMode('known');
-          // Mark sections as completed for edit mode
-          setCompletedSections(['where', 'prefs']);
+
+          // Restore planning progress
+          if (dna.planningProgress) {
+            const progress = dna.planningProgress;
+            if (progress.currentSection) {
+              setCurrentSection(progress.currentSection as PlanningSection);
+            }
+            if (progress.completedSections?.length > 0) {
+              setCompletedSections(progress.completedSections as PlanningSection[]);
+            }
+            if (progress.planningPhase) {
+              setPlanningPhase(progress.planningPhase as PlanningPhase);
+            }
+          } else {
+            // Default for trips without saved progress
+            setCompletedSections(['where', 'prefs']);
+          }
         }
       } catch (error) {
         console.error('Failed to load trip for editing:', error);
@@ -476,6 +491,37 @@ function PlanPageContent() {
     const formatted = end.toISOString().split('T')[0];
     setEndDate(formatted);
   }, [startDate, durationType, durationDays, durationWeeks, durationMonths]);
+
+  // Auto-save planning progress when section changes
+  useEffect(() => {
+    if (!tripId) return;
+
+    const saveProgress = async () => {
+      try {
+        const existingTrip = await tripDb.get(tripId);
+        if (existingTrip) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const updatedDna = {
+            ...(existingTrip.tripDna as any),
+            planningProgress: {
+              currentSection,
+              completedSections,
+              planningPhase,
+            },
+          };
+          await tripDb.save({
+            ...existingTrip,
+            tripDna: updatedDna,
+            updatedAt: new Date(),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save planning progress:', error);
+      }
+    };
+
+    saveProgress();
+  }, [tripId, currentSection, completedSections, planningPhase]);
 
   const getDurationLabel = () => {
     if (durationType === 'days') {
