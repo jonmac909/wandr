@@ -86,6 +86,9 @@ const RECOMMENDED_NIGHTS: Record<string, number> = {
 // Default nights for unknown cities
 const DEFAULT_NIGHTS = 2;
 
+// Export for UI access
+export { RECOMMENDED_NIGHTS, DEFAULT_NIGHTS };
+
 // ============ DAY ALLOCATION ============
 
 /**

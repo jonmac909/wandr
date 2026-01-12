@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
-import { allocateDays } from '@/lib/planning/itinerary-generator';
+import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-generator';
 import { POPULAR_CITY_INFO } from '@/lib/ai/city-info-generator';
 import dynamic from 'next/dynamic';
 
@@ -233,20 +233,35 @@ export default function AutoItineraryView({
   onBack,
   getCityCountry,
 }: AutoItineraryViewProps) {
-  // Get total days - prefer prop, then try tripDna paths, then default
-  const totalDays =
+  // Get initial total days and start date from tripDna
+  // Plan page stores at: constraints.duration.days and constraints.startDate
+  const initialTotalDays =
     propDuration ||
-    tripDna?.constraints?.dates?.totalDays ||
     (tripDna?.constraints as unknown as { duration?: { days?: number } })?.duration?.days ||
+    tripDna?.constraints?.dates?.totalDays ||
     14;
-  const startDate =
-    tripDna?.constraints?.dates?.startDate ||
+  const initialStartDate =
     (tripDna?.constraints as unknown as { startDate?: string })?.startDate ||
+    tripDna?.constraints?.dates?.startDate ||
     new Date().toISOString().split('T')[0];
+
+  // Editable trip dates state
+  const [tripStartDate, setTripStartDate] = useState(initialStartDate);
+  const [tripTotalDays, setTripTotalDays] = useState(initialTotalDays);
+  const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
+
+  // Sync state when props change (e.g., from "When" page)
+  useEffect(() => {
+    setTripStartDate(initialStartDate);
+    setTripTotalDays(initialTotalDays);
+  }, [initialStartDate, initialTotalDays]);
+
+  // Computed end date
+  const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
 
   // Day allocation state (can be adjusted by user)
   const [allocations, setAllocations] = useState<CityAllocation[]>(() =>
-    allocateDays(cities, totalDays, tripDna, startDate)
+    allocateDays(cities, initialTotalDays, tripDna, initialStartDate)
   );
 
   // Generated days (mock for now)
@@ -289,10 +304,24 @@ export default function AutoItineraryView({
     }
   };
 
-  // Recalculate allocations when cities or totalDays change
+  // Recalculate allocations when cities or trip dates change
   useEffect(() => {
-    setAllocations(allocateDays(cities, totalDays, tripDna, startDate));
-  }, [cities.join(','), totalDays]);
+    setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+  }, [cities.join(','), tripTotalDays, tripStartDate]);
+
+  // Handle trip date changes
+  const handleDateChange = (newStartDate: string, newEndDate: string) => {
+    const start = new Date(newStartDate);
+    const end = new Date(newEndDate);
+    const newTotalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (newTotalDays > 0) {
+      setTripStartDate(newStartDate);
+      setTripTotalDays(newTotalDays);
+      // Allocations will auto-update via useEffect
+    }
+    setIsDateEditorOpen(false);
+  };
 
   // Generate itinerary on mount or when allocations change
   useEffect(() => {
@@ -305,13 +334,51 @@ export default function AutoItineraryView({
     return () => clearTimeout(timer);
   }, [allocations]);
 
-  // Adjust allocation for a city
+  // Adjust allocation for a city - auto-balances to maintain total days
   const adjustAllocation = (city: string, delta: number) => {
     setAllocations(prev => {
-      const newAllocations = prev.map(a => {
-        if (a.city === city) {
-          const newNights = Math.max(1, a.nights + delta);
+      // Find city to adjust and city to balance with
+      const cityIndex = prev.findIndex(a => a.city === city);
+      if (cityIndex === -1) return prev;
+
+      const currentCity = prev[cityIndex];
+      const newNights = Math.max(1, currentCity.nights + delta);
+      const actualDelta = newNights - currentCity.nights;
+
+      // If no actual change, return as-is
+      if (actualDelta === 0) return prev;
+
+      // Find a city to take from / give to (pick the one with most days if adding, fewest if removing)
+      let balanceIndex = -1;
+      if (actualDelta > 0) {
+        // Adding days - take from city with most days (that has more than 1)
+        let maxNights = 0;
+        prev.forEach((a, idx) => {
+          if (idx !== cityIndex && a.nights > maxNights && a.nights > 1) {
+            maxNights = a.nights;
+            balanceIndex = idx;
+          }
+        });
+      } else {
+        // Removing days - give to city with fewest days
+        let minNights = Infinity;
+        prev.forEach((a, idx) => {
+          if (idx !== cityIndex && a.nights < minNights) {
+            minNights = a.nights;
+            balanceIndex = idx;
+          }
+        });
+      }
+
+      // If no city to balance with, just adjust without balancing
+      const newAllocations = prev.map((a, idx) => {
+        if (idx === cityIndex) {
           return { ...a, nights: newNights };
+        }
+        if (idx === balanceIndex && balanceIndex !== -1) {
+          // Balance: opposite of delta
+          const balancedNights = Math.max(1, a.nights - actualDelta);
+          return { ...a, nights: balancedNights };
         }
         return a;
       });
@@ -323,9 +390,9 @@ export default function AutoItineraryView({
         const endDay = currentDay + a.nights - 1;
         currentDay = endDay + 1;
 
-        const start = new Date(startDate);
+        const start = new Date(tripStartDate);
         start.setDate(start.getDate() + startDay - 1);
-        const end = new Date(startDate);
+        const end = new Date(tripStartDate);
         end.setDate(end.getDate() + endDay - 1);
 
         return {
@@ -361,6 +428,9 @@ export default function AutoItineraryView({
   // Get color for city index
   const getCityColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length];
 
+  // Get recommended nights for a city
+  const getRecommendedNights = (city: string) => RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
+
   return (
     <div className="space-y-4 pb-20">
       {/* Header */}
@@ -371,11 +441,51 @@ export default function AutoItineraryView({
         <div className="flex-1">
           <h2 className="text-2xl font-bold">Itinerary</h2>
         </div>
-        <Badge variant="secondary" className="text-sm px-3 py-1">
-          <Calendar className="w-4 h-4 mr-1" />
-          {formatDate(startDate)} - {formatDate(addDays(startDate, totalDays - 1))}
-        </Badge>
+        <button
+          onClick={() => setIsDateEditorOpen(!isDateEditorOpen)}
+          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+        >
+          <Calendar className="w-4 h-4" />
+          {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
+          <ChevronDown className={`w-3 h-3 transition-transform ${isDateEditorOpen ? 'rotate-180' : ''}`} />
+        </button>
       </div>
+
+      {/* Date Editor */}
+      {isDateEditorOpen && (
+        <div className="bg-card border rounded-xl p-4 space-y-4">
+          <h3 className="font-semibold text-sm">Edit Travel Dates</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
+              <input
+                type="date"
+                value={tripStartDate}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  // Keep same duration, just shift dates
+                  setTripStartDate(newStart);
+                }}
+                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
+              <input
+                type="date"
+                value={tripEndDate}
+                onChange={(e) => handleDateChange(tripStartDate, e.target.value)}
+                min={tripStartDate}
+                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-sm text-muted-foreground">Total: {tripTotalDays} days</span>
+            <Button size="sm" onClick={() => setIsDateEditorOpen(false)}>Done</Button>
+          </div>
+        </div>
+      )}
 
       {/* Auto-fill entire trip button */}
       <Button
@@ -433,12 +543,12 @@ export default function AutoItineraryView({
           className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
         >
           <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Trip Duration
+            <Hotel className="w-4 h-4" />
+            Nights per City
           </h3>
           <div className="flex items-center gap-2">
-            <Badge variant={currentTotal === totalDays ? 'default' : 'destructive'}>
-              {currentTotal} / {totalDays} days
+            <Badge variant={currentTotal === tripTotalDays ? 'default' : 'destructive'}>
+              {currentTotal} / {tripTotalDays} days
             </Badge>
             {isDurationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
@@ -448,11 +558,17 @@ export default function AutoItineraryView({
         {isDurationExpanded && (
           <div className="px-4 pb-4 space-y-2">
             {allocations.map((alloc) => {
+              const recommended = getRecommendedNights(alloc.city);
               return (
                 <div key={alloc.city} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
                   <div className="w-2 h-8 rounded-full bg-primary/60" />
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{alloc.city}</div>
+                    <div className="font-medium text-sm">
+                      {alloc.city}
+                      <span className="text-xs text-muted-foreground font-normal ml-1">
+                        ({recommended} nights rec&apos;d)
+                      </span>
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
                     </div>
@@ -640,8 +756,8 @@ function DayCard({ day, color, onActivityTap, onActivityDelete }: DayCardProps) 
           <div className="space-y-0">
             {day.activities.map((activity, idx) => (
               <div key={activity.id}>
-                {/* Travel time connector between activities */}
-                {idx > 0 && activity.walkingTimeToNext && (
+                {/* Travel time connector between activities - shows travel from PREVIOUS activity */}
+                {idx > 0 && day.activities[idx - 1].walkingTimeToNext && (
                   <TravelTimeConnector
                     minutes={day.activities[idx - 1].walkingTimeToNext || 10}
                     miles={(day.activities[idx - 1].walkingTimeToNext || 10) * 0.05}
@@ -716,8 +832,8 @@ function ActivityCard({ activity, index, onTap, onDelete, showTravelTime = true 
         </div>
       </button>
 
-      {/* Travel time connector below card */}
-      {activity.walkingTimeToNext && (
+      {/* Travel time connector below card - only show if showTravelTime is true */}
+      {showTravelTime && activity.walkingTimeToNext && (
         <div className="flex items-center gap-2 py-3 pl-4 ml-4 border-l-2 border-dashed border-muted">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Footprints className="w-4 h-4" />
