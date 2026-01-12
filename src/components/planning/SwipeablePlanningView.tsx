@@ -1839,38 +1839,12 @@ export function SwipeablePlanningView({
 
   // Add a stopover city to the route (defined at component level to avoid closure issues)
   const addStopoverCity = (city: string) => {
-    console.log('[addStopoverCity] Called with city:', city);
-    console.log('[addStopoverCity] Current routeOrder before update:', routeOrder);
-
-    // Use functional update to check CURRENT state (not stale closure value)
     setRouteOrder(prev => {
-      console.log('[addStopoverCity] setRouteOrder prev:', prev);
-      // Check inside functional update to use actual current state
-      if (prev.includes(city)) {
-        console.log('[addStopoverCity] City already in route, returning prev');
-        return prev; // Already in route, don't add again
-      }
-      if (prev.length === 0) {
-        console.log('[addStopoverCity] Route empty, returning [city]:', [city]);
-        return [city];
-      }
-      // Insert at position 1 (after first city) - first city stays as main destination
-      const newOrder = [prev[0], city, ...prev.slice(1)];
-      console.log('[addStopoverCity] Inserting city, new order:', newOrder);
-      return newOrder;
+      if (prev.includes(city)) return prev;
+      if (prev.length === 0) return [city];
+      return [prev[0], city, ...prev.slice(1)];
     });
-
-    // Also add to selectedCities (use functional update to check current state)
-    setSelectedCities(prev => {
-      console.log('[addStopoverCity] setSelectedCities prev:', prev);
-      if (prev.includes(city)) {
-        console.log('[addStopoverCity] City already selected, returning prev');
-        return prev;
-      }
-      const newSelected = [...prev, city];
-      console.log('[addStopoverCity] Adding to selected, new:', newSelected);
-      return newSelected;
-    });
+    setSelectedCities(prev => prev.includes(city) ? prev : [...prev, city]);
   };
 
   // Start day planning
@@ -2865,18 +2839,8 @@ export function SwipeablePlanningView({
                                     <button
                                       key={route.id}
                                       onClick={() => {
-                                        console.log('[RouteOption] Clicked route:', route.id, route.label);
-                                        console.log('[RouteOption] All connections:', route.connections);
-                                        const stopoverCities = route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle');
-                                        console.log('[RouteOption] Stopover cities to add:', stopoverCities);
-                                        console.log('[RouteOption] Current routeOrder:', routeOrder);
-
+                                        // Just select this route option - user clicks the badge to add stopovers
                                         setSelectedRouteId(route.id);
-                                        // Add any stopover cities from this route using component-level function
-                                        stopoverCities.forEach(city => {
-                                          console.log('[RouteOption] Calling addStopoverCity for:', city);
-                                          addStopoverCity(city);
-                                        });
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
@@ -2907,24 +2871,42 @@ export function SwipeablePlanningView({
                                         })}
                                       </div>
 
-                                      {/* Connection cities with status badges */}
+                                      {/* Connection cities - clickable to add as stopover */}
                                       <div className="flex flex-wrap gap-1">
-                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
-                                          <span
-                                            key={city}
-                                            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] ${
-                                              routeOrder.includes(city)
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-primary/10 text-primary'
-                                            }`}
-                                          >
-                                            {routeOrder.includes(city) ? (
-                                              <>✓ {city} added</>
-                                            ) : (
-                                              <>+ Add {city} stopover</>
-                                            )}
-                                          </span>
-                                        ))}
+                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => {
+                                          const isInRoute = routeOrder.includes(city);
+                                          return (
+                                            <button
+                                              key={city}
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation(); // Don't trigger parent button
+                                                if (!isInRoute) {
+                                                  // Add city to route after first city
+                                                  setRouteOrder(prev => {
+                                                    if (prev.length === 0) return [city];
+                                                    if (prev.includes(city)) return prev;
+                                                    return [prev[0], city, ...prev.slice(1)];
+                                                  });
+                                                  setSelectedCities(prev =>
+                                                    prev.includes(city) ? prev : [...prev, city]
+                                                  );
+                                                }
+                                              }}
+                                              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
+                                                isInRoute
+                                                  ? 'bg-green-100 text-green-700 cursor-default'
+                                                  : 'bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer'
+                                              }`}
+                                            >
+                                              {isInRoute ? (
+                                                <>✓ {city} in route</>
+                                              ) : (
+                                                <>+ Add {city} stopover</>
+                                              )}
+                                            </button>
+                                          );
+                                        })}
                                       </div>
                                     </button>
                                   );
@@ -2969,9 +2951,6 @@ export function SwipeablePlanningView({
               })()}
             </>
           )}
-
-          {/* Debug: log routeOrder at render time */}
-          {(() => { console.log('[CityList] Rendering city list with routeOrder:', routeOrder); return null; })()}
 
           {routeOrder.map((city, index) => {
             const cityItem = items.find(i => i.name === city && i.tags?.includes('cities'));
