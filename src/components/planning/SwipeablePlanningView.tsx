@@ -2129,15 +2129,25 @@ export function SwipeablePlanningView({
     const optimizeRoute = () => {
       console.log('[OptimizeRoute] Starting...');
       console.log('[OptimizeRoute] routeOrder:', routeOrder);
+      console.log('[OptimizeRoute] selectedCities:', selectedCities);
       console.log('[OptimizeRoute] countryOrder:', countryOrder);
       console.log('[OptimizeRoute] destinations:', destinations);
+
+      // Use routeOrder if available, otherwise fall back to selectedCities
+      const citiesToOptimize = routeOrder.length > 0 ? routeOrder : selectedCities;
+      console.log('[OptimizeRoute] citiesToOptimize:', citiesToOptimize);
+
+      if (citiesToOptimize.length === 0) {
+        console.log('[OptimizeRoute] No cities to optimize - aborting');
+        return;
+      }
 
       const optimizedOrder: string[] = [];
       const countryGroups: Record<string, string[]> = {};
       const processedCountries = new Set<string>();
 
       // Group cities by country
-      routeOrder.forEach(city => {
+      citiesToOptimize.forEach(city => {
         const country = getCityCountry(city) || 'Unknown';
         console.log(`[OptimizeRoute] City "${city}" -> Country "${country}"`);
         if (!countryGroups[country]) countryGroups[country] = [];
