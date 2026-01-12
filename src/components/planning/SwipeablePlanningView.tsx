@@ -476,28 +476,289 @@ function getFlightInfo(fromCity: string, toCity: string): { time: string | null;
   return { time: data?.time || null, stops: data?.stops ?? null, url };
 }
 
-// Get flight time from home airport to first destination
+// Detailed routing options from Kelowna to various destinations
+// Each route includes connection cities that can be added as stopovers
+interface RouteOption {
+  id: string;
+  label: string;
+  connections: string[];  // Cities where you connect (can add as stopovers)
+  totalTime: string;
+  stops: number;
+  segments: { from: string; to: string; time: string }[];
+  recommended?: boolean;
+}
+
+interface DestinationRoutes {
+  destination: string;
+  country: string;
+  options: RouteOption[];
+}
+
+// Common routing options from Kelowna to popular destinations
+const KELOWNA_ROUTES: Record<string, DestinationRoutes> = {
+  'Thailand': {
+    destination: 'Thailand',
+    country: 'Thailand',
+    options: [
+      {
+        id: 'ylw-yvr-nrt-bkk',
+        label: 'Via Vancouver & Tokyo',
+        connections: ['Vancouver', 'Tokyo'],
+        totalTime: '20-24hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Tokyo', time: '10hr' },
+          { from: 'Tokyo', to: 'Bangkok', time: '6hr' },
+        ],
+        recommended: true,
+      },
+      {
+        id: 'ylw-yvr-hkg-bkk',
+        label: 'Via Vancouver & Hong Kong',
+        connections: ['Vancouver', 'Hong Kong'],
+        totalTime: '22-26hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Hong Kong', time: '12hr' },
+          { from: 'Hong Kong', to: 'Bangkok', time: '3hr' },
+        ],
+      },
+      {
+        id: 'ylw-sea-nrt-bkk',
+        label: 'Via Seattle & Tokyo',
+        connections: ['Seattle', 'Tokyo'],
+        totalTime: '21-25hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Seattle', time: '1.5hr' },
+          { from: 'Seattle', to: 'Tokyo', time: '10hr' },
+          { from: 'Tokyo', to: 'Bangkok', time: '6hr' },
+        ],
+      },
+    ],
+  },
+  'Vietnam': {
+    destination: 'Vietnam',
+    country: 'Vietnam',
+    options: [
+      {
+        id: 'ylw-yvr-nrt-sgn',
+        label: 'Via Vancouver & Tokyo',
+        connections: ['Vancouver', 'Tokyo'],
+        totalTime: '22-26hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Tokyo', time: '10hr' },
+          { from: 'Tokyo', to: 'Ho Chi Minh City', time: '6hr' },
+        ],
+        recommended: true,
+      },
+      {
+        id: 'ylw-yvr-tpe-sgn',
+        label: 'Via Vancouver & Taipei',
+        connections: ['Vancouver', 'Taipei'],
+        totalTime: '21-25hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Taipei', time: '11hr' },
+          { from: 'Taipei', to: 'Ho Chi Minh City', time: '3.5hr' },
+        ],
+      },
+    ],
+  },
+  'Japan': {
+    destination: 'Japan',
+    country: 'Japan',
+    options: [
+      {
+        id: 'ylw-yvr-nrt',
+        label: 'Via Vancouver',
+        connections: ['Vancouver'],
+        totalTime: '12-14hr',
+        stops: 1,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Tokyo', time: '10hr' },
+        ],
+        recommended: true,
+      },
+      {
+        id: 'ylw-sea-nrt',
+        label: 'Via Seattle',
+        connections: ['Seattle'],
+        totalTime: '13-15hr',
+        stops: 1,
+        segments: [
+          { from: 'Kelowna', to: 'Seattle', time: '1.5hr' },
+          { from: 'Seattle', to: 'Tokyo', time: '10hr' },
+        ],
+      },
+    ],
+  },
+  'Hawaii': {
+    destination: 'Hawaii',
+    country: 'Hawaii',
+    options: [
+      {
+        id: 'ylw-yvr-hnl',
+        label: 'Via Vancouver',
+        connections: ['Vancouver'],
+        totalTime: '8-10hr',
+        stops: 1,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Honolulu', time: '6hr' },
+        ],
+        recommended: true,
+      },
+      {
+        id: 'ylw-sea-hnl',
+        label: 'Via Seattle',
+        connections: ['Seattle'],
+        totalTime: '9-11hr',
+        stops: 1,
+        segments: [
+          { from: 'Kelowna', to: 'Seattle', time: '1.5hr' },
+          { from: 'Seattle', to: 'Honolulu', time: '6hr' },
+        ],
+      },
+    ],
+  },
+  'Spain': {
+    destination: 'Spain',
+    country: 'Spain',
+    options: [
+      {
+        id: 'ylw-yvr-lhr-bcn',
+        label: 'Via Vancouver & London',
+        connections: ['Vancouver', 'London'],
+        totalTime: '18-22hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'London', time: '9hr' },
+          { from: 'London', to: 'Barcelona', time: '2hr' },
+        ],
+        recommended: true,
+      },
+      {
+        id: 'ylw-yvr-fra-bcn',
+        label: 'Via Vancouver & Frankfurt',
+        connections: ['Vancouver', 'Frankfurt'],
+        totalTime: '17-21hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Frankfurt', time: '10hr' },
+          { from: 'Frankfurt', to: 'Barcelona', time: '2hr' },
+        ],
+      },
+    ],
+  },
+  'Portugal': {
+    destination: 'Portugal',
+    country: 'Portugal',
+    options: [
+      {
+        id: 'ylw-yvr-lhr-lis',
+        label: 'Via Vancouver & London',
+        connections: ['Vancouver', 'London'],
+        totalTime: '18-22hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'London', time: '9hr' },
+          { from: 'London', to: 'Lisbon', time: '2.5hr' },
+        ],
+        recommended: true,
+      },
+    ],
+  },
+  'Italy': {
+    destination: 'Italy',
+    country: 'Italy',
+    options: [
+      {
+        id: 'ylw-yvr-lhr-fco',
+        label: 'Via Vancouver & London',
+        connections: ['Vancouver', 'London'],
+        totalTime: '18-22hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'London', time: '9hr' },
+          { from: 'London', to: 'Rome', time: '2.5hr' },
+        ],
+        recommended: true,
+      },
+    ],
+  },
+  'Greece': {
+    destination: 'Greece',
+    country: 'Greece',
+    options: [
+      {
+        id: 'ylw-yvr-lhr-ath',
+        label: 'Via Vancouver & London',
+        connections: ['Vancouver', 'London'],
+        totalTime: '20-24hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'London', time: '9hr' },
+          { from: 'London', to: 'Athens', time: '4hr' },
+        ],
+        recommended: true,
+      },
+    ],
+  },
+  'Turkey': {
+    destination: 'Turkey',
+    country: 'Turkey',
+    options: [
+      {
+        id: 'ylw-yvr-ist',
+        label: 'Via Vancouver & Frankfurt',
+        connections: ['Vancouver', 'Frankfurt'],
+        totalTime: '18-22hr',
+        stops: 2,
+        segments: [
+          { from: 'Kelowna', to: 'Vancouver', time: '1hr' },
+          { from: 'Vancouver', to: 'Frankfurt', time: '10hr' },
+          { from: 'Frankfurt', to: 'Istanbul', time: '3hr' },
+        ],
+        recommended: true,
+      },
+    ],
+  },
+};
+
+// Get routing options for a destination country
+function getRoutingOptions(destinationCountry: string): RouteOption[] {
+  const routes = KELOWNA_ROUTES[destinationCountry];
+  return routes?.options || [];
+}
+
+// Get the recommended route for a destination
+function getRecommendedRoute(destinationCountry: string): RouteOption | null {
+  const options = getRoutingOptions(destinationCountry);
+  return options.find(o => o.recommended) || options[0] || null;
+}
+
+// Legacy function - kept for backward compatibility
 function getEntryFlightInfo(homeAirport: string, firstCity: string, firstCountry: string): { route: string; time: string } {
-  // Common routes from North American airports
-  const routes: Record<string, Record<string, { route: string; time: string }>> = {
-    'YLW': { // Kelowna
-      'Thailand': { route: 'YLW → YVR → BKK', time: '~16-18hr total' },
-      'Vietnam': { route: 'YLW → YVR → HAN/SGN', time: '~17-19hr total' },
-      'Japan': { route: 'YLW → YVR → NRT/HND', time: '~12-14hr total' },
-      'Hawaii': { route: 'YLW → YVR/SEA → HNL', time: '~8-10hr total' },
-    },
-    'YVR': { // Vancouver
-      'Thailand': { route: 'YVR → BKK direct or via NRT', time: '~14-17hr' },
-      'Vietnam': { route: 'YVR → HAN/SGN via TPE/HKG', time: '~15-18hr' },
-      'Japan': { route: 'YVR → NRT/HND direct', time: '~10hr direct' },
-      'Hawaii': { route: 'YVR → HNL direct', time: '~6hr direct' },
-    },
-  };
-
-  const airportRoutes = routes[homeAirport] || routes['YLW']; // Default to Kelowna
-  const countryInfo = airportRoutes[firstCountry] || { route: `${homeAirport} → ${firstCountry}`, time: '~15-20hr' };
-
-  return countryInfo;
+  const recommended = getRecommendedRoute(firstCountry);
+  if (recommended) {
+    return {
+      route: recommended.label,
+      time: recommended.totalTime,
+    };
+  }
+  return { route: `${homeAirport} → ${firstCountry}`, time: '~15-20hr' };
 }
 
 interface SwipeablePlanningViewProps {
@@ -2464,10 +2725,32 @@ export function SwipeablePlanningView({
               </div>
               {/* Flight connector to first city */}
               {(() => {
-                const flightInfo = getFlightInfo('Kelowna', routeOrder[0]);
+                const firstCity = routeOrder[0];
+                const firstCountry = getCityCountry(firstCity) || '';
+                const routingOptions = getRoutingOptions(firstCountry);
+                const recommendedRoute = getRecommendedRoute(firstCountry);
+                const flightInfo = getFlightInfo('Kelowna', firstCity);
                 const isExpanded = expandedTransport === -1; // Use -1 for home connector
-                const transportColor = flightInfo.stops === 0 ? 'text-green-600' : flightInfo.stops === 1 ? 'text-amber-600' : 'text-red-600';
-                const barColor = flightInfo.stops === 0 ? 'bg-green-400' : flightInfo.stops === 1 ? 'bg-amber-400' : 'bg-red-400';
+
+                // Use routing data if available, otherwise fall back to flightInfo
+                const displayStops = recommendedRoute?.stops ?? flightInfo.stops ?? 2;
+                const displayTime = recommendedRoute?.totalTime || flightInfo.time || '20-24hr';
+                const exceedsMaxStops = displayStops > (routePrefs.maxStops || 1);
+
+                const transportColor = displayStops === 0 ? 'text-green-600' : displayStops === 1 ? 'text-amber-600' : 'text-red-600';
+                const barColor = displayStops === 0 ? 'bg-green-400' : displayStops === 1 ? 'bg-amber-400' : 'bg-red-400';
+
+                // Handler to add a stopover city
+                const handleAddStopover = (city: string) => {
+                  // Add the stopover city at the beginning of the route (after home)
+                  if (!routeOrder.includes(city)) {
+                    setRouteOrder(prev => [city, ...prev]);
+                    // Also add to selected cities if not already there
+                    if (!selectedCities.includes(city)) {
+                      setSelectedCities(prev => [...prev, city]);
+                    }
+                  }
+                };
 
                 return (
                   <div className="pl-[1.25rem]">
@@ -2481,44 +2764,104 @@ export function SwipeablePlanningView({
                         >
                           <Plane className="w-3.5 h-3.5" />
                           <span className="font-medium">
-                            Flight to {routeOrder[0]} · {flightInfo.time || 'Check time'}
+                            Flight to {firstCity} · {displayTime}
                           </span>
-                          {flightInfo.stops !== null && (
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              flightInfo.stops === 0 ? 'bg-green-100 text-green-700' :
-                              flightInfo.stops === 1 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {formatStops(flightInfo.stops)}
-                            </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            displayStops === 0 ? 'bg-green-100 text-green-700' :
+                            displayStops === 1 ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {displayStops === 0 ? 'direct' : `${displayStops} stops`}
+                          </span>
+                          {exceedsMaxStops && (
+                            <span className="text-amber-500">⚠️</span>
                           )}
                           <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
 
                         {/* Expanded details dropdown */}
                         {isExpanded && (
-                          <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Route</span>
-                              <span className="font-medium">Kelowna → {routeOrder[0]}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Est. time</span>
-                              <span className="font-medium">{flightInfo.time || 'Check availability'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Connections</span>
-                              <span className={`font-medium ${transportColor}`}>
-                                {flightInfo.stops === 0 ? 'Direct flight' :
-                                 flightInfo.stops === 1 ? '1 connection' :
-                                 flightInfo.stops !== null ? `${flightInfo.stops} connections` : 'Unknown'}
-                              </span>
-                            </div>
-                            {flightInfo.stops !== null && flightInfo.stops >= 2 && (
-                              <div className="pt-2 border-t text-amber-600">
-                                ⚠️ Consider breaking this up with a stopover
+                          <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-3">
+                            {/* Warning if exceeds max stops */}
+                            {exceedsMaxStops && (
+                              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
+                                <span className="text-base">⚠️</span>
+                                <span>Exceeds your max {routePrefs.maxStops || 1} stop preference</span>
                               </div>
                             )}
+
+                            {/* Route options */}
+                            {routingOptions.length > 0 ? (
+                              <div className="space-y-2">
+                                <div className="text-muted-foreground font-medium">Route Options:</div>
+                                {routingOptions.map((route, idx) => (
+                                  <div
+                                    key={route.id}
+                                    className={`p-2 rounded-lg border ${route.recommended ? 'border-primary/30 bg-primary/5' : 'border-muted'}`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-medium flex items-center gap-1">
+                                        {route.recommended && <span className="text-primary">★</span>}
+                                        {route.label}
+                                      </span>
+                                      <span className="text-muted-foreground">{route.totalTime}</span>
+                                    </div>
+
+                                    {/* Segment breakdown */}
+                                    <div className="text-[10px] text-muted-foreground mb-2">
+                                      {route.segments.map((seg, i) => (
+                                        <span key={i}>
+                                          {seg.from} → {seg.to} ({seg.time})
+                                          {i < route.segments.length - 1 && ' · '}
+                                        </span>
+                                      ))}
+                                    </div>
+
+                                    {/* Connection cities with add stopover buttons */}
+                                    <div className="flex flex-wrap gap-1">
+                                      {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
+                                        <button
+                                          key={city}
+                                          onClick={() => handleAddStopover(city)}
+                                          disabled={routeOrder.includes(city)}
+                                          className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
+                                            routeOrder.includes(city)
+                                              ? 'bg-green-100 text-green-700 cursor-default'
+                                              : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                          }`}
+                                        >
+                                          {routeOrder.includes(city) ? (
+                                            <>✓ {city} added</>
+                                          ) : (
+                                            <>+ Add {city} stopover</>
+                                          )}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Route</span>
+                                  <span className="font-medium">Kelowna → {firstCity}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Est. time</span>
+                                  <span className="font-medium">{displayTime}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Connections</span>
+                                  <span className={`font-medium ${transportColor}`}>
+                                    {displayStops === 0 ? 'Direct flight' :
+                                     displayStops === 1 ? '1 connection' :
+                                     `${displayStops} connections`}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+
                             <a
                               href={flightInfo.url}
                               target="_blank"
