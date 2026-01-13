@@ -2805,7 +2805,7 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map Modal - centered */}
+      {/* Map View - Side Drawer (slides in from right like Wanderlog) */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
         <>
           {/* Backdrop */}
@@ -2814,10 +2814,17 @@ export default function AutoItineraryView({
             onClick={() => setViewMode('picture')}
           />
 
-          {/* Modal */}
-          <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-white rounded-2xl flex flex-col animate-in zoom-in-95 duration-200 shadow-2xl">
-            {/* Header */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b">
+          {/* Side Drawer */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[85vw] lg:w-[80vw] max-w-6xl bg-white flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl">
+            {/* Header with Exit button */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b bg-white">
+              <button
+                onClick={() => setViewMode('picture')}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-gray-100 rounded-full border shadow-sm transition-colors"
+              >
+                <X className="w-4 h-4" />
+                <span className="text-sm font-medium">Exit map</span>
+              </button>
               <div className="flex items-center gap-3">
                 <Map className="w-5 h-5 text-primary" />
                 {(() => {
@@ -2831,12 +2838,7 @@ export default function AutoItineraryView({
                   return <span className="font-semibold">Map View</span>;
                 })()}
               </div>
-              <button
-                onClick={() => setViewMode('picture')}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+              <div className="w-24" /> {/* Spacer for centering */}
             </div>
 
             {/* Day tabs - scrollable horizontal */}
@@ -2968,7 +2970,7 @@ export default function AutoItineraryView({
         </>
       )}
 
-      {/* Empty state for map view - centered modal */}
+      {/* Empty state for map view - side drawer */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length === 0 && (
         <>
           {/* Backdrop */}
@@ -2977,14 +2979,15 @@ export default function AutoItineraryView({
             onClick={() => setViewMode('picture')}
           />
 
-          {/* Modal */}
-          <div className="fixed inset-4 md:inset-8 lg:inset-16 z-50 bg-white rounded-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-200 shadow-2xl">
-            {/* Close button */}
+          {/* Side Drawer */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[85vw] lg:w-[80vw] max-w-6xl bg-white flex flex-col items-center justify-center animate-in slide-in-from-right duration-300 shadow-2xl">
+            {/* Exit button */}
             <button
               onClick={() => setViewMode('picture')}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
+              className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-gray-100 rounded-full border shadow-sm transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4" />
+              <span className="text-sm font-medium">Exit map</span>
             </button>
 
             <Map className="w-16 h-16 text-gray-300 mb-4" />
@@ -3109,7 +3112,11 @@ export default function AutoItineraryView({
             Compact
           </button>
           <button
-            onClick={() => setViewMode('map')}
+            onClick={() => {
+              setMapSelectedDay(activeDayNumber); // Open to current day being viewed
+              setMapSelectedIndex(0);
+              setViewMode('map');
+            }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               viewMode === 'map' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
             }`}

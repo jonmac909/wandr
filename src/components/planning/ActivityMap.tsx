@@ -161,6 +161,19 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
       markersRef.current.push(marker);
     });
 
+    // Draw route line connecting all activities in order
+    if (allActivities.length > 1) {
+      const routeCoords = allActivities.map(a => a.coords);
+      L.polyline(routeCoords, {
+        color: '#3b82f6', // Blue color
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '8, 8', // Dashed line
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
+    }
+
     // Fit bounds to show all markers
     if (allActivities.length > 1) {
       const bounds = L.latLngBounds(allActivities.map(a => a.coords));
