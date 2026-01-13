@@ -1253,6 +1253,7 @@ export function SwipeablePlanningView({
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null); // For drag-and-drop countries
   const [expandedTransport, setExpandedTransport] = useState<number | null>(null); // Which transport segment is expanded
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null); // Selected flight route option
+  const [selectedTransport, setSelectedTransport] = useState<Record<number, { mode: string; hub?: string }>>({});  // Selected transport for each leg
 
   // Initialize from existing itinerary
   useEffect(() => {
@@ -3187,14 +3188,29 @@ export function SwipeablePlanningView({
                                   <div className="text-xs text-muted-foreground">{city} → {nextCity} · {distance > 0 ? `${distance} km` : ''}</div>
                                 </div>
 
-                                {/* Transport options list */}
+                                {/* Transport options list - clickable to select */}
                                 <div className="space-y-1.5">
-                                  {transportOptions.map((option, optIdx) => (
-                                    <div
+                                  {transportOptions.map((option, optIdx) => {
+                                    const isSelected = selectedTransport[index]?.mode === option.mode;
+                                    return (
+                                    <button
                                       key={optIdx}
-                                      className="flex items-center justify-between p-3 bg-background border rounded-lg hover:border-primary/30 transition-colors"
+                                      onClick={() => setSelectedTransport(prev => ({
+                                        ...prev,
+                                        [index]: { mode: option.mode }
+                                      }))}
+                                      className={`w-full flex items-center justify-between p-3 bg-background border rounded-lg transition-colors text-left ${
+                                        isSelected
+                                          ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                                          : 'hover:border-primary/30'
+                                      }`}
                                     >
                                       <div className="flex items-center gap-3">
+                                        {isSelected && (
+                                          <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-3 h-3" />
+                                          </div>
+                                        )}
                                         <span className="text-xl">{TRANSPORT_ICONS[option.mode]}</span>
                                         <div>
                                           <div className="font-medium text-sm capitalize flex items-center gap-2">
@@ -3230,8 +3246,9 @@ export function SwipeablePlanningView({
                                           <div className="text-[10px] text-muted-foreground">{option.frequency}</div>
                                         )}
                                       </div>
-                                    </div>
-                                  ))}
+                                    </button>
+                                  );
+                                  })}
                                 </div>
 
                                 {/* Flight route options - show connection hubs */}
@@ -3244,21 +3261,37 @@ export function SwipeablePlanningView({
                                         Flight routes (2 flights each):
                                       </div>
                                       <div className="space-y-1.5">
-                                        {hubs.map(hub => (
-                                          <div key={hub} className="flex items-center justify-between text-xs bg-white p-2 rounded border">
-                                            <span className="text-muted-foreground">
-                                              {city} → <strong>{hub}</strong> → {nextCity}
+                                        {hubs.map(hub => {
+                                          const isHubSelected = selectedTransport[index]?.mode === 'flight' && selectedTransport[index]?.hub === hub;
+                                          return (
+                                          <button
+                                            key={hub}
+                                            onClick={() => setSelectedTransport(prev => ({
+                                              ...prev,
+                                              [index]: { mode: 'flight', hub }
+                                            }))}
+                                            className={`w-full flex items-center justify-between text-xs p-2 rounded border transition-colors ${
+                                              isHubSelected
+                                                ? 'bg-primary/10 border-primary ring-1 ring-primary/30'
+                                                : 'bg-white hover:border-primary/30'
+                                            }`}
+                                          >
+                                            <span className="text-muted-foreground flex items-center gap-2">
+                                              {isHubSelected && <Check className="w-3 h-3 text-primary" />}
+                                              {city} → <strong className="text-foreground">{hub}</strong> → {nextCity}
                                             </span>
                                             <a
                                               href={`https://www.google.com/travel/flights?q=flights%20from%20${encodeURIComponent(city)}%20to%20${encodeURIComponent(nextCity)}%20via%20${encodeURIComponent(hub)}`}
                                               target="_blank"
                                               rel="noopener noreferrer"
+                                              onClick={(e) => e.stopPropagation()}
                                               className="text-blue-600 hover:underline"
                                             >
                                               Search →
                                             </a>
-                                          </div>
-                                        ))}
+                                          </button>
+                                        );
+                                        })}
                                       </div>
                                     </div>
                                   );
