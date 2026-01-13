@@ -213,3 +213,54 @@ export default function Page() {
   );
 }
 ```
+
+## Debugging Persistence Bugs
+
+**STOP. Before making any fix, answer these questions:**
+
+### 1. Trace the FULL data lifecycle
+Ask yourself in order:
+1. **Where is state initialized?** (useState initializer runs BEFORE any useEffect)
+2. **When does the component first render?** (May be before async data loads)
+3. **When does saved data arrive?** (IndexedDB/API calls are async)
+4. **What renders while waiting?** (Component may render with defaults first)
+
+### 2. The #1 cause of persistence bugs: RENDER TIMING
+```
+❌ WRONG: Add guards inside child component
+✅ RIGHT: Don't render child until parent has loaded data
+```
+
+Example - the allocation persistence bug:
+- AutoItineraryView was rendering BEFORE IndexedDB loaded savedAllocations
+- It generated defaults, then synced them back, overwriting the DB
+- Fix: Show loading state in PARENT until `persistenceLoaded=true`
+
+```typescript
+// ❌ BAD - Component renders immediately with empty data
+if (phase === 'auto-itinerary') {
+  return <AutoItineraryView initialAllocations={savedAllocations} />
+}
+
+// ✅ GOOD - Wait for data before rendering
+if (phase === 'auto-itinerary') {
+  if (!persistenceLoaded) return <Loading />
+  return <AutoItineraryView initialAllocations={savedAllocations} />
+}
+```
+
+### 3. Debug checklist for IndexedDB persistence
+1. **Is the field in the interface?** Check `PlanningState` in `indexed-db.ts`
+2. **Is it being saved?** Check the `update()` function includes the field
+3. **Is it being loaded?** Check the load useEffect sets the state
+4. **Is the component waiting for load?** Don't render until `persistenceLoaded=true`
+5. **Check IndexedDB directly:** DevTools → Application → IndexedDB → TravelerDB
+
+### 4. Don't make incremental patches
+If a fix doesn't work, STOP and re-trace the full data flow. Don't add more guards/flags/useEffects. The problem is usually earlier in the lifecycle than you think.
+
+### 5. Common mistakes
+- Adding `hasLoaded` flags inside child components (fix belongs in parent)
+- Adding delays/timeouts to "wait" for data (use proper loading states)
+- Multiple useEffects that race each other (simplify to one source of truth)
+- useState initializer generating defaults before saved data arrives
