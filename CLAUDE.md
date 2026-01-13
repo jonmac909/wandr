@@ -16,13 +16,23 @@ npm run lint     # Run ESLint
 
 ## Tech Stack
 
-- **Framework:** Next.js 16 (App Router, Turbopack)
+- **Framework:** Next.js 15 (App Router, Turbopack)
 - **UI:** React 19, Tailwind CSS 4, shadcn/ui (Radix primitives)
 - **State:** Zustand for questionnaire flow
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
 - **AI:** Anthropic Claude API for itinerary generation
 - **Icons:** lucide-react
 - **Deployment:** Cloudflare Workers
+
+## Environment Variables
+
+Required in `.env.local`:
+```
+ANTHROPIC_API_KEY=           # Claude API for itinerary/chat
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=  # Google Maps/Places
+NEXT_PUBLIC_SUPABASE_URL=    # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Supabase anonymous key
+```
 
 ## Architecture
 
@@ -91,6 +101,17 @@ Claude-powered chatbot for modifying trips via natural language:
 - Example: `Zipair YVR→NRT 9:50am-1:00pm+1`
 - Always set: duration (minutes), cost ({ amount, currency }), tips (["details"])
 - Use category `flight` not `transit`
+
+### API Routes (`src/app/api/`)
+- **`/api/generate-itinerary`** - POST: AI itinerary generation from TripDNA
+- **`/api/chat`** - POST: Trip-specific chat with tool calling
+- **`/api/chat/general`** - POST: General travel questions chat
+- **`/api/city-image`** - GET: City hero images
+- **`/api/city-info`** - GET: City information for planning
+- **`/api/hotels`** - GET: Hotel search
+- **`/api/places/restaurants`** - GET: Restaurant search via Google Places
+- **`/api/places/details`** - GET: Place details
+- **`/api/seed`** - POST: Seed sample trip (dev only)
 
 ### Booking URLs (`src/lib/booking/urls.ts`)
 Generates booking links based on activity category:

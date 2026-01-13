@@ -3011,7 +3011,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
 
           {/* Activities - Picture View (Large photos like Wanderlog) */}
           {!isEmpty && viewMode === 'picture' && (
-            <div className="space-y-3">
+            <div className="ml-8 space-y-4">
               {day.activities.map((activity, idx) => {
                 const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
                 const walkingMiles = (walkingTime * 0.05).toFixed(2);
@@ -3020,7 +3020,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
                   <div key={activity.id}>
                     {/* Walking time from previous */}
                     {idx > 0 && (
-                      <div className="flex items-center gap-2 py-2 ml-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
                         <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
                           <Footprints className="w-4 h-4" />
                           <span>{day.activities[idx - 1]?.walkingTimeToNext || walkingTime} min · {walkingMiles} mi</span>
@@ -3058,7 +3058,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
                       </div>
 
                       {/* Content below image */}
-                      <div className="mt-2 px-1">
+                      <div className="mt-2">
                         <h4 className="font-bold text-lg text-gray-900">{activity.name}</h4>
                         <p className="text-sm text-gray-600 mt-1">
                           {activity.openingHours && <span>Open {activity.openingHours} • </span>}
