@@ -30,15 +30,18 @@ import {
   AlertCircle,
   Paperclip,
   Link2,
+  Car,
+  Bus,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
 import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-generator';
 import dynamic from 'next/dynamic';
 
-// Dynamically import HotelPicker and RouteMap
+// Dynamically import HotelPicker, RouteMap, and ActivityMap
 const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
 const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
+const ActivityMap = dynamic(() => import('./ActivityMap'), { ssr: false });
 
 // Day colors for visual distinction
 const DAY_COLORS = [
@@ -1997,7 +2000,7 @@ export default function AutoItineraryView({
 
   // Flatten all activities for map navigation (with city/date info)
   const allActivitiesWithMeta = useMemo(() => {
-    return days.flatMap(day => day.activities.map(activity => ({ ...activity, city: day.city, date: day.date })));
+    return days.flatMap(day => day.activities.map(activity => ({ ...activity, city: day.city, date: day.date, dayNumber: day.dayNumber })));
   }, [days]);
 
   // Get all activities for drawer navigation
@@ -2073,6 +2076,26 @@ export default function AutoItineraryView({
       ...day,
       activities: day.activities.map(a =>
         a.id === activityId ? { ...a, suggestedTime: newTime } : a
+      ),
+    })));
+  };
+
+  // Handle activity cost update
+  const handleActivityCostUpdate = (activityId: string, cost: number | undefined) => {
+    setDays(prev => prev.map(day => ({
+      ...day,
+      activities: day.activities.map(a =>
+        a.id === activityId ? { ...a, userCost: cost } : a
+      ),
+    })));
+  };
+
+  // Handle activity attachment add
+  const handleActivityAttachmentAdd = (activityId: string, attachment: { type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url?: string }) => {
+    setDays(prev => prev.map(day => ({
+      ...day,
+      activities: day.activities.map(a =>
+        a.id === activityId ? { ...a, attachments: [...(a.attachments || []), attachment] } : a
       ),
     })));
   };
@@ -2720,11 +2743,11 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Full-screen Map View */}
+      {/* Full-screen Map View with Activity Markers */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
           {/* Header bar with back button */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm z-10">
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm z-[1001]">
             <button
               onClick={() => setViewMode('picture')}
               className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
@@ -2736,94 +2759,67 @@ export default function AutoItineraryView({
             <div className="w-24" /> {/* Spacer for centering */}
           </div>
 
-          {/* Map area */}
+          {/* Map with activity markers */}
           <div className="flex-1 relative">
-            {getCityCountry && (
-              <RouteMap
-                cities={cities}
-                getCityCountry={getCityCountry}
-                calculateDistance={() => null}
-              />
-            )}
-            {/* Numbered markers overlay */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="flex flex-wrap gap-1 max-w-xs">
-                {allActivitiesWithMeta.slice(0, 9).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setMapSelectedIndex(idx)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg pointer-events-auto cursor-pointer ${
-                      idx === mapSelectedIndex ? 'bg-violet-600 ring-4 ring-violet-200' : 'bg-violet-500'
-                    }`}
-                    style={{ transform: `translate(${(idx % 5 - 2) * 30}px, ${Math.floor(idx / 5) * 25}px)` }}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ActivityMap
+              days={days}
+              selectedActivityId={allActivitiesWithMeta[mapSelectedIndex]?.id}
+              onActivitySelect={(activity, dayNumber) => {
+                const idx = allActivitiesWithMeta.findIndex(a => a.id === activity.id);
+                if (idx >= 0) setMapSelectedIndex(idx);
+              }}
+            />
           </div>
 
-          {/* Bottom navigation bar */}
-          <div className="absolute bottom-[45%] left-0 right-0 flex items-center justify-center gap-2 px-4 py-2">
-            <button
-              onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
-              disabled={mapSelectedIndex === 0}
-              className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <span className="px-3 py-1.5 bg-white rounded-full shadow-lg text-sm font-medium">
-              {mapSelectedIndex + 1} of {allActivitiesWithMeta.length}
-            </span>
-            <button
-              onClick={() => setMapSelectedIndex(Math.min(allActivitiesWithMeta.length - 1, mapSelectedIndex + 1))}
-              disabled={mapSelectedIndex === allActivitiesWithMeta.length - 1}
-              className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <button className="p-2 bg-white rounded-full shadow-lg">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-                <path d="M11 8v6M8 11h6"/>
-              </svg>
-            </button>
-            <button className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-lg text-sm">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 6h18M3 12h18M3 18h18"/>
-              </svg>
-              Optimize route
-              <Badge className="bg-violet-100 text-violet-700 text-xs">PRO</Badge>
-            </button>
-          </div>
-
-          {/* Bottom sheet with activity details */}
-          <div className="bg-white border-t rounded-t-2xl shadow-2xl" style={{ height: '45%' }}>
-            {/* Tabs */}
-            <div className="flex border-b px-4">
-              {['About', 'Reviews', 'Photos', 'Mentions'].map((tab, idx) => (
+          {/* Bottom activity card */}
+          {allActivitiesWithMeta[mapSelectedIndex] && (
+            <div className="absolute bottom-0 left-0 right-0 bg-white border-t rounded-t-2xl shadow-2xl z-[1001]" style={{ maxHeight: '35%' }}>
+              {/* Navigation arrows */}
+              <div className="absolute -top-12 left-0 right-0 flex items-center justify-center gap-2 px-4">
                 <button
-                  key={tab}
-                  className={`px-4 py-3 text-sm font-medium ${idx === 0 ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500'}`}
+                  onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
+                  disabled={mapSelectedIndex === 0}
+                  className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
                 >
-                  {tab}
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
-              ))}
-            </div>
+                <span className="px-3 py-1.5 bg-white rounded-full shadow-lg text-sm font-medium">
+                  {mapSelectedIndex + 1} of {allActivitiesWithMeta.length}
+                </span>
+                <button
+                  onClick={() => setMapSelectedIndex(Math.min(allActivitiesWithMeta.length - 1, mapSelectedIndex + 1))}
+                  disabled={mapSelectedIndex === allActivitiesWithMeta.length - 1}
+                  className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
 
-            {/* Activity content */}
-            {allActivitiesWithMeta[mapSelectedIndex] && (
-              <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(45% - 50px)' }}>
-                {/* Header with image */}
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+              {/* Activity content */}
+              <div className="p-4 overflow-y-auto">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold flex-shrink-0">
                     {mapSelectedIndex + 1}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg">{allActivitiesWithMeta[mapSelectedIndex].name}</h3>
-                    <p className="text-gray-600 text-sm mt-1">{allActivitiesWithMeta[mapSelectedIndex].description}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-lg truncate">{allActivitiesWithMeta[mapSelectedIndex].name}</h3>
+                    <p className="text-gray-500 text-sm">
+                      Day {allActivitiesWithMeta[mapSelectedIndex].dayNumber} • {allActivitiesWithMeta[mapSelectedIndex].neighborhood}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
+                      {allActivitiesWithMeta[mapSelectedIndex].openingHours && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {allActivitiesWithMeta[mapSelectedIndex].openingHours}
+                        </span>
+                      )}
+                      {allActivitiesWithMeta[mapSelectedIndex].rating && (
+                        <span className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                          {allActivitiesWithMeta[mapSelectedIndex].rating.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {allActivitiesWithMeta[mapSelectedIndex].imageUrl && (
                     <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -2836,82 +2832,28 @@ export default function AutoItineraryView({
                   )}
                 </div>
 
-                {/* Added button */}
-                <div className="mb-4">
-                  <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-sm">
-                    <span>🔖</span>
-                    Added
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {allActivitiesWithMeta[mapSelectedIndex].tags?.slice(0, 3).map((tag) => (
-                    <span key={tag} className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Rating */}
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                  <span className="font-semibold text-amber-600">4.3</span>
-                  <span className="text-gray-500">(25688)</span>
-                  <span className="text-blue-500 font-bold">G</span>
-                  <span className="text-gray-400 mx-2">•</span>
-                  <span className="text-gray-500 text-sm">Mentioned by</span>
-                  <span className="text-violet-600 text-sm">+118 other lists</span>
-                </div>
-
-                {/* Address */}
-                <div className="flex items-start gap-2 mb-3">
-                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <span className="text-sm text-gray-600">
-                    {allActivitiesWithMeta[mapSelectedIndex].neighborhood}, {allActivitiesWithMeta[mapSelectedIndex].city}
-                  </span>
-                </div>
-
-                {/* Hours */}
-                {allActivitiesWithMeta[mapSelectedIndex].openingHours && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {new Date().toLocaleDateString('en-US', { weekday: 'long' })}: {allActivitiesWithMeta[mapSelectedIndex].openingHours}
-                    </span>
-                  </div>
-                )}
-
-                {/* Day pills */}
-                <div className="flex items-center gap-1 mb-3">
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-                    <span key={d} className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-violet-100 text-violet-700 rounded">
-                      {d}
-                    </span>
-                  ))}
-                  <button className="ml-2 text-sm text-violet-600">Show times</button>
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-gray-400">⏱</span>
-                  <span className="text-sm text-gray-600">
-                    People typically spend {allActivitiesWithMeta[mapSelectedIndex].duration || 30} min here
-                  </span>
-                </div>
-
-                {/* Open in */}
-                <div className="pt-3 border-t">
-                  <p className="text-sm text-gray-500 mb-2">Open in:</p>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1.5 bg-gray-100 rounded-lg text-sm">Google Maps</button>
-                    <button className="px-3 py-1.5 bg-gray-100 rounded-lg text-sm">Apple Maps</button>
-                  </div>
+                {/* Open in maps buttons */}
+                <div className="flex gap-2 mt-4">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(allActivitiesWithMeta[mapSelectedIndex].name + ' ' + (allActivitiesWithMeta[mapSelectedIndex].city || ''))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
+                  >
+                    Google Maps
+                  </a>
+                  <a
+                    href={`https://maps.apple.com/?q=${encodeURIComponent(allActivitiesWithMeta[mapSelectedIndex].name + ' ' + (allActivitiesWithMeta[mapSelectedIndex].city || ''))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
+                  >
+                    Apple Maps
+                  </a>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2944,6 +2886,8 @@ export default function AutoItineraryView({
             onActivityTap={handleActivityTap}
             onActivityDelete={handleActivityDelete}
             onActivityTimeUpdate={handleActivityTimeUpdate}
+            onActivityCostUpdate={handleActivityCostUpdate}
+            onActivityAttachmentAdd={handleActivityAttachmentAdd}
             onActivityReorder={(fromIdx, toIdx) => handleActivityReorder(day.dayNumber, fromIdx, toIdx)}
             onAutoFill={() => autoFillDay(day.dayNumber)}
             isLoadingDay={loadingDayNumber === day.dayNumber}
@@ -3055,17 +2999,24 @@ interface DayCardProps {
   onActivityTap: (activity: GeneratedActivity, index: number) => void;
   onActivityDelete: (activityId: string) => void;
   onActivityTimeUpdate: (activityId: string, newTime: string) => void;
+  onActivityCostUpdate: (activityId: string, cost: number | undefined) => void;
+  onActivityAttachmentAdd: (activityId: string, attachment: { type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url?: string }) => void;
   onActivityReorder: (fromIndex: number, toIndex: number) => void;
   onAutoFill: () => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityReorder, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
+  const [editingCostId, setEditingCostId] = useState<string | null>(null);
+  const [attachmentModalId, setAttachmentModalId] = useState<string | null>(null);
+  const [newAttachment, setNewAttachment] = useState<{ type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url: string }>({ type: 'link', name: '', url: '' });
+  const [directionsDropdownId, setDirectionsDropdownId] = useState<string | null>(null);
+  const [transportMode, setTransportMode] = useState<'walk' | 'drive' | 'bus'>('walk');
   const activitySummary = day.activities.map(a => a.name).join(' • ');
   const isEmpty = day.activities.length === 0;
 
@@ -3182,19 +3133,72 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                 return (
                   <div key={activity.id}>
-                    {/* Walking time from previous */}
-                    {idx > 0 && (
-                      <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
-                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
-                          <Footprints className="w-4 h-4" />
-                          <span>{day.activities[idx - 1]?.walkingTimeToNext || walkingTime} min · {walkingMiles} mi</span>
-                          <button className="text-gray-400 hover:text-gray-600 flex items-center gap-1">
-                            <ChevronDown className="w-3 h-3" />
-                            Directions
-                          </button>
+                    {/* Transport time from previous */}
+                    {idx > 0 && (() => {
+                      const baseWalkTime = day.activities[idx - 1]?.walkingTimeToNext || walkingTime;
+                      const driveTime = Math.max(3, Math.round(baseWalkTime * 0.25));
+                      const busTime = Math.round(baseWalkTime * 0.7);
+                      const driveMiles = (driveTime * 0.5).toFixed(1);
+                      const busMiles = (busTime * 0.3).toFixed(1);
+                      const dropdownKey = `${activity.id}-directions`;
+
+                      return (
+                        <div className="flex items-center gap-2 py-2 text-sm text-gray-500 relative">
+                          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
+                            {transportMode === 'walk' && <Footprints className="w-4 h-4" />}
+                            {transportMode === 'drive' && <Car className="w-4 h-4" />}
+                            {transportMode === 'bus' && <Bus className="w-4 h-4" />}
+                            <span>
+                              {transportMode === 'walk' && `${baseWalkTime} min · ${walkingMiles} mi`}
+                              {transportMode === 'drive' && `${driveTime} min · ${driveMiles} mi`}
+                              {transportMode === 'bus' && `${busTime} min · ${busMiles} mi`}
+                            </span>
+                            <button
+                              onClick={() => setDirectionsDropdownId(directionsDropdownId === dropdownKey ? null : dropdownKey)}
+                              className="text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                            >
+                              <ChevronDown className={`w-3 h-3 transition-transform ${directionsDropdownId === dropdownKey ? 'rotate-180' : ''}`} />
+                              Directions
+                            </button>
+                          </div>
+
+                          {/* Dropdown */}
+                          {directionsDropdownId === dropdownKey && (
+                            <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border z-20 py-1 min-w-[180px]">
+                              <button
+                                onClick={() => { setTransportMode('walk'); setDirectionsDropdownId(null); }}
+                                className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 ${transportMode === 'walk' ? 'text-violet-600' : 'text-gray-700'}`}
+                              >
+                                <Footprints className="w-4 h-4" />
+                                <span>{baseWalkTime} min · {walkingMiles} mi</span>
+                              </button>
+                              <button
+                                onClick={() => { setTransportMode('drive'); setDirectionsDropdownId(null); }}
+                                className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 ${transportMode === 'drive' ? 'text-violet-600' : 'text-gray-700'}`}
+                              >
+                                <Car className="w-4 h-4" />
+                                <span>{driveTime} min · {driveMiles} mi</span>
+                              </button>
+                              <button
+                                onClick={() => { setTransportMode('bus'); setDirectionsDropdownId(null); }}
+                                className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 ${transportMode === 'bus' ? 'text-violet-600' : 'text-gray-700'}`}
+                              >
+                                <Bus className="w-4 h-4" />
+                                <span>{busTime} min · {busMiles} mi</span>
+                              </button>
+                              <div className="border-t my-1" />
+                              <button
+                                onClick={() => setDirectionsDropdownId(null)}
+                                className="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-500"
+                              >
+                                <X className="w-4 h-4" />
+                                <span>Hide directions</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Activity card with big image */}
                     <button
@@ -3245,6 +3249,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                         {/* Action buttons row - Wanderlog style */}
                         <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
+                          {/* Time button */}
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingTimeId(activity.id); }}
                             className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
@@ -3252,8 +3257,10 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                             <Clock className="w-4 h-4" />
                             {activity.suggestedTime || 'Add time'}
                           </button>
+
+                          {/* Attach button */}
                           <button
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); setAttachmentModalId(activity.id); }}
                             className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
                           >
                             <Paperclip className="w-4 h-4" />
@@ -3262,14 +3269,112 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                               <span className="bg-violet-100 text-violet-700 px-1.5 rounded text-xs">{activity.attachments.length}</span>
                             )}
                           </button>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
-                          >
-                            <DollarSign className="w-4 h-4" />
-                            {activity.userCost ? `$${activity.userCost}` : 'Add cost'}
-                          </button>
+
+                          {/* Cost button/input */}
+                          {editingCostId === activity.id ? (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <DollarSign className="w-4 h-4" />
+                              <input
+                                type="number"
+                                placeholder="0"
+                                defaultValue={activity.userCost || ''}
+                                autoFocus
+                                className="w-16 px-1 py-0.5 text-sm border border-violet-300 rounded bg-violet-50"
+                                onBlur={(e) => {
+                                  const val = e.target.value ? parseFloat(e.target.value) : undefined;
+                                  onActivityCostUpdate(activity.id, val);
+                                  setEditingCostId(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const val = e.currentTarget.value ? parseFloat(e.currentTarget.value) : undefined;
+                                    onActivityCostUpdate(activity.id, val);
+                                    setEditingCostId(null);
+                                  }
+                                  if (e.key === 'Escape') setEditingCostId(null);
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setEditingCostId(activity.id); }}
+                              className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                              {activity.userCost ? `$${activity.userCost}` : 'Add cost'}
+                            </button>
+                          )}
                         </div>
+
+                        {/* Attachment Modal */}
+                        {attachmentModalId === activity.id && (
+                          <div className="mt-2 p-3 bg-gray-50 rounded-lg border" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Add attachment</span>
+                              <button onClick={() => setAttachmentModalId(null)} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              <select
+                                value={newAttachment.type}
+                                onChange={(e) => setNewAttachment(prev => ({ ...prev, type: e.target.value as 'link' | 'ticket' | 'reservation' | 'document' }))}
+                                className="w-full px-2 py-1.5 text-sm border rounded"
+                              >
+                                <option value="link">Link</option>
+                                <option value="ticket">Ticket</option>
+                                <option value="reservation">Reservation</option>
+                                <option value="document">Document</option>
+                              </select>
+                              <input
+                                type="text"
+                                placeholder="Name (e.g., Booking confirmation)"
+                                value={newAttachment.name}
+                                onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full px-2 py-1.5 text-sm border rounded"
+                              />
+                              <input
+                                type="url"
+                                placeholder="URL (optional)"
+                                value={newAttachment.url}
+                                onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
+                                className="w-full px-2 py-1.5 text-sm border rounded"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (newAttachment.name) {
+                                    onActivityAttachmentAdd(activity.id, newAttachment);
+                                    setNewAttachment({ type: 'link', name: '', url: '' });
+                                    setAttachmentModalId(null);
+                                  }
+                                }}
+                                disabled={!newAttachment.name}
+                                className="w-full py-1.5 bg-violet-500 text-white rounded text-sm font-medium disabled:opacity-50"
+                              >
+                                Add
+                              </button>
+                            </div>
+                            {/* Existing attachments */}
+                            {activity.attachments && activity.attachments.length > 0 && (
+                              <div className="mt-3 pt-3 border-t space-y-1">
+                                <span className="text-xs text-gray-500">Attached:</span>
+                                {activity.attachments.map((att, i) => (
+                                  <div key={i} className="flex items-center gap-2 text-sm">
+                                    <Paperclip className="w-3 h-3 text-gray-400" />
+                                    {att.url ? (
+                                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
+                                        {att.name}
+                                      </a>
+                                    ) : (
+                                      <span>{att.name}</span>
+                                    )}
+                                    <span className="text-xs text-gray-400 capitalize">({att.type})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </button>
                   </div>
