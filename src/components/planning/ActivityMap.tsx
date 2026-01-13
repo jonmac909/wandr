@@ -107,8 +107,8 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
     // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Add tile layer (using CartoDB Voyager for clean look)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Add tile layer (using CartoDB Positron for clean look with better international readability)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxZoom: 19,
     }).addTo(map);

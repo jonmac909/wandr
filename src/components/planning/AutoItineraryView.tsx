@@ -33,6 +33,9 @@ import {
   Car,
   Bus,
   Train,
+  Bed,
+  Utensils,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -1986,6 +1989,12 @@ export default function AutoItineraryView({
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
   const [mapSelectedDay, setMapSelectedDay] = useState(1); // Which day to show in map view
 
+  // Reservation modal state
+  const [reservationModal, setReservationModal] = useState<{
+    type: 'flight' | 'lodging' | 'rental-car' | 'restaurant' | 'attachment' | 'other';
+    dayNumber: number;
+  } | null>(null);
+
   // Sidebar calendar - track which day is in view
   const [activeDayNumber, setActiveDayNumber] = useState(1);
   const dayRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -2105,6 +2114,52 @@ export default function AutoItineraryView({
         a.id === activityId ? { ...a, attachments: [...(a.attachments || []), attachment] } : a
       ),
     })));
+  };
+
+  // Handle opening reservation modal
+  const handleAddReservation = (dayNumber: number, type: 'flight' | 'lodging' | 'rental-car' | 'restaurant' | 'attachment' | 'other') => {
+    setReservationModal({ type, dayNumber });
+  };
+
+  // Handle adding a reservation/transport to a day
+  const handleSaveReservation = (data: {
+    name: string;
+    type: 'flight' | 'train' | 'bus' | 'drive' | 'transit' | 'restaurant' | 'cafe' | 'activity' | 'attraction' | 'nightlife';
+    description?: string;
+    suggestedTime?: string;
+    duration?: number;
+    transportDetails?: {
+      from: string;
+      to: string;
+      departureTime?: string;
+      arrivalTime?: string;
+      operator?: string;
+      bookingRef?: string;
+    };
+    userCost?: number;
+  }) => {
+    if (!reservationModal) return;
+
+    const newActivity: GeneratedActivity = {
+      id: `res-${Date.now()}`,
+      name: data.name,
+      type: data.type,
+      description: data.description,
+      suggestedTime: data.suggestedTime,
+      duration: data.duration,
+      transportDetails: data.transportDetails,
+      userCost: data.userCost,
+    };
+
+    setDays(prev => prev.map(day => {
+      if (day.dayNumber !== reservationModal.dayNumber) return day;
+      return {
+        ...day,
+        activities: [...day.activities, newActivity],
+      };
+    }));
+
+    setReservationModal(null);
   };
 
   // Handle activity reorder within a day
@@ -2842,93 +2897,64 @@ export default function AutoItineraryView({
                 />
               </div>
 
-              {/* Activity sidebar */}
+              {/* Activity sidebar - scrollable list of all activities */}
               <div className="md:w-80 lg:w-96 flex-shrink-0 border-t md:border-t-0 md:border-l bg-white flex flex-col">
                 {mapDayActivities.length > 0 ? (
-                  <>
-                    {/* Navigation */}
-                    <div className="flex items-center justify-center gap-2 p-3 border-b bg-gray-50">
-                      <button
-                        onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
-                        disabled={mapSelectedIndex === 0}
-                        className="p-1.5 bg-white rounded-full shadow-sm border disabled:opacity-50"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <span className="px-3 py-1 bg-white rounded-full shadow-sm border text-sm font-medium">
-                        {mapSelectedIndex + 1} of {mapDayActivities.length}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-3 border-b bg-gray-50">
+                      <span className="text-sm font-medium text-gray-600">
+                        {mapDayActivities.length} {mapDayActivities.length === 1 ? 'place' : 'places'}
                       </span>
-                      <button
-                        onClick={() => setMapSelectedIndex(Math.min(mapDayActivities.length - 1, mapSelectedIndex + 1))}
-                        disabled={mapSelectedIndex === mapDayActivities.length - 1}
-                        className="p-1.5 bg-white rounded-full shadow-sm border disabled:opacity-50"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
                     </div>
-
-                    {/* Activity details */}
-                    {mapDayActivities[mapSelectedIndex] && (
-                      <div className="flex-1 overflow-y-auto p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold flex-shrink-0">
-                            {mapSelectedIndex + 1}
+                    <div className="divide-y">
+                      {mapDayActivities.map((activity, idx) => (
+                        <button
+                          key={activity.id}
+                          onClick={() => setMapSelectedIndex(idx)}
+                          className={`w-full text-left p-3 hover:bg-gray-50 transition-colors ${
+                            mapSelectedIndex === idx ? 'bg-primary/5 border-l-2 border-primary' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
+                                mapSelectedIndex === idx ? 'bg-primary' : 'bg-gray-400'
+                              }`}
+                            >
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
+                              <p className="text-gray-500 text-xs truncate">
+                                {activity.neighborhood || activity.type}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                {activity.openingHours && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Clock className="w-3 h-3" />
+                                    {activity.openingHours}
+                                  </span>
+                                )}
+                                {activity.rating && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                    {activity.rating.toFixed(1)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {activity.imageUrl && (
+                              <img
+                                src={activity.imageUrl}
+                                alt=""
+                                className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                              />
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base">{mapDayActivities[mapSelectedIndex].name}</h3>
-                            <p className="text-gray-500 text-sm">
-                              {mapDayActivities[mapSelectedIndex].neighborhood}
-                            </p>
-                          </div>
-                        </div>
-
-                        {mapDayActivities[mapSelectedIndex].imageUrl && (
-                          <div className="mt-3 rounded-lg overflow-hidden">
-                            <img
-                              src={mapDayActivities[mapSelectedIndex].imageUrl}
-                              alt=""
-                              className="w-full h-32 object-cover"
-                            />
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
-                          {mapDayActivities[mapSelectedIndex].openingHours && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {mapDayActivities[mapSelectedIndex].openingHours}
-                            </span>
-                          )}
-                          {mapDayActivities[mapSelectedIndex].rating && (
-                            <span className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                              {mapDayActivities[mapSelectedIndex].rating.toFixed(1)}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Open in maps buttons */}
-                        <div className="flex gap-2 mt-4">
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
-                          >
-                            Google Maps
-                          </a>
-                          <a
-                            href={`https://maps.apple.com/?q=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
-                          >
-                            Apple Maps
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                     <MapPin className="w-10 h-10 text-gray-300 mb-2" />
@@ -2986,6 +3012,7 @@ export default function AutoItineraryView({
             onActivityAttachmentAdd={handleActivityAttachmentAdd}
             onActivityReorder={(fromIdx, toIdx) => handleActivityReorder(day.dayNumber, fromIdx, toIdx)}
             onAutoFill={() => autoFillDay(day.dayNumber)}
+            onAddReservation={(type) => handleAddReservation(day.dayNumber, type)}
             isLoadingDay={loadingDayNumber === day.dayNumber}
           />
         );
@@ -3025,6 +3052,16 @@ export default function AutoItineraryView({
         onPrev={() => navigateDrawer('prev')}
         onNext={() => navigateDrawer('next')}
       />
+
+      {/* Add Reservation Modal */}
+      {reservationModal && (
+        <AddReservationModal
+          type={reservationModal.type}
+          dayNumber={reservationModal.dayNumber}
+          onClose={() => setReservationModal(null)}
+          onSave={handleSaveReservation}
+        />
+      )}
 
       {/* Undo Delete Toast */}
       {deletedActivity && (
@@ -3088,6 +3125,8 @@ export default function AutoItineraryView({
 
 // ============ DAY CARD COMPONENT ============
 
+type ReservationType = 'flight' | 'lodging' | 'rental-car' | 'restaurant' | 'attachment' | 'other';
+
 interface DayCardProps {
   day: GeneratedDay;
   color: typeof DAY_COLORS[0];
@@ -3099,11 +3138,12 @@ interface DayCardProps {
   onActivityAttachmentAdd: (activityId: string, attachment: { type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url?: string }) => void;
   onActivityReorder: (fromIndex: number, toIndex: number) => void;
   onAutoFill: () => void;
+  onAddReservation: (type: ReservationType) => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onAddReservation, isLoadingDay, dayRef }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
@@ -3672,9 +3712,8 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             </div>
           )}
 
-          {/* Add a place or transport */}
-          <div className="ml-8 space-y-2">
-            {/* Add a place */}
+          {/* Add a place */}
+          <div className="ml-8">
             <div className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
               <MapPin className="w-5 h-5 text-muted-foreground" />
               <input
@@ -3683,25 +3722,58 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
+          </div>
 
-            {/* Add transport */}
-            <div className="flex items-center gap-2 py-2 px-4">
-              <span className="text-xs text-muted-foreground mr-1">Add:</span>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-full text-xs font-medium text-blue-600 transition-colors">
-                <Plane className="w-3.5 h-3.5" />
-                Flight
+          {/* Reservations and attachments - Wanderlog style */}
+          <div className="ml-8 mt-4 p-4 bg-gray-50 rounded-xl">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Reservations and attachments</h4>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => onAddReservation('flight')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <Plane className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Flight</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 rounded-full text-xs font-medium text-green-600 transition-colors">
-                <Train className="w-3.5 h-3.5" />
-                Train
+              <div className="w-px h-8 bg-gray-200" />
+              <button
+                onClick={() => onAddReservation('lodging')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <Bed className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Lodging</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 rounded-full text-xs font-medium text-orange-600 transition-colors">
-                <Bus className="w-3.5 h-3.5" />
-                Bus
+              <div className="w-px h-8 bg-gray-200" />
+              <button
+                onClick={() => onAddReservation('rental-car')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <Car className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Rental car</span>
               </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-xs font-medium text-gray-600 transition-colors">
-                <Car className="w-3.5 h-3.5" />
-                Car
+              <div className="w-px h-8 bg-gray-200" />
+              <button
+                onClick={() => onAddReservation('restaurant')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <Utensils className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Restaurant</span>
+              </button>
+              <div className="w-px h-8 bg-gray-200" />
+              <button
+                onClick={() => onAddReservation('attachment')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <Paperclip className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Attachment</span>
+              </button>
+              <div className="w-px h-8 bg-gray-200" />
+              <button
+                onClick={() => onAddReservation('other')}
+                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              >
+                <MoreHorizontal className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
+                <span className="text-xs text-gray-600 group-hover:text-gray-900">Other</span>
               </button>
             </div>
           </div>
@@ -4187,5 +4259,394 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
         </div>
       </div>
     </div>
+  );
+}
+
+// ============ ADD RESERVATION MODAL ============
+
+interface AddReservationModalProps {
+  type: 'flight' | 'lodging' | 'rental-car' | 'restaurant' | 'attachment' | 'other';
+  dayNumber: number;
+  onClose: () => void;
+  onSave: (data: {
+    name: string;
+    type: 'flight' | 'train' | 'bus' | 'drive' | 'transit' | 'restaurant' | 'cafe' | 'activity' | 'attraction' | 'nightlife';
+    description?: string;
+    suggestedTime?: string;
+    duration?: number;
+    transportDetails?: {
+      from: string;
+      to: string;
+      departureTime?: string;
+      arrivalTime?: string;
+      operator?: string;
+      bookingRef?: string;
+    };
+    userCost?: number;
+  }) => void;
+}
+
+function AddReservationModal({ type, dayNumber, onClose, onSave }: AddReservationModalProps) {
+  const [formData, setFormData] = useState({
+    from: '',
+    to: '',
+    airline: '',
+    flightNumber: '',
+    departureTime: '',
+    arrivalTime: '',
+    bookingRef: '',
+    cost: '',
+    name: '',
+    notes: '',
+  });
+
+  const getTitle = () => {
+    switch (type) {
+      case 'flight': return 'Add Flight';
+      case 'lodging': return 'Add Lodging';
+      case 'rental-car': return 'Add Rental Car';
+      case 'restaurant': return 'Add Restaurant';
+      case 'attachment': return 'Add Attachment';
+      case 'other': return 'Add Other';
+    }
+  };
+
+  const getIcon = () => {
+    switch (type) {
+      case 'flight': return <Plane className="w-5 h-5" />;
+      case 'lodging': return <Bed className="w-5 h-5" />;
+      case 'rental-car': return <Car className="w-5 h-5" />;
+      case 'restaurant': return <Utensils className="w-5 h-5" />;
+      case 'attachment': return <Paperclip className="w-5 h-5" />;
+      case 'other': return <MoreHorizontal className="w-5 h-5" />;
+    }
+  };
+
+  const handleSave = () => {
+    if (type === 'flight') {
+      const flightName = formData.airline && formData.flightNumber
+        ? `${formData.airline} ${formData.flightNumber}`
+        : `${formData.from} → ${formData.to}`;
+
+      onSave({
+        name: flightName,
+        type: 'flight',
+        description: `${formData.from} to ${formData.to}${formData.notes ? ` • ${formData.notes}` : ''}`,
+        suggestedTime: formData.departureTime || undefined,
+        transportDetails: {
+          from: formData.from,
+          to: formData.to,
+          departureTime: formData.departureTime || undefined,
+          arrivalTime: formData.arrivalTime || undefined,
+          operator: formData.airline || undefined,
+          bookingRef: formData.bookingRef || undefined,
+        },
+        userCost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+    } else if (type === 'rental-car') {
+      onSave({
+        name: formData.name || 'Rental Car',
+        type: 'drive',
+        description: formData.notes || undefined,
+        transportDetails: {
+          from: formData.from || 'Pickup',
+          to: formData.to || 'Return',
+          bookingRef: formData.bookingRef || undefined,
+        },
+        userCost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+    } else if (type === 'restaurant') {
+      onSave({
+        name: formData.name || 'Restaurant',
+        type: 'restaurant',
+        description: formData.notes || undefined,
+        suggestedTime: formData.departureTime || undefined,
+        userCost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+    } else if (type === 'lodging') {
+      onSave({
+        name: formData.name || 'Accommodation',
+        type: 'activity',
+        description: formData.notes || undefined,
+        userCost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+    } else {
+      onSave({
+        name: formData.name || 'Item',
+        type: 'activity',
+        description: formData.notes || undefined,
+        userCost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-xl max-w-md mx-auto animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-2">
+            {getIcon()}
+            <h2 className="font-bold text-lg">{getTitle()}</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {type === 'flight' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">From</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. LAX"
+                    value={formData.from}
+                    onChange={(e) => setFormData(prev => ({ ...prev, from: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">To</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. NRT"
+                    value={formData.to}
+                    onChange={(e) => setFormData(prev => ({ ...prev, to: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Airline</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. United"
+                    value={formData.airline}
+                    onChange={(e) => setFormData(prev => ({ ...prev, airline: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Flight #</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UA123"
+                    value={formData.flightNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, flightNumber: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Departure</label>
+                  <input
+                    type="time"
+                    value={formData.departureTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Arrival</label>
+                  <input
+                    type="time"
+                    value={formData.arrivalTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Confirmation #</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={formData.bookingRef}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bookingRef: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Cost</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={formData.cost}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {(type === 'restaurant' || type === 'lodging' || type === 'other') && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                <input
+                  type="text"
+                  placeholder={type === 'restaurant' ? 'Restaurant name' : type === 'lodging' ? 'Hotel name' : 'Name'}
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {type === 'restaurant' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Reservation Time</label>
+                  <input
+                    type="time"
+                    value={formData.departureTime}
+                    onChange={(e) => setFormData(prev => ({ ...prev, departureTime: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Confirmation #</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={formData.bookingRef}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bookingRef: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Cost</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={formData.cost}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {type === 'rental-car' && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Rental Company</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hertz"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Pickup Location</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Airport"
+                    value={formData.from}
+                    onChange={(e) => setFormData(prev => ({ ...prev, from: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Return Location</label>
+                  <input
+                    type="text"
+                    placeholder="Same as pickup"
+                    value={formData.to}
+                    onChange={(e) => setFormData(prev => ({ ...prev, to: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Confirmation #</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={formData.bookingRef}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bookingRef: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Cost</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={formData.cost}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {type === 'attachment' && (
+            <div className="text-center py-8">
+              <Paperclip className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">Attachment upload coming soon</p>
+              <p className="text-gray-400 text-xs mt-1">You&apos;ll be able to attach tickets, confirmations, etc.</p>
+            </div>
+          )}
+
+          {/* Notes (for all types except attachment) */}
+          {type !== 'attachment' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+              <textarea
+                placeholder="Add any notes..."
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                rows={2}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 p-4 border-t bg-gray-50 rounded-b-2xl">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button className="flex-1" onClick={handleSave} disabled={type === 'attachment'}>
+            Add to Day {dayNumber}
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }
