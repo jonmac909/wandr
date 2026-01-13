@@ -3249,14 +3249,37 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                         {/* Action buttons row - Wanderlog style */}
                         <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
-                          {/* Time button */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setEditingTimeId(activity.id); }}
-                            className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
-                          >
-                            <Clock className="w-4 h-4" />
-                            {activity.suggestedTime || 'Add time'}
-                          </button>
+                          {/* Time button/input */}
+                          {editingTimeId === activity.id ? (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Clock className="w-4 h-4" />
+                              <input
+                                type="time"
+                                defaultValue={activity.suggestedTime || '09:00'}
+                                autoFocus
+                                className="px-1 py-0.5 text-sm border border-violet-300 rounded bg-violet-50"
+                                onBlur={(e) => {
+                                  onActivityTimeUpdate(activity.id, e.target.value);
+                                  setEditingTimeId(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    onActivityTimeUpdate(activity.id, e.currentTarget.value);
+                                    setEditingTimeId(null);
+                                  }
+                                  if (e.key === 'Escape') setEditingTimeId(null);
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setEditingTimeId(activity.id); }}
+                              className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
+                            >
+                              <Clock className="w-4 h-4" />
+                              {activity.suggestedTime || 'Add time'}
+                            </button>
+                          )}
 
                           {/* Attach button */}
                           <button
