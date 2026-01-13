@@ -3042,6 +3042,8 @@ export function SwipeablePlanningView({
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
+                  onDrop={(e) => { e.preventDefault(); handleDragEnd(); }}
+                  onMouseUp={handleDragEnd}
                   className={`flex items-center gap-3 p-3 bg-background rounded-xl border cursor-grab active:cursor-grabbing transition-all ${
                     draggedCityIndex === index ? 'opacity-50 scale-95 shadow-lg' : ''
                   }`}
@@ -3079,9 +3081,10 @@ export function SwipeablePlanningView({
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Move to parked cities
-                      setParkedCities(prev => [...prev, city]);
-                      setRouteOrder(prev => prev.filter(c => c !== city));
+                      // Move to parked cities (only if not already there)
+                      setParkedCities(prev => prev.includes(city) ? prev : [...prev, city]);
+                      // Remove only THIS instance (by index), not all instances of the city
+                      setRouteOrder(prev => [...prev.slice(0, index), ...prev.slice(index + 1)]);
                     }}
                   >
                     <X className="w-4 h-4" />
