@@ -1277,6 +1277,10 @@ function PlanPageContent() {
               end.setDate(start.getDate() + newTotalDays - 1);
               setEndDate(end.toISOString().split('T')[0]);
 
+              // Update duration to match (so actualDuration is correct when itinerary remounts)
+              setDurationType('days');
+              setDurationDays(newTotalDays);
+
               // Clear the sync flag after React processes the state updates
               setTimeout(() => {
                 syncingFromItinerary.current = false;

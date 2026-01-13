@@ -283,11 +283,13 @@ export default function AutoItineraryView({
   // Use initialAllocations if provided (persisted from parent), otherwise calculate fresh
   const [allocations, setAllocations] = useState<CityAllocation[]>(() => {
     if (initialAllocations && initialAllocations.length > 0) {
-      // Verify the saved allocations match current cities
+      // Verify the saved allocations match current cities AND total days
       const savedCities = initialAllocations.map(a => a.city);
+      const savedTotalNights = initialAllocations.reduce((sum, a) => sum + a.nights, 0);
       const citiesMatch = cities.length === savedCities.length &&
         cities.every((c, i) => c === savedCities[i]);
-      if (citiesMatch) {
+      const daysMatch = savedTotalNights === initialTotalDays;
+      if (citiesMatch && daysMatch) {
         return initialAllocations;
       }
     }
