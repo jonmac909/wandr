@@ -2091,6 +2091,9 @@ export default function AutoItineraryView({
           country: getCityCountry?.(city),
           tripStyle: tripDna?.vibeAndPace?.tripPace || 'balanced',
           interests: tripDna?.travelerProfile?.travelIdentities || [],
+          budget: tripDna?.budget?.dailyBudget || 'moderate',
+          mustHaves: tripDna?.travelerProfile?.mustHaves || [],
+          avoidances: tripDna?.travelerProfile?.avoidances || [],
         }),
       });
 
@@ -2149,9 +2152,12 @@ export default function AutoItineraryView({
       d.dayNumber !== dayNumber // Don't count the day we're about to fill
     ).length;
 
+    console.log(`[AutoFill] Day ${dayNumber} of ${targetDay.city}, filledDaysCount=${filledDaysCount}, cacheExists=${!!cityItineraryCache[targetDay.city]}`);
+
     // Check if we have cached data for this city
     if (cityItineraryCache[targetDay.city]) {
       const cityDays = cityItineraryCache[targetDay.city];
+      console.log(`[AutoFill] Using cache: ${cityDays.length} days available, picking index ${filledDaysCount % cityDays.length}`);
       // Use filledDaysCount to pick the NEXT unused day from cache
       const aiDay = cityDays[filledDaysCount % cityDays.length];
 

@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { city, nights, country, tripStyle, interests } = await request.json();
+    const { city, nights, country, tripStyle, interests, budget, mustHaves, avoidances } = await request.json();
 
     if (!city || !nights) {
       return NextResponse.json(
@@ -16,12 +16,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build budget guidance
+    const budgetGuide = budget === 'budget' || budget === 'low'
+      ? 'Focus on budget-friendly options ($ to $$). Include free attractions, street food, and affordable local spots.'
+      : budget === 'luxury' || budget === 'high'
+      ? 'Include upscale experiences ($$ to $$$). Fine dining, premium tours, exclusive venues.'
+      : 'Mix of moderate options ($ to $$). Balance value with quality experiences.';
+
     const prompt = `You are a travel expert creating a detailed ${nights}-day itinerary for ${city}${country ? `, ${country}` : ''}.
 
-The traveler's style: ${tripStyle || 'balanced mix of culture, food, and sightseeing'}
-Their interests: ${interests?.join(', ') || 'general sightseeing, local food, cultural experiences'}
+TRAVELER PROFILE:
+- Travel pace: ${tripStyle || 'balanced'} (${tripStyle === 'relaxed' ? 'fewer activities, more downtime' : tripStyle === 'packed' ? 'maximize experiences, busy days' : 'good balance of activities and rest'})
+- Interests: ${interests?.length > 0 ? interests.join(', ') : 'general sightseeing, local food, cultural experiences'}
+- Budget: ${budgetGuide}
+${mustHaves?.length > 0 ? `- Must include: ${mustHaves.join(', ')}` : ''}
+${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}
 
-Create a day-by-day itinerary with 3-5 activities per day. For EACH activity, provide:
+Create a day-by-day itinerary with 3-5 activities per day. EACH DAY MUST BE DIFFERENT with unique activities. For EACH activity, provide:
 1. name: The specific place/restaurant/attraction name (real places that exist)
 2. type: "attraction" | "restaurant" | "activity"
 3. description: 1-2 sentence description of why it's worth visiting
@@ -33,12 +44,14 @@ Create a day-by-day itinerary with 3-5 activities per day. For EACH activity, pr
 9. tags: 2-4 relevant tags like ["temple", "history", "photography"]
 10. walkingTimeToNext: Minutes to walk to the next activity (optional, for flow)
 
-IMPORTANT:
-- Use REAL places that actually exist in ${city}
+CRITICAL REQUIREMENTS:
+- Use REAL places that actually exist in ${city} (Google-able, with real addresses)
+- EVERY DAY MUST HAVE COMPLETELY DIFFERENT ACTIVITIES - no repeats across days
 - Include a mix of famous landmarks AND local hidden gems
-- Include at least one great local restaurant per day
-- Consider logical routing (nearby activities grouped together)
-- Vary the pace - not all action, include some relaxed moments
+- Include at least one great local restaurant/food experience per day
+- Consider logical routing (nearby activities grouped together by neighborhood)
+- Match the traveler's pace preference - ${tripStyle === 'relaxed' ? 'include downtime, coffee breaks, and leisurely meals' : tripStyle === 'packed' ? 'maximize sightseeing efficiently' : 'balance activities with rest'}
+- Each day should have a distinct theme (e.g., "Historic Temples", "Street Food & Markets", "Nature Day")
 
 Return ONLY valid JSON in this exact format:
 {
