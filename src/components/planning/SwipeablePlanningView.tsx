@@ -2149,7 +2149,15 @@ export function SwipeablePlanningView({
         getCityCountry={getCityCountry}
         onDatesChange={onDatesChange}
         initialAllocations={savedAllocations}
-        onAllocationsChange={setSavedAllocations}
+        onAllocationsChange={(newAllocations) => {
+          // CRITICAL: Don't overwrite saved allocations with empty array
+          if (newAllocations.length === 0) {
+            console.log('[SwipeablePlanning] Ignoring empty allocations from child');
+            return;
+          }
+          console.log('[SwipeablePlanning] Accepting allocations from child:', newAllocations.map(a => `${a.city}:${a.nights}`));
+          setSavedAllocations(newAllocations);
+        }}
         parentLoadComplete={persistenceLoaded}
       />
     );
