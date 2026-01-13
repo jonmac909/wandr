@@ -1182,10 +1182,13 @@ export function SwipeablePlanningView({
     const loadPersistedState = async () => {
       try {
         const saved = await planningDb.get(tripId);
+        console.log('[SwipeablePlanning] Loaded from IndexedDB:', saved);
+        console.log('[SwipeablePlanning] Allocations in DB:', (saved as { allocations?: unknown })?.allocations);
 
         if (saved) {
           // Always load allocations if we have them
           if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
+            console.log('[SwipeablePlanning] Setting savedAllocations from DB');
             setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
           }
 
@@ -1237,7 +1240,10 @@ export function SwipeablePlanningView({
     };
 
     // Debounce saves
-    const timer = setTimeout(saveState, 500);
+    const timer = setTimeout(() => {
+      console.log('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations);
+      saveState();
+    }, 500);
     return () => clearTimeout(timer);
   }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded, savedAllocations]);
 

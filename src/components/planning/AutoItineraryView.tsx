@@ -1879,12 +1879,19 @@ export default function AutoItineraryView({
   // Handle when initialAllocations arrives AFTER first render (from IndexedDB)
   const [hasLoadedInitialAllocations, setHasLoadedInitialAllocations] = useState(false);
   useEffect(() => {
+    console.log('[AutoItinerary] initialAllocations effect:', {
+      hasLoaded: hasLoadedInitialAllocations,
+      initialAllocations: initialAllocations?.map(a => `${a.city}:${a.nights}`),
+      cities
+    });
     if (!hasLoadedInitialAllocations && initialAllocations && initialAllocations.length > 0) {
       const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
+      console.log('[AutoItinerary] citiesMatch:', citiesMatch, 'savedRouteCities:', savedRouteCities);
 
       if (citiesMatch) {
+        console.log('[AutoItinerary] LOADING saved allocations into state!');
         setAllocations(initialAllocations);
         setHasLoadedInitialAllocations(true);
       }
@@ -2021,8 +2028,10 @@ export default function AutoItineraryView({
 
   useEffect(() => {
     if (!isReadyToSync) {
+      console.log('[AutoItinerary] Not ready to sync yet');
       return;
     }
+    console.log('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
     onAllocationsChange?.(allocations);
   }, [allocations, onAllocationsChange, isReadyToSync]);
 
