@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Home, Globe, Plane, Moon, Sun, DollarSign, Ruler, Save } from 'lucide-react';
+import { MapPin, Home, Globe, Plane, Moon, Sun, DollarSign, Ruler, Save, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { preferencesDb, type UserPreferences } from '@/lib/db/indexed-db';
+import { preferencesDb, type UserPreferences, type TravelInterest } from '@/lib/db/indexed-db';
 
 interface ProfileSettingsProps {
   open: boolean;
@@ -48,6 +48,17 @@ const TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
 ];
 
+const TRAVEL_INTERESTS: { value: TravelInterest; label: string; icon: string }[] = [
+  { value: 'food', label: 'Food', icon: '🍜' },
+  { value: 'history', label: 'History', icon: '🏛️' },
+  { value: 'art', label: 'Art', icon: '🎨' },
+  { value: 'nature', label: 'Nature', icon: '🌿' },
+  { value: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { value: 'adventure', label: 'Adventure', icon: '🧗' },
+  { value: 'shopping', label: 'Shopping', icon: '🛍️' },
+  { value: 'local-culture', label: 'Local Culture', icon: '🎭' },
+];
+
 export function ProfileSettings({ open, onOpenChange, onPreferencesUpdate }: ProfileSettingsProps) {
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,6 +81,15 @@ export function ProfileSettings({ open, onOpenChange, onPreferencesUpdate }: Pro
   const updatePref = <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
     if (!prefs) return;
     setPrefs({ ...prefs, [key]: value });
+  };
+
+  const toggleInterest = (interest: TravelInterest) => {
+    if (!prefs) return;
+    const current = prefs.travelInterests || [];
+    const updated = current.includes(interest)
+      ? current.filter(i => i !== interest)
+      : [...current, interest];
+    setPrefs({ ...prefs, travelInterests: updated });
   };
 
   if (!prefs) return null;
@@ -225,6 +245,37 @@ export function ProfileSettings({ open, onOpenChange, onPreferencesUpdate }: Pro
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Travel Interests Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Travel Interests
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Select your interests to personalize Explore recommendations
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TRAVEL_INTERESTS.map((interest) => {
+                const isSelected = prefs.travelInterests?.includes(interest.value);
+                return (
+                  <button
+                    key={interest.value}
+                    onClick={() => toggleInterest(interest.value)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-xs font-medium transition-all
+                      ${isSelected
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                      }
+                    `}
+                  >
+                    {interest.icon} {interest.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

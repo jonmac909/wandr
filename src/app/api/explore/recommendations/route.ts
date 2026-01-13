@@ -3,9 +3,21 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic();
 
+// Interest labels for the AI prompt
+const INTEREST_DESCRIPTIONS: Record<string, string> = {
+  'food': 'food and culinary experiences (local cuisine, street food, fine dining)',
+  'history': 'historical sites, museums, and heritage locations',
+  'art': 'art galleries, installations, and creative spaces',
+  'nature': 'parks, gardens, scenic viewpoints, and outdoor spaces',
+  'nightlife': 'bars, clubs, live music venues, and evening entertainment',
+  'adventure': 'adventure activities, unique experiences, and off-the-beaten-path spots',
+  'shopping': 'shopping districts, markets, boutiques, and local shops',
+  'local-culture': 'authentic local experiences, cultural sites, and community spots',
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { city, category } = await request.json();
+    const { city, category, interests } = await request.json();
 
     if (!city) {
       return NextResponse.json({ error: 'City is required' }, { status: 400 });
@@ -15,9 +27,22 @@ export async function POST(request: NextRequest) {
       ? `Focus on ${category}s only.`
       : 'Include a mix of attractions, restaurants, cafes, and nightlife.';
 
+    // Build interest-based personalization
+    let interestFilter = '';
+    if (interests && interests.length > 0) {
+      const interestDescriptions = interests
+        .map((i: string) => INTEREST_DESCRIPTIONS[i])
+        .filter(Boolean)
+        .join(', ');
+      interestFilter = `
+
+The user is particularly interested in: ${interestDescriptions}.
+Prioritize recommendations that match these interests. Tailor the results to someone who loves ${interests.join(', ')}.`;
+    }
+
     const prompt = `Generate 12 place recommendations for ${city}.
 
-${categoryFilter}
+${categoryFilter}${interestFilter}
 
 Return ONLY valid JSON (no markdown, no explanation) with this structure:
 {

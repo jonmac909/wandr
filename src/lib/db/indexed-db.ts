@@ -76,6 +76,9 @@ export interface PlanningState {
   updatedAt: Date;
 }
 
+// Travel interest types for personalized recommendations
+export type TravelInterest = 'food' | 'history' | 'art' | 'nature' | 'nightlife' | 'adventure' | 'shopping' | 'local-culture';
+
 // User preferences
 export interface UserPreferences {
   id: string;
@@ -88,6 +91,8 @@ export interface UserPreferences {
   location?: string; // e.g., "Kelowna, Canada"
   timezone?: string;
   homeAirport?: string; // e.g., "YLW"
+  // Travel preferences (for Explore personalization)
+  travelInterests?: TravelInterest[];
 }
 
 // Database definition
@@ -390,6 +395,7 @@ export const preferencesDb = {
       location: '',
       timezone: '',
       homeAirport: '',
+      travelInterests: [],
     };
   },
 

@@ -8,7 +8,7 @@ import { TripDrawer } from '@/components/dashboard/TripDrawer';
 import { ProfileSettings } from '@/components/dashboard/ProfileSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { savedPlacesDb, tripDb } from '@/lib/db/indexed-db';
+import { savedPlacesDb, tripDb, preferencesDb, type TravelInterest } from '@/lib/db/indexed-db';
 import { getCountryInfoForCity } from '@/lib/geo/city-country';
 import type { SavedPlace, BrowsePlace, PlaceCategory } from '@/types/saved-place';
 import type { StoredTrip } from '@/lib/db/indexed-db';
@@ -31,6 +31,17 @@ const CATEGORIES: { label: string; value: PlaceCategory; icon: string }[] = [
   { label: 'Nightlife', value: 'nightlife', icon: '🌙' },
 ];
 
+const INTERESTS: { value: TravelInterest; label: string; icon: string }[] = [
+  { value: 'food', label: 'Food', icon: '🍜' },
+  { value: 'history', label: 'History', icon: '🏛️' },
+  { value: 'art', label: 'Art', icon: '🎨' },
+  { value: 'nature', label: 'Nature', icon: '🌿' },
+  { value: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { value: 'adventure', label: 'Adventure', icon: '🧗' },
+  { value: 'shopping', label: 'Shopping', icon: '🛍️' },
+  { value: 'local-culture', label: 'Local', icon: '🎭' },
+];
+
 function ExploreContent() {
   const searchParams = useSearchParams();
   const initialCity = searchParams.get('city') || '';
@@ -49,12 +60,29 @@ function ExploreContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedInterests, setSelectedInterests] = useState<TravelInterest[]>([]);
 
   // Load data on mount
   useEffect(() => {
     loadSavedPlaces();
     loadTrips();
+    loadUserInterests();
   }, []);
+
+  const loadUserInterests = async () => {
+    const prefs = await preferencesDb.get();
+    if (prefs.travelInterests && prefs.travelInterests.length > 0) {
+      setSelectedInterests(prefs.travelInterests);
+    }
+  };
+
+  const toggleInterest = (interest: TravelInterest) => {
+    setSelectedInterests(prev =>
+      prev.includes(interest)
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
 
   const loadSavedPlaces = async () => {
     const places = await savedPlacesDb.getAll();
@@ -131,6 +159,7 @@ function ExploreContent() {
         body: JSON.stringify({
           city: searchCity,
           category: selectedCategory === 'all' ? undefined : selectedCategory,
+          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         }),
       });
 
@@ -280,6 +309,26 @@ function ExploreContent() {
                 </button>
               ))}
             </div>
+
+            {/* Interest filters (Browse tab only) */}
+            {activeTab === 'browse' && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                <span className="text-xs text-gray-400 self-center pr-1">Interests:</span>
+                {INTERESTS.map((interest) => (
+                  <button
+                    key={interest.value}
+                    onClick={() => toggleInterest(interest.value)}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                      selectedInterests.includes(interest.value)
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-transparent'
+                    }`}
+                  >
+                    {interest.icon} {interest.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Content */}
