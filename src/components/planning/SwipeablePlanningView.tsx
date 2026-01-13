@@ -1249,6 +1249,7 @@ export function SwipeablePlanningView({
     maxFlightHours: 12,       // Maximum single flight duration in hours
   });
   const [draggedCityIndex, setDraggedCityIndex] = useState<number | null>(null); // For drag-and-drop cities
+  const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null); // For inserting city at specific position
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null); // For drag-and-drop countries
   const [expandedTransport, setExpandedTransport] = useState<number | null>(null); // Which transport segment is expanded
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null); // Selected flight route option
@@ -2975,8 +2976,49 @@ export function SwipeablePlanningView({
             const isLastInCountry = index < routeOrder.length - 1 && getCityCountry(routeOrder[index + 1]) !== country;
             const routeInfo = routeDistances[index];
 
+            // Get available cities to insert (from parked cities or selected but not in route)
+            const availableCities = [
+              ...parkedCities,
+              ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))
+            ];
+
             return (
-              <div key={city}>
+              <div key={`${city}-${index}`}>
+                {/* Insert button before first city */}
+                {index === 0 && (
+                  <div className="group relative py-1">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => setInsertAtIndex(insertAtIndex === 0 ? null : 0)}
+                        className="w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-muted-foreground"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {/* Dropdown for inserting city at position 0 */}
+                    {insertAtIndex === 0 && availableCities.length > 0 && (
+                      <div className="absolute left-1/2 -translate-x-1/2 top-8 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
+                        <div className="text-xs text-muted-foreground mb-2">Add city here:</div>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {availableCities.map(c => (
+                            <button
+                              key={c}
+                              onClick={() => {
+                                setRouteOrder(prev => [c, ...prev]);
+                                setParkedCities(prev => prev.filter(p => p !== c));
+                                setInsertAtIndex(null);
+                              }}
+                              className="w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded"
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* City card - Draggable */}
                 <div
                   draggable
@@ -3061,7 +3103,38 @@ export function SwipeablePlanningView({
                     : 'bg-blue-400';
 
                   return (
-                    <div className="pl-[1.25rem]">
+                    <div className="pl-[1.25rem] group/connector relative">
+                      {/* Insert city button - shows on hover */}
+                      <button
+                        onClick={() => setInsertAtIndex(insertAtIndex === index + 1 ? null : index + 1)}
+                        className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover/connector:opacity-100 transition-all text-muted-foreground z-10"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                      {/* Insert dropdown */}
+                      {insertAtIndex === index + 1 && (
+                        <div className="absolute left-1/2 -translate-x-1/2 top-6 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
+                          <div className="text-xs text-muted-foreground mb-2">Add city here:</div>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {[...parkedCities, ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))].map(c => (
+                              <button
+                                key={c}
+                                onClick={() => {
+                                  setRouteOrder(prev => [...prev.slice(0, index + 1), c, ...prev.slice(index + 1)]);
+                                  setParkedCities(prev => prev.filter(p => p !== c));
+                                  setInsertAtIndex(null);
+                                }}
+                                className="w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded"
+                              >
+                                {c}
+                              </button>
+                            ))}
+                            {[...parkedCities, ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))].length === 0 && (
+                              <div className="text-xs text-muted-foreground py-2 text-center">No cities available</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-start gap-2">
                         <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[6rem]' : 'h-8'} ${barColor}`} />
                         <div className="flex-1 py-1">
