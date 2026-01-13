@@ -357,11 +357,23 @@ async function generateCityDays(
 TRAVELER PROFILE:
 ${preferences}
 
-For each day, provide ${targetActivities} activities/meals. Include:
-- 1 major attraction or cultural site
-- 1-2 food spots (restaurant, cafe, or street food)
-- 1 activity or casual experience
-- Consider time of day (temples morning, nightlife evening, etc.)
+CRITICAL RULES:
+1. NEVER repeat the same place/restaurant/attraction across different days
+2. Each day MUST have a unique theme (e.g., "Temple Day", "Local Eats", "Art & Culture", "Market Adventure", "Nature Escape")
+3. Vary the daily rhythm - not every day should follow the same pattern
+4. Consider the trip arc: Day 1 = iconic highlights, Middle days = deeper exploration, Last day = relaxed/farewell
+
+For each day, provide ${targetActivities} UNIQUE activities/meals. Include mix of:
+- Major attractions OR hidden gems (alternate between popular and off-beaten-path)
+- Different food experiences each day (fine dining, street food, local cafes, markets)
+- Unique activities matching the day's theme
+
+Time of day considerations:
+- Temples/parks: early morning (before crowds)
+- Markets: morning (freshest)
+- Museums/indoor: midday (avoid heat)
+- Neighborhoods/walking: afternoon
+- Food/nightlife: evening
 
 Use REAL places that exist in ${allocation.city}. Be specific with neighborhoods and addresses.
 
