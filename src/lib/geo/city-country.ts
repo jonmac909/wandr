@@ -267,6 +267,60 @@ function codeToFlag(code: string): string {
   return String.fromCodePoint(...codePoints);
 }
 
+// Country code to country name mapping
+const CODE_TO_COUNTRY: Record<string, string> = {
+  'JP': 'Japan', 'TH': 'Thailand', 'VN': 'Vietnam', 'ID': 'Indonesia',
+  'MY': 'Malaysia', 'SG': 'Singapore', 'PH': 'Philippines', 'KH': 'Cambodia',
+  'LA': 'Laos', 'MM': 'Myanmar', 'KR': 'South Korea', 'TW': 'Taiwan',
+  'HK': 'Hong Kong', 'MO': 'Macau', 'CN': 'China', 'IN': 'India',
+  'NP': 'Nepal', 'LK': 'Sri Lanka', 'MV': 'Maldives',
+  'AE': 'UAE', 'QA': 'Qatar', 'OM': 'Oman', 'JO': 'Jordan', 'LB': 'Lebanon',
+  'IL': 'Israel', 'SA': 'Saudi Arabia', 'TR': 'Turkey',
+  'GB': 'United Kingdom', 'IE': 'Ireland', 'FR': 'France', 'MC': 'Monaco',
+  'IT': 'Italy', 'ES': 'Spain', 'PT': 'Portugal', 'DE': 'Germany',
+  'NL': 'Netherlands', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+  'DK': 'Denmark', 'SE': 'Sweden', 'NO': 'Norway', 'FI': 'Finland', 'IS': 'Iceland',
+  'CZ': 'Czech Republic', 'HU': 'Hungary', 'PL': 'Poland', 'RO': 'Romania',
+  'BG': 'Bulgaria', 'RS': 'Serbia', 'HR': 'Croatia', 'SI': 'Slovenia',
+  'SK': 'Slovakia', 'EE': 'Estonia', 'LV': 'Latvia', 'LT': 'Lithuania',
+  'UA': 'Ukraine', 'GR': 'Greece',
+  'US': 'United States', 'CA': 'Canada', 'MX': 'Mexico',
+  'CR': 'Costa Rica', 'PA': 'Panama', 'GT': 'Guatemala', 'BZ': 'Belize',
+  'PE': 'Peru', 'AR': 'Argentina', 'BR': 'Brazil', 'CL': 'Chile',
+  'CO': 'Colombia', 'EC': 'Ecuador', 'BO': 'Bolivia', 'UY': 'Uruguay',
+  'CU': 'Cuba', 'DO': 'Dominican Republic', 'PR': 'Puerto Rico',
+  'BS': 'Bahamas', 'JM': 'Jamaica', 'BB': 'Barbados', 'AW': 'Aruba',
+  'CW': 'Curacao', 'LC': 'St Lucia', 'SX': 'St Maarten', 'TC': 'Turks and Caicos',
+  'AU': 'Australia', 'NZ': 'New Zealand',
+  'FJ': 'Fiji', 'PF': 'French Polynesia', 'WS': 'Samoa', 'TO': 'Tonga',
+  'VU': 'Vanuatu', 'NC': 'New Caledonia', 'PW': 'Palau',
+  'ZA': 'South Africa', 'EG': 'Egypt', 'MA': 'Morocco', 'KE': 'Kenya',
+  'TZ': 'Tanzania', 'ZW': 'Zimbabwe', 'ZM': 'Zambia', 'ET': 'Ethiopia',
+  'GH': 'Ghana', 'NG': 'Nigeria', 'SN': 'Senegal', 'TN': 'Tunisia',
+  'DZ': 'Algeria', 'RW': 'Rwanda', 'UG': 'Uganda', 'NA': 'Namibia',
+  'MU': 'Mauritius', 'SC': 'Seychelles', 'RE': 'Reunion', 'MG': 'Madagascar',
+};
+
+/**
+ * Get country name from country code
+ */
+export function getCountryName(code: string): string {
+  return CODE_TO_COUNTRY[code] || code;
+}
+
+/**
+ * Get country code and name for a city
+ */
+export function getCountryInfoForCity(city: string): { code: string; name: string; flag: string } | null {
+  const code = getCountryForCity(city);
+  if (!code) return null;
+  return {
+    code,
+    name: getCountryName(code),
+    flag: codeToFlag(code),
+  };
+}
+
 /**
  * Try to get flag from location string (handles "City, Country" format and standalone country names)
  */

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, MessageCircle, Plane } from 'lucide-react';
+import { Bell, MessageCircle, Plane, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -49,6 +49,17 @@ export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfi
 
         {/* Right side actions */}
         <div className="flex items-center gap-1">
+          {/* Explore button - links to explore page */}
+          <Link href="/explore">
+            <Button
+              variant="ghost"
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Explore</span>
+            </Button>
+          </Link>
+
           {/* Trips button - opens drawer */}
           <Button
             variant="ghost"

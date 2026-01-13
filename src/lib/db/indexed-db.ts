@@ -3,6 +3,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary } from '@/types/itinerary';
+import { SavedPlace, PlaceCategory } from '@/types/saved-place';
 import { supabaseTrips } from './supabase';
 
 // Stored trip with metadata
@@ -96,6 +97,7 @@ class TravelerDatabase extends Dexie {
   packingStates!: EntityTable<PackingState, 'tripId'>;
   planningStates!: EntityTable<PlanningState, 'tripId'>;
   preferences!: EntityTable<UserPreferences, 'id'>;
+  savedPlaces!: EntityTable<SavedPlace, 'id'>;
 
   constructor() {
     super('TravelerDB');
@@ -114,6 +116,16 @@ class TravelerDatabase extends Dexie {
       packingStates: 'tripId, updatedAt',
       planningStates: 'tripId, updatedAt',
       preferences: 'id',
+    });
+
+    // Add saved places in version 3 (Explore feature)
+    this.version(3).stores({
+      trips: 'id, status, createdAt, updatedAt',
+      documents: 'id, tripId, type, createdAt',
+      packingStates: 'tripId, updatedAt',
+      planningStates: 'tripId, updatedAt',
+      preferences: 'id',
+      savedPlaces: 'id, city, type, savedAt',
     });
   }
 }
@@ -419,5 +431,106 @@ export const planningDb = {
   // Delete planning state
   async delete(tripId: string): Promise<void> {
     await db.planningStates.delete(tripId);
+  },
+};
+
+// Saved places operations (Explore feature)
+export const savedPlacesDb = {
+  // Get all saved places
+  async getAll(): Promise<SavedPlace[]> {
+    return db.savedPlaces.orderBy('savedAt').reverse().toArray();
+  },
+
+  // Get saved places by city
+  async getByCity(city: string): Promise<SavedPlace[]> {
+    const normalizedCity = city.toLowerCase();
+    const all = await db.savedPlaces.toArray();
+    return all.filter(p => p.city.toLowerCase().includes(normalizedCity));
+  },
+
+  // Get saved places by category
+  async getByCategory(category: PlaceCategory): Promise<SavedPlace[]> {
+    if (category === 'all') {
+      return this.getAll();
+    }
+    return db.savedPlaces.where('type').equals(category).toArray();
+  },
+
+  // Get saved places by city and category
+  async getByCityAndCategory(city: string, category: PlaceCategory): Promise<SavedPlace[]> {
+    const normalizedCity = city.toLowerCase();
+    let places: SavedPlace[];
+
+    if (category === 'all') {
+      places = await db.savedPlaces.toArray();
+    } else {
+      places = await db.savedPlaces.where('type').equals(category).toArray();
+    }
+
+    return places.filter(p => p.city.toLowerCase().includes(normalizedCity));
+  },
+
+  // Get single saved place
+  async get(id: string): Promise<SavedPlace | undefined> {
+    return db.savedPlaces.get(id);
+  },
+
+  // Check if a place is saved (by name and city)
+  async isSaved(name: string, city: string): Promise<boolean> {
+    const normalizedName = name.toLowerCase();
+    const normalizedCity = city.toLowerCase();
+    const all = await db.savedPlaces.toArray();
+    return all.some(p =>
+      p.name.toLowerCase() === normalizedName &&
+      p.city.toLowerCase().includes(normalizedCity)
+    );
+  },
+
+  // Save a new place
+  async save(place: Omit<SavedPlace, 'id' | 'savedAt'>): Promise<SavedPlace> {
+    const savedPlace: SavedPlace = {
+      ...place,
+      id: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+    };
+    await db.savedPlaces.add(savedPlace);
+    return savedPlace;
+  },
+
+  // Update a saved place
+  async update(id: string, updates: Partial<Omit<SavedPlace, 'id' | 'savedAt'>>): Promise<void> {
+    await db.savedPlaces.update(id, updates);
+  },
+
+  // Delete a saved place
+  async delete(id: string): Promise<void> {
+    await db.savedPlaces.delete(id);
+  },
+
+  // Delete by name and city (for unsaving from browse)
+  async deleteByNameAndCity(name: string, city: string): Promise<void> {
+    const normalizedName = name.toLowerCase();
+    const normalizedCity = city.toLowerCase();
+    const all = await db.savedPlaces.toArray();
+    const toDelete = all.find(p =>
+      p.name.toLowerCase() === normalizedName &&
+      p.city.toLowerCase().includes(normalizedCity)
+    );
+    if (toDelete) {
+      await db.savedPlaces.delete(toDelete.id);
+    }
+  },
+
+  // Get unique cities from saved places
+  async getCities(): Promise<string[]> {
+    const all = await db.savedPlaces.toArray();
+    const cities = [...new Set(all.map(p => p.city))];
+    return cities.sort();
+  },
+
+  // Get count by city
+  async getCountByCity(city: string): Promise<number> {
+    const places = await this.getByCity(city);
+    return places.length;
   },
 };
