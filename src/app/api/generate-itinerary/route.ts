@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
       ? 'Include upscale experiences ($$ to $$$). Fine dining, premium tours, exclusive venues.'
       : 'Mix of moderate options ($ to $$). Balance value with quality experiences.';
 
+    // Activity count based on pace preference
+    const activityCount = tripStyle === 'relaxed' ? '1-3' : tripStyle === 'packed' ? '5-7' : '3-5';
+
     const prompt = `You are a travel expert creating a detailed ${nights}-day itinerary for ${city}${country ? `, ${country}` : ''}.
 
 TRAVELER PROFILE:
@@ -32,7 +35,7 @@ TRAVELER PROFILE:
 ${mustHaves?.length > 0 ? `- Must include: ${mustHaves.join(', ')}` : ''}
 ${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}
 
-Create a day-by-day itinerary with 3-5 activities per day. EACH DAY MUST BE DIFFERENT with unique activities. For EACH activity, provide:
+Create a day-by-day itinerary with ${activityCount} activities per day. EACH DAY MUST BE DIFFERENT with unique activities. For EACH activity, provide:
 1. name: The specific place/restaurant/attraction name (real places that exist)
 2. type: "attraction" | "restaurant" | "activity"
 3. description: 1-2 sentence description of why it's worth visiting
