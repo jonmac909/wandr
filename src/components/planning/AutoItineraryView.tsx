@@ -1957,6 +1957,32 @@ export default function AutoItineraryView({
     })));
   };
 
+  // Handle activity time update
+  const handleActivityTimeUpdate = (activityId: string, newTime: string) => {
+    setDays(prev => prev.map(day => ({
+      ...day,
+      activities: day.activities.map(a =>
+        a.id === activityId ? { ...a, suggestedTime: newTime } : a
+      ),
+    })));
+  };
+
+  // Handle activity reorder within a day
+  const handleActivityReorder = (dayNumber: number, fromIndex: number, toIndex: number) => {
+    setDays(prev => prev.map(day => {
+      if (day.dayNumber !== dayNumber) return day;
+      const newActivities = [...day.activities];
+      const [moved] = newActivities.splice(fromIndex, 1);
+      newActivities.splice(toIndex, 0, moved);
+      // Recalculate times based on new order
+      const recalculatedActivities = newActivities.map((a, idx) => ({
+        ...a,
+        suggestedTime: `${9 + idx * 2}:00`, // Simple recalculation: 9am, 11am, 1pm, etc.
+      }));
+      return { ...day, activities: recalculatedActivities };
+    }));
+  };
+
   // Navigate drawer
   const navigateDrawer = (direction: 'prev' | 'next') => {
     if (!selectedActivity) return;
@@ -2809,6 +2835,8 @@ export default function AutoItineraryView({
             viewMode={viewMode}
             onActivityTap={handleActivityTap}
             onActivityDelete={handleActivityDelete}
+            onActivityTimeUpdate={handleActivityTimeUpdate}
+            onActivityReorder={(fromIdx, toIdx) => handleActivityReorder(day.dayNumber, fromIdx, toIdx)}
             onAutoFill={() => autoFillDay(day.dayNumber)}
             isLoadingDay={loadingDayNumber === day.dayNumber}
           />
@@ -2894,15 +2922,18 @@ interface DayCardProps {
   viewMode: 'picture' | 'compact';
   onActivityTap: (activity: GeneratedActivity, index: number) => void;
   onActivityDelete: (activityId: string) => void;
+  onActivityTimeUpdate: (activityId: string, newTime: string) => void;
+  onActivityReorder: (fromIndex: number, toIndex: number) => void;
   onAutoFill: () => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityReorder, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
+  const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
   const isEmpty = day.activities.length === 0;
 
@@ -3091,20 +3122,45 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
                     <div key={activity.id}>
                       {/* Activity row */}
                       <div className="flex items-start gap-3">
-                        {/* Time column */}
-                        <div className="w-[44px] text-right text-sm text-gray-500 pt-3 flex-shrink-0">
-                          {formattedTime}
+                        {/* Time column - tappable to edit */}
+                        <div className="w-[44px] text-right text-sm pt-3 flex-shrink-0">
+                          {editingTimeId === activity.id ? (
+                            <input
+                              type="time"
+                              defaultValue={timeStr}
+                              autoFocus
+                              onBlur={(e) => {
+                                onActivityTimeUpdate(activity.id, e.target.value);
+                                setEditingTimeId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  onActivityTimeUpdate(activity.id, e.currentTarget.value);
+                                  setEditingTimeId(null);
+                                }
+                                if (e.key === 'Escape') setEditingTimeId(null);
+                              }}
+                              className="w-full text-xs bg-violet-50 border border-violet-300 rounded px-1 py-0.5 text-center"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => setEditingTimeId(activity.id)}
+                              className="text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded px-1 py-0.5 transition-colors"
+                            >
+                              {formattedTime}
+                            </button>
+                          )}
                         </div>
 
-                        {/* Timeline dot */}
-                        <div className="relative z-10 flex-shrink-0 mt-3">
-                          <div className="w-4 h-4 rounded-full bg-violet-500 border-2 border-white shadow-sm" />
+                        {/* Timeline dot + drag handle */}
+                        <div className="relative z-10 flex-shrink-0 mt-3 group">
+                          <div className="w-4 h-4 rounded-full bg-violet-500 border-2 border-white shadow-sm cursor-grab active:cursor-grabbing" />
                         </div>
 
                         {/* Activity card */}
                         <button
                           onClick={() => onActivityTap(activity, idx + 1)}
-                          className="flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-left mb-1"
+                          className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-left mb-1"
                         >
                           {/* Thumbnail */}
                           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
@@ -3144,6 +3200,28 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
                             <p className="text-xs text-gray-500 mt-1.5">
                               {activity.duration || 60} min · {activity.neighborhood || day.city}
                             </p>
+                          </div>
+
+                          {/* Reorder buttons */}
+                          <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {idx > 0 && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onActivityReorder(idx, idx - 1); }}
+                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+                                title="Move up"
+                              >
+                                <ChevronUp className="w-4 h-4" />
+                              </button>
+                            )}
+                            {idx < day.activities.length - 1 && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onActivityReorder(idx, idx + 1); }}
+                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+                                title="Move down"
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </button>
                       </div>
