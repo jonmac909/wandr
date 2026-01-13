@@ -1174,6 +1174,7 @@ export function SwipeablePlanningView({
   const [parkedCities, setParkedCities] = useState<string[]>([]); // Cities saved but not in route
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
   const [savedAllocations, setSavedAllocations] = useState<Array<{ city: string; nights: number; startDay: number; endDay: number; startDate?: string; endDate?: string }>>([]); // Persisted city night allocations
+  const [savedGeneratedDays, setSavedGeneratedDays] = useState<Array<{ dayNumber: number; date: string; city: string; theme?: string; activities: Array<{ id: string; name: string; type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife'; description?: string; imageUrl?: string; suggestedTime?: string; duration?: number; openingHours?: string; neighborhood?: string; matchScore?: number; matchReasons?: string[]; priceRange?: string; tags?: string[]; walkingTimeToNext?: number }> }>>([]); // Persisted generated days with activities
 
   // Load persisted planning state on mount
   useEffect(() => {
@@ -1190,6 +1191,12 @@ export function SwipeablePlanningView({
           if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
             console.log('[SwipeablePlanning] Setting savedAllocations from DB');
             setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
+          }
+
+          // Load generated days if we have them
+          if ((saved as { generatedDays?: typeof savedGeneratedDays }).generatedDays?.length) {
+            console.log('[SwipeablePlanning] Setting savedGeneratedDays from DB');
+            setSavedGeneratedDays((saved as { generatedDays: typeof savedGeneratedDays }).generatedDays);
           }
 
           // Only load other state if we have saved data AND no current selections
@@ -1233,6 +1240,7 @@ export function SwipeablePlanningView({
           phase,
           currentStepIndex,
           allocations: savedAllocations,
+          generatedDays: savedGeneratedDays,
         });
       } catch (error) {
         console.warn('Failed to save planning state:', error);
@@ -1241,11 +1249,11 @@ export function SwipeablePlanningView({
 
     // Debounce saves
     const timer = setTimeout(() => {
-      console.log('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations);
+      console.log('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations, 'generatedDays:', savedGeneratedDays.length);
       saveState();
     }, 500);
     return () => clearTimeout(timer);
-  }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded, savedAllocations]);
+  }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded, savedAllocations, savedGeneratedDays]);
 
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
@@ -2167,6 +2175,11 @@ export function SwipeablePlanningView({
           }
           console.log('[SwipeablePlanning] Accepting allocations from child:', newAllocations.map(a => `${a.city}:${a.nights}`));
           setSavedAllocations(newAllocations);
+        }}
+        initialGeneratedDays={savedGeneratedDays}
+        onGeneratedDaysChange={(newDays) => {
+          console.log('[SwipeablePlanning] Accepting generatedDays from child:', newDays.length, 'days');
+          setSavedGeneratedDays(newDays);
         }}
         parentLoadComplete={persistenceLoaded}
       />

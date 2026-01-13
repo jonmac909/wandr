@@ -59,6 +59,8 @@ interface AutoItineraryViewProps {
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
   initialAllocations?: CityAllocation[]; // Persisted allocations from parent
   onAllocationsChange?: (allocations: CityAllocation[]) => void; // Callback to sync allocations to parent
+  initialGeneratedDays?: GeneratedDay[]; // Persisted generated days from parent
+  onGeneratedDaysChange?: (days: GeneratedDay[]) => void; // Callback to sync days to parent
   parentLoadComplete?: boolean; // Signal that parent has finished loading from IndexedDB
 }
 
@@ -1836,6 +1838,8 @@ export default function AutoItineraryView({
   onDatesChange,
   initialAllocations,
   onAllocationsChange,
+  initialGeneratedDays,
+  onGeneratedDaysChange,
   parentLoadComplete = false,
 }: AutoItineraryViewProps) {
   // Get initial total days and start date
@@ -1890,9 +1894,17 @@ export default function AutoItineraryView({
     () => initialAllocations && initialAllocations.length > 0
   );
 
-  // Generated days (mock for now)
-  const [days, setDays] = useState<GeneratedDay[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Generated days - initialize from persisted data if available
+  const [days, setDays] = useState<GeneratedDay[]>(() =>
+    initialGeneratedDays && initialGeneratedDays.length > 0 ? initialGeneratedDays : []
+  );
+  const [isLoading, setIsLoading] = useState(() =>
+    // If we have persisted days, don't show loading
+    !(initialGeneratedDays && initialGeneratedDays.length > 0)
+  );
+  const [hasLoadedInitialDays] = useState(() =>
+    initialGeneratedDays && initialGeneratedDays.length > 0
+  );
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set(cities));
   const [isDurationExpanded, setIsDurationExpanded] = useState(false); // Collapsed by default
 
@@ -2015,7 +2027,13 @@ export default function AutoItineraryView({
   };
 
   // Generate EMPTY itinerary on mount or when allocations change
+  // BUT don't overwrite if we already have loaded days with activities
   useEffect(() => {
+    // If we already loaded persisted days, don't regenerate empty ones
+    if (hasLoadedInitialDays) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     // Generate empty days immediately (no API call needed)
     const timer = setTimeout(() => {
@@ -2023,7 +2041,7 @@ export default function AutoItineraryView({
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [allocations]);
+  }, [allocations, hasLoadedInitialDays]);
 
   // Sync allocations back to parent whenever they change
   // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
@@ -2042,6 +2060,24 @@ export default function AutoItineraryView({
     console.log('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
     onAllocationsChange?.(allocations);
   }, [allocations, onAllocationsChange, parentLoadComplete]);
+
+  // Sync generated days to parent for persistence
+  useEffect(() => {
+    if (!parentLoadComplete) {
+      return;
+    }
+    // Don't sync empty days - would overwrite saved data
+    if (days.length === 0) {
+      return;
+    }
+    // Only sync if we have activities (not just empty day shells)
+    const hasActivities = days.some(d => d.activities.length > 0);
+    if (!hasActivities) {
+      return;
+    }
+    console.log('[AutoItinerary] Syncing days to parent:', days.length, 'days');
+    onGeneratedDaysChange?.(days);
+  }, [days, onGeneratedDaysChange, parentLoadComplete]);
 
   // AI-powered auto-fill for a single city's days (with fallback to mock data)
   const autoFillCityDays = async (city: string, nights: number) => {
@@ -2304,44 +2340,9 @@ export default function AutoItineraryView({
   const getRecommendedNights = (city: string) => RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
 
   return (
-    <div className="flex">
-      {/* Sticky Sidebar Calendar - Wanderlog style */}
-      {!isLoading && viewMode !== 'map' && days.length > 0 && (
-        <div className="sticky top-0 h-screen w-12 md:w-16 flex-shrink-0 border-r bg-background z-30">
-          <div className="flex flex-col items-center py-2 md:py-4 gap-0.5 md:gap-1 overflow-y-auto max-h-screen">
-            {days.map((day) => {
-              const date = parseLocalDate(day.date);
-              const monthShort = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-              const dayNum = date.getDate();
-              const isActive = activeDayNumber === day.dayNumber;
-              const cityIdx = allocations.findIndex(a => a.city === day.city);
-              const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
-
-              return (
-                <button
-                  key={day.dayNumber}
-                  onClick={() => scrollToDay(day.dayNumber)}
-                  className={`relative w-full py-0.5 md:py-1 text-center transition-colors hover:bg-muted ${
-                    isActive ? 'text-primary font-bold' : 'text-muted-foreground'
-                  }`}
-                >
-                  {/* Active indicator bar */}
-                  {isActive && (
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${color.bg}`} />
-                  )}
-                  <div className="text-[8px] md:text-[10px]">{monthShort}</div>
-                  <div className="text-xs md:text-sm">{dayNum}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div ref={contentRef} className="flex-1 space-y-4 pb-20 px-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 pt-4">
+    <div className="space-y-4 pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -2875,7 +2876,6 @@ export default function AutoItineraryView({
           </button>
         </div>
       </div>
-      </div>{/* End Main Content */}
     </div>
   );
 }
@@ -3325,7 +3325,7 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
 
               {/* Category tags */}
               <div className="flex flex-wrap gap-1.5">
-                {activity.tags.slice(0, 3).map(tag => (
+                {(activity.tags || []).slice(0, 3).map(tag => (
                   <Badge key={tag} variant="secondary" className="text-xs capitalize">
                     {tag}
                   </Badge>
@@ -3355,14 +3355,14 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
               )}
 
               {/* Match reasons */}
-              {activity.matchReasons.length > 0 && (
+              {(activity.matchReasons || []).length > 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-700 text-sm">{activity.matchScore}% match for you</span>
+                    <span className="font-medium text-green-700 text-sm">{activity.matchScore || 0}% match for you</span>
                   </div>
                   <ul className="space-y-1">
-                    {activity.matchReasons.map((reason, idx) => (
+                    {(activity.matchReasons || []).map((reason, idx) => (
                       <li key={idx} className="text-xs text-green-600 flex items-center gap-1.5">
                         <span className="w-1 h-1 rounded-full bg-green-500" />
                         {reason}

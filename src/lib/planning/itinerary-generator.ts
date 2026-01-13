@@ -7,26 +7,26 @@ export interface GeneratedActivity {
   id: string;
   name: string;
   type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
-  description: string;
-  imageUrl: string;
+  description?: string;
+  imageUrl?: string;
 
   // Scheduling
-  suggestedTime: string;        // "09:00"
-  duration: number;             // minutes
+  suggestedTime?: string;        // "09:00"
+  duration?: number;             // minutes
   openingHours?: string;        // "8AM-6PM"
 
   // Location
-  neighborhood: string;
+  neighborhood?: string;
   coordinates?: { lat: number; lng: number };
   walkingTimeToNext?: number;   // minutes
 
   // Match info
-  matchScore: number;           // 0-100
-  matchReasons: string[];       // ["Matches your love of temples", "Less crowded"]
+  matchScore?: number;           // 0-100
+  matchReasons?: string[];       // ["Matches your love of temples", "Less crowded"]
 
   // Meta
-  priceRange?: '$' | '$$' | '$$$' | '$$$$';
-  tags: string[];
+  priceRange?: '$' | '$$' | '$$$' | '$$$$' | string;
+  tags?: string[];
 }
 
 export interface GeneratedDay {

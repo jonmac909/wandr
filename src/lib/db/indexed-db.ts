@@ -34,6 +34,33 @@ export interface PackingState {
   updatedAt: Date;
 }
 
+// Generated activity type for persistence
+export interface PersistedActivity {
+  id: string;
+  name: string;
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
+  description?: string;
+  imageUrl?: string;
+  suggestedTime?: string;
+  duration?: number;
+  openingHours?: string;
+  neighborhood?: string;
+  matchScore?: number;
+  matchReasons?: string[];
+  priceRange?: string;
+  tags?: string[];
+  walkingTimeToNext?: number;
+}
+
+// Generated day type for persistence
+export interface PersistedDay {
+  dayNumber: number;
+  date: string;
+  city: string;
+  theme?: string;
+  activities: PersistedActivity[];
+}
+
 // Planning state (for trip curation progress)
 export interface PlanningState {
   tripId: string;
@@ -42,6 +69,7 @@ export interface PlanningState {
   routeOrder: string[];
   countryOrder: string[]; // Order of countries to visit (for multi-country trips)
   allocations?: Array<{ city: string; nights: number; startDay: number; endDay: number; startDate?: string; endDate?: string }>; // City night allocations
+  generatedDays?: PersistedDay[]; // Auto-filled day activities
   phase: 'picking' | 'route-planning' | 'auto-itinerary' | 'favorites-library' | 'day-planning';
   currentStepIndex: number;
   updatedAt: Date;
@@ -383,6 +411,7 @@ export const planningDb = {
       phase: updates.phase ?? existing?.phase ?? 'picking',
       currentStepIndex: updates.currentStepIndex ?? existing?.currentStepIndex ?? 0,
       allocations: updates.allocations ?? existing?.allocations,
+      generatedDays: updates.generatedDays ?? existing?.generatedDays,
       updatedAt: new Date(),
     });
   },
