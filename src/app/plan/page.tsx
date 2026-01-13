@@ -1270,11 +1270,12 @@ function PlanPageContent() {
               // Sync dates back to plan page state
               setStartDate(newStartDate);
 
-              // Calculate and set end date directly (totalDays includes start day, so subtract 1)
-              const start = new Date(newStartDate);
-              const end = new Date(start);
-              end.setDate(start.getDate() + newTotalDays - 1);
-              const newEndDate = end.toISOString().split('T')[0];
+              // Calculate end date using local date parsing to avoid timezone issues
+              // Parse as local date (not UTC) to prevent off-by-one errors
+              const [y, m, d] = newStartDate.split('-').map(Number);
+              const start = new Date(y, m - 1, d);
+              start.setDate(start.getDate() + newTotalDays - 1);
+              const newEndDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
               setEndDate(newEndDate);
 
               // Update duration to match (so actualDuration is correct when itinerary remounts)
