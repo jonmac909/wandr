@@ -1,0 +1,136 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const { city, nights, country, tripStyle, interests } = await request.json();
+
+    if (!city || !nights) {
+      return NextResponse.json(
+        { error: 'City and nights are required' },
+        { status: 400 }
+      );
+    }
+
+    const prompt = `You are a travel expert creating a detailed ${nights}-day itinerary for ${city}${country ? `, ${country}` : ''}.
+
+The traveler's style: ${tripStyle || 'balanced mix of culture, food, and sightseeing'}
+Their interests: ${interests?.join(', ') || 'general sightseeing, local food, cultural experiences'}
+
+Create a day-by-day itinerary with 3-5 activities per day. For EACH activity, provide:
+1. name: The specific place/restaurant/attraction name (real places that exist)
+2. type: "attraction" | "restaurant" | "activity"
+3. description: 1-2 sentence description of why it's worth visiting
+4. suggestedTime: When to visit (e.g., "09:00", "12:30")
+5. duration: How long to spend there in minutes
+6. openingHours: Typical opening hours (e.g., "9AM-5PM")
+7. neighborhood: Which area/district it's in
+8. priceRange: "$" (budget), "$$" (moderate), "$$$" (expensive)
+9. tags: 2-4 relevant tags like ["temple", "history", "photography"]
+10. walkingTimeToNext: Minutes to walk to the next activity (optional, for flow)
+
+IMPORTANT:
+- Use REAL places that actually exist in ${city}
+- Include a mix of famous landmarks AND local hidden gems
+- Include at least one great local restaurant per day
+- Consider logical routing (nearby activities grouped together)
+- Vary the pace - not all action, include some relaxed moments
+
+Return ONLY valid JSON in this exact format:
+{
+  "days": [
+    {
+      "dayNumber": 1,
+      "theme": "Brief theme like 'Historic Center & Local Eats'",
+      "activities": [
+        {
+          "name": "Place Name",
+          "type": "attraction",
+          "description": "Description here",
+          "suggestedTime": "09:00",
+          "duration": 90,
+          "openingHours": "8AM-5PM",
+          "neighborhood": "Area Name",
+          "priceRange": "$",
+          "tags": ["tag1", "tag2"],
+          "walkingTimeToNext": 10
+        }
+      ]
+    }
+  ]
+}`;
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    // Extract the text content
+    const textContent = message.content.find((block) => block.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text response from AI');
+    }
+
+    // Parse the JSON response
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not parse AI response as JSON');
+    }
+
+    const itinerary = JSON.parse(jsonMatch[0]);
+
+    // Add unique IDs and image URLs to each activity
+    itinerary.days = itinerary.days.map((day: { dayNumber: number; activities: Array<{ name: string; type: string }> }) => ({
+      ...day,
+      activities: day.activities.map((activity: { name: string; type: string }, idx: number) => ({
+        ...activity,
+        id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
+        imageUrl: getActivityImage(activity.type, city),
+        matchScore: 85 + Math.floor(Math.random() * 15),
+        matchReasons: ['AI recommended', 'Highly rated'],
+      })),
+    }));
+
+    return NextResponse.json(itinerary);
+  } catch (error) {
+    console.error('Error generating itinerary:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate itinerary' },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper to get relevant placeholder images based on activity type
+function getActivityImage(type: string, city: string): string {
+  const cityImages: Record<string, string> = {
+    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
+    'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
+    'Bangkok': 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
+    'Chiang Mai': 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
+    'Paris': 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80',
+    'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
+    'New York': 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
+    'Singapore': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
+    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
+  };
+
+  const typeImages: Record<string, string> = {
+    'restaurant': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
+    'attraction': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
+    'activity': 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
+  };
+
+  // Use city-specific image or fall back to type-based
+  return cityImages[city] || typeImages[type] || typeImages['attraction'];
+}

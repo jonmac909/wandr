@@ -1175,31 +1175,38 @@ export function SwipeablePlanningView({
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
   const [savedAllocations, setSavedAllocations] = useState<Array<{ city: string; nights: number; startDay: number; endDay: number; startDate?: string; endDate?: string }>>([]); // Persisted city night allocations
 
-  // Load persisted planning state on mount (only if no current selections)
+  // Load persisted planning state on mount
   useEffect(() => {
     if (!tripId || persistenceLoaded) return;
 
     const loadPersistedState = async () => {
       try {
         const saved = await planningDb.get(tripId);
-        // Only load if we have saved data AND no current selections
-        if (saved && saved.selectedIds.length > 0 && selectedIds.size === 0) {
-          setSelectedIds(new Set(saved.selectedIds));
-          setSelectedCities(saved.selectedCities);
-          if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
-          if (saved.countryOrder?.length) setCountryOrder(saved.countryOrder);
+        console.log('[Planning] Loading saved state:', saved);
+
+        if (saved) {
+          // Always load allocations if we have them
           if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
+            console.log('[Planning] Loading saved allocations:', (saved as { allocations?: typeof savedAllocations }).allocations);
             setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
           }
 
-          // Also update items' isFavorited status
-          if (items.length > 0) {
-            const savedSet = new Set(saved.selectedIds);
-            const updatedItems = items.map(item => ({
-              ...item,
-              isFavorited: savedSet.has(item.id)
-            }));
-            onItemsChange(updatedItems);
+          // Only load other state if we have saved data AND no current selections
+          if (saved.selectedIds.length > 0 && selectedIds.size === 0) {
+            setSelectedIds(new Set(saved.selectedIds));
+            setSelectedCities(saved.selectedCities);
+            if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
+            if (saved.countryOrder?.length) setCountryOrder(saved.countryOrder);
+
+            // Also update items' isFavorited status
+            if (items.length > 0) {
+              const savedSet = new Set(saved.selectedIds);
+              const updatedItems = items.map(item => ({
+                ...item,
+                isFavorited: savedSet.has(item.id)
+              }));
+              onItemsChange(updatedItems);
+            }
           }
         }
       } catch (error) {
@@ -1217,6 +1224,7 @@ export function SwipeablePlanningView({
 
     const saveState = async () => {
       try {
+        console.log('[Planning] Saving state with allocations:', savedAllocations);
         await planningDb.update(tripId, {
           selectedIds: Array.from(selectedIds),
           selectedCities,
