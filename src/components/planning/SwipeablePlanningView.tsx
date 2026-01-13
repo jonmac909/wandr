@@ -2913,10 +2913,8 @@ export function SwipeablePlanningView({
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               // Add city as #1 stop (first position in route)
-                                              setRouteOrder(prev => {
-                                                const filtered = prev.filter(c => c !== city);
-                                                return [city, ...filtered];
-                                              });
+                                              // Don't remove existing instances - user may want to visit twice
+                                              setRouteOrder(prev => [city, ...prev]);
                                               setSelectedCities(prev =>
                                                 prev.includes(city) ? prev : [...prev, city]
                                               );
