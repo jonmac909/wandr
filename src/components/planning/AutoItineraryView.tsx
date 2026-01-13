@@ -3579,7 +3579,7 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-end" onClick={onClose}>
-      <div className="bg-background w-full sm:w-[420px] sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col max-h-[90vh] sm:max-h-full" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-background w-full sm:w-[420px] h-[95vh] sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header with navigation */}
         <div className="flex items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
