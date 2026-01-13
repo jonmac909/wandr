@@ -2764,7 +2764,16 @@ export default function AutoItineraryView({
             <div className="flex-shrink-0 pt-3 pb-2 px-4">
               <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Day {mapSelectedDay} Map</span>
+                {(() => {
+                  const selectedDay = days.find(d => d.dayNumber === mapSelectedDay);
+                  if (selectedDay) {
+                    const [y, m, d] = selectedDay.date.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    return <span className="text-sm font-semibold">{formatted} - {selectedDay.city}</span>;
+                  }
+                  return <span className="text-sm font-semibold">Map</span>;
+                })()}
                 <button
                   onClick={() => setViewMode('picture')}
                   className="p-1.5 hover:bg-gray-100 rounded-full"
@@ -2784,6 +2793,12 @@ export default function AutoItineraryView({
                     const isSelected = mapSelectedDay === day.dayNumber;
                     const activityCount = day.activities.length;
 
+                    // Format date as "Mon 15" or "Jan 15"
+                    const [y, m, d] = day.date.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
                     return (
                       <button
                         key={day.dayNumber}
@@ -2797,7 +2812,7 @@ export default function AutoItineraryView({
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        Day {day.dayNumber}
+                        {dayName} {monthDay.split(' ')[1]}
                         {activityCount > 0 && (
                           <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
                             isSelected ? 'bg-white/20' : 'bg-gray-200'
