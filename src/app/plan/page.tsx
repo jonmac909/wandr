@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
@@ -493,9 +493,12 @@ function PlanPageContent() {
   // Track if end date was manually changed vs calculated from duration
   const [endDateSource, setEndDateSource] = useState<'duration' | 'manual'>('duration');
 
+  // Ref to prevent useEffects from overriding dates when syncing from itinerary
+  const syncingFromItinerary = useRef(false);
+
   // Auto-calculate end date based on duration
   useEffect(() => {
-    if (!startDate || endDateSource === 'manual') return;
+    if (!startDate || endDateSource === 'manual' || syncingFromItinerary.current) return;
 
     const start = new Date(startDate);
     let end: Date;
@@ -517,7 +520,7 @@ function PlanPageContent() {
 
   // Recalculate duration when end date is manually changed
   useEffect(() => {
-    if (endDateSource !== 'manual' || !startDate || !endDate) return;
+    if (endDateSource !== 'manual' || !startDate || !endDate || syncingFromItinerary.current) return;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -1262,6 +1265,9 @@ function PlanPageContent() {
             controlledPhase={planningPhase}
             onPhaseChange={handlePlanningPhaseChange}
             onDatesChange={(newStartDate, newTotalDays) => {
+              // Prevent useEffects from overriding these dates
+              syncingFromItinerary.current = true;
+
               // Sync dates back to plan page state
               setStartDate(newStartDate);
 
@@ -1271,10 +1277,10 @@ function PlanPageContent() {
               end.setDate(start.getDate() + newTotalDays - 1);
               setEndDate(end.toISOString().split('T')[0]);
 
-              // Use 'days' mode with exact day count to prevent recalculation drift
-              setDurationType('days');
-              setDurationDays(Math.min(newTotalDays, 14)); // Cap at slider max
-              setEndDateSource('manual'); // Prevent useEffect from overriding our exact end date
+              // Clear the sync flag after React processes the state updates
+              setTimeout(() => {
+                syncingFromItinerary.current = false;
+              }, 0);
             }}
             onSearchAI={(query, category) => {
               if (category === 'cities') {
