@@ -1961,12 +1961,24 @@ export default function AutoItineraryView({
   // Only recalculate allocations from scratch when CITIES change
   // When dates change, we just update the dates within existing allocations (preserving night counts)
   // Guard: Don't overwrite if we've loaded saved allocations from IndexedDB
+  // Guard: Don't run until parent has finished loading (to give saved allocations a chance to arrive)
   useEffect(() => {
-    if (!hasLoadedInitialAllocations) {
-      setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+    console.log('[AutoItinerary] cities useEffect:', { hasLoadedInitialAllocations, parentLoadComplete });
+    // Wait for parent to finish loading before generating defaults
+    // This gives saved allocations a chance to arrive first
+    if (!parentLoadComplete) {
+      console.log('[AutoItinerary] Waiting for parent to load before generating allocations');
+      return;
     }
+    // If we've already loaded saved allocations, don't overwrite them
+    if (hasLoadedInitialAllocations) {
+      console.log('[AutoItinerary] Already loaded saved allocations, not regenerating');
+      return;
+    }
+    console.log('[AutoItinerary] No saved allocations, generating defaults');
+    setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cities.join(','), hasLoadedInitialAllocations]); // Only cities - NOT dates or tripDna
+  }, [cities.join(','), hasLoadedInitialAllocations, parentLoadComplete]); // Only cities - NOT dates or tripDna
 
   // When trip start date changes, recalculate dates within existing allocations (preserve night counts)
   useEffect(() => {
