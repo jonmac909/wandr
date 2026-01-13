@@ -2307,8 +2307,8 @@ export default function AutoItineraryView({
     <div className="flex">
       {/* Sticky Sidebar Calendar - Wanderlog style */}
       {!isLoading && viewMode !== 'map' && days.length > 0 && (
-        <div className="hidden md:block sticky top-0 h-screen w-16 flex-shrink-0 border-r bg-background">
-          <div className="flex flex-col items-center py-4 gap-1">
+        <div className="sticky top-0 h-screen w-12 md:w-16 flex-shrink-0 border-r bg-background z-30">
+          <div className="flex flex-col items-center py-2 md:py-4 gap-0.5 md:gap-1 overflow-y-auto max-h-screen">
             {days.map((day) => {
               const date = parseLocalDate(day.date);
               const monthShort = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
@@ -2321,7 +2321,7 @@ export default function AutoItineraryView({
                 <button
                   key={day.dayNumber}
                   onClick={() => scrollToDay(day.dayNumber)}
-                  className={`relative w-full py-1 text-center transition-colors hover:bg-muted ${
+                  className={`relative w-full py-0.5 md:py-1 text-center transition-colors hover:bg-muted ${
                     isActive ? 'text-primary font-bold' : 'text-muted-foreground'
                   }`}
                 >
@@ -2329,8 +2329,8 @@ export default function AutoItineraryView({
                   {isActive && (
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${color.bg}`} />
                   )}
-                  <div className="text-[10px]">{monthShort}</div>
-                  <div className="text-sm">{dayNum}</div>
+                  <div className="text-[8px] md:text-[10px]">{monthShort}</div>
+                  <div className="text-xs md:text-sm">{dayNum}</div>
                 </button>
               );
             })}
