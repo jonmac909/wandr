@@ -3009,28 +3009,99 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
             </div>
           )}
 
-          {/* Activities - Picture View */}
+          {/* Activities - Picture View (Wanderlog Timeline Style) */}
           {!isEmpty && viewMode === 'picture' && (
-            <div className="space-y-0">
-              {day.activities.map((activity, idx) => (
-                <div key={activity.id}>
-                  {/* Travel time connector between activities - shows travel from PREVIOUS activity */}
-                  {idx > 0 && day.activities[idx - 1].walkingTimeToNext && (
-                    <TravelTimeConnector
-                      minutes={day.activities[idx - 1].walkingTimeToNext || 10}
-                      miles={(day.activities[idx - 1].walkingTimeToNext || 10) * 0.05}
-                    />
-                  )}
-                  <ActivityCard
-                    activity={activity}
-                    index={idx + 1}
-                    color={color}
-                    onTap={() => onActivityTap(activity, idx + 1)}
-                    onDelete={() => onActivityDelete(activity.id)}
-                    showTravelTime={false}
-                  />
-                </div>
-              ))}
+            <div className="relative">
+              {/* Vertical timeline line */}
+              <div className="absolute left-[52px] top-4 bottom-4 w-0.5 bg-gray-200" />
+
+              <div className="space-y-0">
+                {day.activities.map((activity, idx) => {
+                  const timeStr = activity.suggestedTime || `${9 + idx * 2}:00`;
+                  const hour = parseInt(timeStr.split(':')[0]);
+                  const formattedTime = hour >= 12
+                    ? `${hour === 12 ? 12 : hour - 12}:${timeStr.split(':')[1] || '00'} PM`
+                    : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
+                  const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
+
+                  return (
+                    <div key={activity.id}>
+                      {/* Activity row */}
+                      <div className="flex items-start gap-3">
+                        {/* Time column */}
+                        <div className="w-[44px] text-right text-sm text-gray-500 pt-3 flex-shrink-0">
+                          {formattedTime}
+                        </div>
+
+                        {/* Timeline dot */}
+                        <div className="relative z-10 flex-shrink-0 mt-3">
+                          <div className="w-4 h-4 rounded-full bg-violet-500 border-2 border-white shadow-sm" />
+                        </div>
+
+                        {/* Activity card */}
+                        <button
+                          onClick={() => onActivityTap(activity, idx + 1)}
+                          className="flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-left mb-1"
+                        >
+                          {/* Thumbnail */}
+                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                            <img
+                              src={activity.imageUrl || 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=200&q=80'}
+                              alt={activity.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-semibold text-gray-900 line-clamp-1">{activity.name}</h4>
+                              {/* Rating badge */}
+                              <div className="flex items-center gap-1 bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0">
+                                <Star className="w-3 h-3 fill-current" />
+                                {(4.2 + Math.random() * 0.7).toFixed(1)}
+                              </div>
+                            </div>
+
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(activity.tags || ['attraction']).slice(0, 2).map(tag => (
+                                <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                                  {tag}
+                                </span>
+                              ))}
+                              {activity.priceRange && (
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  {activity.priceRange}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Duration */}
+                            <p className="text-xs text-gray-500 mt-1.5">
+                              {activity.duration || 60} min · {activity.neighborhood || day.city}
+                            </p>
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Walking time connector */}
+                      {idx < day.activities.length - 1 && walkingTime > 0 && (
+                        <div className="flex items-center gap-3 py-2">
+                          <div className="w-[44px]" /> {/* Spacer for time column */}
+                          <div className="w-4 flex justify-center flex-shrink-0">
+                            <div className="w-0.5 h-full" /> {/* Timeline continues */}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                            <Footprints className="w-3 h-3" />
+                            <span>{walkingTime} min walk</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

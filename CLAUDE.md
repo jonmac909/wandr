@@ -124,6 +124,7 @@ Trip page overview shows countries/cities count:
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
 - **Live testing site: https://trippified.jon-c95.workers.dev/** - User tests here, NOT localhost
 - **To deploy: just `git push`** - GitHub Actions auto-deploys to Cloudflare Workers. That's it.
+- **Kill resource hogs** - If things are slow, check for background processes with `ps aux | grep -E "node|npm"`. Kill any `npm run dev` or `next dev` processes immediately with `pkill -f "npm run dev" && pkill -f "next dev"`. Always tell the user if something is hogging resources.
 
 ## Deployment
 
