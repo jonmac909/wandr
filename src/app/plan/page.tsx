@@ -1265,24 +1265,16 @@ function PlanPageContent() {
               // Sync dates back to plan page state
               setStartDate(newStartDate);
 
-              // Calculate and set end date directly
+              // Calculate and set end date directly (totalDays includes start day, so subtract 1)
               const start = new Date(newStartDate);
               const end = new Date(start);
-              end.setDate(start.getDate() + newTotalDays);
+              end.setDate(start.getDate() + newTotalDays - 1);
               setEndDate(end.toISOString().split('T')[0]);
-              setEndDateSource('duration'); // Ensure it stays in sync mode
 
-              // Update duration to match
-              if (newTotalDays >= 30) {
-                setDurationType('months');
-                setDurationMonths(Math.round(newTotalDays / 30));
-              } else if (newTotalDays >= 14) {
-                setDurationType('weeks');
-                setDurationWeeks(Math.ceil(newTotalDays / 7));
-              } else {
-                setDurationType('days');
-                setDurationDays(newTotalDays);
-              }
+              // Use 'days' mode with exact day count to prevent recalculation drift
+              setDurationType('days');
+              setDurationDays(Math.min(newTotalDays, 14)); // Cap at slider max
+              setEndDateSource('manual'); // Prevent useEffect from overriding our exact end date
             }}
             onSearchAI={(query, category) => {
               if (category === 'cities') {
