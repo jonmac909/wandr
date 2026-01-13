@@ -1182,12 +1182,10 @@ export function SwipeablePlanningView({
     const loadPersistedState = async () => {
       try {
         const saved = await planningDb.get(tripId);
-        console.log('[Planning] Loading saved state:', saved);
 
         if (saved) {
           // Always load allocations if we have them
           if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
-            console.log('[Planning] Loading saved allocations:', (saved as { allocations?: typeof savedAllocations }).allocations);
             setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
           }
 
@@ -1224,7 +1222,6 @@ export function SwipeablePlanningView({
 
     const saveState = async () => {
       try {
-        console.log('[Planning] Saving state with allocations:', savedAllocations);
         await planningDb.update(tripId, {
           selectedIds: Array.from(selectedIds),
           selectedCities,

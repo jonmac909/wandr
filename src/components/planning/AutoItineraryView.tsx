@@ -1879,15 +1879,12 @@ export default function AutoItineraryView({
   // Handle when initialAllocations arrives AFTER first render (from IndexedDB)
   const [hasLoadedInitialAllocations, setHasLoadedInitialAllocations] = useState(false);
   useEffect(() => {
-    console.log('[AutoItinerary] Received initialAllocations:', initialAllocations, 'cities:', cities, 'hasLoaded:', hasLoadedInitialAllocations);
     if (!hasLoadedInitialAllocations && initialAllocations && initialAllocations.length > 0) {
       const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
 
-      console.log('[AutoItinerary] Cities match check:', citiesMatch, 'savedRouteCities:', savedRouteCities);
       if (citiesMatch) {
-        console.log('[AutoItinerary] Loading saved allocations into state');
         setAllocations(initialAllocations);
         setHasLoadedInitialAllocations(true);
       }
@@ -1947,10 +1944,13 @@ export default function AutoItineraryView({
 
   // Only recalculate allocations from scratch when CITIES change
   // When dates change, we just update the dates within existing allocations (preserving night counts)
+  // Guard: Don't overwrite if we've loaded saved allocations from IndexedDB
   useEffect(() => {
-    setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+    if (!hasLoadedInitialAllocations) {
+      setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cities.join(',')]); // Only cities - NOT dates or tripDna
+  }, [cities.join(','), hasLoadedInitialAllocations]); // Only cities - NOT dates or tripDna
 
   // When trip start date changes, recalculate dates within existing allocations (preserve night counts)
   useEffect(() => {
@@ -2021,10 +2021,8 @@ export default function AutoItineraryView({
 
   useEffect(() => {
     if (!isReadyToSync) {
-      console.log('[AutoItinerary] Not ready to sync yet, waiting for saved data...');
       return;
     }
-    console.log('[AutoItinerary] Syncing allocations to parent:', allocations);
     onAllocationsChange?.(allocations);
   }, [allocations, onAllocationsChange, isReadyToSync]);
 

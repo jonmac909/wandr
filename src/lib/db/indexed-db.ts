@@ -382,6 +382,7 @@ export const planningDb = {
       countryOrder: updates.countryOrder ?? existing?.countryOrder ?? [],
       phase: updates.phase ?? existing?.phase ?? 'picking',
       currentStepIndex: updates.currentStepIndex ?? existing?.currentStepIndex ?? 0,
+      allocations: updates.allocations ?? existing?.allocations,
       updatedAt: new Date(),
     });
   },
