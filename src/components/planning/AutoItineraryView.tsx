@@ -1862,20 +1862,21 @@ export default function AutoItineraryView({
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
 
   // Day allocation state (can be adjusted by user)
-  // Use initialAllocations if provided (persisted from parent), otherwise calculate fresh
+  // IMPORTANT: Start with empty array. We'll populate it once we know if saved data exists.
+  // This prevents generating defaults that overwrite saved data before IndexedDB loads.
   const [allocations, setAllocations] = useState<CityAllocation[]>(() => {
-    if (initialAllocations && initialAllocations.length > 0) {
-      // Check if saved allocations contain the same route cities (ignoring transit days)
+    // Only use initialAllocations if parentLoadComplete is true (meaning IndexedDB has loaded)
+    // On first render, parentLoadComplete is false, so we start empty and let useEffect handle it
+    if (parentLoadComplete && initialAllocations && initialAllocations.length > 0) {
       const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
-
-      // Use saved allocations if cities match (regardless of total nights - user may have customized)
       if (citiesMatch) {
         return initialAllocations;
       }
     }
-    return allocateDays(cities, initialTotalDays, tripDna, initialStartDate);
+    // Return empty - the cities useEffect will populate once parentLoadComplete is true
+    return [];
   });
 
   // Track if we've successfully loaded saved allocations from parent
@@ -2042,6 +2043,11 @@ export default function AutoItineraryView({
     // Otherwise we'll overwrite saved allocations with freshly-generated defaults
     if (!parentLoadComplete) {
       console.log('[AutoItinerary] Parent not loaded yet, NOT syncing');
+      return;
+    }
+    // Don't sync empty allocations - this would overwrite saved data
+    if (allocations.length === 0) {
+      console.log('[AutoItinerary] Allocations empty, NOT syncing');
       return;
     }
     console.log('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
