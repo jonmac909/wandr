@@ -3120,14 +3120,17 @@ export function SwipeablePlanningView({
                     : 'bg-blue-400';
 
                   return (
-                    <div className="pl-[1.25rem] group/connector relative">
-                      {/* Insert city button - shows on hover */}
-                      <button
-                        onClick={() => setInsertAtIndex(insertAtIndex === index + 1 ? null : index + 1)}
-                        className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover/connector:opacity-100 transition-all text-muted-foreground z-10"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
+                    <div className="group/connector relative">
+                      {/* Insert city button - centered, shows on hover */}
+                      <div className="absolute -top-1 left-0 right-0 flex justify-center z-10">
+                        <button
+                          onClick={() => setInsertAtIndex(insertAtIndex === index + 1 ? null : index + 1)}
+                          className="w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover/connector:opacity-100 transition-all text-muted-foreground"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="pl-[1.25rem]">
                       {/* Insert dropdown */}
                       {insertAtIndex === index + 1 && (
                         <div className="absolute left-1/2 -translate-x-1/2 top-6 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
@@ -3349,6 +3352,7 @@ export function SwipeablePlanningView({
                             );
                           })()}
                         </div>
+                      </div>
                       </div>
                     </div>
                   );
