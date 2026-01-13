@@ -2721,14 +2721,18 @@ export default function AutoItineraryView({
       {/* Full-screen Map View */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          {/* Exit button */}
-          <button
-            onClick={() => setViewMode('picture')}
-            className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg text-sm font-medium"
-          >
-            <X className="w-4 h-4" />
-            Exit map
-          </button>
+          {/* Header bar with back button */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm z-10">
+            <button
+              onClick={() => setViewMode('picture')}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Back to itinerary
+            </button>
+            <span className="text-sm font-medium text-gray-500">Map View</span>
+            <div className="w-24" /> {/* Spacer for centering */}
+          </div>
 
           {/* Map area */}
           <div className="flex-1 relative">
@@ -2790,12 +2794,6 @@ export default function AutoItineraryView({
               </svg>
               Optimize route
               <Badge className="bg-violet-100 text-violet-700 text-xs">PRO</Badge>
-            </button>
-            <button
-              onClick={() => setViewMode('picture')}
-              className="p-2 bg-white rounded-full shadow-lg"
-            >
-              <X className="w-5 h-5" />
             </button>
           </div>
 
