@@ -2091,11 +2091,19 @@ export default function AutoItineraryView({
     // This prevents the page from scrolling to top
     setLoadingDayNumber(dayNumber);
 
+    // Count how many days of this city ALREADY have activities (have been filled)
+    // This ensures each auto-fill gets a DIFFERENT day's activities
+    const filledDaysCount = days.filter(d =>
+      d.city === targetDay.city &&
+      d.activities.length > 0 &&
+      d.dayNumber !== dayNumber // Don't count the day we're about to fill
+    ).length;
+
     // Check if we have cached data for this city
     if (cityItineraryCache[targetDay.city]) {
       const cityDays = cityItineraryCache[targetDay.city];
-      const cityDayIndex = days.filter(d => d.city === targetDay.city && d.dayNumber < dayNumber).length;
-      const aiDay = cityDays[cityDayIndex % cityDays.length];
+      // Use filledDaysCount to pick the NEXT unused day from cache
+      const aiDay = cityDays[filledDaysCount % cityDays.length];
 
       if (aiDay) {
         setDays(prev => prev.map(day => {
@@ -2123,8 +2131,8 @@ export default function AutoItineraryView({
     if (aiDays) {
       setCityItineraryCache(prev => ({ ...prev, [targetDay.city]: aiDays }));
 
-      const cityDayIndex = days.filter(d => d.city === targetDay.city && d.dayNumber < dayNumber).length;
-      const aiDay = aiDays[cityDayIndex % aiDays.length];
+      // Use filledDaysCount to pick the right day
+      const aiDay = aiDays[filledDaysCount % aiDays.length];
 
       setDays(prev => prev.map(day => {
         if (day.dayNumber === dayNumber) {
