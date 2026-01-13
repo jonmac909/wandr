@@ -3009,8 +3009,71 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
             </div>
           )}
 
-          {/* Activities - Picture View (Wanderlog Timeline Style) */}
+          {/* Activities - Picture View (Large photos like Wanderlog) */}
           {!isEmpty && viewMode === 'picture' && (
+            <div className="space-y-3">
+              {day.activities.map((activity, idx) => {
+                const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
+                const walkingMiles = (walkingTime * 0.05).toFixed(2);
+
+                return (
+                  <div key={activity.id}>
+                    {/* Walking time from previous */}
+                    {idx > 0 && (
+                      <div className="flex items-center gap-2 py-2 ml-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
+                          <Footprints className="w-4 h-4" />
+                          <span>{day.activities[idx - 1]?.walkingTimeToNext || walkingTime} min · {walkingMiles} mi</span>
+                          <button className="text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                            <ChevronDown className="w-3 h-3" />
+                            Directions
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Activity card with big image */}
+                    <button
+                      onClick={() => onActivityTap(activity, idx + 1)}
+                      className="w-full text-left"
+                    >
+                      {/* Large image */}
+                      <div className="relative w-full h-48 rounded-xl overflow-hidden">
+                        <img
+                          src={activity.imageUrl || 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80'}
+                          alt={activity.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Number badge */}
+                        <div className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold shadow-lg">
+                          {idx + 1}
+                        </div>
+                        {/* Delete button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
+                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-gray-500 hover:text-red-500 shadow"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Content below image */}
+                      <div className="mt-2 px-1">
+                        <h4 className="font-bold text-lg text-gray-900">{activity.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {activity.openingHours && <span>Open {activity.openingHours} • </span>}
+                          {activity.description}
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Activities - Compact View (Timeline with small thumbnails) */}
+          {!isEmpty && viewMode === 'compact' && (
             <div className="relative">
               {/* Vertical timeline line */}
               <div className="absolute left-[52px] top-4 bottom-4 w-0.5 bg-gray-200" />
@@ -3102,131 +3165,6 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Activities - Compact View (no images) */}
-          {!isEmpty && viewMode === 'compact' && (
-            <div className="space-y-0 ml-4">
-              {day.activities.map((activity, idx) => {
-                const isActivityExpanded = expandedActivityId === activity.id;
-                const walkingTime = activity.walkingTimeToNext || Math.floor(Math.random() * 15) + 5;
-                const walkingMiles = (walkingTime * 0.05).toFixed(2);
-
-                return (
-                  <div key={activity.id}>
-                    {/* Activity row - expandable */}
-                    <div className={`bg-gray-100 rounded-lg ${isActivityExpanded ? 'ring-2 ring-violet-300' : ''}`}>
-                      <button
-                        onClick={() => setExpandedActivityId(isActivityExpanded ? null : activity.id)}
-                        className="w-full flex items-center gap-3 p-3 text-left"
-                      >
-                        {isActivityExpanded && (
-                          <>
-                            <GripVertical className="w-4 h-4 text-gray-400" />
-                            <input type="checkbox" className="w-5 h-5 rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
-                          </>
-                        )}
-                        <div className="w-7 h-7 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-base text-gray-900">{activity.name}</p>
-                          {isActivityExpanded && activity.openingHours && (
-                            <p className="text-sm text-gray-600">Open {activity.openingHours} • Add notes, links, etc. here</p>
-                          )}
-                        </div>
-                        {isActivityExpanded && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
-                            className="p-1 text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
-                      </button>
-
-                      {/* Expanded content */}
-                      {isActivityExpanded && (
-                        <div className="px-3 pb-3 space-y-3">
-                          {/* Action buttons */}
-                          <div className="flex items-center gap-4 text-sm">
-                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
-                              <Clock className="w-4 h-4" />
-                              Add time
-                            </button>
-                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
-                              <span className="text-lg">📎</span>
-                              Attach
-                            </button>
-                            <button className="flex items-center gap-1 text-violet-600 hover:text-violet-700">
-                              <DollarSign className="w-4 h-4" />
-                              Add cost
-                            </button>
-                          </div>
-
-                          {/* Rating */}
-                          <div className="flex items-center gap-2">
-                            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                            <span className="font-medium text-gray-900">4.5</span>
-                            <span className="text-gray-500">(1,234)</span>
-                            <span className="text-blue-500 text-lg">G</span>
-                          </div>
-
-                          {/* Address */}
-                          <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4 mt-0.5 text-gray-400 flex-shrink-0" />
-                            <span>{activity.neighborhood || day.city}</span>
-                          </div>
-
-                          {/* Opening hours */}
-                          {activity.openingHours && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}: {activity.openingHours}</span>
-                            </div>
-                          )}
-
-                          {/* Day pills */}
-                          <div className="flex items-center gap-1">
-                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-                              <span key={d} className="w-7 h-7 flex items-center justify-center text-xs font-medium bg-violet-100 text-violet-700 rounded">
-                                {d}
-                              </span>
-                            ))}
-                            <button className="ml-2 text-sm text-violet-600 hover:underline">Show times</button>
-                          </div>
-
-                          {/* Duration */}
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span>⏱</span>
-                            <span>People typically spend {activity.duration || 60} min here</span>
-                          </div>
-
-                          {/* Added by / View on map */}
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Added by you</span>
-                            <span className="text-gray-300">·</span>
-                            <button className="text-violet-600 hover:underline">View on map</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Walking info below each item */}
-                    <div className="flex items-center justify-center gap-2 py-2 text-gray-500">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/>
-                      </svg>
-                      <span className="text-sm">{walkingTime} min · {walkingMiles} mi</span>
-                      <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-                        <ChevronDown className="w-3 h-3" />
-                        Directions
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           )}
 
