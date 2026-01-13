@@ -8,6 +8,7 @@ export interface GeneratedActivity {
   name: string;
   type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
   description?: string;
+  history?: string;              // Rich historical/cultural context (2-3 sentences)
   imageUrl?: string;
 
   // Scheduling
@@ -387,7 +388,8 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
         {
           "name": "Grand Palace",
           "type": "attraction",
-          "description": "Thailand's most famous landmark with stunning architecture",
+          "description": "Thailand's most famous landmark with stunning architecture and intricate details",
+          "history": "Built in 1782 when King Rama I moved the capital to Bangkok, the Grand Palace served as the official residence of Thai kings for 150 years. The complex showcases the finest examples of Thai craftsmanship, blending traditional Thai and European architecture. The Emerald Buddha temple within the grounds houses Thailand's most sacred Buddha image, carved from a single block of jade.",
           "suggestedTime": "09:00",
           "duration": 120,
           "openingHours": "8:30AM-3:30PM",
@@ -455,6 +457,7 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
             duration: number;
             openingHours?: string;
             typicalDuration?: string;
+            history?: string;
             hoursPerDay?: GeneratedActivity['hoursPerDay'];
             neighborhood: string;
             address?: string;
@@ -491,6 +494,7 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
             duration: activity.duration,
             openingHours: activity.openingHours,
             typicalDuration: activity.typicalDuration,
+            history: activity.history,
             hoursPerDay: activity.hoursPerDay,
             neighborhood: activity.neighborhood,
             address: activity.address,

@@ -3612,34 +3612,38 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'about' && (
-            <div className="p-4 space-y-4">
-              {/* Name + image */}
+            <div className="p-4 space-y-3">
+              {/* Header with image */}
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold">
                       {index}
                     </div>
-                    <h3 className="font-bold text-lg">{activity.name}</h3>
+                    <h3 className="font-bold">{activity.name}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{activity.description}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(activity.tags || []).slice(0, 3).map(tag => (
+                      <Badge key={tag} variant="secondary" className="text-[10px] capitalize py-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <img src={activity.imageUrl} alt="" className="w-20 h-20 rounded-lg object-cover" />
+                <img src={activity.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover" />
               </div>
 
-              {/* Added button */}
-              <Button variant="outline" size="sm" className="w-full">
-                <Check className="w-4 h-4 mr-2" />
-                Added to itinerary
-              </Button>
-
-              {/* Category tags */}
-              <div className="flex flex-wrap gap-1.5">
-                {(activity.tags || []).slice(0, 4).map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-xs capitalize">
-                    {tag}
-                  </Badge>
-                ))}
+              {/* Rich description / history section */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                  <span className="text-sm font-medium text-amber-700">About this place</span>
+                </div>
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  {activity.history || activity.description || `${activity.name} is a must-visit destination known for its unique atmosphere and cultural significance. Visitors consistently praise the authentic experience and memorable moments it offers.`}
+                </p>
               </div>
 
               {/* Dual ratings section */}
