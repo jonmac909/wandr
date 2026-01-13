@@ -1884,10 +1884,11 @@ export function SwipeablePlanningView({
   // Add a stopover city to the route (defined at component level to avoid closure issues)
   const addStopoverCity = (city: string) => {
     setRouteOrder(prev => {
-      if (prev.includes(city)) return prev;
+      // Allow duplicates for stopovers (e.g., Tokyo → Kyoto → Tokyo)
       if (prev.length === 0) return [city];
       return [prev[0], city, ...prev.slice(1)];
     });
+    // selectedCities stays unique - just tracks which cities are in the trip
     setSelectedCities(prev => prev.includes(city) ? prev : [...prev, city]);
   };
 
@@ -2990,10 +2991,10 @@ export function SwipeablePlanningView({
             const isLastInCountry = index < routeOrder.length - 1 && getCityCountry(routeOrder[index + 1]) !== country;
             const routeInfo = routeDistances[index];
 
-            // Get available cities to insert (from parked cities or selected but not in route)
+            // Get available cities to insert - include ALL selected cities for stopovers (allow duplicates)
             const availableCities = [
               ...parkedCities,
-              ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))
+              ...selectedCities.filter(c => !parkedCities.includes(c))
             ];
 
             return (
@@ -3014,9 +3015,9 @@ export function SwipeablePlanningView({
                       <div className="absolute left-1/2 -translate-x-1/2 top-8 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
                         <div className="text-xs text-muted-foreground mb-2">Add city here:</div>
                         <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {availableCities.map(c => (
+                          {availableCities.map((c, i) => (
                             <button
-                              key={c}
+                              key={`${c}-${i}`}
                               onClick={() => {
                                 setRouteOrder(prev => [c, ...prev]);
                                 setParkedCities(prev => prev.filter(p => p !== c));
@@ -3024,7 +3025,7 @@ export function SwipeablePlanningView({
                               }}
                               className="w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded"
                             >
-                              {c}
+                              {c} {routeOrder.includes(c) && <span className="text-xs text-muted-foreground">(return)</span>}
                             </button>
                           ))}
                         </div>
@@ -3130,9 +3131,10 @@ export function SwipeablePlanningView({
                         <div className="absolute left-1/2 -translate-x-1/2 top-6 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
                           <div className="text-xs text-muted-foreground mb-2">Add city here:</div>
                           <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {[...parkedCities, ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))].map(c => (
+                            {/* Show all selected cities - allow duplicates for stopovers (e.g., Tokyo → Kyoto → Tokyo) */}
+                            {[...parkedCities, ...selectedCities.filter(c => !parkedCities.includes(c))].map((c, i) => (
                               <button
-                                key={c}
+                                key={`${c}-${i}`}
                                 onClick={() => {
                                   setRouteOrder(prev => [...prev.slice(0, index + 1), c, ...prev.slice(index + 1)]);
                                   setParkedCities(prev => prev.filter(p => p !== c));
@@ -3140,10 +3142,10 @@ export function SwipeablePlanningView({
                                 }}
                                 className="w-full text-left px-2 py-1.5 text-sm hover:bg-muted rounded"
                               >
-                                {c}
+                                {c} {routeOrder.includes(c) && <span className="text-xs text-muted-foreground">(return)</span>}
                               </button>
                             ))}
-                            {[...parkedCities, ...selectedCities.filter(c => !routeOrder.includes(c) && !parkedCities.includes(c))].length === 0 && (
+                            {[...parkedCities, ...selectedCities.filter(c => !parkedCities.includes(c))].length === 0 && (
                               <div className="text-xs text-muted-foreground py-2 text-center">No cities available</div>
                             )}
                           </div>
