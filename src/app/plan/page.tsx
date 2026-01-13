@@ -502,9 +502,11 @@ function PlanPageContent() {
   // Track if dates have been explicitly set (by user or itinerary) - don't auto-recalculate
   const [datesLocked, setDatesLocked] = useState(false);
 
-  // Auto-calculate end date based on duration (ONLY if dates aren't locked)
+  // Auto-calculate end date based on duration (ONLY if dates aren't locked AND no end date exists)
   useEffect(() => {
-    if (!startDate || endDateSource === 'manual' || syncingFromItinerary.current || datesLocked) return;
+    // Skip if dates are locked or if we already have an end date
+    if (datesLocked || endDate) return;
+    if (!startDate) return;
 
     const start = new Date(startDate);
     let end: Date;
@@ -522,45 +524,23 @@ function PlanPageContent() {
 
     const formatted = end.toISOString().split('T')[0];
     setEndDate(formatted);
-  }, [startDate, durationType, durationDays, durationWeeks, durationMonths, endDateSource]);
+  }, [startDate, durationType, durationDays, durationWeeks, durationMonths, datesLocked, endDate]);
 
-  // Recalculate duration when end date is manually changed (ONLY if dates aren't locked)
+  // When dates change, update duration to match (dates are source of truth when they exist)
   useEffect(() => {
-    if (endDateSource !== 'manual' || !startDate || !endDate || syncingFromItinerary.current || datesLocked) return;
+    if (!startDate || !endDate) return;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Calculate current duration from state for comparison
-    const currentDuration = durationType === 'days'
-      ? durationDays
-      : durationType === 'weeks'
-        ? durationWeeks * 7
-        : durationMonths * 30;
-
-    if (daysDiff > 0 && daysDiff !== currentDuration) {
-      // Update duration to match the manually set dates
-      if (daysDiff >= 30) {
-        setDurationType('months');
-        setDurationMonths(Math.round(daysDiff / 30));
-      } else if (daysDiff >= 7 && daysDiff % 7 === 0) {
-        setDurationType('weeks');
-        setDurationWeeks(Math.round(daysDiff / 7));
-      } else {
-        setDurationType('days');
-        setDurationDays(Math.min(daysDiff, 14)); // Cap at slider max
-        // If more than 14 days but not weeks/months, switch to weeks
-        if (daysDiff > 14) {
-          setDurationType('weeks');
-          setDurationWeeks(Math.ceil(daysDiff / 7));
-        }
-      }
+    if (daysDiff > 0 && daysDiff !== durationDays) {
+      // Update duration to match dates - always use days for exact count
+      setDurationType('days');
+      setDurationDays(daysDiff);
+      setDatesLocked(true); // Lock dates since they're explicitly set
     }
-
-    // Reset to duration-driven mode after handling
-    setEndDateSource('duration');
-  }, [endDateSource, startDate, endDate, durationType, durationDays, durationWeeks, durationMonths]);
+  }, [startDate, endDate, durationDays]);
 
   // Auto-save planning progress when section changes
   useEffect(() => {
