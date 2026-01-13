@@ -26,6 +26,7 @@ import {
   Map,
   Image,
   List,
+  Plane,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -613,54 +614,126 @@ export default function AutoItineraryView({
           <div className="px-4 pb-4 space-y-2">
             {allocations.map((alloc, allocIndex) => {
               const recommended = getRecommendedNights(alloc.city);
+              const isTransit = alloc.city.includes('Transit');
               return (
-                <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                  <div className="w-2 h-8 rounded-full bg-primary/60" />
+                <div key={`${alloc.city}-${allocIndex}`} className={`flex items-center gap-3 p-2 rounded-lg ${isTransit ? 'bg-blue-50 border border-blue-200' : 'bg-muted/50'}`}>
+                  <div className={`w-2 h-8 rounded-full ${isTransit ? 'bg-blue-400' : 'bg-primary/60'}`} />
                   <div className="flex-1">
                     <div className="font-medium text-sm">
                       {alloc.city}
-                      <span className="text-xs text-muted-foreground font-normal ml-1">
-                        ({recommended} nights rec&apos;d)
-                      </span>
+                      {!isTransit && (
+                        <span className="text-xs text-muted-foreground font-normal ml-1">
+                          ({recommended} nights rec&apos;d)
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
-                      disabled={alloc.nights <= 1}
-                    >
-                      <Minus className="w-3 h-3" />
-                    </Button>
-                    <input
-                      type="number"
-                      min="1"
-                      max="99"
-                      value={alloc.nights}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val)) setAllocationNights(allocIndex, val);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-10 text-center font-semibold text-sm bg-transparent border border-transparent hover:border-muted-foreground/30 focus:border-primary focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
-                    >
-                      <Plus className="w-3 h-3" />
-                    </Button>
+                    {isTransit ? (
+                      /* Delete button for transit days */
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAllocations(prev => {
+                            const newAllocations = prev.filter((_, idx) => idx !== allocIndex);
+                            // Recalculate dates
+                            let currentDay = 1;
+                            return newAllocations.map(a => {
+                              const startDay = currentDay;
+                              const endDay = currentDay + a.nights - 1;
+                              currentDay = endDay + 1;
+                              const start = parseLocalDate(tripStartDate);
+                              start.setDate(start.getDate() + startDay - 1);
+                              const end = parseLocalDate(tripStartDate);
+                              end.setDate(end.getDate() + endDay - 1);
+                              const formatLocalDate = (d: Date) =>
+                                `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                              return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
+                            });
+                          });
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
+                          disabled={alloc.nights <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          value={alloc.nights}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val)) setAllocationNights(allocIndex, val);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-10 text-center font-semibold text-sm bg-transparent border border-transparent hover:border-muted-foreground/30 focus:border-primary focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
             })}
+
+            {/* Add Transit Day button */}
+            <button
+              onClick={() => {
+                // Add a transit day at the beginning
+                const transitAllocation: CityAllocation = {
+                  city: '✈️ In Transit',
+                  nights: 1,
+                  startDay: 1,
+                  endDay: 1,
+                  startDate: tripStartDate,
+                  endDate: tripStartDate,
+                };
+                setAllocations(prev => {
+                  const newAllocations = [transitAllocation, ...prev];
+                  // Recalculate dates for all allocations
+                  let currentDay = 1;
+                  return newAllocations.map(a => {
+                    const startDay = currentDay;
+                    const endDay = currentDay + a.nights - 1;
+                    currentDay = endDay + 1;
+                    const start = parseLocalDate(tripStartDate);
+                    start.setDate(start.getDate() + startDay - 1);
+                    const end = parseLocalDate(tripStartDate);
+                    end.setDate(end.getDate() + endDay - 1);
+                    const formatLocalDate = (d: Date) =>
+                      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
+                  });
+                });
+              }}
+              className="w-full py-2 px-3 border-2 border-dashed border-muted-foreground/30 rounded-lg text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
+            >
+              <Plane className="w-4 h-4" />
+              Add Transit Day at Start
+            </button>
           </div>
         )}
       </div>
