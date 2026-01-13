@@ -1169,6 +1169,7 @@ export function SwipeablePlanningView({
   const [routeOrder, setRouteOrder] = useState<string[]>([]); // Ordered list of city names (moved here for persistence)
   const [parkedCities, setParkedCities] = useState<string[]>([]); // Cities saved but not in route
   const [countryOrder, setCountryOrder] = useState<string[]>([]); // Order of countries to visit
+  const [savedAllocations, setSavedAllocations] = useState<Array<{ city: string; nights: number; startDay: number; endDay: number; startDate?: string; endDate?: string }>>([]); // Persisted city night allocations
 
   // Load persisted planning state on mount (only if no current selections)
   useEffect(() => {
@@ -1183,6 +1184,9 @@ export function SwipeablePlanningView({
           setSelectedCities(saved.selectedCities);
           if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
           if (saved.countryOrder?.length) setCountryOrder(saved.countryOrder);
+          if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
+            setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
+          }
 
           // Also update items' isFavorited status
           if (items.length > 0) {
@@ -1216,6 +1220,7 @@ export function SwipeablePlanningView({
           countryOrder,
           phase,
           currentStepIndex,
+          allocations: savedAllocations,
         });
       } catch (error) {
         console.warn('Failed to save planning state:', error);
@@ -1225,7 +1230,7 @@ export function SwipeablePlanningView({
     // Debounce saves
     const timer = setTimeout(saveState, 500);
     return () => clearTimeout(timer);
-  }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded]);
+  }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded, savedAllocations]);
 
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
@@ -2125,6 +2130,8 @@ export function SwipeablePlanningView({
         onBack={() => setPhase('route-planning')}
         getCityCountry={getCityCountry}
         onDatesChange={onDatesChange}
+        initialAllocations={savedAllocations}
+        onAllocationsChange={setSavedAllocations}
       />
     );
   }

@@ -54,6 +54,8 @@ interface AutoItineraryViewProps {
   onBack: () => void;
   getCityCountry?: (city: string) => string | undefined;
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
+  initialAllocations?: CityAllocation[]; // Persisted allocations from parent
+  onAllocationsChange?: (allocations: CityAllocation[]) => void; // Callback to sync allocations to parent
 }
 
 // Mock activities data for auto-fill
@@ -253,6 +255,8 @@ export default function AutoItineraryView({
   onBack,
   getCityCountry,
   onDatesChange,
+  initialAllocations,
+  onAllocationsChange,
 }: AutoItineraryViewProps) {
   // Get initial total days and start date from tripDna
   // Plan page stores at: constraints.duration.days and constraints.startDate
@@ -276,9 +280,19 @@ export default function AutoItineraryView({
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
 
   // Day allocation state (can be adjusted by user)
-  const [allocations, setAllocations] = useState<CityAllocation[]>(() =>
-    allocateDays(cities, initialTotalDays, tripDna, initialStartDate)
-  );
+  // Use initialAllocations if provided (persisted from parent), otherwise calculate fresh
+  const [allocations, setAllocations] = useState<CityAllocation[]>(() => {
+    if (initialAllocations && initialAllocations.length > 0) {
+      // Verify the saved allocations match current cities
+      const savedCities = initialAllocations.map(a => a.city);
+      const citiesMatch = cities.length === savedCities.length &&
+        cities.every((c, i) => c === savedCities[i]);
+      if (citiesMatch) {
+        return initialAllocations;
+      }
+    }
+    return allocateDays(cities, initialTotalDays, tripDna, initialStartDate);
+  });
 
   // Generated days (mock for now)
   const [days, setDays] = useState<GeneratedDay[]>([]);
@@ -392,6 +406,11 @@ export default function AutoItineraryView({
     }, 300);
     return () => clearTimeout(timer);
   }, [allocations]);
+
+  // Sync allocations back to parent whenever they change
+  useEffect(() => {
+    onAllocationsChange?.(allocations);
+  }, [allocations, onAllocationsChange]);
 
   // Auto-fill a single day
   const autoFillDay = (dayNumber: number) => {
@@ -565,19 +584,21 @@ export default function AutoItineraryView({
           </div>
         </button>
 
-        {/* Guidance message when nights don't match trip duration */}
-        {currentTotal !== tripTotalDays && (
-          <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm ${
-            currentTotal > tripTotalDays
+        {/* Guidance message when nights don't match trip duration - fixed height to prevent layout bounce */}
+        <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm min-h-[40px] flex items-center transition-all duration-200 ${
+          currentTotal === tripTotalDays
+            ? 'bg-green-50 text-green-700 border border-green-200'
+            : currentTotal > tripTotalDays
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-amber-50 text-amber-700 border border-amber-200'
-          }`}>
-            {currentTotal > tripTotalDays
+        }`}>
+          {currentTotal === tripTotalDays
+            ? '✓ All nights allocated!'
+            : currentTotal > tripTotalDays
               ? `⚠️ ${currentTotal - tripTotalDays} nights over — remove nights or extend trip dates`
               : `📝 ${tripTotalDays - currentTotal} nights remaining to allocate`
-            }
-          </div>
-        )}
+          }
+        </div>
 
         {/* City allocations - only show when expanded */}
         {isDurationExpanded && (

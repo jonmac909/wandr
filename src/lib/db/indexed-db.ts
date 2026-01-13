@@ -41,6 +41,7 @@ export interface PlanningState {
   selectedCities: string[];
   routeOrder: string[];
   countryOrder: string[]; // Order of countries to visit (for multi-country trips)
+  allocations?: Array<{ city: string; nights: number; startDay: number; endDay: number; startDate?: string; endDate?: string }>; // City night allocations
   phase: 'picking' | 'route-planning' | 'auto-itinerary' | 'favorites-library' | 'day-planning';
   currentStepIndex: number;
   updatedAt: Date;
