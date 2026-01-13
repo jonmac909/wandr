@@ -2150,6 +2150,7 @@ export function SwipeablePlanningView({
         onDatesChange={onDatesChange}
         initialAllocations={savedAllocations}
         onAllocationsChange={setSavedAllocations}
+        parentLoadComplete={persistenceLoaded}
       />
     );
   }

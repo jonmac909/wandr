@@ -59,6 +59,7 @@ interface AutoItineraryViewProps {
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
   initialAllocations?: CityAllocation[]; // Persisted allocations from parent
   onAllocationsChange?: (allocations: CityAllocation[]) => void; // Callback to sync allocations to parent
+  parentLoadComplete?: boolean; // Signal that parent has finished loading from IndexedDB
 }
 
 // Mock activities data for auto-fill
@@ -1835,6 +1836,7 @@ export default function AutoItineraryView({
   onDatesChange,
   initialAllocations,
   onAllocationsChange,
+  parentLoadComplete = false,
 }: AutoItineraryViewProps) {
   // Get initial total days and start date
   // Priority: explicit props > tripDna > fallback
@@ -1876,15 +1878,22 @@ export default function AutoItineraryView({
     return allocateDays(cities, initialTotalDays, tripDna, initialStartDate);
   });
 
-  // Handle when initialAllocations arrives AFTER first render (from IndexedDB)
+  // Track if we've successfully loaded saved allocations from parent
   const [hasLoadedInitialAllocations, setHasLoadedInitialAllocations] = useState(false);
+
+  // Handle when initialAllocations arrives AFTER first render (from IndexedDB)
   useEffect(() => {
     console.log('[AutoItinerary] initialAllocations effect:', {
       hasLoaded: hasLoadedInitialAllocations,
+      parentLoadComplete,
       initialAllocations: initialAllocations?.map(a => `${a.city}:${a.nights}`),
       cities
     });
-    if (!hasLoadedInitialAllocations && initialAllocations && initialAllocations.length > 0) {
+
+    // If we already loaded, don't overwrite user changes
+    if (hasLoadedInitialAllocations) return;
+
+    if (initialAllocations && initialAllocations.length > 0) {
       const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
@@ -1896,7 +1905,7 @@ export default function AutoItineraryView({
         setHasLoadedInitialAllocations(true);
       }
     }
-  }, [initialAllocations, cities, hasLoadedInitialAllocations]);
+  }, [initialAllocations, cities, hasLoadedInitialAllocations, parentLoadComplete]);
 
   // Generated days (mock for now)
   const [days, setDays] = useState<GeneratedDay[]>([]);
@@ -2015,25 +2024,17 @@ export default function AutoItineraryView({
   }, [allocations]);
 
   // Sync allocations back to parent whenever they change
-  // BUT only after we've had a chance to load saved allocations (to prevent overwriting)
-  const [isReadyToSync, setIsReadyToSync] = useState(false);
-
-  // Wait a tick before allowing sync - gives time for initialAllocations to arrive
+  // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsReadyToSync(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!isReadyToSync) {
-      console.log('[AutoItinerary] Not ready to sync yet');
+    // CRITICAL: Don't sync until parent has finished loading from IndexedDB
+    // Otherwise we'll overwrite saved allocations with freshly-generated defaults
+    if (!parentLoadComplete) {
+      console.log('[AutoItinerary] Parent not loaded yet, NOT syncing');
       return;
     }
     console.log('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
     onAllocationsChange?.(allocations);
-  }, [allocations, onAllocationsChange, isReadyToSync]);
+  }, [allocations, onAllocationsChange, parentLoadComplete]);
 
   // AI-powered auto-fill for a single city's days (with fallback to mock data)
   const autoFillCityDays = async (city: string, nights: number) => {
