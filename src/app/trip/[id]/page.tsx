@@ -322,15 +322,7 @@ export default function TripPage() {
     loadTrip();
   }, [tripId]);
 
-  // Initialize total budget from itinerary when it loads
-  useEffect(() => {
-    if (itinerary?.meta?.estimatedBudget?.total) {
-      setTotalBudget(itinerary.meta.estimatedBudget.total);
-    }
-  }, [itinerary?.meta?.estimatedBudget?.total]);
-
-  // Redirect draft trips to /plan page for 5-section flow
-  // Set view mode for trips with itinerary
+  // Set view mode based on whether trip has a generated itinerary
   useEffect(() => {
     if (loading) return; // Wait for load to complete
 
@@ -1237,6 +1229,41 @@ export default function TripPage() {
       activityItems,
     };
   }, [itinerary]);
+
+  // Calculate total planned cost from ALL activities (not just booked ones)
+  const totalPlannedCost = useMemo(() => {
+    if (!itinerary) return 0;
+
+    let total = 0;
+
+    // Sum all activity costs from days
+    for (const day of itinerary.days) {
+      for (const block of day.blocks) {
+        const activity = block.activity;
+        if (activity?.cost?.amount) {
+          total += activity.cost.amount;
+        }
+      }
+    }
+
+    // Also include movement costs
+    if (itinerary.route?.movements) {
+      for (const movement of itinerary.route.movements) {
+        if (movement.cost?.amount) {
+          total += movement.cost.amount;
+        }
+      }
+    }
+
+    return total;
+  }, [itinerary]);
+
+  // Initialize total budget from calculated costs (sum of all activities in Schedule)
+  useEffect(() => {
+    if (totalPlannedCost > 0) {
+      setTotalBudget(totalPlannedCost);
+    }
+  }, [totalPlannedCost]);
 
   // Regenerate packing list based on trip activities
   const handleRegeneratePackingList = () => {
