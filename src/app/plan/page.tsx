@@ -1264,6 +1264,14 @@ function PlanPageContent() {
             onDatesChange={(newStartDate, newTotalDays) => {
               // Sync dates back to plan page state
               setStartDate(newStartDate);
+
+              // Calculate and set end date directly
+              const start = new Date(newStartDate);
+              const end = new Date(start);
+              end.setDate(start.getDate() + newTotalDays);
+              setEndDate(end.toISOString().split('T')[0]);
+              setEndDateSource('duration'); // Ensure it stays in sync mode
+
               // Update duration to match
               if (newTotalDays >= 30) {
                 setDurationType('months');
