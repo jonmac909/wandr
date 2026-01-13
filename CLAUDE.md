@@ -214,6 +214,36 @@ export default function Page() {
 }
 ```
 
+## How to Debug Properly
+
+**STOP making incremental patches. Read the WHOLE code first.**
+
+### The Right Way
+1. **Read ALL related files end-to-end** before touching anything
+2. **Trace the complete data flow** from source to destination
+3. **Understand the render lifecycle** - what renders when, in what order
+4. **Find the ROOT CAUSE** - not symptoms
+5. **Make ONE fix** in the right place - usually earlier than you think
+
+### The Wrong Way (what I keep doing)
+- Adding guards/flags inside components without understanding WHY they're needed
+- Making "quick fixes" without reading the full context
+- Adding more useEffects to "fix" race conditions caused by other useEffects
+- Saying "this should fix it" without tracing the full flow
+- Making 10 incremental patches instead of 1 correct fix
+
+### Before ANY bug fix, answer:
+1. What is the EXACT sequence of events that causes this bug?
+2. Where in that sequence should the fix go? (Usually earlier than the symptom)
+3. Have I read ALL the code involved, not just the file with the error?
+
+### If a fix doesn't work:
+- **DO NOT** add another patch on top
+- **DO** step back and re-read the entire flow
+- The bug is probably in a different place than you think
+
+---
+
 ## Debugging Persistence Bugs
 
 **STOP. Before making any fix, answer these questions:**
