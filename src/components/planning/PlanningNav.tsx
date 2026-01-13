@@ -72,11 +72,10 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
         {SECTIONS.map((section, index) => {
           const isCompleted = completedSections.includes(section.id);
           const isCurrent = section.id === currentSection;
-          const isActive = isCompleted || isCurrent;
           const isClickable = canNavigateTo(section.id);
 
           return (
-            <div key={section.id} className="flex items-center">
+            <div key={section.id} className="flex items-start">
               {/* Section button */}
               <button
                 onClick={() => isClickable && onSectionChange(section.id)}
@@ -86,35 +85,39 @@ export function PlanningNav({ currentSection, onSectionChange, completedSections
                   isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                 )}
               >
-                <div className={cn(
-                  "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold mb-1 transition-colors",
-                  isCurrent
-                    ? "bg-primary text-primary-foreground"
-                    : isCompleted
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-muted text-muted-foreground"
-                )}>
-                  {isCompleted && !isCurrent ? (
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    index + 1
+                {/* Circle with relative positioning for the line */}
+                <div className="relative">
+                  <div className={cn(
+                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors",
+                    isCurrent
+                      ? "bg-primary text-primary-foreground"
+                      : isCompleted
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-muted text-muted-foreground"
+                  )}>
+                    {isCompleted && !isCurrent ? (
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+
+                  {/* Connector line positioned to the right of the circle */}
+                  {index < SECTIONS.length - 1 && (
+                    <div className={cn(
+                      "absolute top-1/2 -translate-y-1/2 left-full h-0.5 w-8 sm:w-10 rounded transition-colors",
+                      isCompleted ? "bg-primary" : "bg-muted"
+                    )} />
                   )}
                 </div>
+
                 <span className={cn(
-                  "text-[10px] sm:text-xs font-medium text-center transition-colors leading-tight",
+                  "text-[10px] sm:text-xs font-medium text-center transition-colors leading-tight mt-1",
                   isCurrent ? "text-primary" : "text-muted-foreground"
                 )}>
                   {section.label}
                 </span>
               </button>
-
-              {/* Connector line (not after last) */}
-              {index < SECTIONS.length - 1 && (
-                <div className={cn(
-                  "h-0.5 w-6 sm:w-10 -mx-1 rounded transition-colors",
-                  isCompleted ? "bg-primary" : "bg-muted"
-                )} />
-              )}
             </div>
           );
         })}
