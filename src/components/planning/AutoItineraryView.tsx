@@ -2750,7 +2750,7 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map Drawer - slides up from bottom */}
+      {/* Map Modal - centered */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
         <>
           {/* Backdrop */}
@@ -2759,42 +2759,42 @@ export default function AutoItineraryView({
             onClick={() => setViewMode('picture')}
           />
 
-          {/* Drawer */}
-          <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl flex flex-col animate-in slide-in-from-bottom duration-300" style={{ height: '85vh' }}>
-            {/* Drag handle + close */}
-            <div className="flex-shrink-0 pt-3 pb-2 px-4">
-              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-              <div className="flex items-center justify-between">
+          {/* Modal */}
+          <div className="fixed inset-4 md:inset-8 lg:inset-12 z-50 bg-white rounded-2xl flex flex-col animate-in zoom-in-95 duration-200 shadow-2xl">
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b">
+              <div className="flex items-center gap-3">
+                <Map className="w-5 h-5 text-primary" />
                 {(() => {
                   const selectedDay = days.find(d => d.dayNumber === mapSelectedDay);
                   if (selectedDay) {
                     const [y, m, d] = selectedDay.date.split('-').map(Number);
                     const dateObj = new Date(y, m - 1, d);
                     const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                    return <span className="text-sm font-semibold">{formatted} - {selectedDay.city}</span>;
+                    return <span className="font-semibold">{formatted} - {selectedDay.city}</span>;
                   }
-                  return <span className="text-sm font-semibold">Map</span>;
+                  return <span className="font-semibold">Map View</span>;
                 })()}
-                <button
-                  onClick={() => setViewMode('picture')}
-                  className="p-1.5 hover:bg-gray-100 rounded-full"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
               </div>
+              <button
+                onClick={() => setViewMode('picture')}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
             </div>
 
             {/* Day tabs - scrollable horizontal */}
-            <div className="flex-shrink-0 border-b px-2 pb-2">
+            <div className="flex-shrink-0 border-b px-3 py-2 bg-gray-50">
               <div className="overflow-x-auto">
-                <div className="flex gap-1" style={{ minWidth: 'max-content' }}>
+                <div className="flex gap-1.5" style={{ minWidth: 'max-content' }}>
                   {days.map((day) => {
                     const cityIdx = allocations.findIndex(a => a.city === day.city);
                     const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
                     const isSelected = mapSelectedDay === day.dayNumber;
                     const activityCount = day.activities.length;
 
-                    // Format date as "Mon 15" or "Jan 15"
+                    // Format date as "Mon 15"
                     const [y, m, d] = day.date.split('-').map(Number);
                     const dateObj = new Date(y, m - 1, d);
                     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
@@ -2809,14 +2809,14 @@ export default function AutoItineraryView({
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                           isSelected
-                            ? `${color.bg} text-white`
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? `${color.bg} text-white shadow-sm`
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border'
                         }`}
                       >
                         {dayName} {monthDay.split(' ')[1]}
                         {activityCount > 0 && (
-                          <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
-                            isSelected ? 'bg-white/20' : 'bg-gray-200'
+                          <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                            isSelected ? 'bg-white/20' : 'bg-gray-100'
                           }`}>
                             {activityCount}
                           </span>
@@ -2828,113 +2828,121 @@ export default function AutoItineraryView({
               </div>
             </div>
 
-            {/* Map with activity markers - only for selected day */}
-            <div className="flex-1 relative min-h-0">
-              <ActivityMap
-                days={days.filter(d => d.dayNumber === mapSelectedDay)}
-                selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
-                onActivitySelect={(activity) => {
-                  const idx = mapDayActivities.findIndex(a => a.id === activity.id);
-                  if (idx >= 0) setMapSelectedIndex(idx);
-                }}
-              />
+            {/* Main content - map and activity list side by side on larger screens */}
+            <div className="flex-1 flex flex-col md:flex-row min-h-0">
+              {/* Map */}
+              <div className="flex-1 relative min-h-[200px] md:min-h-0">
+                <ActivityMap
+                  days={days.filter(d => d.dayNumber === mapSelectedDay)}
+                  selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
+                  onActivitySelect={(activity) => {
+                    const idx = mapDayActivities.findIndex(a => a.id === activity.id);
+                    if (idx >= 0) setMapSelectedIndex(idx);
+                  }}
+                />
+              </div>
 
-              {/* Navigation overlay */}
-              {mapDayActivities.length > 0 && (
-                <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2 px-4">
-                  <button
-                    onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
-                    disabled={mapSelectedIndex === 0}
-                    className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <span className="px-3 py-1.5 bg-white rounded-full shadow-lg text-sm font-medium">
-                    {mapSelectedIndex + 1} of {mapDayActivities.length}
-                  </span>
-                  <button
-                    onClick={() => setMapSelectedIndex(Math.min(mapDayActivities.length - 1, mapSelectedIndex + 1))}
-                    disabled={mapSelectedIndex === mapDayActivities.length - 1}
-                    className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
+              {/* Activity sidebar */}
+              <div className="md:w-80 lg:w-96 flex-shrink-0 border-t md:border-t-0 md:border-l bg-white flex flex-col">
+                {mapDayActivities.length > 0 ? (
+                  <>
+                    {/* Navigation */}
+                    <div className="flex items-center justify-center gap-2 p-3 border-b bg-gray-50">
+                      <button
+                        onClick={() => setMapSelectedIndex(Math.max(0, mapSelectedIndex - 1))}
+                        disabled={mapSelectedIndex === 0}
+                        className="p-1.5 bg-white rounded-full shadow-sm border disabled:opacity-50"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="px-3 py-1 bg-white rounded-full shadow-sm border text-sm font-medium">
+                        {mapSelectedIndex + 1} of {mapDayActivities.length}
+                      </span>
+                      <button
+                        onClick={() => setMapSelectedIndex(Math.min(mapDayActivities.length - 1, mapSelectedIndex + 1))}
+                        disabled={mapSelectedIndex === mapDayActivities.length - 1}
+                        className="p-1.5 bg-white rounded-full shadow-sm border disabled:opacity-50"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Activity details */}
+                    {mapDayActivities[mapSelectedIndex] && (
+                      <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {mapSelectedIndex + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-base">{mapDayActivities[mapSelectedIndex].name}</h3>
+                            <p className="text-gray-500 text-sm">
+                              {mapDayActivities[mapSelectedIndex].neighborhood}
+                            </p>
+                          </div>
+                        </div>
+
+                        {mapDayActivities[mapSelectedIndex].imageUrl && (
+                          <div className="mt-3 rounded-lg overflow-hidden">
+                            <img
+                              src={mapDayActivities[mapSelectedIndex].imageUrl}
+                              alt=""
+                              className="w-full h-32 object-cover"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
+                          {mapDayActivities[mapSelectedIndex].openingHours && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {mapDayActivities[mapSelectedIndex].openingHours}
+                            </span>
+                          )}
+                          {mapDayActivities[mapSelectedIndex].rating && (
+                            <span className="flex items-center gap-1">
+                              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                              {mapDayActivities[mapSelectedIndex].rating.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Open in maps buttons */}
+                        <div className="flex gap-2 mt-4">
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
+                          >
+                            Google Maps
+                          </a>
+                          <a
+                            href={`https://maps.apple.com/?q=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
+                          >
+                            Apple Maps
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                    <MapPin className="w-10 h-10 text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No activities for this day</p>
+                    <p className="text-gray-400 text-xs mt-1">Add activities to see them on the map</p>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {/* Bottom activity card */}
-            {mapDayActivities.length > 0 && mapDayActivities[mapSelectedIndex] && (
-              <div className="flex-shrink-0 bg-white border-t p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {mapSelectedIndex + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base truncate">{mapDayActivities[mapSelectedIndex].name}</h3>
-                    <p className="text-gray-500 text-sm">
-                      {mapDayActivities[mapSelectedIndex].neighborhood}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                      {mapDayActivities[mapSelectedIndex].openingHours && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {mapDayActivities[mapSelectedIndex].openingHours}
-                        </span>
-                      )}
-                      {mapDayActivities[mapSelectedIndex].rating && (
-                        <span className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                          {mapDayActivities[mapSelectedIndex].rating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {mapDayActivities[mapSelectedIndex].imageUrl && (
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={mapDayActivities[mapSelectedIndex].imageUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Open in maps buttons */}
-                <div className="flex gap-2 mt-3">
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
-                  >
-                    Google Maps
-                  </a>
-                  <a
-                    href={`https://maps.apple.com/?q=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
-                  >
-                    Apple Maps
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Empty state for day with no activities */}
-            {mapDayActivities.length === 0 && (
-              <div className="flex-shrink-0 bg-white border-t p-4 text-center">
-                <p className="text-gray-500 text-sm">No activities for Day {mapSelectedDay}</p>
-                <p className="text-gray-400 text-xs mt-1">Add activities to see them on the map</p>
-              </div>
-            )}
           </div>
         </>
       )}
 
-      {/* Empty state for map view - also a drawer */}
+      {/* Empty state for map view - centered modal */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length === 0 && (
         <>
           {/* Backdrop */}
@@ -2943,27 +2951,19 @@ export default function AutoItineraryView({
             onClick={() => setViewMode('picture')}
           />
 
-          {/* Drawer */}
-          <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl flex flex-col animate-in slide-in-from-bottom duration-300" style={{ height: '50vh' }}>
-            {/* Drag handle + close */}
-            <div className="flex-shrink-0 pt-3 pb-2 px-4">
-              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Map View</span>
-                <button
-                  onClick={() => setViewMode('picture')}
-                  className="p-1.5 hover:bg-gray-100 rounded-full"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
+          {/* Modal */}
+          <div className="fixed inset-4 md:inset-8 lg:inset-16 z-50 bg-white rounded-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-200 shadow-2xl">
+            {/* Close button */}
+            <button
+              onClick={() => setViewMode('picture')}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
 
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <Map className="w-12 h-12 text-gray-300 mb-3" />
-              <p className="text-gray-500">No activities to show on map</p>
-              <p className="text-sm text-gray-400">Auto-fill your trip to see activities</p>
-            </div>
+            <Map className="w-16 h-16 text-gray-300 mb-4" />
+            <p className="text-gray-600 text-lg font-medium">No activities to show on map</p>
+            <p className="text-gray-400 mt-1">Auto-fill your trip to see activities</p>
           </div>
         </>
       )}

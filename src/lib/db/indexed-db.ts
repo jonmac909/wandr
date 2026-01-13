@@ -39,7 +39,7 @@ export interface PackingState {
 export interface PersistedActivity {
   id: string;
   name: string;
-  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit';
   description?: string;
   imageUrl?: string;
   suggestedTime?: string;
@@ -51,6 +51,15 @@ export interface PersistedActivity {
   priceRange?: string;
   tags?: string[];
   walkingTimeToNext?: number;
+  transportDetails?: {
+    from: string;
+    to: string;
+    departureTime?: string;
+    arrivalTime?: string;
+    operator?: string;
+    bookingRef?: string;
+    distance?: number;
+  };
 }
 
 // Generated day type for persistence

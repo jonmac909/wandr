@@ -6,7 +6,18 @@ import type { TripDNA } from '@/types/trip-dna';
 export interface GeneratedActivity {
   id: string;
   name: string;
-  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit';
+
+  // Transport-specific fields (when type is flight/train/bus/drive/transit)
+  transportDetails?: {
+    from: string;           // Origin city/airport
+    to: string;             // Destination city/airport
+    departureTime?: string; // "09:00"
+    arrivalTime?: string;   // "14:30"
+    operator?: string;      // "Thai Airways", "Green Bus"
+    bookingRef?: string;    // Booking confirmation number
+    distance?: number;      // km
+  };
   description?: string;
   history?: string;              // Rich historical/cultural context (2-3 sentences)
   imageUrl?: string;
