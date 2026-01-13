@@ -59,6 +59,7 @@ function ExploreContent() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedInterests, setSelectedInterests] = useState<TravelInterest[]>([]);
 
@@ -151,6 +152,7 @@ function ExploreContent() {
 
     setIsLoading(true);
     setHasSearched(true);
+    setSearchError(null);
 
     try {
       const response = await fetch('/api/explore/recommendations', {
@@ -163,16 +165,22 @@ function ExploreContent() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch recommendations');
-
       const data = await response.json();
-      const placesWithSaved = data.places.map((p: BrowsePlace) => ({
+
+      if (!response.ok) {
+        setSearchError(data.error || 'Failed to fetch recommendations');
+        setBrowsePlaces([]);
+        return;
+      }
+
+      const placesWithSaved = (data.places || []).map((p: BrowsePlace) => ({
         ...p,
         isSaved: savedIds.has(`${p.name.toLowerCase()}-${p.city.toLowerCase()}`),
       }));
       setBrowsePlaces(placesWithSaved);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
+      setSearchError(error instanceof Error ? error.message : 'Network error');
       setBrowsePlaces([]);
     } finally {
       setIsLoading(false);
@@ -340,6 +348,7 @@ function ExploreContent() {
                 isLoading={isLoading}
                 hasSearched={hasSearched}
                 searchCity={searchCity}
+                searchError={searchError}
                 onToggleSave={handleToggleSave}
               />
             ) : (
@@ -379,6 +388,7 @@ function BrowseTab({
   isLoading,
   hasSearched,
   searchCity,
+  searchError,
   onToggleSave,
 }: {
   places: BrowsePlace[];
@@ -386,6 +396,7 @@ function BrowseTab({
   isLoading: boolean;
   hasSearched: boolean;
   searchCity: string;
+  searchError: string | null;
   onToggleSave: (place: BrowsePlace) => void;
 }) {
   const filtered = selectedCategory === 'all' ? places : places.filter(p => p.type === selectedCategory);
@@ -394,6 +405,7 @@ function BrowseTab({
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-sm text-gray-500">Finding recommendations...</span>
       </div>
     );
   }
@@ -423,6 +435,9 @@ function BrowseTab({
       <div className="text-center py-12 text-gray-500">
         <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>No places found for &quot;{searchCity}&quot;</p>
+        {searchError && (
+          <p className="text-xs mt-2 text-red-500 max-w-xs mx-auto">{searchError}</p>
+        )}
         <p className="text-xs mt-1">Try a different city</p>
       </div>
     );

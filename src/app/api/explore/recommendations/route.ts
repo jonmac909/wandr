@@ -102,8 +102,10 @@ IMPORTANT: Return ONLY the JSON object, no other text.`;
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error generating recommendations:', error);
+    // Return more details for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to generate recommendations', places: [] },
+      { error: `Failed to generate recommendations: ${errorMessage}`, places: [] },
       { status: 500 }
     );
   }
