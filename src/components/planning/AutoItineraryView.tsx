@@ -32,6 +32,7 @@ import {
   Link2,
   Car,
   Bus,
+  Train,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -3671,14 +3672,38 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             </div>
           )}
 
-          {/* Add a place */}
-          <div className="ml-8 flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
-            <MapPin className="w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Add a place"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
+          {/* Add a place or transport */}
+          <div className="ml-8 space-y-2">
+            {/* Add a place */}
+            <div className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
+              <MapPin className="w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Add a place"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+
+            {/* Add transport */}
+            <div className="flex items-center gap-2 py-2 px-4">
+              <span className="text-xs text-muted-foreground mr-1">Add:</span>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-full text-xs font-medium text-blue-600 transition-colors">
+                <Plane className="w-3.5 h-3.5" />
+                Flight
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 hover:bg-green-100 rounded-full text-xs font-medium text-green-600 transition-colors">
+                <Train className="w-3.5 h-3.5" />
+                Train
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 rounded-full text-xs font-medium text-orange-600 transition-colors">
+                <Bus className="w-3.5 h-3.5" />
+                Bus
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-xs font-medium text-gray-600 transition-colors">
+                <Car className="w-3.5 h-3.5" />
+                Car
+              </button>
+            </div>
           </div>
         </div>
       )}
