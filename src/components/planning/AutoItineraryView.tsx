@@ -51,6 +51,8 @@ interface AutoItineraryViewProps {
   cities: string[];
   tripDna: TripDNA;
   duration?: number; // Total trip days
+  startDate?: string; // Explicit start date prop (avoids remount issues)
+  endDate?: string; // Explicit end date prop (avoids remount issues)
   onBack: () => void;
   getCityCountry?: (city: string) => string | undefined;
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
@@ -252,20 +254,24 @@ export default function AutoItineraryView({
   cities,
   tripDna,
   duration: propDuration,
+  startDate: propStartDate,
+  endDate: propEndDate,
   onBack,
   getCityCountry,
   onDatesChange,
   initialAllocations,
   onAllocationsChange,
 }: AutoItineraryViewProps) {
-  // Get initial total days and start date from tripDna
-  // Plan page stores at: constraints.duration.days and constraints.startDate
+  // Get initial total days and start date
+  // Priority: explicit props > tripDna > fallback
+  // Using explicit props fixes date persistence when navigating between sections
   const initialTotalDays =
     propDuration ||
     (tripDna?.constraints as unknown as { duration?: { days?: number } })?.duration?.days ||
     tripDna?.constraints?.dates?.totalDays ||
     14;
   const initialStartDate =
+    propStartDate ||
     (tripDna?.constraints as unknown as { startDate?: string })?.startDate ||
     tripDna?.constraints?.dates?.startDate ||
     new Date().toISOString().split('T')[0];

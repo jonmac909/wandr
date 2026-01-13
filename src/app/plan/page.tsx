@@ -588,11 +588,22 @@ function PlanPageContent() {
     }
   };
 
-  const actualDuration = durationType === 'days'
-    ? durationDays
-    : durationType === 'weeks'
-      ? durationWeeks * 7
-      : durationMonths * 30;
+  // Calculate duration - DATES OVERRIDE if both exist
+  const actualDuration = (() => {
+    // If we have exact dates, calculate from them (dates are source of truth)
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (days > 0) return days;
+    }
+    // Fallback to duration picker values
+    return durationType === 'days'
+      ? durationDays
+      : durationType === 'weeks'
+        ? durationWeeks * 7
+        : durationMonths * 30;
+  })();
 
   // Build TripDNA for SwipeablePlanningView
   const tripDna: TripDNA = useMemo(() => {
@@ -1247,6 +1258,8 @@ function PlanPageContent() {
             items={planningItems}
             onItemsChange={setPlanningItems}
             duration={actualDuration}
+            startDate={startDate}
+            endDate={endDate}
             isTripLocked={false}
             controlledPhase={planningPhase}
             onPhaseChange={handlePlanningPhaseChange}

@@ -805,6 +805,8 @@ interface SwipeablePlanningViewProps {
   onItemsChange: (items: PlanningItem[]) => void;
   onSearchAI?: (query: string, category: string) => void;
   duration?: number; // Trip duration in days
+  startDate?: string; // Trip start date (explicit prop to avoid remount issues)
+  endDate?: string; // Trip end date (explicit prop to avoid remount issues)
   isTripLocked?: boolean; // When Trip View is locked, only allow adding (not removing/editing)
   controlledPhase?: PlanningPhase; // When provided, parent controls the phase
   onPhaseChange?: (phase: PlanningPhase) => void; // Callback when phase changes internally
@@ -1137,6 +1139,8 @@ export function SwipeablePlanningView({
   onItemsChange,
   onSearchAI,
   duration: propDuration,
+  startDate: propStartDate,
+  endDate: propEndDate,
   isTripLocked = false,
   controlledPhase,
   onPhaseChange,
@@ -2127,6 +2131,8 @@ export function SwipeablePlanningView({
         cities={citiesToUse}
         tripDna={tripDna}
         duration={duration}
+        startDate={propStartDate}
+        endDate={propEndDate}
         onBack={() => setPhase('route-planning')}
         getCityCountry={getCityCountry}
         onDatesChange={onDatesChange}
