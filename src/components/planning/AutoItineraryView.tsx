@@ -1918,6 +1918,14 @@ export default function AutoItineraryView({
   // Activity detail drawer
   const [selectedActivity, setSelectedActivity] = useState<{ activity: GeneratedActivity; index: number } | null>(null);
 
+  // Undo deletion state
+  const [deletedActivity, setDeletedActivity] = useState<{
+    activity: GeneratedActivity;
+    dayNumber: number;
+    index: number;
+  } | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Full-screen map state
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
 
@@ -1949,12 +1957,62 @@ export default function AutoItineraryView({
     setSelectedActivity({ activity, index });
   };
 
-  // Handle activity delete
+  // Handle activity delete with undo support
   const handleActivityDelete = (activityId: string) => {
-    setDays(prev => prev.map(day => ({
-      ...day,
-      activities: day.activities.filter(a => a.id !== activityId),
-    })));
+    // Find the activity and its position before deleting
+    let deletedInfo: { activity: GeneratedActivity; dayNumber: number; index: number } | null = null;
+
+    days.forEach(day => {
+      const idx = day.activities.findIndex(a => a.id === activityId);
+      if (idx !== -1) {
+        deletedInfo = {
+          activity: day.activities[idx],
+          dayNumber: day.dayNumber,
+          index: idx,
+        };
+      }
+    });
+
+    if (deletedInfo) {
+      // Clear any existing undo timeout
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+
+      // Store for undo
+      setDeletedActivity(deletedInfo);
+
+      // Remove from days
+      setDays(prev => prev.map(day => ({
+        ...day,
+        activities: day.activities.filter(a => a.id !== activityId),
+      })));
+
+      // Auto-clear undo option after 5 seconds
+      undoTimeoutRef.current = setTimeout(() => {
+        setDeletedActivity(null);
+      }, 5000);
+    }
+  };
+
+  // Undo activity deletion
+  const handleUndoDelete = () => {
+    if (!deletedActivity) return;
+
+    // Clear timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Restore activity to its original position
+    setDays(prev => prev.map(day => {
+      if (day.dayNumber !== deletedActivity.dayNumber) return day;
+      const newActivities = [...day.activities];
+      newActivities.splice(deletedActivity.index, 0, deletedActivity.activity);
+      return { ...day, activities: newActivities };
+    }));
+
+    setDeletedActivity(null);
   };
 
   // Handle activity time update
@@ -2877,6 +2935,30 @@ export default function AutoItineraryView({
         onPrev={() => navigateDrawer('prev')}
         onNext={() => navigateDrawer('next')}
       />
+
+      {/* Undo Delete Toast */}
+      {deletedActivity && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="flex items-center gap-3 bg-gray-900 text-white rounded-full px-4 py-2.5 shadow-lg">
+            <Trash2 className="w-4 h-4 text-gray-400" />
+            <span className="text-sm">
+              &quot;{deletedActivity.activity.name}&quot; deleted
+            </span>
+            <button
+              onClick={handleUndoDelete}
+              className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors"
+            >
+              Undo
+            </button>
+            <button
+              onClick={() => setDeletedActivity(null)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating View Mode Toggle - Wanderlog style (always visible so user can navigate back) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
