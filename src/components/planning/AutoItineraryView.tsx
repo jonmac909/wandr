@@ -2091,9 +2091,9 @@ export default function AutoItineraryView({
           country: getCityCountry?.(city),
           tripStyle: tripDna?.vibeAndPace?.tripPace || 'balanced',
           interests: tripDna?.travelerProfile?.travelIdentities || [],
-          budget: tripDna?.budget?.dailyBudget || 'moderate',
-          mustHaves: tripDna?.travelerProfile?.mustHaves || [],
-          avoidances: tripDna?.travelerProfile?.avoidances || [],
+          budget: tripDna?.constraints?.budget?.dailySpend?.max
+            ? (tripDna.constraints.budget.dailySpend.max < 100 ? 'budget' : tripDna.constraints.budget.dailySpend.max > 300 ? 'luxury' : 'moderate')
+            : 'moderate',
         }),
       });
 
