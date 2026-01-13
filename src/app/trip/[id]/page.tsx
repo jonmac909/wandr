@@ -1199,23 +1199,9 @@ export default function TripPage() {
       }
     }
 
-    // Also check movements for transport costs that are marked as booked
-    if (itinerary.route?.movements) {
-      for (const movement of itinerary.route.movements) {
-        if (movement.cost?.amount) {
-          transport += movement.cost.amount;
-          transportItems.push({
-            id: movement.id || `movement-${movement.from}-${movement.to}`,
-            blockId: '',
-            dayId: '',
-            name: `${movement.transportType}: ${movement.from} → ${movement.to}`,
-            amount: movement.cost.amount,
-            currency: movement.cost.currency || 'USD',
-            category: 'transit',
-          });
-        }
-      }
-    }
+    // Note: Movement costs are NOT added here because flights/transit already
+    // appear as day activities with category 'flight' or 'transit'. Adding
+    // movements would cause double-counting.
 
     return {
       transport,
@@ -1237,20 +1223,13 @@ export default function TripPage() {
     let total = 0;
 
     // Sum all activity costs from days
+    // Note: This includes flights/transit which appear as day activities.
+    // We do NOT add movements separately as that would cause double-counting.
     for (const day of itinerary.days) {
       for (const block of day.blocks) {
         const activity = block.activity;
         if (activity?.cost?.amount) {
           total += activity.cost.amount;
-        }
-      }
-    }
-
-    // Also include movement costs
-    if (itinerary.route?.movements) {
-      for (const movement of itinerary.route.movements) {
-        if (movement.cost?.amount) {
-          total += movement.cost.amount;
         }
       }
     }
