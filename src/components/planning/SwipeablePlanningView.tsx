@@ -2991,10 +2991,12 @@ export function SwipeablePlanningView({
             const isLastInCountry = index < routeOrder.length - 1 && getCityCountry(routeOrder[index + 1]) !== country;
             const routeInfo = routeDistances[index];
 
-            // Get available cities to insert - include ALL selected cities for stopovers (allow duplicates)
+            // Get available cities to insert - include cities from routeOrder for stopovers (allow duplicates like Tokyo → Kyoto → Tokyo)
+            const uniqueRouteCities = [...new Set(routeOrder)];
             const availableCities = [
               ...parkedCities,
-              ...selectedCities.filter(c => !parkedCities.includes(c))
+              ...uniqueRouteCities.filter(c => !parkedCities.includes(c)),
+              ...selectedCities.filter(c => !parkedCities.includes(c) && !uniqueRouteCities.includes(c))
             ];
 
             return (
@@ -3131,8 +3133,8 @@ export function SwipeablePlanningView({
                         <div className="absolute left-1/2 -translate-x-1/2 top-6 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
                           <div className="text-xs text-muted-foreground mb-2">Add city here:</div>
                           <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {/* Show all selected cities - allow duplicates for stopovers (e.g., Tokyo → Kyoto → Tokyo) */}
-                            {[...parkedCities, ...selectedCities.filter(c => !parkedCities.includes(c))].map((c, i) => (
+                            {/* Show all cities in route - allow duplicates for stopovers (e.g., Tokyo → Kyoto → Tokyo) */}
+                            {availableCities.map((c, i) => (
                               <button
                                 key={`${c}-${i}`}
                                 onClick={() => {
@@ -3145,7 +3147,7 @@ export function SwipeablePlanningView({
                                 {c} {routeOrder.includes(c) && <span className="text-xs text-muted-foreground">(return)</span>}
                               </button>
                             ))}
-                            {[...parkedCities, ...selectedCities.filter(c => !parkedCities.includes(c))].length === 0 && (
+                            {availableCities.length === 0 && (
                               <div className="text-xs text-muted-foreground py-2 text-center">No cities available</div>
                             )}
                           </div>
