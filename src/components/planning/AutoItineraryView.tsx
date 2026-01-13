@@ -3553,56 +3553,55 @@ interface ActivityDetailDrawerProps {
 
 function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, onNext }: ActivityDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'photos'>('about');
+  const [fetchedHistory, setFetchedHistory] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  if (!activity) return null;
+  // Fetch real history from AI if not available
+  useEffect(() => {
+    if (!activity || activity.history || fetchedHistory) return;
 
-  // Generate rich description if history not available
-  const generateRichDescription = (): string => {
-    if (activity.history) return activity.history;
+    const fetchHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const response = await fetch('/api/place-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            placeName: activity.name,
+            city: activity.neighborhood,
+            type: activity.type,
+          }),
+        });
 
-    const name = activity.name;
-    const type = activity.type;
-    const neighborhood = activity.neighborhood || '';
-    const tags = activity.tags || [];
-
-    // Type-specific rich descriptions
-    const typeDescriptions: Record<string, string[]> = {
-      'attraction': [
-        `${name} stands as one of the most cherished landmarks in the area, drawing visitors from around the world who come to experience its timeless beauty and cultural significance. The site has been a focal point of local heritage for generations, offering a window into the rich traditions and artistic achievements of the region.`,
-        `A visit to ${name} offers an immersive journey through history and culture. This remarkable destination showcases exceptional architecture and craftsmanship that has been preserved through the centuries. Visitors often describe the experience as both enlightening and deeply moving.`,
-        `${name} represents the pinnacle of cultural heritage in ${neighborhood || 'the region'}. Originally established centuries ago, this site continues to captivate visitors with its stunning visual beauty and profound historical significance. The attention to detail in every corner reflects the dedication of generations of artisans and caretakers.`,
-      ],
-      'restaurant': [
-        `${name} has earned a devoted following among locals and travelers alike for its authentic culinary experience. The restaurant takes pride in using traditional recipes passed down through generations, creating dishes that tell the story of the region's gastronomic heritage. Each meal here is a celebration of local flavors and cooking techniques.`,
-        `Dining at ${name} is more than just a meal—it's a cultural immersion. The chefs here have perfected the art of balancing traditional techniques with fresh, locally-sourced ingredients. The warm atmosphere and attentive service make every visit memorable.`,
-        `${name} stands out in ${neighborhood || 'the local dining scene'} for its commitment to authenticity and quality. Whether you're sampling their signature dishes or exploring the seasonal menu, you'll discover flavors that reflect the true essence of the region's cuisine.`,
-      ],
-      'cafe': [
-        `${name} has become a beloved gathering spot where locals and visitors come together over exceptional coffee and thoughtfully prepared fare. The cafe's welcoming atmosphere invites you to slow down and savor the moment, whether you're enjoying a quiet morning or catching up with friends.`,
-        `Step into ${name} and you'll find a perfect blend of cozy ambiance and quality refreshments. This neighborhood gem has earned its reputation through consistent quality, friendly service, and an atmosphere that makes everyone feel at home.`,
-      ],
-      'activity': [
-        `${name} offers an unforgettable experience that combines adventure with cultural discovery. Participants consistently praise the knowledgeable guides and the unique perspective this activity provides on local traditions and landscapes.`,
-        `For those seeking authentic experiences, ${name} delivers an engaging journey that goes beyond typical tourist activities. You'll come away with deeper insights and lasting memories of your time in the region.`,
-      ],
-      'nightlife': [
-        `${name} comes alive after dark, offering an exciting atmosphere where locals and visitors mingle. The venue has established itself as a premier destination for those looking to experience the city's vibrant nightlife scene.`,
-        `When the sun sets, ${name} transforms into one of the most sought-after spots in ${neighborhood || 'town'}. The energy here is contagious, with great music, drinks, and an eclectic crowd that makes every night memorable.`,
-      ],
+        if (response.ok) {
+          const data = await response.json();
+          setFetchedHistory(data.history);
+        }
+      } catch (error) {
+        console.error('Failed to fetch history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
     };
 
-    const descriptions = typeDescriptions[type] || typeDescriptions['attraction'];
-    const randomIndex = Math.floor(name.length % descriptions.length);
+    fetchHistory();
+  }, [activity, fetchedHistory]);
 
-    return descriptions[randomIndex];
-  };
+  // Reset fetched history when activity changes
+  useEffect(() => {
+    setFetchedHistory(null);
+  }, [activity?.id]);
+
+  if (!activity) return null;
 
   // Use activity data or generate fallback mock data
   const googleRating = activity.rating || (4.3 + Math.random() * 0.6);
   const googleReviewCount = activity.reviewCount || Math.floor(1000 + Math.random() * 8000);
   const taRating = activity.tripadvisorRating || (4.0 + Math.random() * 0.8);
   const taReviewCount = activity.tripadvisorReviewCount || Math.floor(500 + Math.random() * 3000);
-  const richDescription = generateRichDescription();
+
+  // Use activity history, fetched history, or show loading
+  const richDescription = activity.history || fetchedHistory || null;
 
   // Day-by-day availability
   const DAY_ABBREVS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -3731,9 +3730,20 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
                   </svg>
                   <span className="text-sm font-medium text-amber-700">About this place</span>
                 </div>
-                <p className="text-sm text-amber-900 leading-relaxed">
-                  {richDescription}
-                </p>
+                {isLoadingHistory ? (
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    Loading historical information...
+                  </div>
+                ) : richDescription ? (
+                  <p className="text-sm text-amber-900 leading-relaxed">
+                    {richDescription}
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-700 italic">
+                    Historical information unavailable
+                  </p>
+                )}
               </div>
 
               {/* Dual ratings section */}
