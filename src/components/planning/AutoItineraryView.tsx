@@ -3510,13 +3510,76 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
 
   if (!activity) return null;
 
-  // Mock Google rating (in real app, this comes from Google Places API)
-  const googleRating = 4.5 + Math.random() * 0.4;
-  const reviewCount = Math.floor(1000 + Math.random() * 8000);
+  // Use activity data or generate fallback mock data
+  const googleRating = activity.rating || (4.3 + Math.random() * 0.6);
+  const googleReviewCount = activity.reviewCount || Math.floor(1000 + Math.random() * 8000);
+  const taRating = activity.tripadvisorRating || (4.0 + Math.random() * 0.8);
+  const taReviewCount = activity.tripadvisorReviewCount || Math.floor(500 + Math.random() * 3000);
+
+  // Day-by-day availability
+  const DAY_ABBREVS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const DAY_NAMES_FULL = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+  const getDayAvailability = (dayIdx: number): 'open' | 'closed' | 'unknown' => {
+    if (!activity.hoursPerDay) return 'unknown';
+    const dayName = DAY_NAMES_FULL[dayIdx];
+    const hours = activity.hoursPerDay[dayName];
+    if (!hours) return 'unknown';
+    if (hours.toLowerCase().includes('closed')) return 'closed';
+    return 'open';
+  };
+
+  // Star breakdown (mock distribution)
+  const getStarBreakdown = (rating: number): number[] => {
+    const r = rating;
+    return [
+      Math.round((r / 5) * 70),  // 5 stars
+      Math.round((r / 5) * 20),  // 4 stars
+      Math.round((r / 5) * 7),   // 3 stars
+      Math.round((r / 5) * 2),   // 2 stars
+      Math.round((r / 5) * 1),   // 1 star
+    ];
+  };
+
+  const renderStars = (rating: number, size: 'sm' | 'md' = 'sm') => {
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating - fullStars >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+    const starSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
+
+    return (
+      <div className="flex">
+        {Array.from({ length: fullStars }).map((_, i) => (
+          <Star key={`full-${i}`} className={`${starSize} fill-amber-400 text-amber-400`} />
+        ))}
+        {hasHalf && (
+          <div className="relative">
+            <Star className={`${starSize} text-gray-200`} />
+            <div className="absolute inset-0 overflow-hidden w-1/2">
+              <Star className={`${starSize} fill-amber-400 text-amber-400`} />
+            </div>
+          </div>
+        )}
+        {Array.from({ length: emptyStars }).map((_, i) => (
+          <Star key={`empty-${i}`} className={`${starSize} text-gray-200`} />
+        ))}
+      </div>
+    );
+  };
+
+  // Mock reviews if not provided
+  const reviews = activity.reviews || [
+    { source: 'google' as const, rating: 5, text: "Amazing experience! Highly recommend visiting.", author: "Sarah M.", date: "2 weeks ago" },
+    { source: 'tripadvisor' as const, rating: 4, text: "Beautiful place with great atmosphere. Can get crowded.", author: "TravelLover", date: "Jan 2025" },
+    { source: 'google' as const, rating: 5, text: "One of the highlights of our trip!", author: "Mike R.", date: "1 month ago" },
+  ];
+
+  const reviewSummary = activity.reviewSummary ||
+    `Visitors consistently praise ${activity.name} for its unique atmosphere and authentic experience. Most recommend arriving early to avoid crowds.`;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center sm:justify-end" onClick={onClose}>
-      <div className="bg-background w-full sm:w-96 sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col max-h-[85vh] sm:max-h-full" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-background w-full sm:w-[420px] sm:h-full rounded-t-2xl sm:rounded-none overflow-hidden flex flex-col max-h-[90vh] sm:max-h-full" onClick={(e) => e.stopPropagation()}>
         {/* Header with navigation */}
         <div className="flex items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
@@ -3539,7 +3602,7 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 text-sm font-medium capitalize ${
+              className={`flex-1 py-2.5 text-sm font-medium capitalize ${
                 activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
               }`}
             >
@@ -3549,9 +3612,9 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto">
           {activeTab === 'about' && (
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
               {/* Name + image */}
               <div className="flex gap-3">
                 <div className="flex-1">
@@ -3559,61 +3622,142 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
                     <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold">
                       {index}
                     </div>
-                    <h3 className="font-bold">{activity.name}</h3>
+                    <h3 className="font-bold text-lg">{activity.name}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{activity.description}</p>
                 </div>
-                <img src={activity.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                <img src={activity.imageUrl} alt="" className="w-20 h-20 rounded-lg object-cover" />
               </div>
 
               {/* Added button */}
               <Button variant="outline" size="sm" className="w-full">
                 <Check className="w-4 h-4 mr-2" />
-                Added
+                Added to itinerary
               </Button>
 
               {/* Category tags */}
               <div className="flex flex-wrap gap-1.5">
-                {(activity.tags || []).slice(0, 3).map(tag => (
+                {(activity.tags || []).slice(0, 4).map(tag => (
                   <Badge key={tag} variant="secondary" className="text-xs capitalize">
                     {tag}
                   </Badge>
                 ))}
               </div>
 
-              {/* Google rating */}
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="font-semibold">{googleRating.toFixed(1)}</span>
-                <span className="text-muted-foreground text-sm">({reviewCount.toLocaleString()})</span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">G</span>
+              {/* Dual ratings section */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                {/* Google rating */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center shadow-sm">
+                      <span className="text-xs font-bold text-blue-600">G</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold">{googleRating.toFixed(1)}</span>
+                        {renderStars(googleRating)}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{googleReviewCount.toLocaleString()} reviews</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TripAdvisor rating with breakdown */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center shadow-sm">
+                      <span className="text-xs font-bold text-green-600">TA</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold">{taRating.toFixed(1)}</span>
+                        {renderStars(taRating)}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{taReviewCount.toLocaleString()} reviews</span>
+                    </div>
+                  </div>
+                  {/* Star breakdown */}
+                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                    {[5, 4, 3, 2, 1].map((stars, idx) => (
+                      <div key={stars} className="flex items-center gap-1">
+                        <span className="w-3">{stars}</span>
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full"
+                            style={{ width: `${getStarBreakdown(taRating)[idx]}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Location */}
+              {/* Full address */}
               <div className="flex items-start gap-2 text-sm">
-                <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
-                <span>{activity.neighborhood}, Thailand</span>
+                <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">
+                  {activity.address || `${activity.neighborhood}, Thailand`}
+                </span>
               </div>
 
-              {/* Opening hours */}
-              {activity.openingHours && (
-                <div className="flex items-start gap-2 text-sm">
-                  <Clock className="w-4 h-4 mt-0.5 text-muted-foreground" />
-                  <span>Open {activity.openingHours}</span>
+              {/* Day-by-day availability */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">Hours</span>
+                </div>
+                <div className="flex gap-1">
+                  {DAY_ABBREVS.map((day, idx) => {
+                    const status = getDayAvailability(idx);
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          status === 'open' ? 'bg-green-100 text-green-700' :
+                          status === 'closed' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}
+                        title={`${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][idx]}: ${
+                          activity.hoursPerDay?.[DAY_NAMES_FULL[idx]] || 'Unknown'
+                        }`}
+                      >
+                        {day}
+                      </div>
+                    );
+                  })}
+                </div>
+                {activity.openingHours && (
+                  <p className="text-xs text-muted-foreground">Today: {activity.openingHours}</p>
+                )}
+              </div>
+
+              {/* Typical duration */}
+              {(activity.typicalDuration || activity.duration) && (
+                <div className="flex items-center gap-2 text-sm bg-blue-50 rounded-lg p-3">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span className="text-blue-700">
+                    {activity.typicalDuration || `People typically spend ${activity.duration} min here`}
+                  </span>
                 </div>
               )}
 
-              {/* Match reasons */}
+              {/* Match reasons - prominent display */}
               {(activity.matchReasons || []).length > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-700 text-sm">{activity.matchScore || 0}% match for you</span>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-green-700">{activity.matchScore || 0}% match</span>
+                      <span className="text-green-600 text-sm ml-1">for you</span>
+                    </div>
                   </div>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {(activity.matchReasons || []).map((reason, idx) => (
-                      <li key={idx} className="text-xs text-green-600 flex items-center gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-green-500" />
+                      <li key={idx} className="text-sm text-green-700 flex items-start gap-2">
+                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         {reason}
                       </li>
                     ))}
@@ -3624,19 +3768,59 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
           )}
 
           {activeTab === 'reviews' && (
-            <div className="text-center text-muted-foreground py-8">
-              <Star className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Reviews from Google Places</p>
-              <p className="text-xs">Coming soon</p>
+            <div className="p-4 space-y-4">
+              {/* AI Summary */}
+              <div className="bg-violet-50 border border-violet-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-violet-600" />
+                  <span className="font-medium text-violet-700 text-sm">AI Summary</span>
+                </div>
+                <p className="text-sm text-violet-800">{reviewSummary}</p>
+              </div>
+
+              {/* Individual reviews */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">Recent Reviews</h4>
+                {reviews.map((review, idx) => (
+                  <div key={idx} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
+                          review.source === 'google' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+                        }`}>
+                          {review.source === 'google' ? 'G' : 'TA'}
+                        </div>
+                        <span className="font-medium text-sm">{review.author}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{review.date}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {renderStars(review.rating)}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{review.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* View more link */}
+              <Button variant="outline" size="sm" className="w-full">
+                View all reviews on Google
+              </Button>
             </div>
           )}
 
           {activeTab === 'photos' && (
-            <div className="grid grid-cols-2 gap-2">
-              <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
-              <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover opacity-70" />
-              <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover opacity-50" />
-              <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover opacity-30" />
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-2">
+                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover col-span-2" />
+                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-3">
+                Photos from Google Places
+              </p>
             </div>
           )}
         </div>

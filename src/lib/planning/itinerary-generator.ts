@@ -13,12 +13,39 @@ export interface GeneratedActivity {
   // Scheduling
   suggestedTime?: string;        // "09:00"
   duration?: number;             // minutes
-  openingHours?: string;        // "8AM-6PM"
+  openingHours?: string;         // "8AM-6PM"
+  typicalDuration?: string;      // "People typically spend 1-2 hours here"
+
+  // Detailed hours by day (for day-by-day availability)
+  hoursPerDay?: {
+    monday?: string;      // "9:00 AM - 6:00 PM" or "Closed"
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+    saturday?: string;
+    sunday?: string;
+  };
 
   // Location
   neighborhood?: string;
+  address?: string;              // Full street address
   coordinates?: { lat: number; lng: number };
-  walkingTimeToNext?: number;   // minutes
+  walkingTimeToNext?: number;    // minutes
+
+  // Ratings & Reviews
+  rating?: number;               // Google rating (1-5)
+  reviewCount?: number;          // Number of Google reviews
+  tripadvisorRating?: number;    // TripAdvisor rating (1-5)
+  tripadvisorReviewCount?: number;
+  reviewSummary?: string;        // AI summary of reviews
+  reviews?: Array<{
+    source: 'google' | 'tripadvisor';
+    rating: number;
+    text: string;
+    author: string;
+    date: string;                // "2 weeks ago" or "Jan 2025"
+  }>;
 
   // Match info
   matchScore?: number;           // 0-100
@@ -336,7 +363,7 @@ For each day, provide ${targetActivities} activities/meals. Include:
 - 1 activity or casual experience
 - Consider time of day (temples morning, nightlife evening, etc.)
 
-Use REAL places that exist in ${allocation.city}. Be specific with neighborhoods.
+Use REAL places that exist in ${allocation.city}. Be specific with neighborhoods and addresses.
 
 Return ONLY valid JSON (no markdown, no explanation) with this structure:
 {
@@ -352,7 +379,39 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
           "suggestedTime": "09:00",
           "duration": 120,
           "openingHours": "8:30AM-3:30PM",
+          "typicalDuration": "People typically spend 2-3 hours here",
+          "hoursPerDay": {
+            "monday": "8:30 AM - 3:30 PM",
+            "tuesday": "8:30 AM - 3:30 PM",
+            "wednesday": "8:30 AM - 3:30 PM",
+            "thursday": "8:30 AM - 3:30 PM",
+            "friday": "8:30 AM - 3:30 PM",
+            "saturday": "8:30 AM - 3:30 PM",
+            "sunday": "8:30 AM - 3:30 PM"
+          },
           "neighborhood": "Rattanakosin",
+          "address": "Na Phra Lan Rd, Phra Borom Maha Ratchawang, Bangkok 10200",
+          "rating": 4.6,
+          "reviewCount": 45823,
+          "tripadvisorRating": 4.5,
+          "tripadvisorReviewCount": 32156,
+          "reviewSummary": "Visitors praise the stunning architecture and rich history, but note it can be crowded and hot. Best to arrive early morning.",
+          "reviews": [
+            {
+              "source": "google",
+              "rating": 5,
+              "text": "Absolutely stunning palace complex. The intricate details are incredible.",
+              "author": "Sarah M.",
+              "date": "2 weeks ago"
+            },
+            {
+              "source": "tripadvisor",
+              "rating": 4,
+              "text": "Beautiful but very crowded. Go early to avoid the heat and crowds.",
+              "author": "TravelLover123",
+              "date": "Jan 2025"
+            }
+          ],
           "priceRange": "$$",
           "matchScore": 92,
           "matchReasons": ["Matches your interest in history", "Must-see landmark"],
@@ -383,7 +442,16 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
             suggestedTime: string;
             duration: number;
             openingHours?: string;
+            typicalDuration?: string;
+            hoursPerDay?: GeneratedActivity['hoursPerDay'];
             neighborhood: string;
+            address?: string;
+            rating?: number;
+            reviewCount?: number;
+            tripadvisorRating?: number;
+            tripadvisorReviewCount?: number;
+            reviewSummary?: string;
+            reviews?: GeneratedActivity['reviews'];
             priceRange?: '$' | '$$' | '$$$' | '$$$$';
             matchScore: number;
             matchReasons: string[];
@@ -410,7 +478,16 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
             suggestedTime: activity.suggestedTime,
             duration: activity.duration,
             openingHours: activity.openingHours,
+            typicalDuration: activity.typicalDuration,
+            hoursPerDay: activity.hoursPerDay,
             neighborhood: activity.neighborhood,
+            address: activity.address,
+            rating: activity.rating,
+            reviewCount: activity.reviewCount,
+            tripadvisorRating: activity.tripadvisorRating,
+            tripadvisorReviewCount: activity.tripadvisorReviewCount,
+            reviewSummary: activity.reviewSummary,
+            reviews: activity.reviews,
             matchScore: activity.matchScore,
             matchReasons: activity.matchReasons,
             priceRange: activity.priceRange,
