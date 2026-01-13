@@ -2136,6 +2136,16 @@ export function SwipeablePlanningView({
 
   // ============ AUTO ITINERARY PHASE ============
   if (phase === 'auto-itinerary') {
+    // CRITICAL: Wait for IndexedDB to load before rendering AutoItineraryView
+    // Otherwise it will generate defaults before savedAllocations arrives
+    if (!persistenceLoaded) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      );
+    }
+
     const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
 
     return (
