@@ -379,22 +379,25 @@ function PlanPageContent() {
             setMustVisitPlaces(dna.interests.mustVisitPlaces);
           }
 
-          // Pre-fill duration
-          const days = dna.constraints?.duration?.days || 14;
-          if (days >= 30) {
-            setDurationType('months');
-            setDurationMonths(Math.round(days / 30));
-          } else if (days >= 7 && days % 7 === 0) {
-            setDurationType('weeks');
-            setDurationWeeks(Math.round(days / 7));
-          } else {
-            setDurationType('days');
-            setDurationDays(days);
-          }
+          // Pre-fill dates first
+          const savedStartDate = dna.constraints?.startDate;
+          const savedEndDate = dna.constraints?.endDate;
+          if (savedStartDate) setStartDate(savedStartDate);
+          if (savedEndDate) setEndDate(savedEndDate);
 
-          // Pre-fill dates
-          if (dna.constraints?.startDate) setStartDate(dna.constraints.startDate);
-          if (dna.constraints?.endDate) setEndDate(dna.constraints.endDate);
+          // Calculate duration from actual dates if both exist, otherwise use saved duration
+          let days = dna.constraints?.duration?.days || 14;
+          if (savedStartDate && savedEndDate) {
+            const start = new Date(savedStartDate);
+            const end = new Date(savedEndDate);
+            const calculatedDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            if (calculatedDays > 0) {
+              days = calculatedDays;
+              setDatesLocked(true); // Lock since we have explicit dates
+            }
+          }
+          setDurationType('days');
+          setDurationDays(days);
           if (dna.constraints?.dateFlexibility !== undefined) setDateFlexibility(dna.constraints.dateFlexibility);
 
           // Pre-fill pace
@@ -1267,7 +1270,7 @@ function PlanPageContent() {
             isTripLocked={false}
             controlledPhase={planningPhase}
             onPhaseChange={handlePlanningPhaseChange}
-            onDatesChange={(newStartDate, newTotalDays) => {
+            onDatesChange={async (newStartDate, newTotalDays) => {
               // Lock dates so useEffects don't override them
               setDatesLocked(true);
 
@@ -1278,11 +1281,39 @@ function PlanPageContent() {
               const start = new Date(newStartDate);
               const end = new Date(start);
               end.setDate(start.getDate() + newTotalDays - 1);
-              setEndDate(end.toISOString().split('T')[0]);
+              const newEndDate = end.toISOString().split('T')[0];
+              setEndDate(newEndDate);
 
               // Update duration to match (so actualDuration is correct when itinerary remounts)
               setDurationType('days');
               setDurationDays(newTotalDays);
+
+              // ALSO save to IndexedDB immediately so it persists
+              if (tripId) {
+                try {
+                  const existingTrip = await tripDb.get(tripId);
+                  if (existingTrip?.tripDna) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const existingDna = existingTrip.tripDna as any;
+                    const updatedDna = {
+                      ...existingDna,
+                      constraints: {
+                        ...existingDna.constraints,
+                        duration: { days: newTotalDays },
+                        startDate: newStartDate,
+                        endDate: newEndDate,
+                      },
+                    };
+                    await tripDb.save({
+                      ...existingTrip,
+                      tripDna: updatedDna,
+                      updatedAt: new Date(),
+                    });
+                  }
+                } catch (e) {
+                  console.error('Failed to save dates:', e);
+                }
+              }
             }}
             onSearchAI={(query, category) => {
               if (category === 'cities') {
