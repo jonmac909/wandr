@@ -1861,52 +1861,34 @@ export default function AutoItineraryView({
   // Computed end date
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
 
-  // Day allocation state (can be adjusted by user)
-  // IMPORTANT: Start with empty array. We'll populate it once we know if saved data exists.
-  // This prevents generating defaults that overwrite saved data before IndexedDB loads.
+  // Day allocation state - SIMPLE APPROACH:
+  // Use initialAllocations directly if available, otherwise generate defaults
+  // The key insight: initialAllocations comes from parent's savedAllocations state
+  // which is populated from IndexedDB BEFORE this component renders (because parent
+  // only renders us after persistenceLoaded=true)
   const [allocations, setAllocations] = useState<CityAllocation[]>(() => {
-    // Only use initialAllocations if parentLoadComplete is true (meaning IndexedDB has loaded)
-    // On first render, parentLoadComplete is false, so we start empty and let useEffect handle it
-    if (parentLoadComplete && initialAllocations && initialAllocations.length > 0) {
-      const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
-      const citiesMatch = cities.length === savedRouteCities.length &&
-        cities.every((c, i) => c === savedRouteCities[i]);
-      if (citiesMatch) {
-        return initialAllocations;
-      }
-    }
-    // Return empty - the cities useEffect will populate once parentLoadComplete is true
-    return [];
-  });
+    console.log('[AutoItinerary] useState init - initialAllocations:', initialAllocations?.length, 'parentLoadComplete:', parentLoadComplete);
 
-  // Track if we've successfully loaded saved allocations from parent
-  const [hasLoadedInitialAllocations, setHasLoadedInitialAllocations] = useState(false);
-
-  // Handle when initialAllocations arrives AFTER first render (from IndexedDB)
-  useEffect(() => {
-    console.log('[AutoItinerary] initialAllocations effect:', {
-      hasLoaded: hasLoadedInitialAllocations,
-      parentLoadComplete,
-      initialAllocations: initialAllocations?.map(a => `${a.city}:${a.nights}`),
-      cities
-    });
-
-    // If we already loaded, don't overwrite user changes
-    if (hasLoadedInitialAllocations) return;
-
+    // If parent has loaded and has saved allocations, use them
     if (initialAllocations && initialAllocations.length > 0) {
       const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
-      console.log('[AutoItinerary] citiesMatch:', citiesMatch, 'savedRouteCities:', savedRouteCities);
-
       if (citiesMatch) {
-        console.log('[AutoItinerary] LOADING saved allocations into state!');
-        setAllocations(initialAllocations);
-        setHasLoadedInitialAllocations(true);
+        console.log('[AutoItinerary] Using saved allocations from parent');
+        return initialAllocations;
       }
     }
-  }, [initialAllocations, cities, hasLoadedInitialAllocations, parentLoadComplete]);
+
+    // No saved allocations or cities don't match - generate defaults
+    console.log('[AutoItinerary] Generating default allocations');
+    return allocateDays(cities, initialTotalDays, tripDna, initialStartDate);
+  });
+
+  // Track if we loaded from saved data (to prevent regenerating on cities change)
+  const [hasLoadedFromSaved, setHasLoadedFromSaved] = useState(
+    () => initialAllocations && initialAllocations.length > 0
+  );
 
   // Generated days (mock for now)
   const [days, setDays] = useState<GeneratedDay[]>([]);
@@ -1959,27 +1941,20 @@ export default function AutoItineraryView({
     }
   };
 
-  // Only recalculate allocations from scratch when CITIES change
-  // When dates change, we just update the dates within existing allocations (preserving night counts)
-  // Guard: Don't overwrite if we've loaded saved allocations from IndexedDB
-  // Guard: Don't run until parent has finished loading (to give saved allocations a chance to arrive)
+  // Only recalculate allocations when CITIES actually change (not on mount)
+  // Guard: If we started with saved allocations, don't regenerate unless cities change
+  const [prevCities, setPrevCities] = useState(cities.join(','));
   useEffect(() => {
-    console.log('[AutoItinerary] cities useEffect:', { hasLoadedInitialAllocations, parentLoadComplete });
-    // Wait for parent to finish loading before generating defaults
-    // This gives saved allocations a chance to arrive first
-    if (!parentLoadComplete) {
-      console.log('[AutoItinerary] Waiting for parent to load before generating allocations');
-      return;
+    const currentCitiesKey = cities.join(',');
+    // Only regenerate if cities actually changed (not on initial mount)
+    if (currentCitiesKey !== prevCities) {
+      console.log('[AutoItinerary] Cities CHANGED, regenerating allocations');
+      setPrevCities(currentCitiesKey);
+      setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+      setHasLoadedFromSaved(false); // User changed cities, no longer using saved
     }
-    // If we've already loaded saved allocations, don't overwrite them
-    if (hasLoadedInitialAllocations) {
-      console.log('[AutoItinerary] Already loaded saved allocations, not regenerating');
-      return;
-    }
-    console.log('[AutoItinerary] No saved allocations, generating defaults');
-    setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cities.join(','), hasLoadedInitialAllocations, parentLoadComplete]); // Only cities - NOT dates or tripDna
+  }, [cities.join(',')]); // Only cities
 
   // When trip start date changes, recalculate dates within existing allocations (preserve night counts)
   useEffect(() => {
