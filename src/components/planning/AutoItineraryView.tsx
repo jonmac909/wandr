@@ -2302,6 +2302,7 @@ export default function AutoItineraryView({
 
   // AI-powered auto-fill for a single city's days (with fallback to mock data)
   const autoFillCityDays = async (city: string, nights: number) => {
+    console.log(`[AutoFill API] Requesting ${nights} days for ${city}`);
     try {
       const response = await fetch('/api/generate-itinerary', {
         method: 'POST',
@@ -2318,36 +2319,68 @@ export default function AutoItineraryView({
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to generate itinerary');
+      if (!response.ok) {
+        console.error(`[AutoFill API] Request failed with status ${response.status}`);
+        throw new Error('Failed to generate itinerary');
+      }
 
       const data = await response.json();
+      console.log(`[AutoFill API] Got ${data.days?.length || 0} days for ${city}:`,
+        data.days?.map((d: { dayNumber: number; theme?: string; activities: { name: string }[] }) =>
+          `Day ${d.dayNumber}: ${d.theme || 'no theme'} (${d.activities.length} activities: ${d.activities.map(a => a.name).slice(0, 2).join(', ')}...)`
+        )
+      );
+
       if (data.days && data.days.length > 0) {
+        // Verify we got different days - check if activities are actually different
+        if (data.days.length > 1) {
+          const day1Names = data.days[0].activities.map((a: { name: string }) => a.name).sort().join(',');
+          const day2Names = data.days[1].activities.map((a: { name: string }) => a.name).sort().join(',');
+          if (day1Names === day2Names) {
+            console.warn(`[AutoFill API] WARNING: Day 1 and Day 2 have identical activities!`);
+          }
+        }
         return data.days;
       }
       throw new Error('No days returned');
     } catch (error) {
-      console.error('AI itinerary failed, using mock data for', city, error);
+      console.error('[AutoFill API] AI itinerary failed, using mock data for', city, error);
       // Fallback to mock data
       return generateMockDaysForCity(city, nights);
     }
   };
 
   // Generate mock days as fallback when API fails
+  // FIX: Distribute activities across days instead of giving same activities to each day
   const generateMockDaysForCity = (city: string, nights: number) => {
     const cityActivities = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
     const days = [];
+    const activitiesPerDay = 3;
+
+    console.log(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} total activities`);
 
     for (let i = 0; i < nights; i++) {
-      const dayActivities = cityActivities.map((act, idx) => ({
-        ...act,
-        id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${i + 1}-${idx}-${Date.now()}`,
-      }));
+      // Calculate which activities to use for this day
+      // Rotate through activities so each day gets different ones
+      const startIdx = (i * activitiesPerDay) % cityActivities.length;
+      const dayActivities: GeneratedActivity[] = [];
+
+      for (let j = 0; j < activitiesPerDay; j++) {
+        const actIdx = (startIdx + j) % cityActivities.length;
+        const act = cityActivities[actIdx];
+        dayActivities.push({
+          ...act,
+          id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${i + 1}-${j}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        });
+      }
 
       days.push({
         dayNumber: i + 1,
         theme: i === 0 ? 'Highlights Day' : i === 1 ? 'Local Discovery' : 'Relaxed Exploration',
-        activities: dayActivities.slice(0, 3 + (i % 2)),
+        activities: dayActivities,
       });
+
+      console.log(`[Mock Data] Day ${i + 1}: ${dayActivities.map(a => a.name).join(', ')}`);
     }
 
     return days;
@@ -3174,8 +3207,8 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full text-left py-2"
       >
-        <div className="flex items-center gap-3">
-          <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+        <div className="flex items-start gap-3">
+          <ChevronRight className={`w-5 h-5 flex-shrink-0 text-muted-foreground transition-transform mt-1 ${isExpanded ? 'rotate-90' : ''}`} />
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div>
