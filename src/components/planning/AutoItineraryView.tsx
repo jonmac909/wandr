@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -1909,6 +1909,20 @@ export default function AutoItineraryView({
   // Full-screen map state
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
 
+  // Sidebar calendar - track which day is in view
+  const [activeDayNumber, setActiveDayNumber] = useState(1);
+  const dayRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to a specific day when clicking sidebar
+  const scrollToDay = useCallback((dayNumber: number) => {
+    const dayEl = dayRefs.current[dayNumber];
+    if (dayEl) {
+      dayEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveDayNumber(dayNumber);
+    }
+  }, []);
+
   // Flatten all activities for map navigation (with city/date info)
   const allActivitiesWithMeta = useMemo(() => {
     return days.flatMap(day => day.activities.map(activity => ({ ...activity, city: day.city, date: day.date })));
@@ -2290,24 +2304,59 @@ export default function AutoItineraryView({
   const getRecommendedNights = (city: string) => RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
 
   return (
-    <div className="space-y-4 pb-20">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold">Itinerary</h2>
+    <div className="flex">
+      {/* Sticky Sidebar Calendar - Wanderlog style */}
+      {!isLoading && viewMode !== 'map' && days.length > 0 && (
+        <div className="hidden md:block sticky top-0 h-screen w-16 flex-shrink-0 border-r bg-background">
+          <div className="flex flex-col items-center py-4 gap-1">
+            {days.map((day) => {
+              const date = parseLocalDate(day.date);
+              const monthShort = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+              const dayNum = date.getDate();
+              const isActive = activeDayNumber === day.dayNumber;
+              const cityIdx = allocations.findIndex(a => a.city === day.city);
+              const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
+
+              return (
+                <button
+                  key={day.dayNumber}
+                  onClick={() => scrollToDay(day.dayNumber)}
+                  className={`relative w-full py-1 text-center transition-colors hover:bg-muted ${
+                    isActive ? 'text-primary font-bold' : 'text-muted-foreground'
+                  }`}
+                >
+                  {/* Active indicator bar */}
+                  {isActive && (
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${color.bg}`} />
+                  )}
+                  <div className="text-[10px]">{monthShort}</div>
+                  <div className="text-sm">{dayNum}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <button
-          onClick={() => setIsDateEditorOpen(!isDateEditorOpen)}
-          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-        >
-          <Calendar className="w-4 h-4" />
-          {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
-          <ChevronDown className={`w-3 h-3 transition-transform ${isDateEditorOpen ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
+      )}
+
+      {/* Main Content */}
+      <div ref={contentRef} className="flex-1 space-y-4 pb-20 px-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 pt-4">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold">Itinerary</h2>
+          </div>
+          <button
+            onClick={() => setIsDateEditorOpen(!isDateEditorOpen)}
+            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${isDateEditorOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
 
       {/* Date Editor */}
       {isDateEditorOpen && (
@@ -2731,6 +2780,12 @@ export default function AutoItineraryView({
           <Map className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">No activities to show on map</p>
           <p className="text-sm text-gray-400">Auto-fill your trip to see activities</p>
+          <button
+            onClick={() => setViewMode('picture')}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"
+          >
+            Back to Itinerary
+          </button>
         </div>
       )}
 
@@ -2788,38 +2843,39 @@ export default function AutoItineraryView({
         onNext={() => navigateDrawer('next')}
       />
 
-      {/* Floating View Mode Toggle - Wanderlog style */}
-      {viewMode !== 'map' && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <div className="flex items-center gap-1 bg-gray-900 rounded-full px-1 py-1 shadow-lg">
-            <button
-              onClick={() => setViewMode('picture')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                viewMode === 'picture' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
-              }`}
-            >
-              <Image className="w-4 h-4" />
-              Picture
-            </button>
-            <button
-              onClick={() => setViewMode('compact')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                viewMode === 'compact' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              Compact
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white/80 hover:text-white transition-colors"
-            >
-              <Map className="w-4 h-4" />
-              Map
-            </button>
-          </div>
+      {/* Floating View Mode Toggle - Wanderlog style (always visible so user can navigate back) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <div className="flex items-center gap-1 bg-gray-900 rounded-full px-1 py-1 shadow-lg">
+          <button
+            onClick={() => setViewMode('picture')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              viewMode === 'picture' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
+            }`}
+          >
+            <Image className="w-4 h-4" />
+            Picture
+          </button>
+          <button
+            onClick={() => setViewMode('compact')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              viewMode === 'compact' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
+            }`}
+          >
+            <List className="w-4 h-4" />
+            Compact
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              viewMode === 'map' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
+            }`}
+          >
+            <Map className="w-4 h-4" />
+            Map
+          </button>
         </div>
-      )}
+      </div>
+      </div>{/* End Main Content */}
     </div>
   );
 }
@@ -2834,9 +2890,10 @@ interface DayCardProps {
   onActivityDelete: (activityId: string) => void;
   onAutoFill: () => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
+  dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill, isLoadingDay }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill, isLoadingDay, dayRef }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
