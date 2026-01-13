@@ -28,6 +28,8 @@ import {
   List,
   Plane,
   AlertCircle,
+  Paperclip,
+  Link2,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -3229,17 +3231,45 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                         {/* Closure/Warning badge */}
                         {warning && (
-                          <div className="mt-2 inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-sm">
+                          <div className="mt-2 inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-full text-sm">
                             <MapPin className="w-3.5 h-3.5" />
                             <span>{warning}</span>
                             <button
                               onClick={(e) => e.stopPropagation()}
-                              className="ml-1 text-red-400 hover:text-red-600"
+                              className="ml-1 text-amber-400 hover:text-amber-600"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
+
+                        {/* Action buttons row - Wanderlog style */}
+                        <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingTimeId(activity.id); }}
+                            className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
+                          >
+                            <Clock className="w-4 h-4" />
+                            {activity.suggestedTime || 'Add time'}
+                          </button>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
+                          >
+                            <Paperclip className="w-4 h-4" />
+                            Attach
+                            {activity.attachments && activity.attachments.length > 0 && (
+                              <span className="bg-violet-100 text-violet-700 px-1.5 rounded text-xs">{activity.attachments.length}</span>
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 hover:text-violet-600 transition-colors"
+                          >
+                            <DollarSign className="w-4 h-4" />
+                            {activity.userCost ? `$${activity.userCost}` : 'Add cost'}
+                          </button>
+                        </div>
                       </div>
                     </button>
                   </div>
@@ -3349,11 +3379,29 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                             {/* Closure warning */}
                             {warning && (
-                              <div className="mt-1.5 inline-flex items-center gap-1 bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-xs">
+                              <div className="mt-1.5 inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs">
                                 <MapPin className="w-3 h-3" />
                                 <span>{warning}</span>
                               </div>
                             )}
+
+                            {/* Quick action buttons */}
+                            <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 hover:text-violet-600"
+                              >
+                                <Paperclip className="w-3 h-3" />
+                                {activity.attachments?.length || 0}
+                              </button>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 hover:text-violet-600"
+                              >
+                                <DollarSign className="w-3 h-3" />
+                                {activity.userCost ? `$${activity.userCost}` : '-'}
+                              </button>
+                            </div>
                           </div>
 
                           {/* Reorder buttons */}

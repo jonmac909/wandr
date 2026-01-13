@@ -55,6 +55,15 @@ export interface GeneratedActivity {
   // Meta
   priceRange?: '$' | '$$' | '$$$' | '$$$$' | string;
   tags?: string[];
+
+  // User-added data
+  userCost?: number;             // User-entered cost in their currency
+  userNotes?: string;            // User notes
+  attachments?: Array<{
+    type: 'ticket' | 'reservation' | 'link' | 'document';
+    name: string;
+    url?: string;
+  }>;
 }
 
 export interface GeneratedDay {
