@@ -2081,12 +2081,15 @@ export default function AutoItineraryView({
 
   // Auto-fill a single day (uses cached city data or generates new)
   const [cityItineraryCache, setCityItineraryCache] = useState<Record<string, { dayNumber: number; theme?: string; activities: GeneratedActivity[] }[]>>({});
+  const [loadingDayNumber, setLoadingDayNumber] = useState<number | null>(null); // Track which day is loading (don't use global isLoading)
 
   const autoFillDay = async (dayNumber: number) => {
     const targetDay = days.find(d => d.dayNumber === dayNumber);
     if (!targetDay || targetDay.city.includes('Transit')) return;
 
-    setIsLoading(true);
+    // Use day-specific loading state instead of global isLoading
+    // This prevents the page from scrolling to top
+    setLoadingDayNumber(dayNumber);
 
     // Check if we have cached data for this city
     if (cityItineraryCache[targetDay.city]) {
@@ -2109,7 +2112,7 @@ export default function AutoItineraryView({
           return day;
         }));
       }
-      setIsLoading(false);
+      setLoadingDayNumber(null);
       return;
     }
 
@@ -2137,7 +2140,7 @@ export default function AutoItineraryView({
         return day;
       }));
     }
-    setIsLoading(false);
+    setLoadingDayNumber(null);
   };
 
   // Auto-fill entire trip with AI-generated itineraries
@@ -2498,37 +2501,6 @@ export default function AutoItineraryView({
         )}
       </div>
 
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-center gap-1 bg-muted/50 rounded-lg p-1">
-        <button
-          onClick={() => setViewMode('picture')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'picture' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Image className="w-4 h-4" />
-          Picture
-        </button>
-        <button
-          onClick={() => setViewMode('compact')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'compact' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <List className="w-4 h-4" />
-          Compact
-        </button>
-        <button
-          onClick={() => setViewMode('map')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'map' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Map className="w-4 h-4" />
-          Map
-        </button>
-      </div>
-
       {/* Auto-fill entire trip button */}
       <Button
         variant="default"
@@ -2768,6 +2740,7 @@ export default function AutoItineraryView({
             onActivityTap={handleActivityTap}
             onActivityDelete={handleActivityDelete}
             onAutoFill={() => autoFillDay(day.dayNumber)}
+            isLoadingDay={loadingDayNumber === day.dayNumber}
           />
         );
       })}
@@ -2806,6 +2779,39 @@ export default function AutoItineraryView({
         onPrev={() => navigateDrawer('prev')}
         onNext={() => navigateDrawer('next')}
       />
+
+      {/* Floating View Mode Toggle - Wanderlog style */}
+      {viewMode !== 'map' && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <div className="flex items-center gap-1 bg-gray-900 rounded-full px-1 py-1 shadow-lg">
+            <button
+              onClick={() => setViewMode('picture')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                viewMode === 'picture' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
+              }`}
+            >
+              <Image className="w-4 h-4" />
+              Picture
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                viewMode === 'compact' ? 'bg-white text-gray-900' : 'text-white/80 hover:text-white'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Compact
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white/80 hover:text-white transition-colors"
+            >
+              <Map className="w-4 h-4" />
+              Map
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2819,9 +2825,10 @@ interface DayCardProps {
   onActivityTap: (activity: GeneratedActivity, index: number) => void;
   onActivityDelete: (activityId: string) => void;
   onAutoFill: () => void;
+  isLoadingDay?: boolean; // True when this specific day is being auto-filled
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAutoFill, isLoadingDay }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
@@ -2833,11 +2840,11 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
   const totalMiles = day.activities.reduce((sum, a) => sum + (a.walkingTimeToNext || 0) * 0.05, 0);
 
   return (
-    <div className="border-b pb-6">
+    <div className="border-b pb-2">
       {/* Day header - clickable to expand/collapse */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full text-left py-4"
+        className="w-full text-left py-2"
       >
         <div className="flex items-center gap-3">
           <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
@@ -2865,10 +2872,20 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onAuto
           <div className="flex items-center gap-4 text-sm ml-8">
             <button
               onClick={onAutoFill}
-              className="flex items-center gap-1.5 text-primary font-medium hover:underline"
+              disabled={isLoadingDay}
+              className="flex items-center gap-1.5 text-primary font-medium hover:underline disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4" />
-              Auto-fill day
+              {isLoadingDay ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Auto-fill day
+                </>
+              )}
             </button>
             {!isEmpty && (
               <>
