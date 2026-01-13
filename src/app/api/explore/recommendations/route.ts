@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic();
+// API key from environment (same pattern as chat route)
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 // Interest labels for the AI prompt
 const INTEREST_DESCRIPTIONS: Record<string, string> = {
@@ -17,10 +17,17 @@ const INTEREST_DESCRIPTIONS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'Anthropic API key not configured on server.', places: [] },
+        { status: 401 }
+      );
+    }
+
     const { city, category, interests } = await request.json();
 
     if (!city) {
-      return NextResponse.json({ error: 'City is required' }, { status: 400 });
+      return NextResponse.json({ error: 'City is required', places: [] }, { status: 400 });
     }
 
     const categoryFilter = category
@@ -72,19 +79,39 @@ Include:
 
 IMPORTANT: Return ONLY the JSON object, no other text.`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+    // Use direct fetch like chat route (SDK may not work in Cloudflare Workers)
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Claude API error:', response.status, errorText);
+      return NextResponse.json(
+        { error: `Claude API error: ${response.status}`, places: [] },
+        { status: 500 }
+      );
+    }
+
+    const message = await response.json();
+
     // Extract text content
-    const textContent = message.content.find(block => block.type === 'text');
+    const textContent = message.content?.find((block: { type: string }) => block.type === 'text');
     if (!textContent || textContent.type !== 'text') {
       throw new Error('No text response from AI');
     }
@@ -102,7 +129,6 @@ IMPORTANT: Return ONLY the JSON object, no other text.`;
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error generating recommendations:', error);
-    // Return more details for debugging
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: `Failed to generate recommendations: ${errorMessage}`, places: [] },
