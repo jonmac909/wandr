@@ -496,9 +496,12 @@ function PlanPageContent() {
   // Ref to prevent useEffects from overriding dates when syncing from itinerary
   const syncingFromItinerary = useRef(false);
 
-  // Auto-calculate end date based on duration
+  // Track if dates have been explicitly set (by user or itinerary) - don't auto-recalculate
+  const [datesLocked, setDatesLocked] = useState(false);
+
+  // Auto-calculate end date based on duration (ONLY if dates aren't locked)
   useEffect(() => {
-    if (!startDate || endDateSource === 'manual' || syncingFromItinerary.current) return;
+    if (!startDate || endDateSource === 'manual' || syncingFromItinerary.current || datesLocked) return;
 
     const start = new Date(startDate);
     let end: Date;
@@ -518,9 +521,9 @@ function PlanPageContent() {
     setEndDate(formatted);
   }, [startDate, durationType, durationDays, durationWeeks, durationMonths, endDateSource]);
 
-  // Recalculate duration when end date is manually changed
+  // Recalculate duration when end date is manually changed (ONLY if dates aren't locked)
   useEffect(() => {
-    if (endDateSource !== 'manual' || !startDate || !endDate || syncingFromItinerary.current) return;
+    if (endDateSource !== 'manual' || !startDate || !endDate || syncingFromItinerary.current || datesLocked) return;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -981,26 +984,26 @@ function PlanPageContent() {
               <div>
                 <div className="text-sm text-muted-foreground mb-2">How long?</div>
                 <div className="flex gap-2 mb-3">
-                  <Button variant={durationType === 'days' ? 'default' : 'outline'} size="sm" onClick={() => setDurationType('days')}>Days</Button>
-                  <Button variant={durationType === 'weeks' ? 'default' : 'outline'} size="sm" onClick={() => setDurationType('weeks')}>Weeks</Button>
-                  <Button variant={durationType === 'months' ? 'default' : 'outline'} size="sm" onClick={() => setDurationType('months')}>Months</Button>
+                  <Button variant={durationType === 'days' ? 'default' : 'outline'} size="sm" onClick={() => { setDatesLocked(false); setDurationType('days'); }}>Days</Button>
+                  <Button variant={durationType === 'weeks' ? 'default' : 'outline'} size="sm" onClick={() => { setDatesLocked(false); setDurationType('weeks'); }}>Weeks</Button>
+                  <Button variant={durationType === 'months' ? 'default' : 'outline'} size="sm" onClick={() => { setDatesLocked(false); setDurationType('months'); }}>Months</Button>
                 </div>
 
                 {durationType === 'days' && (
                   <div>
-                    <Slider value={[durationDays]} onValueChange={([v]) => setDurationDays(v)} min={1} max={14} step={1} className="mb-2" />
+                    <Slider value={[durationDays]} onValueChange={([v]) => { setDatesLocked(false); setDurationDays(v); }} min={1} max={14} step={1} className="mb-2" />
                     <div className="text-center text-sm font-medium">{getDurationLabel()}</div>
                   </div>
                 )}
                 {durationType === 'weeks' && (
                   <div>
-                    <Slider value={[durationWeeks]} onValueChange={([v]) => setDurationWeeks(v)} min={1} max={8} step={1} className="mb-2" />
+                    <Slider value={[durationWeeks]} onValueChange={([v]) => { setDatesLocked(false); setDurationWeeks(v); }} min={1} max={8} step={1} className="mb-2" />
                     <div className="text-center text-sm font-medium">{getDurationLabel()}</div>
                   </div>
                 )}
                 {durationType === 'months' && (
                   <div>
-                    <Slider value={[durationMonths]} onValueChange={([v]) => setDurationMonths(v)} min={1} max={12} step={1} className="mb-2" />
+                    <Slider value={[durationMonths]} onValueChange={([v]) => { setDatesLocked(false); setDurationMonths(v); }} min={1} max={12} step={1} className="mb-2" />
                     <div className="text-center text-sm font-medium">{getDurationLabel()}</div>
                   </div>
                 )}
@@ -1012,11 +1015,11 @@ function PlanPageContent() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">Start date</label>
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background" />
+                    <Input type="date" value={startDate} onChange={(e) => { setDatesLocked(true); setStartDate(e.target.value); }} className="bg-background" />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">End date</label>
-                    <Input type="date" value={endDate} onChange={(e) => { setEndDateSource('manual'); setEndDate(e.target.value); }} min={startDate} className="bg-background" />
+                    <Input type="date" value={endDate} onChange={(e) => { setDatesLocked(true); setEndDate(e.target.value); }} min={startDate} className="bg-background" />
                   </div>
                 </div>
               </div>
@@ -1265,8 +1268,8 @@ function PlanPageContent() {
             controlledPhase={planningPhase}
             onPhaseChange={handlePlanningPhaseChange}
             onDatesChange={(newStartDate, newTotalDays) => {
-              // Prevent useEffects from overriding these dates
-              syncingFromItinerary.current = true;
+              // Lock dates so useEffects don't override them
+              setDatesLocked(true);
 
               // Sync dates back to plan page state
               setStartDate(newStartDate);
@@ -1280,11 +1283,6 @@ function PlanPageContent() {
               // Update duration to match (so actualDuration is correct when itinerary remounts)
               setDurationType('days');
               setDurationDays(newTotalDays);
-
-              // Clear the sync flag after React processes the state updates
-              setTimeout(() => {
-                syncingFromItinerary.current = false;
-              }, 0);
             }}
             onSearchAI={(query, category) => {
               if (category === 'cities') {
