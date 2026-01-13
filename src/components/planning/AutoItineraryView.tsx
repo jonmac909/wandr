@@ -440,18 +440,18 @@ export default function AutoItineraryView({
   };
 
   // Adjust allocation for a city - NO auto-balancing, user controls each city independently
-  // Set allocation to a specific number of nights
-  const setAllocationNights = (city: string, nights: number) => {
+  // Set allocation to a specific number of nights (by index to support duplicate cities)
+  const setAllocationNights = (allocIndex: number, nights: number) => {
     const newNights = Math.max(1, Math.min(99, nights)); // Clamp between 1 and 99
-    adjustAllocation(city, newNights - (allocations.find(a => a.city === city)?.nights || 0));
+    const currentNights = allocations[allocIndex]?.nights || 0;
+    adjustAllocation(allocIndex, newNights - currentNights);
   };
 
-  const adjustAllocation = (city: string, delta: number) => {
+  const adjustAllocation = (allocIndex: number, delta: number) => {
     setAllocations(prev => {
-      const cityIndex = prev.findIndex(a => a.city === city);
-      if (cityIndex === -1) return prev;
+      if (allocIndex < 0 || allocIndex >= prev.length) return prev;
 
-      const currentCity = prev[cityIndex];
+      const currentCity = prev[allocIndex];
       const newNights = Math.max(1, currentCity.nights + delta);
 
       // If no actual change, return as-is
@@ -459,7 +459,7 @@ export default function AutoItineraryView({
 
       // Just update this city's nights - no balancing with other cities
       const newAllocations = prev.map((a, idx) => {
-        if (idx === cityIndex) {
+        if (idx === allocIndex) {
           return { ...a, nights: newNights };
         }
         return a;
@@ -611,10 +611,10 @@ export default function AutoItineraryView({
         {/* City allocations - only show when expanded */}
         {isDurationExpanded && (
           <div className="px-4 pb-4 space-y-2">
-            {allocations.map((alloc) => {
+            {allocations.map((alloc, allocIndex) => {
               const recommended = getRecommendedNights(alloc.city);
               return (
-                <div key={alloc.city} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
                   <div className="w-2 h-8 rounded-full bg-primary/60" />
                   <div className="flex-1">
                     <div className="font-medium text-sm">
@@ -632,7 +632,7 @@ export default function AutoItineraryView({
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0"
-                      onClick={(e) => { e.stopPropagation(); adjustAllocation(alloc.city, -1); }}
+                      onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
                       disabled={alloc.nights <= 1}
                     >
                       <Minus className="w-3 h-3" />
@@ -644,7 +644,7 @@ export default function AutoItineraryView({
                       value={alloc.nights}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val)) setAllocationNights(alloc.city, val);
+                        if (!isNaN(val)) setAllocationNights(allocIndex, val);
                       }}
                       onClick={(e) => e.stopPropagation()}
                       className="w-10 text-center font-semibold text-sm bg-transparent border border-transparent hover:border-muted-foreground/30 focus:border-primary focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -653,7 +653,7 @@ export default function AutoItineraryView({
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0"
-                      onClick={(e) => { e.stopPropagation(); adjustAllocation(alloc.city, 1); }}
+                      onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
                     >
                       <Plus className="w-3 h-3" />
                     </Button>
