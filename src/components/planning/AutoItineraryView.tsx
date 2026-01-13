@@ -27,6 +27,7 @@ import {
   Image,
   List,
   Plane,
+  AlertCircle,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -47,6 +48,55 @@ const DAY_COLORS = [
   { bg: 'bg-emerald-500', light: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
   { bg: 'bg-blue-500', light: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
 ];
+
+// Day names for closure checking
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Check if a place is closed on a given date and return any warnings
+function getActivityWarnings(activity: GeneratedActivity, dateStr: string): string | null {
+  if (!activity.openingHours) return null;
+
+  const hours = activity.openingHours.toLowerCase();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const dayOfWeek = date.getDay();
+  const dayName = DAY_NAMES[dayOfWeek].toLowerCase();
+  const dayAbbrev = DAY_ABBREVS[dayOfWeek].toLowerCase();
+  const dayNameFull = DAY_NAMES[dayOfWeek];
+
+  // Check for "Closed [Day]" patterns
+  if (hours.includes(`closed ${dayName}`) ||
+      hours.includes(`closed on ${dayName}`) ||
+      hours.includes(`closed ${dayAbbrev}`)) {
+    return `Closed on ${dayNameFull}`;
+  }
+
+  // Check for "Closed Mondays" plural pattern
+  if (hours.includes(`closed ${dayName}s`)) {
+    return `Closed on ${dayNameFull}s`;
+  }
+
+  // Check for specific day patterns like "Mon-Fri only" (closed on weekends)
+  if (hours.includes('mon-fri') && (dayOfWeek === 0 || dayOfWeek === 6)) {
+    return `Closed on ${dayNameFull} (weekdays only)`;
+  }
+
+  // Check for weekend-only places
+  if ((hours.includes('sat-sun') || hours.includes('weekends')) && dayOfWeek >= 1 && dayOfWeek <= 5) {
+    return `Closed on ${dayNameFull} (weekends only)`;
+  }
+
+  // Check for "Saturday Market" or similar - only open on specific days
+  if (activity.name.toLowerCase().includes('saturday') && dayOfWeek !== 6) {
+    return `Only open on Saturdays`;
+  }
+  if (activity.name.toLowerCase().includes('sunday') && dayOfWeek !== 0) {
+    return `Only open on Sundays`;
+  }
+
+  return null;
+}
 
 interface AutoItineraryViewProps {
   cities: string[];
@@ -3128,6 +3178,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
               {day.activities.map((activity, idx) => {
                 const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
                 const walkingMiles = (walkingTime * 0.05).toFixed(2);
+                const warning = getActivityWarnings(activity, day.date);
 
                 return (
                   <div key={activity.id}>
@@ -3174,9 +3225,23 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       <div className="mt-2">
                         <h4 className="font-bold text-lg text-gray-900">{activity.name}</h4>
                         <p className="text-sm text-gray-600 mt-1">
-                          {activity.openingHours && <span>Open {activity.openingHours} • </span>}
+                          {activity.openingHours && <span>{activity.openingHours} • </span>}
                           {activity.description}
                         </p>
+
+                        {/* Closure/Warning badge */}
+                        {warning && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-sm">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{warning}</span>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="ml-1 text-red-400 hover:text-red-600"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </button>
                   </div>
@@ -3199,6 +3264,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                     ? `${hour === 12 ? 12 : hour - 12}:${timeStr.split(':')[1] || '00'} PM`
                     : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
                   const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
+                  const warning = getActivityWarnings(activity, day.date);
 
                   return (
                     <div key={activity.id}>
@@ -3282,6 +3348,14 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                             <p className="text-xs text-gray-500 mt-1.5">
                               {activity.duration || 60} min · {activity.neighborhood || day.city}
                             </p>
+
+                            {/* Closure warning */}
+                            {warning && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-xs">
+                                <MapPin className="w-3 h-3" />
+                                <span>{warning}</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Reorder buttons */}
