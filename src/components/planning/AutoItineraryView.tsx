@@ -1983,6 +1983,7 @@ export default function AutoItineraryView({
 
   // Full-screen map state
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
+  const [mapSelectedDay, setMapSelectedDay] = useState(1); // Which day to show in map view
 
   // Sidebar calendar - track which day is in view
   const [activeDayNumber, setActiveDayNumber] = useState(1);
@@ -2002,6 +2003,11 @@ export default function AutoItineraryView({
   const allActivitiesWithMeta = useMemo(() => {
     return days.flatMap(day => day.activities.map(activity => ({ ...activity, city: day.city, date: day.date, dayNumber: day.dayNumber })));
   }, [days]);
+
+  // Activities for the selected day in map view
+  const mapDayActivities = useMemo(() => {
+    return allActivitiesWithMeta.filter(a => a.dayNumber === mapSelectedDay);
+  }, [allActivitiesWithMeta, mapSelectedDay]);
 
   // Get all activities for drawer navigation
   const allActivities = days.flatMap(d => d.activities);
@@ -2743,37 +2749,62 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Full-screen Map View with Activity Markers */}
+      {/* Full-screen Map View with Activity Markers - PER DAY */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          {/* Header bar with back button */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm z-[1001]">
-            <button
-              onClick={() => setViewMode('picture')}
-              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              Back to itinerary
-            </button>
-            <span className="text-sm font-medium text-gray-500">Map View</span>
-            <div className="w-24" /> {/* Spacer for centering */}
+          {/* Day tabs - scrollable horizontal */}
+          <div className="flex-shrink-0 bg-white border-b shadow-sm z-[1001]">
+            <div className="overflow-x-auto px-2 py-2">
+              <div className="flex gap-1" style={{ minWidth: 'max-content' }}>
+                {days.map((day) => {
+                  const cityIdx = allocations.findIndex(a => a.city === day.city);
+                  const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
+                  const isSelected = mapSelectedDay === day.dayNumber;
+                  const activityCount = day.activities.length;
+
+                  return (
+                    <button
+                      key={day.dayNumber}
+                      onClick={() => {
+                        setMapSelectedDay(day.dayNumber);
+                        setMapSelectedIndex(0); // Reset to first activity when switching days
+                      }}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                        isSelected
+                          ? `${color.bg} text-white`
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Day {day.dayNumber}
+                      {activityCount > 0 && (
+                        <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                          isSelected ? 'bg-white/20' : 'bg-gray-200'
+                        }`}>
+                          {activityCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* Map with activity markers */}
+          {/* Map with activity markers - only for selected day */}
           <div className="flex-1 relative">
             <ActivityMap
-              days={days}
-              selectedActivityId={allActivitiesWithMeta[mapSelectedIndex]?.id}
-              onActivitySelect={(activity, dayNumber) => {
-                const idx = allActivitiesWithMeta.findIndex(a => a.id === activity.id);
+              days={days.filter(d => d.dayNumber === mapSelectedDay)}
+              selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
+              onActivitySelect={(activity) => {
+                const idx = mapDayActivities.findIndex(a => a.id === activity.id);
                 if (idx >= 0) setMapSelectedIndex(idx);
               }}
             />
           </div>
 
-          {/* Bottom activity card */}
-          {allActivitiesWithMeta[mapSelectedIndex] && (
-            <div className="absolute bottom-0 left-0 right-0 bg-white border-t rounded-t-2xl shadow-2xl z-[1001]" style={{ maxHeight: '35%' }}>
+          {/* Bottom activity card - only if there are activities */}
+          {mapDayActivities.length > 0 && mapDayActivities[mapSelectedIndex] && (
+            <div className="absolute bottom-16 left-0 right-0 bg-white border-t rounded-t-2xl shadow-2xl z-[1001]" style={{ maxHeight: '30%' }}>
               {/* Navigation arrows */}
               <div className="absolute -top-12 left-0 right-0 flex items-center justify-center gap-2 px-4">
                 <button
@@ -2784,11 +2815,11 @@ export default function AutoItineraryView({
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <span className="px-3 py-1.5 bg-white rounded-full shadow-lg text-sm font-medium">
-                  {mapSelectedIndex + 1} of {allActivitiesWithMeta.length}
+                  {mapSelectedIndex + 1} of {mapDayActivities.length}
                 </span>
                 <button
-                  onClick={() => setMapSelectedIndex(Math.min(allActivitiesWithMeta.length - 1, mapSelectedIndex + 1))}
-                  disabled={mapSelectedIndex === allActivitiesWithMeta.length - 1}
+                  onClick={() => setMapSelectedIndex(Math.min(mapDayActivities.length - 1, mapSelectedIndex + 1))}
+                  disabled={mapSelectedIndex === mapDayActivities.length - 1}
                   className="p-2 bg-white rounded-full shadow-lg disabled:opacity-50"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -2802,29 +2833,29 @@ export default function AutoItineraryView({
                     {mapSelectedIndex + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-lg truncate">{allActivitiesWithMeta[mapSelectedIndex].name}</h3>
+                    <h3 className="font-bold text-lg truncate">{mapDayActivities[mapSelectedIndex].name}</h3>
                     <p className="text-gray-500 text-sm">
-                      Day {allActivitiesWithMeta[mapSelectedIndex].dayNumber} • {allActivitiesWithMeta[mapSelectedIndex].neighborhood}
+                      {mapDayActivities[mapSelectedIndex].neighborhood}
                     </p>
                     <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
-                      {allActivitiesWithMeta[mapSelectedIndex].openingHours && (
+                      {mapDayActivities[mapSelectedIndex].openingHours && (
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {allActivitiesWithMeta[mapSelectedIndex].openingHours}
+                          {mapDayActivities[mapSelectedIndex].openingHours}
                         </span>
                       )}
-                      {allActivitiesWithMeta[mapSelectedIndex].rating && (
+                      {mapDayActivities[mapSelectedIndex].rating && (
                         <span className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                          {allActivitiesWithMeta[mapSelectedIndex].rating.toFixed(1)}
+                          {mapDayActivities[mapSelectedIndex].rating.toFixed(1)}
                         </span>
                       )}
                     </div>
                   </div>
-                  {allActivitiesWithMeta[mapSelectedIndex].imageUrl && (
+                  {mapDayActivities[mapSelectedIndex].imageUrl && (
                     <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                       <img
-                        src={allActivitiesWithMeta[mapSelectedIndex].imageUrl}
+                        src={mapDayActivities[mapSelectedIndex].imageUrl}
                         alt=""
                         className="w-full h-full object-cover"
                       />
@@ -2835,7 +2866,7 @@ export default function AutoItineraryView({
                 {/* Open in maps buttons */}
                 <div className="flex gap-2 mt-4">
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(allActivitiesWithMeta[mapSelectedIndex].name + ' ' + (allActivitiesWithMeta[mapSelectedIndex].city || ''))}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
@@ -2843,7 +2874,7 @@ export default function AutoItineraryView({
                     Google Maps
                   </a>
                   <a
-                    href={`https://maps.apple.com/?q=${encodeURIComponent(allActivitiesWithMeta[mapSelectedIndex].name + ' ' + (allActivitiesWithMeta[mapSelectedIndex].city || ''))}`}
+                    href={`https://maps.apple.com/?q=${encodeURIComponent(mapDayActivities[mapSelectedIndex].name + ' ' + (mapDayActivities[mapSelectedIndex].city || ''))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2 bg-gray-100 rounded-lg text-sm font-medium text-center hover:bg-gray-200"
@@ -2854,21 +2885,77 @@ export default function AutoItineraryView({
               </div>
             </div>
           )}
+
+          {/* Empty state for day with no activities */}
+          {mapDayActivities.length === 0 && (
+            <div className="absolute bottom-16 left-4 right-4 bg-white rounded-xl shadow-lg p-4 text-center z-[1001]">
+              <p className="text-gray-500 text-sm">No activities for Day {mapSelectedDay}</p>
+              <p className="text-gray-400 text-xs mt-1">Add activities to see them on the map</p>
+            </div>
+          )}
+
+          {/* View switcher at bottom - ALWAYS visible */}
+          <div className="flex-shrink-0 bg-gray-900/90 backdrop-blur-sm z-[1002]">
+            <div className="flex justify-center gap-1 p-3">
+              <button
+                onClick={() => setViewMode('picture')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors text-white/80 hover:text-white"
+              >
+                <Image className="w-4 h-4" />
+                Picture
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors text-white/80 hover:text-white"
+              >
+                <List className="w-4 h-4" />
+                Compact
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-white text-gray-900"
+              >
+                <Map className="w-4 h-4" />
+                Map
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Empty state for map view */}
       {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length === 0 && (
-        <div className="text-center py-12">
-          <Map className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No activities to show on map</p>
-          <p className="text-sm text-gray-400">Auto-fill your trip to see activities</p>
-          <button
-            onClick={() => setViewMode('picture')}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"
-          >
-            Back to Itinerary
-          </button>
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <Map className="w-12 h-12 text-gray-300 mb-3" />
+            <p className="text-gray-500">No activities to show on map</p>
+            <p className="text-sm text-gray-400">Auto-fill your trip to see activities</p>
+          </div>
+
+          {/* View switcher at bottom */}
+          <div className="flex-shrink-0 bg-gray-900/90 backdrop-blur-sm z-[1002]">
+            <div className="flex justify-center gap-1 p-3">
+              <button
+                onClick={() => setViewMode('picture')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors text-white/80 hover:text-white"
+              >
+                <Image className="w-4 h-4" />
+                Picture
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors text-white/80 hover:text-white"
+              >
+                <List className="w-4 h-4" />
+                Compact
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-white text-gray-900"
+              >
+                <Map className="w-4 h-4" />
+                Map
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
