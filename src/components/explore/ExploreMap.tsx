@@ -164,6 +164,22 @@ export default function ExploreMap({ places, onPlaceClick, selectedPlaceId }: Ex
   return (
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
+
+      {/* Legend */}
+      {places.length > 0 && (
+        <div className="absolute bottom-24 left-4 bg-white rounded-lg shadow-lg p-3 z-[1000]">
+          <div className="text-xs font-medium text-gray-500 mb-2">Categories</div>
+          {Object.entries(TYPE_COLORS).map(([type, color]) => (
+            <div key={type} className="flex items-center gap-2 text-sm">
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-gray-700 capitalize">{type}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
