@@ -413,6 +413,12 @@ export default function AutoItineraryView({
   };
 
   // Adjust allocation for a city - NO auto-balancing, user controls each city independently
+  // Set allocation to a specific number of nights
+  const setAllocationNights = (city: string, nights: number) => {
+    const newNights = Math.max(1, Math.min(99, nights)); // Clamp between 1 and 99
+    adjustAllocation(city, newNights - (allocations.find(a => a.city === city)?.nights || 0));
+  };
+
   const adjustAllocation = (city: string, delta: number) => {
     setAllocations(prev => {
       const cityIndex = prev.findIndex(a => a.city === city);
@@ -602,9 +608,18 @@ export default function AutoItineraryView({
                     >
                       <Minus className="w-3 h-3" />
                     </Button>
-                    <span className="w-8 text-center font-semibold text-sm">
-                      {alloc.nights}
-                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      value={alloc.nights}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val)) setAllocationNights(alloc.city, val);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-10 text-center font-semibold text-sm bg-transparent border border-transparent hover:border-muted-foreground/30 focus:border-primary focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

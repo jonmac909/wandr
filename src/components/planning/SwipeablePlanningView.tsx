@@ -437,22 +437,36 @@ const FLIGHT_DATA: Record<string, Record<string, FlightInfo>> = {
   },
 };
 
-// Hub connections - when a flight requires a stop, this shows which hub to connect through
-const HUB_CONNECTIONS: Record<string, Record<string, string>> = {
+// Hub connections - when a flight requires a stop, shows which hubs you can connect through
+const HUB_CONNECTIONS: Record<string, Record<string, string[]>> = {
   'Tokyo': {
-    'Chiang Mai': 'Bangkok', 'Chiang Rai': 'Bangkok', 'Phuket': 'Bangkok', 'Krabi': 'Bangkok', 'Koh Samui': 'Bangkok',
+    'Chiang Mai': ['Bangkok', 'Shanghai'],
+    'Chiang Rai': ['Bangkok', 'Shanghai'],
+    'Phuket': ['Bangkok', 'Shanghai'],
+    'Krabi': ['Bangkok'],
+    'Koh Samui': ['Bangkok'],
   },
   'Osaka': {
-    'Chiang Mai': 'Bangkok', 'Chiang Rai': 'Bangkok', 'Phuket': 'Bangkok',
+    'Chiang Mai': ['Bangkok', 'Shanghai'],
+    'Chiang Rai': ['Bangkok', 'Shanghai'],
+    'Phuket': ['Bangkok'],
   },
   'Honolulu': {
-    'Bangkok': 'Tokyo', 'Chiang Mai': 'Tokyo', 'Ho Chi Minh City': 'Tokyo',
+    'Bangkok': ['Tokyo'],
+    'Chiang Mai': ['Tokyo'],
+    'Ho Chi Minh City': ['Tokyo'],
   },
 };
 
-// Get hub connection for a route
+// Get hub connections for a route (returns array of hub options)
+function getHubConnections(fromCity: string, toCity: string): string[] {
+  return HUB_CONNECTIONS[fromCity]?.[toCity] || HUB_CONNECTIONS[toCity]?.[fromCity] || [];
+}
+
+// Get primary hub connection for display
 function getHubConnection(fromCity: string, toCity: string): string | null {
-  return HUB_CONNECTIONS[fromCity]?.[toCity] || HUB_CONNECTIONS[toCity]?.[fromCity] || null;
+  const hubs = getHubConnections(fromCity, toCity);
+  return hubs.length > 0 ? hubs[0] : null;
 }
 
 // Legacy function for backward compatibility
@@ -3062,8 +3076,10 @@ export function SwipeablePlanningView({
                             <span className="font-medium">
                               {distance > 0 ? `${distance} km` : ''} · {transportTime || 'See options'}
                               {flightInfo.stops && flightInfo.stops > 0 && (() => {
-                                const hub = getHubConnection(city, nextCity);
-                                return hub ? ` via ${hub}` : ` · ${flightInfo.stops} stop${flightInfo.stops > 1 ? 's' : ''}`;
+                                const hubs = getHubConnections(city, nextCity);
+                                if (hubs.length > 1) return ` via ${hubs.join(' or ')}`;
+                                if (hubs.length === 1) return ` via ${hubs[0]}`;
+                                return ` · ${flightInfo.stops} stop${flightInfo.stops > 1 ? 's' : ''}`;
                               })()}
                             </span>
                             {bestOption?.badge && (
@@ -3147,31 +3163,32 @@ export function SwipeablePlanningView({
                                   ))}
                                 </div>
 
-                                {/* Hub stopover suggestion */}
+                                {/* Flight route options - show connection hubs */}
                                 {(() => {
-                                  const hub = getHubConnection(city, nextCity);
-                                  if (!hub || routeOrder.includes(hub)) return null;
+                                  const hubs = getHubConnections(city, nextCity);
+                                  if (hubs.length === 0) return null;
                                   return (
-                                    <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                                      <div className="text-xs text-amber-800 mb-1.5">
-                                        This flight connects through <strong>{hub}</strong>. Add it as a stopover?
+                                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                      <div className="text-xs text-blue-800 mb-2 font-medium">
+                                        Flight routes (2 flights each):
                                       </div>
-                                      <button
-                                        onClick={() => {
-                                          // Insert hub between current city and next city
-                                          setRouteOrder(prev => {
-                                            const idx = prev.indexOf(city);
-                                            if (idx === -1) return prev;
-                                            return [...prev.slice(0, idx + 1), hub, ...prev.slice(idx + 1)];
-                                          });
-                                          setSelectedCities(prev =>
-                                            prev.includes(hub) ? prev : [...prev, hub]
-                                          );
-                                        }}
-                                        className="w-full py-1.5 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200 transition-colors"
-                                      >
-                                        + Add {hub} stopover
-                                      </button>
+                                      <div className="space-y-1.5">
+                                        {hubs.map(hub => (
+                                          <div key={hub} className="flex items-center justify-between text-xs bg-white p-2 rounded border">
+                                            <span className="text-muted-foreground">
+                                              {city} → <strong>{hub}</strong> → {nextCity}
+                                            </span>
+                                            <a
+                                              href={`https://www.google.com/travel/flights?q=flights%20from%20${encodeURIComponent(city)}%20to%20${encodeURIComponent(nextCity)}%20via%20${encodeURIComponent(hub)}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:underline"
+                                            >
+                                              Search →
+                                            </a>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
                                   );
                                 })()}
