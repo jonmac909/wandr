@@ -2568,13 +2568,18 @@ export default function AutoItineraryView({
 
         setDays(prev => prev.map(day => {
           if (day.dayNumber === dayNumber) {
+            // PRESERVE existing transport activities (flight, train, bus, drive, transit)
+            const existingTransport = day.activities.filter(a =>
+              ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+            );
+            const newActivities = uniqueActivities.map((act: GeneratedActivity, idx: number) => ({
+              ...act,
+              id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
+            }));
             return {
               ...day,
               theme: aiDay.theme,
-              activities: uniqueActivities.map((act: GeneratedActivity, idx: number) => ({
-                ...act,
-                id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-              })),
+              activities: [...existingTransport, ...newActivities],
             };
           }
           return day;
@@ -2590,7 +2595,11 @@ export default function AutoItineraryView({
         );
         setDays(prev => prev.map(day => {
           if (day.dayNumber === dayNumber) {
-            return { ...day, theme: mockDays[0].theme, activities: uniqueActivities };
+            // PRESERVE existing transport activities
+            const existingTransport = day.activities.filter(a =>
+              ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+            );
+            return { ...day, theme: mockDays[0].theme, activities: [...existingTransport, ...uniqueActivities] };
           }
           return day;
         }));
