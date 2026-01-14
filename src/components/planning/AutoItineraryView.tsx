@@ -2998,22 +2998,21 @@ export default function AutoItineraryView({
         )}
       </div>
 
-      {/* Auto-fill flights button */}
+      {/* Auto-fill entire trip button */}
       <Button
         variant="default"
         className="w-full bg-primary hover:bg-primary/90"
         onClick={autoFillEntireTrip}
       >
         <Sparkles className="w-4 h-4 mr-2" />
-        Auto-fill flights
+        Auto-fill entire trip
       </Button>
 
       {/* Loading state */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground">Adding flights to your itinerary...</p>
-          <p className="text-xs text-muted-foreground/70">Use per-day autofill to add activities</p>
+          <p className="text-sm text-muted-foreground">Generating your itinerary...</p>
         </div>
       )}
 
