@@ -35,7 +35,7 @@ TRAVELER PROFILE:
 ${mustHaves?.length > 0 ? `- Must include: ${mustHaves.join(', ')}` : ''}
 ${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}
 
-Create a day-by-day itinerary with ${activityCount} activities per day. EACH DAY MUST BE DIFFERENT with unique activities. For EACH activity, provide:
+Create a day-by-day itinerary with ${activityCount} activities per day. For EACH activity, provide:
 1. name: The specific place/restaurant/attraction name (real places that exist)
 2. type: "attraction" | "restaurant" | "activity"
 3. description: 1-2 sentence description of why it's worth visiting
@@ -47,13 +47,18 @@ Create a day-by-day itinerary with ${activityCount} activities per day. EACH DAY
 9. tags: 2-4 relevant tags like ["temple", "history", "photography"]
 10. walkingTimeToNext: Minutes to walk to the next activity (optional, for flow)
 
-CRITICAL REQUIREMENTS:
-- Use REAL places that actually exist in ${city} (Google-able, with real addresses)
-- EVERY DAY MUST HAVE COMPLETELY DIFFERENT ACTIVITIES - no repeats across days
+ABSOLUTELY CRITICAL - UNIQUE DAYS:
+- You MUST generate ${nights} COMPLETELY DIFFERENT days
+- NEVER repeat the same activity across different days
+- Each day MUST visit DIFFERENT places, neighborhoods, and restaurants
+- If generating 3 days, you need at least ${nights * 3} UNIQUE places total (no duplicates!)
+- Day 1 activities must be 100% different from Day 2, Day 3, etc.
+
+REQUIREMENTS:
+- Use REAL places that actually exist in ${city}
 - Include a mix of famous landmarks AND local hidden gems
 - Include at least one great local restaurant/food experience per day
-- Consider logical routing (nearby activities grouped together by neighborhood)
-- Match the traveler's pace preference - ${tripStyle === 'relaxed' ? 'include downtime, coffee breaks, and leisurely meals' : tripStyle === 'packed' ? 'maximize sightseeing efficiently' : 'balance activities with rest'}
+- Each day should explore a DIFFERENT neighborhood/area of ${city}
 - Each day should have a distinct theme (e.g., "Historic Temples", "Street Food & Markets", "Nature Day")
 
 Return ONLY valid JSON in this exact format:
@@ -104,6 +109,28 @@ Return ONLY valid JSON in this exact format:
     }
 
     const itinerary = JSON.parse(jsonMatch[0]);
+
+    // Validate that days have unique activities
+    const allActivityNames = new Set<string>();
+    let duplicatesFound = false;
+
+    console.log(`[generate-itinerary] Generated ${itinerary.days?.length || 0} days for ${city}`);
+
+    itinerary.days?.forEach((day: { dayNumber: number; theme?: string; activities: Array<{ name: string }> }) => {
+      console.log(`[generate-itinerary] Day ${day.dayNumber} "${day.theme}": ${day.activities.map(a => a.name).join(', ')}`);
+
+      day.activities.forEach((act: { name: string }) => {
+        if (allActivityNames.has(act.name.toLowerCase())) {
+          console.warn(`[generate-itinerary] DUPLICATE ACTIVITY: "${act.name}" appears multiple times!`);
+          duplicatesFound = true;
+        }
+        allActivityNames.add(act.name.toLowerCase());
+      });
+    });
+
+    if (duplicatesFound) {
+      console.warn(`[generate-itinerary] WARNING: Duplicate activities detected in ${city} itinerary`);
+    }
 
     // Add unique IDs and image URLs to each activity
     itinerary.days = itinerary.days.map((day: { dayNumber: number; activities: Array<{ name: string; type: string }> }) => ({
