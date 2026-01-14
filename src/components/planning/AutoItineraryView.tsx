@@ -2461,37 +2461,12 @@ export default function AutoItineraryView({
     setLoadingDayNumber(null);
   };
 
-  // Auto-fill entire trip with AI-generated itineraries
+  // Auto-fill entire trip with FLIGHTS ONLY
+  // Activities are NOT auto-filled - user must use per-day autofill button for activities
   const autoFillEntireTrip = async () => {
     setIsLoading(true);
 
-    // Group days by city to generate itineraries efficiently
-    const cityNightsMap: Record<string, number> = {};
-    allocations.forEach(alloc => {
-      if (!alloc.city.includes('Transit')) {
-        // Handle duplicate cities by summing nights
-        cityNightsMap[alloc.city] = (cityNightsMap[alloc.city] || 0) + alloc.nights;
-      }
-    });
-
-    // Generate itineraries for each unique city
-    const cityItineraries: Record<string, { dayNumber: number; theme?: string; activities: GeneratedActivity[] }[]> = {};
-
-    for (const [city, nights] of Object.entries(cityNightsMap)) {
-      const aiDays = await autoFillCityDays(city, nights);
-      if (aiDays) {
-        cityItineraries[city] = aiDays;
-      }
-    }
-
-    // Update cache
-    setCityItineraryCache(prev => ({ ...prev, ...cityItineraries }));
-
-    // Map AI-generated days to our trip days
-    const cityDayCounters: Record<string, number> = {};
-
     // Build a map of transit day numbers to their from/to cities
-    // By looking at what comes before/after each transit allocation
     // IMPORTANT: Calculate startDay on the fly since it might not be set in state
     const transitFlightMap: Record<number, { from: string; to: string }> = {};
 
@@ -2540,7 +2515,7 @@ export default function AutoItineraryView({
         console.log('[AutoFill] Generated', daysToProcess.length, 'days from allocations');
       }
 
-      console.log('[AutoFill] Processing', daysToProcess.length, 'days. Days:', daysToProcess.map(d => `Day ${d.dayNumber}: ${d.city}`).join(', '));
+      console.log('[AutoFill] Processing', daysToProcess.length, 'days (FLIGHTS ONLY, no activities)');
 
       return daysToProcess.map((day, dayIndex) => {
         // Handle transit days - auto-add flight activity
@@ -2576,29 +2551,16 @@ export default function AutoItineraryView({
           };
         }
 
-        // Track which day of the city this is
-        cityDayCounters[day.city] = (cityDayCounters[day.city] || 0);
-        const cityDayIndex = cityDayCounters[day.city];
-        cityDayCounters[day.city]++;
-
-        const cityDays = cityItineraries[day.city];
-        if (!cityDays || cityDays.length === 0) {
-          return day; // No AI data, keep empty
-        }
-
-        // Get the appropriate day from AI (cycle if more days than AI generated)
-        const aiDay = cityDays[cityDayIndex % cityDays.length];
-
-        // Check if this is the FIRST day in a new city (city changed from previous day)
+        // For non-transit days: check if this is the FIRST day in a new city
+        // If so, add arrival flight but NO activities (user fills those per-day)
         const previousDay = daysToProcess[dayIndex - 1];
         const isFirstDayInNewCity = previousDay &&
           !previousDay.city.includes('Transit') &&
           previousDay.city !== day.city;
 
-        // Create flight activity if transitioning between cities
-        let flightActivity: GeneratedActivity | null = null;
+        // Create flight activity if transitioning between cities (without transit day)
         if (isFirstDayInNewCity) {
-          flightActivity = {
+          const flightActivity: GeneratedActivity = {
             id: `flight-to-${day.city.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
             name: `Flight: ${previousDay.city} → ${day.city}`,
             type: 'flight',
@@ -2613,22 +2575,16 @@ export default function AutoItineraryView({
               to: day.city,
             },
           };
+
+          // Only add flight, keep existing activities (or empty)
+          return {
+            ...day,
+            activities: [flightActivity, ...day.activities.filter(a => a.type !== 'flight')],
+          };
         }
 
-        // Build activities array with flight first if transitioning
-        const dayActivities = [
-          ...(flightActivity ? [flightActivity] : []),
-          ...aiDay.activities.map((act, idx) => ({
-            ...act,
-            id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-          })),
-        ];
-
-        return {
-          ...day,
-          theme: aiDay.theme,
-          activities: dayActivities,
-        };
+        // For all other days: keep as-is (no auto-fill of activities)
+        return day;
       });
     });
 
@@ -2933,22 +2889,22 @@ export default function AutoItineraryView({
         )}
       </div>
 
-      {/* Auto-fill entire trip button */}
+      {/* Auto-fill flights button */}
       <Button
         variant="default"
         className="w-full bg-primary hover:bg-primary/90"
         onClick={autoFillEntireTrip}
       >
         <Sparkles className="w-4 h-4 mr-2" />
-        Auto-fill entire trip
+        Auto-fill flights
       </Button>
 
       {/* Loading state */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground">Researching the best activities with AI...</p>
-          <p className="text-xs text-muted-foreground/70">Finding real places, restaurants, and experiences</p>
+          <p className="text-sm text-muted-foreground">Adding flights to your itinerary...</p>
+          <p className="text-xs text-muted-foreground/70">Use per-day autofill to add activities</p>
         </div>
       )}
 
