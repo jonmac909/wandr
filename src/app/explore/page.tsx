@@ -6,6 +6,7 @@ import { Search, Heart, MapPin, Plus, Loader2, ChevronDown, ChevronRight } from 
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { TripDrawer } from '@/components/dashboard/TripDrawer';
 import { ProfileSettings } from '@/components/dashboard/ProfileSettings';
+import { AddPlaceSheet } from '@/components/explore/AddPlaceSheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { savedPlacesDb, tripDb, preferencesDb, type TravelInterest } from '@/lib/db/indexed-db';
@@ -51,6 +52,7 @@ function ExploreContent() {
   const [selectedCategory, setSelectedCategory] = useState<PlaceCategory>('all');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false);
 
   // Data states
   const [browsePlaces, setBrowsePlaces] = useState<BrowsePlace[]>([]);
@@ -366,7 +368,7 @@ function ExploreContent() {
           {/* Add button (Saved tab) */}
           {activeTab === 'saved' && (
             <div className="p-3 border-t">
-              <Button className="w-full gap-2" variant="outline" size="sm">
+              <Button className="w-full gap-2" variant="outline" size="sm" onClick={() => setIsAddPlaceOpen(true)}>
                 <Plus className="w-4 h-4" />
                 Add a place
               </Button>
@@ -377,6 +379,7 @@ function ExploreContent() {
 
       <TripDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} trips={trips} onRefresh={loadTrips} />
       <ProfileSettings open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      <AddPlaceSheet open={isAddPlaceOpen} onOpenChange={setIsAddPlaceOpen} onPlaceAdded={loadSavedPlaces} />
     </div>
   );
 }
