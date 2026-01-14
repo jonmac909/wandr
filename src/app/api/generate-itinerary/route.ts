@@ -20,7 +20,7 @@ interface AIActivity {
 
 export async function POST(request: NextRequest) {
   try {
-    const { city, nights, country, tripStyle, interests, budget, mustHaves, avoidances } = await request.json();
+    const { city, nights, country, tripStyle, interests, budget, mustHaves, avoidances, excludeActivities } = await request.json();
 
     if (!city || !nights) {
       return NextResponse.json(
@@ -43,7 +43,12 @@ export async function POST(request: NextRequest) {
     const totalActivitiesNeeded = nights * activitiesPerDay;
     const activitiesToRequest = Math.max(totalActivitiesNeeded + 6, totalActivitiesNeeded * 1.5); // Request 50% extra
 
-    console.log(`[generate-itinerary] Requesting ${activitiesToRequest} unique activities for ${nights} days in ${city}`);
+    // Build exclusion list
+    const excludeList = excludeActivities?.length > 0
+      ? `\n\nDO NOT INCLUDE these places (already in itinerary): ${excludeActivities.join(', ')}`
+      : '';
+
+    console.log(`[generate-itinerary] Requesting ${activitiesToRequest} unique activities for ${nights} days in ${city}${excludeActivities?.length ? `, excluding ${excludeActivities.length} already-used` : ''}`);
 
     // NEW APPROACH: Request a FLAT LIST of unique activities, then distribute
     const prompt = `You are a travel expert recommending places to visit in ${city}${country ? `, ${country}` : ''}.
@@ -53,7 +58,7 @@ TRAVELER PROFILE:
 - Interests: ${interests?.length > 0 ? interests.join(', ') : 'general sightseeing, local food, cultural experiences'}
 - Budget: ${budgetGuide}
 ${mustHaves?.length > 0 ? `- Must include: ${mustHaves.join(', ')}` : ''}
-${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}
+${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}${excludeList}
 
 Generate a list of ${Math.ceil(activitiesToRequest)} UNIQUE places to visit/eat in ${city}.
 

@@ -2386,42 +2386,67 @@ export default function AutoItineraryView({
     return days;
   };
 
-  // Auto-fill a single day (uses cached city data or generates new)
-  const [cityItineraryCache, setCityItineraryCache] = useState<Record<string, { dayNumber: number; theme?: string; activities: GeneratedActivity[] }[]>>({});
-  const [loadingDayNumber, setLoadingDayNumber] = useState<number | null>(null); // Track which day is loading (don't use global isLoading)
+  // Auto-fill a single day - ALWAYS fetch fresh from API to guarantee unique activities
+  const [loadingDayNumber, setLoadingDayNumber] = useState<number | null>(null);
 
   const autoFillDay = async (dayNumber: number) => {
     const targetDay = days.find(d => d.dayNumber === dayNumber);
     if (!targetDay || targetDay.city.includes('Transit')) return;
 
-    // Use day-specific loading state instead of global isLoading
-    // This prevents the page from scrolling to top
     setLoadingDayNumber(dayNumber);
 
-    // Count how many days of this city ALREADY have activities (have been filled)
-    // This ensures each auto-fill gets a DIFFERENT day's activities
-    const filledDaysCount = days.filter(d =>
-      d.city === targetDay.city &&
-      d.activities.length > 0 &&
-      d.dayNumber !== dayNumber // Don't count the day we're about to fill
-    ).length;
+    // Collect ALL activity names already used in this city (across all days)
+    const usedActivityNames = new Set<string>();
+    days.forEach(d => {
+      if (d.city === targetDay.city) {
+        d.activities.forEach(a => {
+          if (a.name) usedActivityNames.add(a.name.toLowerCase());
+        });
+      }
+    });
 
-    console.log(`[AutoFill] Day ${dayNumber} of ${targetDay.city}, filledDaysCount=${filledDaysCount}, cacheExists=${!!cityItineraryCache[targetDay.city]}`);
+    console.log(`[AutoFill] Day ${dayNumber} of ${targetDay.city}, already used: ${usedActivityNames.size} activities`);
 
-    // Check if we have cached data for this city
-    if (cityItineraryCache[targetDay.city]) {
-      const cityDays = cityItineraryCache[targetDay.city];
-      console.log(`[AutoFill] Using cache: ${cityDays.length} days available, picking index ${filledDaysCount % cityDays.length}`);
-      // Use filledDaysCount to pick the NEXT unused day from cache
-      const aiDay = cityDays[filledDaysCount % cityDays.length];
+    // ALWAYS call API fresh - no caching to avoid stale data
+    const cityNights = allocations.find(a => a.city === targetDay.city)?.nights || 3;
 
-      if (aiDay) {
+    try {
+      const response = await fetch('/api/generate-itinerary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: targetDay.city,
+          nights: 1, // Just request 1 day worth of activities
+          country: getCityCountry?.(targetDay.city),
+          tripStyle: tripDna?.vibeAndPace?.tripPace || 'balanced',
+          interests: tripDna?.travelerProfile?.travelIdentities || [],
+          budget: tripDna?.constraints?.budget?.dailySpend?.max
+            ? (tripDna.constraints.budget.dailySpend.max < 100 ? 'budget' : tripDna.constraints.budget.dailySpend.max > 300 ? 'luxury' : 'moderate')
+            : 'moderate',
+          // Pass used activities so API can exclude them
+          excludeActivities: Array.from(usedActivityNames),
+        }),
+      });
+
+      if (!response.ok) throw new Error('API failed');
+
+      const data = await response.json();
+      const aiDay = data.days?.[0];
+
+      if (aiDay && aiDay.activities) {
+        // Filter out any activities that match used names (double-check)
+        const uniqueActivities = aiDay.activities.filter((act: GeneratedActivity) =>
+          !usedActivityNames.has(act.name.toLowerCase())
+        );
+
+        console.log(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique`);
+
         setDays(prev => prev.map(day => {
           if (day.dayNumber === dayNumber) {
             return {
               ...day,
               theme: aiDay.theme,
-              activities: aiDay.activities.map((act, idx) => ({
+              activities: uniqueActivities.map((act: GeneratedActivity, idx: number) => ({
                 ...act,
                 id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
               })),
@@ -2430,34 +2455,23 @@ export default function AutoItineraryView({
           return day;
         }));
       }
-      setLoadingDayNumber(null);
-      return;
+    } catch (error) {
+      console.error('[AutoFill] API failed, using fallback', error);
+      // Fallback to mock data, filtering out used activities
+      const mockDays = generateMockDaysForCity(targetDay.city, 1);
+      if (mockDays[0]) {
+        const uniqueActivities = mockDays[0].activities.filter(act =>
+          !usedActivityNames.has(act.name.toLowerCase())
+        );
+        setDays(prev => prev.map(day => {
+          if (day.dayNumber === dayNumber) {
+            return { ...day, theme: mockDays[0].theme, activities: uniqueActivities };
+          }
+          return day;
+        }));
+      }
     }
 
-    // Generate new itinerary for this city
-    const cityNights = allocations.find(a => a.city === targetDay.city)?.nights || 3;
-    const aiDays = await autoFillCityDays(targetDay.city, cityNights);
-
-    if (aiDays) {
-      setCityItineraryCache(prev => ({ ...prev, [targetDay.city]: aiDays }));
-
-      // Use filledDaysCount to pick the right day
-      const aiDay = aiDays[filledDaysCount % aiDays.length];
-
-      setDays(prev => prev.map(day => {
-        if (day.dayNumber === dayNumber) {
-          return {
-            ...day,
-            theme: aiDay?.theme,
-            activities: (aiDay?.activities || []).map((act: GeneratedActivity, idx: number) => ({
-              ...act,
-              id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-            })),
-          };
-        }
-        return day;
-      }));
-    }
     setLoadingDayNumber(null);
   };
 
