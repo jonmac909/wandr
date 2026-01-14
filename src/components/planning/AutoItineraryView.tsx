@@ -185,18 +185,18 @@ const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
     },
     {
       id: 'bkk-3',
-      name: 'Jay Fai',
-      type: 'restaurant',
-      description: 'Legendary street food stall with Michelin star - famous for crab omelette',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
+      name: 'Wat Arun',
+      type: 'attraction',
+      description: 'Iconic riverside temple with stunning Khmer-style spire covered in porcelain',
+      imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
       suggestedTime: '13:00',
       duration: 60,
-      openingHours: '2PM-10PM',
-      neighborhood: 'Old Town',
+      openingHours: '8AM-6PM',
+      neighborhood: 'Thonburi',
       matchScore: 88,
-      matchReasons: ['Michelin star', 'Local favorite'],
-      priceRange: '$$$',
-      tags: ['street food', 'seafood', 'michelin'],
+      matchReasons: ['Iconic landmark', 'River views'],
+      priceRange: '$',
+      tags: ['temple', 'photography', 'river'],
       walkingTimeToNext: 15,
     },
     {
@@ -234,18 +234,18 @@ const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
     },
     {
       id: 'cnx-2',
-      name: 'Khao Soi Khun Yai',
-      type: 'restaurant',
-      description: 'Best khao soi in Chiang Mai - creamy coconut curry noodles',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+      name: 'Wat Chedi Luang',
+      type: 'attraction',
+      description: 'Ancient ruined temple with massive chedi and the city pillar shrine',
+      imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
       suggestedTime: '12:00',
-      duration: 45,
-      openingHours: '9AM-4PM',
+      duration: 60,
+      openingHours: '6AM-6PM',
       neighborhood: 'Old City',
       matchScore: 91,
-      matchReasons: ['Local specialty', 'Authentic taste'],
+      matchReasons: ['Historic ruins', 'City center'],
       priceRange: '$',
-      tags: ['noodles', 'curry', 'local'],
+      tags: ['temple', 'ruins', 'history'],
       walkingTimeToNext: 10,
     },
     {
@@ -331,18 +331,18 @@ const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
     },
     {
       id: 'tyo-5',
-      name: 'Ichiran Ramen',
-      type: 'restaurant',
-      description: 'Famous tonkotsu ramen chain with private booth dining experience',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
+      name: 'Meiji Shrine',
+      type: 'attraction',
+      description: 'Serene Shinto shrine in a forested area dedicated to Emperor Meiji',
+      imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
       suggestedTime: '19:30',
-      duration: 45,
-      openingHours: '24 hours',
-      neighborhood: 'Shibuya',
+      duration: 60,
+      openingHours: 'Sunrise-Sunset',
+      neighborhood: 'Harajuku',
       matchScore: 88,
-      matchReasons: ['Iconic ramen', 'Unique dining'],
+      matchReasons: ['Peaceful oasis', 'Cultural experience'],
       priceRange: '$',
-      tags: ['ramen', 'japanese', 'solo-friendly'],
+      tags: ['shrine', 'nature', 'peaceful'],
     },
   ],
   'Kyoto': [
@@ -1991,8 +1991,11 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
 function fillDayWithActivities(day: GeneratedDay, dayIndex: number): GeneratedDay {
   const cityActivities = MOCK_ACTIVITIES[day.city] || MOCK_ACTIVITIES['Bangkok'] || [];
 
+  // Filter out restaurants - user picks their own dining spots
+  const nonRestaurantActivities = cityActivities.filter(act => act.type !== 'restaurant');
+
   // Create unique IDs for this day's activities
-  const dayActivities = cityActivities.map((act, idx) => ({
+  const dayActivities = nonRestaurantActivities.map((act, idx) => ({
     ...act,
     id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
   }));
@@ -2508,11 +2511,13 @@ export default function AutoItineraryView({
   // Generate mock days as fallback when API fails
   // FIX: Distribute activities across days instead of giving same activities to each day
   const generateMockDaysForCity = (city: string, nights: number) => {
-    const cityActivities = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
+    const allCityActivities = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
+    // Filter out restaurants - user picks their own dining spots
+    const cityActivities = allCityActivities.filter(act => act.type !== 'restaurant');
     const days = [];
     const activitiesPerDay = 3;
 
-    console.log(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} total activities`);
+    console.log(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} activities (excluding restaurants)`);
 
     for (let i = 0; i < nights; i++) {
       // Calculate which activities to use for this day
