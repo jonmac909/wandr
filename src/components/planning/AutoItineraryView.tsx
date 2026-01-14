@@ -3239,6 +3239,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
   const [newAttachment, setNewAttachment] = useState<{ type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url: string }>({ type: 'link', name: '', url: '' });
   const [directionsDropdownId, setDirectionsDropdownId] = useState<string | null>(null);
   const [transportMode, setTransportMode] = useState<'walk' | 'drive' | 'bus'>('walk');
+  const [showDayMenu, setShowDayMenu] = useState(false);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
   const isEmpty = day.activities.length === 0;
 
@@ -3261,9 +3262,49 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                 <h3 className="text-xl font-bold">{formatFullDate(day.date)}</h3>
                 <p className="text-sm text-muted-foreground">{day.city}</p>
               </div>
-              <button className="p-1 hover:bg-muted rounded" onClick={(e) => e.stopPropagation()}>
-                <span className="text-muted-foreground text-lg">•••</span>
-              </button>
+              <div className="relative">
+                <button
+                  className="p-1 hover:bg-muted rounded"
+                  onClick={(e) => { e.stopPropagation(); setShowDayMenu(!showDayMenu); }}
+                >
+                  <span className="text-muted-foreground text-lg">•••</span>
+                </button>
+                {showDayMenu && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onAddReservation('flight'); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                    >
+                      <Plane className="w-4 h-4" /> Add flight
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onAddReservation('lodging'); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                    >
+                      <Bed className="w-4 h-4" /> Add lodging
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onAddReservation('restaurant'); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                    >
+                      <Utensils className="w-4 h-4" /> Add restaurant
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onAddReservation('rental-car'); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                    >
+                      <Car className="w-4 h-4" /> Add rental car
+                    </button>
+                    <div className="border-t my-1" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onAutoFill(); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-primary"
+                    >
+                      <Sparkles className="w-4 h-4" /> Auto-fill day
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             {!isExpanded && activitySummary && (
               <p className="text-sm text-primary font-medium truncate mt-1">{activitySummary}</p>
