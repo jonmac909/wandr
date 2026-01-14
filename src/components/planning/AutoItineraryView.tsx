@@ -2751,10 +2751,18 @@ export default function AutoItineraryView({
           });
         }
 
-        return {
-          ...day,
-          activities: dayActivities,
-        };
+        // Only replace if we found new non-transport activities
+        const newNonTransportActivities = dayActivities.filter(a =>
+          !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+        );
+        if (newNonTransportActivities.length > 0) {
+          return {
+            ...day,
+            activities: dayActivities,
+          };
+        }
+        // Keep existing activities if no new ones found
+        return day;
       });
     });
 
