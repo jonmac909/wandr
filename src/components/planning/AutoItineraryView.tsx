@@ -3432,6 +3432,8 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
   const [directionsDropdownId, setDirectionsDropdownId] = useState<string | null>(null);
   const [transportMode, setTransportMode] = useState<'walk' | 'drive' | 'bus'>('walk');
   const [showDayMenu, setShowDayMenu] = useState(false);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const activitySummary = day.activities.map(a => a.name).join(' • ');
   const isEmpty = day.activities.length === 0;
 
@@ -3952,7 +3954,20 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                     .length;
 
                   return (
-                    <div key={activity.id}>
+                    <div
+                      key={activity.id}
+                      draggable
+                      onDragStart={() => setDraggedIdx(idx)}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+                      onDragEnd={() => {
+                        if (draggedIdx !== null && dragOverIdx !== null && draggedIdx !== dragOverIdx) {
+                          onActivityReorder(draggedIdx, dragOverIdx);
+                        }
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                      }}
+                      className={`${draggedIdx === idx ? 'opacity-50' : ''} ${dragOverIdx === idx && draggedIdx !== idx ? 'border-t-2 border-violet-500' : ''}`}
+                    >
                       {/* Activity row */}
                       <div className="flex items-start gap-3">
                         {/* Time column - tappable to edit */}
