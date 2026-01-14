@@ -2603,24 +2603,29 @@ export default function AutoItineraryView({
 
         console.log(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique (excluding restaurants)`);
 
-        setDays(prev => prev.map(day => {
-          if (day.dayNumber === dayNumber) {
-            // PRESERVE existing transport activities (flight, train, bus, drive, transit)
-            const existingTransport = day.activities.filter(a =>
-              ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
-            );
-            const newActivities = uniqueActivities.map((act: GeneratedActivity, idx: number) => ({
-              ...act,
-              id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-            }));
-            return {
-              ...day,
-              theme: aiDay.theme,
-              activities: [...existingTransport, ...newActivities],
-            };
-          }
-          return day;
-        }));
+        // Only replace activities if we have unique ones to add
+        if (uniqueActivities.length > 0) {
+          setDays(prev => prev.map(day => {
+            if (day.dayNumber === dayNumber) {
+              // PRESERVE existing transport activities (flight, train, bus, drive, transit)
+              const existingTransport = day.activities.filter(a =>
+                ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+              );
+              const newActivities = uniqueActivities.map((act: GeneratedActivity, idx: number) => ({
+                ...act,
+                id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
+              }));
+              return {
+                ...day,
+                theme: aiDay.theme,
+                activities: [...existingTransport, ...newActivities],
+              };
+            }
+            return day;
+          }));
+        } else {
+          console.log('[AutoFill] No unique activities found from API, keeping existing activities');
+        }
       }
     } catch (error) {
       console.error('[AutoFill] API failed, using fallback', error);
@@ -2631,16 +2636,21 @@ export default function AutoItineraryView({
           !usedActivityNames.has(act.name.toLowerCase()) &&
           act.type !== 'restaurant'
         );
-        setDays(prev => prev.map(day => {
-          if (day.dayNumber === dayNumber) {
-            // PRESERVE existing transport activities
-            const existingTransport = day.activities.filter(a =>
-              ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
-            );
-            return { ...day, theme: mockDays[0].theme, activities: [...existingTransport, ...uniqueActivities] };
-          }
-          return day;
-        }));
+        // Only replace activities if we have unique ones to add
+        if (uniqueActivities.length > 0) {
+          setDays(prev => prev.map(day => {
+            if (day.dayNumber === dayNumber) {
+              // PRESERVE existing transport activities
+              const existingTransport = day.activities.filter(a =>
+                ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+              );
+              return { ...day, theme: mockDays[0].theme, activities: [...existingTransport, ...uniqueActivities] };
+            }
+            return day;
+          }));
+        } else {
+          console.log('[AutoFill] No unique mock activities found, keeping existing activities');
+        }
       }
     }
 
