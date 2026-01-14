@@ -4061,34 +4061,14 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                             </div>
                           </div>
 
-                          {/* Reorder + Delete buttons */}
-                          <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {idx > 0 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onActivityReorder(idx, idx - 1); }}
-                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
-                                title="Move up"
-                              >
-                                <ChevronUp className="w-4 h-4" />
-                              </button>
-                            )}
-                            {idx < day.activities.length - 1 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onActivityReorder(idx, idx + 1); }}
-                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
-                                title="Move down"
-                              >
-                                <ChevronDown className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
-                              className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-500"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {/* Delete button - always visible */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
+                            className="p-2 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-500 flex-shrink-0"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </button>
                       </div>
 
