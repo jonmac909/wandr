@@ -2515,16 +2515,8 @@ export default function AutoItineraryView({
   const [loadingDayNumber, setLoadingDayNumber] = useState<number | null>(null);
 
   const autoFillDay = async (dayNumber: number) => {
-    console.log(`[AutoFill] autoFillDay called with dayNumber=${dayNumber}, days.length=${days.length}`);
-    console.log(`[AutoFill] Days in state:`, days.map(d => ({ dayNumber: d.dayNumber, city: d.city })));
-
     const targetDay = days.find(d => d.dayNumber === dayNumber);
-    console.log(`[AutoFill] Found targetDay:`, targetDay ? { dayNumber: targetDay.dayNumber, city: targetDay.city } : 'NOT FOUND');
-
-    if (!targetDay || targetDay.city.includes('Transit')) {
-      console.log(`[AutoFill] Early return - targetDay not found or is Transit`);
-      return;
-    }
+    if (!targetDay || targetDay.city.includes('Transit')) return;
 
     setLoadingDayNumber(dayNumber);
 
@@ -2692,12 +2684,14 @@ export default function AutoItineraryView({
         const dayActivities: GeneratedActivity[] = [];
         const activitiesPerDay = 3 + (day.dayNumber % 2); // 3 or 4
 
-        // Keep any existing flight activities
-        const existingFlights = day.activities.filter(a => a.type === 'flight');
-        dayActivities.push(...existingFlights);
+        // Keep any existing transport activities (flight, train, bus, drive, transit)
+        const existingTransport = day.activities.filter(a =>
+          ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+        );
+        dayActivities.push(...existingTransport);
 
         for (const act of cityActivities) {
-          if (dayActivities.length >= activitiesPerDay + existingFlights.length) break;
+          if (dayActivities.length >= activitiesPerDay + existingTransport.length) break;
           if (usedSet.has(act.name.toLowerCase())) continue;
 
           usedSet.add(act.name.toLowerCase());
@@ -3468,10 +3462,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
           {/* Action buttons row */}
           <div className="flex items-center gap-4 text-sm ml-8">
             <button
-              onClick={() => {
-                console.log(`[DayCard] Auto-fill day button clicked for day ${day.dayNumber}`);
-                onAutoFill();
-              }}
+              onClick={onAutoFill}
               disabled={isLoadingDay}
               className="flex items-center gap-1.5 text-primary font-medium hover:underline disabled:opacity-50"
             >
@@ -3507,10 +3498,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             <div className="ml-8 text-center py-8 text-muted-foreground">
               <p className="text-sm">No activities planned yet</p>
               <button
-                onClick={() => {
-                  console.log(`[DayCard] Auto-fill with recommendations clicked for day ${day.dayNumber}`);
-                  onAutoFill();
-                }}
+                onClick={onAutoFill}
                 className="mt-2 text-primary font-medium text-sm hover:underline"
               >
                 Auto-fill with recommendations
