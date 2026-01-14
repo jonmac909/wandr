@@ -123,6 +123,30 @@ interface AutoItineraryViewProps {
   parentLoadComplete?: boolean; // Signal that parent has finished loading from IndexedDB
 }
 
+// City to airport code mapping
+const CITY_AIRPORTS: Record<string, string> = {
+  'Kelowna': 'YLW', 'Vancouver': 'YVR',
+  'Bangkok': 'BKK', 'Chiang Mai': 'CNX', 'Chiang Rai': 'CEI', 'Phuket': 'HKT', 'Krabi': 'KBV', 'Koh Samui': 'USM',
+  'Ho Chi Minh City': 'SGN', 'Hanoi': 'HAN', 'Da Nang': 'DAD', 'Hoi An': 'DAD', 'Nha Trang': 'CXR',
+  'Tokyo': 'NRT', 'Osaka': 'KIX', 'Kyoto': 'KIX', 'Hiroshima': 'HIJ', 'Fukuoka': 'FUK',
+  'Honolulu': 'HNL', 'Maui': 'OGG', 'Kauai': 'LIH',
+  'Singapore': 'SIN', 'Bali': 'DPS', 'Ubud': 'DPS',
+  'Seoul': 'ICN', 'Busan': 'PUS',
+  'Paris': 'CDG', 'London': 'LHR', 'New York': 'JFK', 'Rome': 'FCO', 'Barcelona': 'BCN', 'Amsterdam': 'AMS', 'Lisbon': 'LIS',
+};
+
+// Get airport code for a city
+function getAirportCode(city: string): string {
+  return CITY_AIRPORTS[city] || city.substring(0, 3).toUpperCase();
+}
+
+// Estimated flight times from Kelowna (rough estimates)
+const FLIGHT_TIMES: Record<string, string> = {
+  'Tokyo': '12-14hr', 'Osaka': '13-15hr', 'Bangkok': '18-22hr', 'Chiang Mai': '20-24hr',
+  'Ho Chi Minh City': '18-22hr', 'Hanoi': '18-22hr', 'Singapore': '16-20hr', 'Bali': '20-24hr',
+  'Honolulu': '8-10hr', 'Paris': '12-14hr', 'London': '10-12hr', 'Seoul': '12-14hr',
+};
+
 // Mock activities data for auto-fill
 const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
   'Bangkok': [
@@ -1815,17 +1839,74 @@ const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
 };
 
 // Generate EMPTY days (no activities) - like Wanderlog
-function generateEmptyDays(allocations: CityAllocation[]): GeneratedDay[] {
+// BUT auto-adds flights on transit days
+function generateEmptyDays(allocations: CityAllocation[], cities?: string[], homeBase?: string): GeneratedDay[] {
   const days: GeneratedDay[] = [];
   let dayNumber = 1;
+  const home = homeBase || 'Kelowna';
+  const destinationCities = cities || [];
 
-  for (const allocation of allocations) {
+  for (let allocIndex = 0; allocIndex < allocations.length; allocIndex++) {
+    const allocation = allocations[allocIndex];
+
     for (let i = 0; i < allocation.nights; i++) {
+      const isTransit = allocation.city.includes('Transit');
+      let activities: GeneratedActivity[] = [];
+      let theme: string | undefined;
+
+      // Auto-add flight for transit days
+      if (isTransit && i === 0) { // Only add flight on first day of transit
+        // Find the city BEFORE this transit
+        let fromCity = home;
+        for (let j = allocIndex - 1; j >= 0; j--) {
+          if (!allocations[j].city.includes('Transit')) {
+            fromCity = allocations[j].city;
+            break;
+          }
+        }
+
+        // Find the city AFTER this transit
+        let toCity = home;
+        for (let j = allocIndex + 1; j < allocations.length; j++) {
+          if (!allocations[j].city.includes('Transit')) {
+            toCity = allocations[j].city;
+            break;
+          }
+        }
+
+        // If first transit and toCity is still home, use first destination
+        if (toCity === home && allocIndex === 0 && destinationCities.length > 0) {
+          toCity = destinationCities[0];
+        }
+
+        const fromCode = getAirportCode(fromCity);
+        const toCode = getAirportCode(toCity);
+        const flightTime = FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
+
+        activities = [{
+          id: `flight-${dayNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: `${fromCode}→${toCode} (${flightTime})`,
+          type: 'flight',
+          description: `Need to book · ${fromCity} to ${toCity}`,
+          suggestedTime: '10:00',
+          duration: 180,
+          neighborhood: toCity,
+          priceRange: '$$',
+          tags: ['flight', 'transit', 'needs-booking'],
+          transportDetails: {
+            from: fromCity,
+            to: toCity,
+          },
+        }];
+        theme = `Travel to ${toCity}`;
+      }
+
       days.push({
         dayNumber,
         date: allocation.startDate ? addDays(allocation.startDate, i) : '',
         city: allocation.city,
-        activities: [], // Empty - user will auto-fill
+        activities,
+        theme,
       });
       dayNumber++;
     }
@@ -2249,6 +2330,7 @@ export default function AutoItineraryView({
 
   // Generate EMPTY itinerary on mount or when allocations change
   // BUT don't overwrite if we already have loaded days with activities
+  // Flights are auto-added on transit days
   useEffect(() => {
     // If we already loaded persisted days, don't regenerate empty ones
     if (hasLoadedInitialDays) {
@@ -2257,12 +2339,13 @@ export default function AutoItineraryView({
     }
     setIsLoading(true);
     // Generate empty days immediately (no API call needed)
+    // Pass cities so flights can be auto-added for transit days
     const timer = setTimeout(() => {
-      setDays(generateEmptyDays(allocations));
+      setDays(generateEmptyDays(allocations, cities, 'Kelowna'));
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [allocations, hasLoadedInitialDays]);
+  }, [allocations, hasLoadedInitialDays, cities]);
 
   // Sync allocations back to parent whenever they change
   // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
@@ -2475,140 +2558,100 @@ export default function AutoItineraryView({
     setLoadingDayNumber(null);
   };
 
-  // Auto-fill entire trip with FLIGHTS ONLY
-  // Activities are NOT auto-filled - user must use per-day autofill button for activities
+  // Auto-fill entire trip with AI-generated ACTIVITIES for each city
+  // Flights are already auto-added on transit days by generateEmptyDays
   const autoFillEntireTrip = async () => {
     setIsLoading(true);
 
-    // Home base - the city you're flying from/to at start/end of trip
-    // TODO: Make this a prop instead of hardcoding
-    const homeBase = 'Kelowna';
+    // Collect all unique cities that need activities (exclude Transit)
+    const citiesNeedingActivities = allocations
+      .filter(a => !a.city.includes('Transit'))
+      .map(a => a.city);
+    const uniqueCities = [...new Set(citiesNeedingActivities)];
 
-    // Build a map of transit day numbers to their from/to cities
-    // IMPORTANT: Calculate startDay on the fly since it might not be set in state
-    const transitFlightMap: Record<number, { from: string; to: string }> = {};
+    console.log('[AutoFill] Fetching activities for cities:', uniqueCities);
 
-    let currentDayNum = 1;
-    allocations.forEach((alloc, allocIndex) => {
-      const allocStartDay = currentDayNum; // Calculate on the fly
+    // Fetch activities for each city in parallel
+    const cityActivitiesMap: Record<string, GeneratedActivity[]> = {};
 
-      if (alloc.city.includes('Transit')) {
-        // Find the city BEFORE this transit in allocations
-        let fromCity = homeBase; // Default to home base (for first transit = outbound flight)
-        for (let i = allocIndex - 1; i >= 0; i--) {
-          if (!allocations[i].city.includes('Transit')) {
-            fromCity = allocations[i].city;
-            break;
-          }
+    await Promise.all(uniqueCities.map(async (city) => {
+      const cityNights = allocations.find(a => a.city === city)?.nights || 3;
+      try {
+        const response = await fetch('/api/generate-itinerary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city,
+            nights: cityNights,
+            country: getCityCountry?.(city),
+            tripStyle: tripDna?.vibeAndPace?.tripPace || 'balanced',
+            interests: tripDna?.travelerProfile?.travelIdentities || [],
+            budget: tripDna?.constraints?.budget?.dailySpend?.max
+              ? (tripDna.constraints.budget.dailySpend.max < 100 ? 'budget' : tripDna.constraints.budget.dailySpend.max > 300 ? 'luxury' : 'moderate')
+              : 'moderate',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Flatten all activities from all days
+          const allActivities = (data.days || []).flatMap((d: { activities: GeneratedActivity[] }) => d.activities || []);
+          cityActivitiesMap[city] = allActivities;
+          console.log(`[AutoFill] Got ${allActivities.length} activities for ${city}`);
         }
-
-        // Find the city AFTER this transit in allocations
-        let toCity = homeBase; // Default to home base (for last transit = return flight)
-        for (let i = allocIndex + 1; i < allocations.length; i++) {
-          if (!allocations[i].city.includes('Transit')) {
-            toCity = allocations[i].city;
-            break;
-          }
-        }
-
-        // If this is the FIRST transit (allocIndex 0), it's the outbound flight from home
-        // If toCity is still homeBase but there are destinations after, use the first destination
-        if (toCity === homeBase && allocIndex === 0 && cities.length > 0) {
-          toCity = cities[0]; // First destination city
-        }
-
-        // Store for each day in this transit allocation
-        for (let d = 0; d < alloc.nights; d++) {
-          const dayNum = allocStartDay + d;
-          transitFlightMap[dayNum] = { from: fromCity, to: toCity };
-          console.log(`[AutoFill] Transit day ${dayNum}: ${fromCity} → ${toCity}`);
-        }
+      } catch (error) {
+        console.error(`[AutoFill] Failed to fetch activities for ${city}:`, error);
+        // Use mock data as fallback
+        cityActivitiesMap[city] = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
       }
+    }));
 
-      currentDayNum += alloc.nights;
+    // Track used activities per city to avoid duplicates
+    const usedActivitiesPerCity: Record<string, Set<string>> = {};
+    uniqueCities.forEach(city => {
+      usedActivitiesPerCity[city] = new Set();
     });
 
-    console.log('[AutoFill] Transit flight map:', transitFlightMap, 'Allocations:', allocations.map(a => `${a.city}(${a.nights})`).join(', '));
-
+    // Now distribute activities across days
     setDays(prev => {
-      // Use existing days or generate from allocations if empty
       let daysToProcess = prev;
       if (prev.length === 0) {
-        console.warn('[AutoFill] WARNING: days array is EMPTY! Generating from allocations...');
-        daysToProcess = generateEmptyDays(allocations);
-        console.log('[AutoFill] Generated', daysToProcess.length, 'days from allocations');
+        daysToProcess = generateEmptyDays(allocations, cities, 'Kelowna');
       }
 
-      console.log('[AutoFill] Processing', daysToProcess.length, 'days (FLIGHTS ONLY, no activities)');
-
-      return daysToProcess.map((day, dayIndex) => {
-        // Handle transit days - auto-add flight activity
+      return daysToProcess.map((day) => {
+        // Skip transit days - they already have flights from generateEmptyDays
         if (day.city.includes('Transit')) {
-          console.log(`[AutoFill] Day ${day.dayNumber} is TRANSIT (city: "${day.city}")`);
-          // Look up the from/to cities from our pre-computed map
-          const flightInfo = transitFlightMap[day.dayNumber] || { from: 'Origin', to: 'Destination' };
-          const fromCity = flightInfo.from;
-          const toCity = flightInfo.to;
-          console.log(`[AutoFill] Creating flight for day ${day.dayNumber}: ${fromCity} → ${toCity}`);
-
-          // Create flight activity for transit day
-          const flightActivity: GeneratedActivity = {
-            id: `flight-${day.dayNumber}-${Date.now()}`,
-            name: `Flight: ${fromCity} → ${toCity}`,
-            type: 'flight',
-            description: `Travel from ${fromCity} to ${toCity}`,
-            suggestedTime: '10:00',
-            duration: 180,
-            neighborhood: 'Airport',
-            priceRange: '$$',
-            tags: ['flight', 'transit'],
-            transportDetails: {
-              from: fromCity,
-              to: toCity,
-            },
-          };
-
-          return {
-            ...day,
-            theme: `Travel to ${toCity}`,
-            activities: [flightActivity],
-          };
+          return day;
         }
 
-        // For non-transit days: check if this is the FIRST day in a new city
-        // If so, add arrival flight but NO activities (user fills those per-day)
-        const previousDay = daysToProcess[dayIndex - 1];
-        const isFirstDayInNewCity = previousDay &&
-          !previousDay.city.includes('Transit') &&
-          previousDay.city !== day.city;
+        // Get activities for this city
+        const cityActivities = cityActivitiesMap[day.city] || MOCK_ACTIVITIES[day.city] || [];
+        const usedSet = usedActivitiesPerCity[day.city] || new Set();
 
-        // Create flight activity if transitioning between cities (without transit day)
-        if (isFirstDayInNewCity) {
-          const flightActivity: GeneratedActivity = {
-            id: `flight-to-${day.city.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-            name: `Flight: ${previousDay.city} → ${day.city}`,
-            type: 'flight',
-            description: `Arrive in ${day.city} from ${previousDay.city}`,
-            suggestedTime: '08:00',
-            duration: 180,
-            neighborhood: 'Airport',
-            priceRange: '$$',
-            tags: ['flight', 'arrival'],
-            transportDetails: {
-              from: previousDay.city,
-              to: day.city,
-            },
-          };
+        // Pick 3-4 unused activities for this day
+        const dayActivities: GeneratedActivity[] = [];
+        const activitiesPerDay = 3 + (day.dayNumber % 2); // 3 or 4
 
-          // Only add flight, keep existing activities (or empty)
-          return {
-            ...day,
-            activities: [flightActivity, ...day.activities.filter(a => a.type !== 'flight')],
-          };
+        // Keep any existing flight activities
+        const existingFlights = day.activities.filter(a => a.type === 'flight');
+        dayActivities.push(...existingFlights);
+
+        for (const act of cityActivities) {
+          if (dayActivities.length >= activitiesPerDay + existingFlights.length) break;
+          if (usedSet.has(act.name.toLowerCase())) continue;
+
+          usedSet.add(act.name.toLowerCase());
+          dayActivities.push({
+            ...act,
+            id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${dayActivities.length}-${Date.now()}`,
+          });
         }
 
-        // For all other days: keep as-is (no auto-fill of activities)
-        return day;
+        return {
+          ...day,
+          activities: dayActivities,
+        };
       });
     });
 
