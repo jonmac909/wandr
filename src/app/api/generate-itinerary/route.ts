@@ -20,6 +20,15 @@ interface AIActivity {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is available
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('[generate-itinerary] ANTHROPIC_API_KEY is not set');
+      return NextResponse.json(
+        { error: 'API key not configured' },
+        { status: 500 }
+      );
+    }
+
     const { city, nights, country, tripStyle, interests, budget, mustHaves, avoidances, excludeActivities } = await request.json();
 
     if (!city || !nights) {
@@ -201,9 +210,10 @@ Return ONLY valid JSON in this exact format:
 
     return NextResponse.json({ days });
   } catch (error) {
-    console.error('Error generating itinerary:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[generate-itinerary] Error:', errorMessage, error);
     return NextResponse.json(
-      { error: 'Failed to generate itinerary' },
+      { error: `Failed to generate itinerary: ${errorMessage}` },
       { status: 500 }
     );
   }
