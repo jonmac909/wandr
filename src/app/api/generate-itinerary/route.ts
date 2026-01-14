@@ -110,27 +110,35 @@ Return ONLY valid JSON in this exact format:
 
     const itinerary = JSON.parse(jsonMatch[0]);
 
-    // Validate that days have unique activities
-    const allActivityNames = new Set<string>();
-    let duplicatesFound = false;
-
     console.log(`[generate-itinerary] Generated ${itinerary.days?.length || 0} days for ${city}`);
 
-    itinerary.days?.forEach((day: { dayNumber: number; theme?: string; activities: Array<{ name: string }> }) => {
-      console.log(`[generate-itinerary] Day ${day.dayNumber} "${day.theme}": ${day.activities.map(a => a.name).join(', ')}`);
+    // DEDUPLICATE: Remove activities that appear in previous days
+    const seenActivityNames = new Set<string>();
 
-      day.activities.forEach((act: { name: string }) => {
-        if (allActivityNames.has(act.name.toLowerCase())) {
-          console.warn(`[generate-itinerary] DUPLICATE ACTIVITY: "${act.name}" appears multiple times!`);
-          duplicatesFound = true;
+    itinerary.days = itinerary.days?.map((day: { dayNumber: number; theme?: string; activities: Array<{ name: string; type: string; description?: string }> }) => {
+      // Filter out any activity we've already seen
+      const uniqueActivities = day.activities.filter((act: { name: string }) => {
+        const normalizedName = act.name.toLowerCase().trim();
+        // Also check for partial matches (e.g., "Blue Temple" matches "Blue Temple (Wat Rong Suea Ten)")
+        const isPartialDupe = Array.from(seenActivityNames).some(seen =>
+          normalizedName.includes(seen) || seen.includes(normalizedName)
+        );
+
+        if (seenActivityNames.has(normalizedName) || isPartialDupe) {
+          console.log(`[generate-itinerary] REMOVING duplicate "${act.name}" from Day ${day.dayNumber}`);
+          return false;
         }
-        allActivityNames.add(act.name.toLowerCase());
+        seenActivityNames.add(normalizedName);
+        return true;
       });
-    });
 
-    if (duplicatesFound) {
-      console.warn(`[generate-itinerary] WARNING: Duplicate activities detected in ${city} itinerary`);
-    }
+      console.log(`[generate-itinerary] Day ${day.dayNumber} "${day.theme}": ${uniqueActivities.map((a: { name: string }) => a.name).join(', ')} (${day.activities.length - uniqueActivities.length} duplicates removed)`);
+
+      return {
+        ...day,
+        activities: uniqueActivities,
+      };
+    });
 
     // Add unique IDs and image URLs to each activity
     itinerary.days = itinerary.days.map((day: { dayNumber: number; activities: Array<{ name: string; type: string }> }) => ({

@@ -18,19 +18,24 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'osaka': [34.6937, 135.5023],
   'bangkok': [13.7563, 100.5018],
   'chiang mai': [18.7883, 98.9853],
+  'chiang rai': [19.9071, 99.8310],
   'phuket': [7.8804, 98.3923],
+  'krabi': [8.0863, 98.9063],
   'bali': [-8.4095, 115.1889],
   'ubud': [-8.5069, 115.2625],
   'singapore': [1.3521, 103.8198],
   'ho chi minh': [10.8231, 106.6297],
   'hanoi': [21.0285, 105.8542],
+  'da nang': [16.0544, 108.2022],
   'seoul': [37.5665, 126.9780],
+  'busan': [35.1796, 129.0756],
   'paris': [48.8566, 2.3522],
   'london': [51.5074, -0.1278],
   'new york': [40.7128, -74.0060],
   'rome': [41.9028, 12.4964],
   'barcelona': [41.3851, 2.1734],
   'amsterdam': [52.3676, 4.9041],
+  'lisbon': [38.7223, -9.1393],
   'default': [35.6762, 139.6503],
 };
 
@@ -78,8 +83,18 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
   const markersRef = useRef<L.Marker[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
+  // Create a key from days to detect changes
+  const daysKey = days.map(d => `${d.dayNumber}-${d.activities.length}`).join(',');
+
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
+
+    // Clean up existing map if it exists (needed when days change)
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      markersRef.current = [];
+    }
 
     // Get all activities to find center
     const allActivities = days.flatMap((day, dayIdx) =>
@@ -91,16 +106,22 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
       }))
     );
 
-    if (allActivities.length === 0) return;
+    // If no activities, still show map centered on city
+    const cityFromDays = days[0]?.city || 'tokyo';
+    const defaultCenter = getCityCoords(cityFromDays);
 
-    // Calculate center
-    const avgLat = allActivities.reduce((sum, a) => sum + a.coords[0], 0) / allActivities.length;
-    const avgLng = allActivities.reduce((sum, a) => sum + a.coords[1], 0) / allActivities.length;
+    // Calculate center (use default center if no activities)
+    const avgLat = allActivities.length > 0
+      ? allActivities.reduce((sum, a) => sum + a.coords[0], 0) / allActivities.length
+      : defaultCenter[0];
+    const avgLng = allActivities.length > 0
+      ? allActivities.reduce((sum, a) => sum + a.coords[1], 0) / allActivities.length
+      : defaultCenter[1];
 
     // Initialize map
     const map = L.map(mapRef.current, {
       center: [avgLat, avgLng],
-      zoom: 13,
+      zoom: allActivities.length > 0 ? 13 : 12,
       zoomControl: false,
     });
 
@@ -181,11 +202,13 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
     }
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      markersRef.current = [];
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markersRef.current = [];
+      }
     };
-  }, [days, onActivitySelect]);
+  }, [daysKey, onActivitySelect]);
 
   // Filter markers by selected day
   useEffect(() => {
@@ -205,7 +228,7 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
         globalIdx++;
       });
     });
-  }, [selectedDay, days]);
+  }, [selectedDay, daysKey]);
 
   return (
     <div className="relative w-full h-full">
