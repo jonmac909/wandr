@@ -243,3 +243,4 @@ function getActivityImage(type: string, city: string): string {
   // Use city-specific image or fall back to type-based
   return cityImages[city] || typeImages[type] || typeImages['attraction'];
 }
+// Deploy trigger 1768357935
