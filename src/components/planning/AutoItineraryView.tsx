@@ -2490,79 +2490,147 @@ export default function AutoItineraryView({
     // Map AI-generated days to our trip days
     const cityDayCounters: Record<string, number> = {};
 
-    setDays(prev => prev.map((day, dayIndex) => {
-      // Handle transit days - auto-add flight activity
-      if (day.city.includes('Transit')) {
-        // Find previous and next non-transit cities
-        let fromCity = '';
-        let toCity = '';
+    // Build a map of transit day numbers to their from/to cities
+    // By looking at what comes before/after each transit allocation
+    // IMPORTANT: Calculate startDay on the fly since it might not be set in state
+    const transitFlightMap: Record<number, { from: string; to: string }> = {};
 
-        // Look backward for the origin city
-        for (let i = dayIndex - 1; i >= 0; i--) {
-          if (!prev[i].city.includes('Transit')) {
-            fromCity = prev[i].city;
+    let currentDayNum = 1;
+    allocations.forEach((alloc, allocIndex) => {
+      const allocStartDay = currentDayNum; // Calculate on the fly
+
+      if (alloc.city.includes('Transit')) {
+        // Find the city BEFORE this transit in allocations
+        let fromCity = 'Origin';
+        for (let i = allocIndex - 1; i >= 0; i--) {
+          if (!allocations[i].city.includes('Transit')) {
+            fromCity = allocations[i].city;
             break;
           }
         }
 
-        // Look forward for the destination city
-        for (let i = dayIndex + 1; i < prev.length; i++) {
-          if (!prev[i].city.includes('Transit')) {
-            toCity = prev[i].city;
+        // Find the city AFTER this transit in allocations
+        let toCity = 'Destination';
+        for (let i = allocIndex + 1; i < allocations.length; i++) {
+          if (!allocations[i].city.includes('Transit')) {
+            toCity = allocations[i].city;
             break;
           }
         }
 
-        // If we couldn't find cities, use placeholders
-        if (!fromCity) fromCity = 'Origin';
-        if (!toCity) toCity = 'Destination';
+        // Store for each day in this transit allocation
+        for (let d = 0; d < alloc.nights; d++) {
+          const dayNum = allocStartDay + d;
+          transitFlightMap[dayNum] = { from: fromCity, to: toCity };
+          console.log(`[AutoFill] Transit day ${dayNum}: ${fromCity} → ${toCity}`);
+        }
+      }
 
-        // Create flight activity for transit day
-        const flightActivity: GeneratedActivity = {
-          id: `flight-${day.dayNumber}-${Date.now()}`,
-          name: `Flight: ${fromCity} → ${toCity}`,
-          type: 'flight',
-          description: `Travel from ${fromCity} to ${toCity}`,
-          suggestedTime: '10:00',
-          duration: 180,
-          neighborhood: 'Airport',
-          priceRange: '$$',
-          tags: ['flight', 'transit'],
-          transportDetails: {
-            from: fromCity,
-            to: toCity,
-          },
-        };
+      currentDayNum += alloc.nights;
+    });
+
+    console.log('[AutoFill] Transit flight map:', transitFlightMap, 'Allocations:', allocations.map(a => `${a.city}(${a.nights})`).join(', '));
+
+    setDays(prev => {
+      // Use existing days or generate from allocations if empty
+      let daysToProcess = prev;
+      if (prev.length === 0) {
+        console.warn('[AutoFill] WARNING: days array is EMPTY! Generating from allocations...');
+        daysToProcess = generateEmptyDays(allocations);
+        console.log('[AutoFill] Generated', daysToProcess.length, 'days from allocations');
+      }
+
+      console.log('[AutoFill] Processing', daysToProcess.length, 'days. Days:', daysToProcess.map(d => `Day ${d.dayNumber}: ${d.city}`).join(', '));
+
+      return daysToProcess.map((day, dayIndex) => {
+        // Handle transit days - auto-add flight activity
+        if (day.city.includes('Transit')) {
+          console.log(`[AutoFill] Day ${day.dayNumber} is TRANSIT (city: "${day.city}")`);
+          // Look up the from/to cities from our pre-computed map
+          const flightInfo = transitFlightMap[day.dayNumber] || { from: 'Origin', to: 'Destination' };
+          const fromCity = flightInfo.from;
+          const toCity = flightInfo.to;
+          console.log(`[AutoFill] Creating flight for day ${day.dayNumber}: ${fromCity} → ${toCity}`);
+
+          // Create flight activity for transit day
+          const flightActivity: GeneratedActivity = {
+            id: `flight-${day.dayNumber}-${Date.now()}`,
+            name: `Flight: ${fromCity} → ${toCity}`,
+            type: 'flight',
+            description: `Travel from ${fromCity} to ${toCity}`,
+            suggestedTime: '10:00',
+            duration: 180,
+            neighborhood: 'Airport',
+            priceRange: '$$',
+            tags: ['flight', 'transit'],
+            transportDetails: {
+              from: fromCity,
+              to: toCity,
+            },
+          };
+
+          return {
+            ...day,
+            theme: `Travel to ${toCity}`,
+            activities: [flightActivity],
+          };
+        }
+
+        // Track which day of the city this is
+        cityDayCounters[day.city] = (cityDayCounters[day.city] || 0);
+        const cityDayIndex = cityDayCounters[day.city];
+        cityDayCounters[day.city]++;
+
+        const cityDays = cityItineraries[day.city];
+        if (!cityDays || cityDays.length === 0) {
+          return day; // No AI data, keep empty
+        }
+
+        // Get the appropriate day from AI (cycle if more days than AI generated)
+        const aiDay = cityDays[cityDayIndex % cityDays.length];
+
+        // Check if this is the FIRST day in a new city (city changed from previous day)
+        const previousDay = daysToProcess[dayIndex - 1];
+        const isFirstDayInNewCity = previousDay &&
+          !previousDay.city.includes('Transit') &&
+          previousDay.city !== day.city;
+
+        // Create flight activity if transitioning between cities
+        let flightActivity: GeneratedActivity | null = null;
+        if (isFirstDayInNewCity) {
+          flightActivity = {
+            id: `flight-to-${day.city.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+            name: `Flight: ${previousDay.city} → ${day.city}`,
+            type: 'flight',
+            description: `Arrive in ${day.city} from ${previousDay.city}`,
+            suggestedTime: '08:00',
+            duration: 180,
+            neighborhood: 'Airport',
+            priceRange: '$$',
+            tags: ['flight', 'arrival'],
+            transportDetails: {
+              from: previousDay.city,
+              to: day.city,
+            },
+          };
+        }
+
+        // Build activities array with flight first if transitioning
+        const dayActivities = [
+          ...(flightActivity ? [flightActivity] : []),
+          ...aiDay.activities.map((act, idx) => ({
+            ...act,
+            id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
+          })),
+        ];
 
         return {
           ...day,
-          theme: `Travel to ${toCity}`,
-          activities: [flightActivity],
+          theme: aiDay.theme,
+          activities: dayActivities,
         };
-      }
-
-      // Track which day of the city this is
-      cityDayCounters[day.city] = (cityDayCounters[day.city] || 0);
-      const cityDayIndex = cityDayCounters[day.city];
-      cityDayCounters[day.city]++;
-
-      const cityDays = cityItineraries[day.city];
-      if (!cityDays || cityDays.length === 0) {
-        return day; // No AI data, keep empty
-      }
-
-      // Get the appropriate day from AI (cycle if more days than AI generated)
-      const aiDay = cityDays[cityDayIndex % cityDays.length];
-
-      return {
-        ...day,
-        theme: aiDay.theme,
-        activities: aiDay.activities.map((act, idx) => ({
-          ...act,
-          id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-        })),
-      };
-    }));
+      });
+    });
 
     setIsLoading(false);
   };
