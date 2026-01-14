@@ -2480,6 +2480,10 @@ export default function AutoItineraryView({
   const autoFillEntireTrip = async () => {
     setIsLoading(true);
 
+    // Home base - the city you're flying from/to at start/end of trip
+    // TODO: Make this a prop instead of hardcoding
+    const homeBase = 'Kelowna';
+
     // Build a map of transit day numbers to their from/to cities
     // IMPORTANT: Calculate startDay on the fly since it might not be set in state
     const transitFlightMap: Record<number, { from: string; to: string }> = {};
@@ -2490,7 +2494,7 @@ export default function AutoItineraryView({
 
       if (alloc.city.includes('Transit')) {
         // Find the city BEFORE this transit in allocations
-        let fromCity = 'Origin';
+        let fromCity = homeBase; // Default to home base (for first transit = outbound flight)
         for (let i = allocIndex - 1; i >= 0; i--) {
           if (!allocations[i].city.includes('Transit')) {
             fromCity = allocations[i].city;
@@ -2499,12 +2503,18 @@ export default function AutoItineraryView({
         }
 
         // Find the city AFTER this transit in allocations
-        let toCity = 'Destination';
+        let toCity = homeBase; // Default to home base (for last transit = return flight)
         for (let i = allocIndex + 1; i < allocations.length; i++) {
           if (!allocations[i].city.includes('Transit')) {
             toCity = allocations[i].city;
             break;
           }
+        }
+
+        // If this is the FIRST transit (allocIndex 0), it's the outbound flight from home
+        // If toCity is still homeBase but there are destinations after, use the first destination
+        if (toCity === homeBase && allocIndex === 0 && cities.length > 0) {
+          toCity = cities[0]; // First destination city
         }
 
         // Store for each day in this transit allocation
