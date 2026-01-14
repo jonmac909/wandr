@@ -1883,19 +1883,12 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
           toCity = destinationCities[0];
         }
 
+        // Look up transport options from route data
+        const routeOptions = getTransportOptions(fromCity, toCity);
+        const bestOption = routeOptions?.find(opt => opt.badge === 'best') || routeOptions?.[0];
+
         // Determine transport mode: explicit setting > route data "best" option > flight fallback
-        let transportMode: string = 'flight';
-        if (explicitTransportMode) {
-          transportMode = explicitTransportMode;
-        } else {
-          // Look up transport options from route data
-          const routeOptions = getTransportOptions(fromCity, toCity);
-          if (routeOptions && routeOptions.length > 0) {
-            // Find the "best" option, or fall back to first option
-            const bestOption = routeOptions.find(opt => opt.badge === 'best') || routeOptions[0];
-            transportMode = bestOption.mode;
-          }
-        }
+        const transportMode = explicitTransportMode || bestOption?.mode || 'flight';
 
         // Create transport activity based on mode
         // Type must match GeneratedActivity types
@@ -1904,55 +1897,77 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
         let activityType: TransportActivityType;
         let duration: number;
         let tags: string[];
+        let description: string;
+        let priceRange: string = '$$';
+
+        // Use route data for duration if available
+        const routeDuration = bestOption?.durationMinutes;
+        const routeDurationStr = bestOption?.duration;
+        const routeOperator = bestOption?.operator;
+        const routePrice = bestOption?.priceRange;
 
         if (transportMode === 'flight') {
           const fromCode = getAirportCode(fromCity);
           const toCode = getAirportCode(toCity);
-          const flightTime = FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
+          const flightTime = routeDurationStr || FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
           activityName = `${fromCode}→${toCode} (${flightTime})`;
           activityType = 'flight';
-          duration = 180;
+          duration = routeDuration || 180;
           tags = ['flight', 'transit', 'needs-booking'];
+          description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Need to book · ${fromCity} to ${toCity}`;
         } else if (transportMode === 'bus') {
-          activityName = `${fromCity} → ${toCity}`;
+          activityName = `Bus: ${fromCity} → ${toCity}`;
+          if (routeDurationStr) activityName += ` (${routeDurationStr})`;
           activityType = 'bus';
-          duration = 180; // ~3hr default
+          duration = routeDuration || 180;
           tags = ['bus', 'transit', 'needs-booking'];
+          description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Bus · ${fromCity} to ${toCity}`;
         } else if (transportMode === 'train') {
-          activityName = `${fromCity} → ${toCity}`;
+          activityName = `Train: ${fromCity} → ${toCity}`;
+          if (routeDurationStr) activityName += ` (${routeDurationStr})`;
           activityType = 'train';
-          duration = 120;
+          duration = routeDuration || 120;
           tags = ['train', 'transit', 'needs-booking'];
-        } else if (transportMode === 'car') {
-          activityName = `${fromCity} → ${toCity}`;
+          description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Train · ${fromCity} to ${toCity}`;
+        } else if (transportMode === 'drive' || transportMode === 'car') {
+          activityName = `Drive: ${fromCity} → ${toCity}`;
+          if (routeDurationStr) activityName += ` (${routeDurationStr})`;
           activityType = 'drive';
-          duration = 180;
+          duration = routeDuration || 180;
           tags = ['car', 'transit', 'driving'];
+          description = `Self-drive · ${fromCity} to ${toCity}`;
         } else if (transportMode === 'ferry') {
-          activityName = `${fromCity} → ${toCity}`;
-          activityType = 'transit'; // ferry uses transit type
-          duration = 120;
+          activityName = `Ferry: ${fromCity} → ${toCity}`;
+          if (routeDurationStr) activityName += ` (${routeDurationStr})`;
+          activityType = 'transit';
+          duration = routeDuration || 120;
           tags = ['ferry', 'transit', 'needs-booking'];
+          description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Ferry · ${fromCity} to ${toCity}`;
         } else {
           activityName = `${fromCity} → ${toCity}`;
+          if (routeDurationStr) activityName += ` (${routeDurationStr})`;
           activityType = 'transit';
-          duration = 120;
+          duration = routeDuration || 120;
           tags = ['transit', 'needs-booking'];
+          description = `Transport · ${fromCity} to ${toCity}`;
         }
+
+        if (routePrice) priceRange = routePrice;
 
         activities = [{
           id: `transport-${dayNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           name: activityName,
           type: activityType,
-          description: `Need to book · ${fromCity} to ${toCity}`,
+          description,
           suggestedTime: '10:00',
           duration,
           neighborhood: toCity,
-          priceRange: '$$',
+          priceRange,
           tags,
           transportDetails: {
             from: fromCity,
             to: toCity,
+            operator: routeOperator,
           },
         }];
         theme = `Travel to ${toCity}`;
