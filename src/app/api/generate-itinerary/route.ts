@@ -69,24 +69,33 @@ TRAVELER PROFILE:
 ${mustHaves?.length > 0 ? `- Must include: ${mustHaves.join(', ')}` : ''}
 ${avoidances?.length > 0 ? `- Avoid: ${avoidances.join(', ')}` : ''}${excludeList}
 
-Generate a list of ${Math.ceil(activitiesToRequest)} UNIQUE places to visit/eat in ${city}.
+Generate a list of ${Math.ceil(activitiesToRequest)} UNIQUE places to visit in ${city}.
 
 CRITICAL REQUIREMENTS:
 - Every single place must be DIFFERENT - no duplicates or variations of the same place
-- Mix of attractions (temples, museums, landmarks), restaurants, cafes, and activities
+- Focus on attractions (temples, museums, landmarks, parks) and activities - NOT restaurants/cafes
 - Include both famous landmarks AND hidden local gems
 - Use REAL places that actually exist in ${city}
-- Cover different neighborhoods across the city
+
+IMPORTANT - GEOGRAPHIC GROUPING:
+- Group activities by neighborhood so they can be visited together
+- Order activities following COMMON TOUR ROUTES that make geographic sense
+- Activities in the same neighborhood should be listed consecutively
+- Consider walking distance - nearby attractions should be grouped
+- Example: If visiting a temple district, list all temples/attractions in that area together
+- Return activities in an order that minimizes travel time between them
 
 For EACH place, provide:
 1. name: The specific place name (real place that exists)
-2. type: "attraction" | "restaurant" | "activity"
+2. type: "attraction" | "activity"
 3. description: 1-2 sentence description
 4. duration: Time to spend in minutes (30-180)
 5. openingHours: Typical hours (e.g., "9AM-5PM")
-6. neighborhood: Which area/district
+6. neighborhood: Which area/district (IMPORTANT for grouping)
 7. priceRange: "$" (budget), "$$" (moderate), "$$$" (expensive)
 8. tags: 2-4 relevant tags
+
+Return activities ORDERED BY NEIGHBORHOOD so consecutive items are walkable from each other.
 
 Return ONLY valid JSON in this exact format:
 {

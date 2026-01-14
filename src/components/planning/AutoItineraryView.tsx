@@ -2590,11 +2590,13 @@ export default function AutoItineraryView({
 
       if (aiDay && aiDay.activities) {
         // Filter out any activities that match used names (double-check)
+        // Also exclude restaurants - user wants to pick their own dining spots
         const uniqueActivities = aiDay.activities.filter((act: GeneratedActivity) =>
-          !usedActivityNames.has(act.name.toLowerCase())
+          !usedActivityNames.has(act.name.toLowerCase()) &&
+          act.type !== 'restaurant'
         );
 
-        console.log(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique`);
+        console.log(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique (excluding restaurants)`);
 
         setDays(prev => prev.map(day => {
           if (day.dayNumber === dayNumber) {
@@ -2617,11 +2619,12 @@ export default function AutoItineraryView({
       }
     } catch (error) {
       console.error('[AutoFill] API failed, using fallback', error);
-      // Fallback to mock data, filtering out used activities
+      // Fallback to mock data, filtering out used activities and restaurants
       const mockDays = generateMockDaysForCity(targetDay.city, 1);
       if (mockDays[0]) {
         const uniqueActivities = mockDays[0].activities.filter(act =>
-          !usedActivityNames.has(act.name.toLowerCase())
+          !usedActivityNames.has(act.name.toLowerCase()) &&
+          act.type !== 'restaurant'
         );
         setDays(prev => prev.map(day => {
           if (day.dayNumber === dayNumber) {
@@ -2723,6 +2726,8 @@ export default function AutoItineraryView({
         for (const act of cityActivities) {
           if (dayActivities.length >= activitiesPerDay + existingTransport.length) break;
           if (usedSet.has(act.name.toLowerCase())) continue;
+          // Skip restaurants - user picks their own dining spots
+          if (act.type === 'restaurant') continue;
 
           usedSet.add(act.name.toLowerCase());
           dayActivities.push({
@@ -3161,7 +3166,15 @@ export default function AutoItineraryView({
                       </span>
                     </div>
                     <div className="divide-y">
-                      {mapDayActivities.map((activity, idx) => (
+                      {mapDayActivities.map((activity, idx) => {
+                        // Calculate activity number excluding transport
+                        const activityNumber = mapDayActivities
+                          .slice(0, idx + 1)
+                          .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
+                          .length;
+                        const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
+
+                        return (
                         <button
                           key={activity.id}
                           onClick={() => setMapSelectedIndex(idx)}
@@ -3172,10 +3185,10 @@ export default function AutoItineraryView({
                           <div className="flex items-start gap-3">
                             <div
                               className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                                mapSelectedIndex === idx ? 'bg-primary' : 'bg-gray-400'
+                                mapSelectedIndex === idx ? 'bg-primary' : isTransport ? 'bg-blue-500' : 'bg-gray-400'
                               }`}
                             >
-                              {idx + 1}
+                                {isTransport ? '—' : activityNumber}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
@@ -3206,7 +3219,8 @@ export default function AutoItineraryView({
                             )}
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (
@@ -3578,6 +3592,12 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                 const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
                 const walkingMiles = (walkingTime * 0.05).toFixed(2);
                 const warning = getActivityWarnings(activity, day.date);
+                // Calculate activity number excluding transport
+                const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
+                const activityNumber = isTransport ? 0 : day.activities
+                  .slice(0, idx + 1)
+                  .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
+                  .length;
 
                 return (
                   <div key={activity.id}>
@@ -3700,7 +3720,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                     ) : (
                     /* Activity card with big image */
                     <button
-                      onClick={() => onActivityTap(activity, idx + 1)}
+                      onClick={() => onActivityTap(activity, activityNumber)}
                       className="w-full text-left"
                     >
                       {/* Large image */}
@@ -3712,7 +3732,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                         />
                         {/* Number badge */}
                         <div className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold shadow-lg">
-                          {idx + 1}
+                          {activityNumber}
                         </div>
                         {/* Delete button */}
                         <button
@@ -3920,6 +3940,11 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                     : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
                   const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
                   const warning = getActivityWarnings(activity, day.date);
+                  // Calculate activity number excluding transport
+                  const activityNumber = day.activities
+                    .slice(0, idx + 1)
+                    .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
+                    .length;
 
                   return (
                     <div key={activity.id}>
@@ -3962,7 +3987,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
 
                         {/* Activity card */}
                         <button
-                          onClick={() => onActivityTap(activity, idx + 1)}
+                          onClick={() => onActivityTap(activity, activityNumber)}
                           className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-left mb-1"
                         >
                           {/* Thumbnail */}
