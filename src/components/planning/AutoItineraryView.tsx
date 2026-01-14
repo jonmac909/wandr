@@ -2490,9 +2490,55 @@ export default function AutoItineraryView({
     // Map AI-generated days to our trip days
     const cityDayCounters: Record<string, number> = {};
 
-    setDays(prev => prev.map(day => {
+    setDays(prev => prev.map((day, dayIndex) => {
+      // Handle transit days - auto-add flight activity
       if (day.city.includes('Transit')) {
-        return day; // Skip transit days
+        // Find previous and next non-transit cities
+        let fromCity = '';
+        let toCity = '';
+
+        // Look backward for the origin city
+        for (let i = dayIndex - 1; i >= 0; i--) {
+          if (!prev[i].city.includes('Transit')) {
+            fromCity = prev[i].city;
+            break;
+          }
+        }
+
+        // Look forward for the destination city
+        for (let i = dayIndex + 1; i < prev.length; i++) {
+          if (!prev[i].city.includes('Transit')) {
+            toCity = prev[i].city;
+            break;
+          }
+        }
+
+        // If we couldn't find cities, use placeholders
+        if (!fromCity) fromCity = 'Origin';
+        if (!toCity) toCity = 'Destination';
+
+        // Create flight activity for transit day
+        const flightActivity: GeneratedActivity = {
+          id: `flight-${day.dayNumber}-${Date.now()}`,
+          name: `Flight: ${fromCity} → ${toCity}`,
+          type: 'flight',
+          description: `Travel from ${fromCity} to ${toCity}`,
+          suggestedTime: '10:00',
+          duration: 180,
+          neighborhood: 'Airport',
+          priceRange: '$$',
+          tags: ['flight', 'transit'],
+          transportDetails: {
+            from: fromCity,
+            to: toCity,
+          },
+        };
+
+        return {
+          ...day,
+          theme: `Travel to ${toCity}`,
+          activities: [flightActivity],
+        };
       }
 
       // Track which day of the city this is
@@ -3752,70 +3798,19 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             </div>
           )}
 
-          {/* Add a place */}
-          <div className="ml-8">
-            <div className="flex items-center gap-3 py-3 px-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
-              <MapPin className="w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Add a place"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
-
-          {/* Reservations and attachments - Wanderlog style */}
-          <div className="ml-8 mt-4 p-4 bg-gray-50 rounded-xl">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Reservations and attachments</h4>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => onAddReservation('flight')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <Plane className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Flight</span>
-              </button>
-              <div className="w-px h-8 bg-gray-200" />
-              <button
-                onClick={() => onAddReservation('lodging')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <Bed className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Lodging</span>
-              </button>
-              <div className="w-px h-8 bg-gray-200" />
-              <button
-                onClick={() => onAddReservation('rental-car')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <Car className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Rental car</span>
-              </button>
-              <div className="w-px h-8 bg-gray-200" />
-              <button
-                onClick={() => onAddReservation('restaurant')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <Utensils className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Restaurant</span>
-              </button>
-              <div className="w-px h-8 bg-gray-200" />
-              <button
-                onClick={() => onAddReservation('attachment')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <Paperclip className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Attachment</span>
-              </button>
-              <div className="w-px h-8 bg-gray-200" />
-              <button
-                onClick={() => onAddReservation('other')}
-                className="flex flex-col items-center gap-1.5 p-2 hover:bg-gray-100 rounded-lg transition-colors group"
-              >
-                <MoreHorizontal className="w-6 h-6 text-gray-600 group-hover:text-gray-900" />
-                <span className="text-xs text-gray-600 group-hover:text-gray-900">Other</span>
-              </button>
-            </div>
+          {/* Add place / Add transport tabs */}
+          <div className="ml-8 mt-3 flex items-center gap-4">
+            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <Plus className="w-4 h-4" />
+              Add a place
+            </button>
+            <button
+              onClick={() => onAddReservation('flight')}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Plane className="w-4 h-4" />
+              Add transport
+            </button>
           </div>
         </div>
       )}
