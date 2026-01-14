@@ -4061,7 +4061,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                             </div>
                           </div>
 
-                          {/* Reorder buttons */}
+                          {/* Reorder + Delete buttons */}
                           <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             {idx > 0 && (
                               <button
@@ -4081,6 +4081,13 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                                 <ChevronDown className="w-4 h-4" />
                               </button>
                             )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
+                              className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-500"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </button>
                       </div>
