@@ -3496,27 +3496,39 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
           )}
 
           {/* Hotel prompt - Wanderlog style */}
-          {showHotelPrompt && !isEmpty && (
-            <div className="ml-8 bg-secondary/50 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Hotel className="w-5 h-5 text-primary" />
+          {/* Don't show for overnight flights (8+ hour flights or flights with +1 in name) */}
+          {showHotelPrompt && !isEmpty && (() => {
+            // Check if this is an overnight flight day (you sleep on the plane)
+            const hasOvernightFlight = day.activities.some(a =>
+              a.type === 'flight' && (
+                (a.duration && a.duration >= 480) || // 8+ hours
+                a.name?.includes('+1') || // Arrives next day
+                a.name?.includes('12-14hr') || a.name?.includes('10-12hr') || a.name?.includes('8-10hr') // Long haul
+              )
+            );
+            if (hasOvernightFlight) return null;
+            return (
+              <div className="ml-8 bg-secondary/50 rounded-xl p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Hotel className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm">
+                    Looks like you don&apos;t have lodging for {formatDate(day.date)} yet.
+                  </p>
+                </div>
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  Book hotels
+                </Button>
+                <button
+                  onClick={() => setShowHotelPrompt(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="text-sm">
-                  Looks like you don&apos;t have lodging for {formatDate(day.date)} yet.
-                </p>
-              </div>
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                Book hotels
-              </Button>
-              <button
-                onClick={() => setShowHotelPrompt(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Activities - Picture View (Large photos like Wanderlog) */}
           {!isEmpty && viewMode === 'picture' && (
