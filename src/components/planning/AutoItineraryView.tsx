@@ -40,6 +40,7 @@ import {
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
 import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-generator';
+import { getTransportOptions } from '@/lib/planning/transport-options';
 import dynamic from 'next/dynamic';
 
 // Dynamically import HotelPicker, RouteMap, and ActivityMap
@@ -1856,14 +1857,14 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
 
       // Auto-add transport for transit days
       if (isTransit && i === 0) { // Only add transport on first day of transit
-        // Find the city BEFORE this transit and its transport type
+        // Find the city BEFORE this transit
         let fromCity = home;
-        let transportMode: string = 'flight'; // Default to flight
+        let explicitTransportMode: string | undefined;
         for (let j = allocIndex - 1; j >= 0; j--) {
           if (!allocations[j].city.includes('Transit')) {
             fromCity = allocations[j].city;
-            // Use the transportToNext from the previous city
-            transportMode = allocations[j].transportToNext || 'flight';
+            // Check if user explicitly set transportToNext
+            explicitTransportMode = allocations[j].transportToNext;
             break;
           }
         }
@@ -1880,6 +1881,20 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
         // If first transit and toCity is still home, use first destination
         if (toCity === home && allocIndex === 0 && destinationCities.length > 0) {
           toCity = destinationCities[0];
+        }
+
+        // Determine transport mode: explicit setting > route data "best" option > flight fallback
+        let transportMode: string = 'flight';
+        if (explicitTransportMode) {
+          transportMode = explicitTransportMode;
+        } else {
+          // Look up transport options from route data
+          const routeOptions = getTransportOptions(fromCity, toCity);
+          if (routeOptions && routeOptions.length > 0) {
+            // Find the "best" option, or fall back to first option
+            const bestOption = routeOptions.find(opt => opt.badge === 'best') || routeOptions[0];
+            transportMode = bestOption.mode;
+          }
         }
 
         // Create transport activity based on mode
