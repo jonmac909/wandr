@@ -12,7 +12,7 @@ interface DashboardHeaderProps {
   onOpenChat?: () => void;
 }
 
-export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfile, onOpenChat }: DashboardHeaderProps) {
+export function DashboardHeader({ onOpenDrawer, onOpenProfile, onOpenChat }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">

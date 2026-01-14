@@ -2357,7 +2357,8 @@ export default function AutoItineraryView({
       setTripTotalDays(newTotalDays);
       // Sync back to parent
       onDatesChange?.(newStartDate, newTotalDays);
-      // Allocations will auto-update via useEffect
+      // NOTE: Allocations are NOT auto-updated when days change.
+      // User can click "Auto-allocate" button to redistribute if needed.
     }
     setIsDateEditorOpen(false);
   };
@@ -2882,19 +2883,32 @@ export default function AutoItineraryView({
         </button>
 
         {/* Guidance message when nights don't match trip duration - fixed height to prevent layout bounce */}
-        <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm min-h-[40px] flex items-center transition-all duration-200 ${
+        <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm min-h-[40px] flex items-center justify-between transition-all duration-200 ${
           currentTotal === tripTotalDays
             ? 'bg-green-50 text-green-700 border border-green-200'
             : currentTotal > tripTotalDays
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-amber-50 text-amber-700 border border-amber-200'
         }`}>
-          {currentTotal === tripTotalDays
-            ? '✓ All nights allocated!'
-            : currentTotal > tripTotalDays
-              ? `⚠️ ${currentTotal - tripTotalDays} nights over — remove nights or extend trip dates`
-              : `📝 ${tripTotalDays - currentTotal} nights remaining to allocate`
-          }
+          <span>
+            {currentTotal === tripTotalDays
+              ? '✓ All nights allocated!'
+              : currentTotal > tripTotalDays
+                ? `⚠️ ${currentTotal - tripTotalDays} nights over — remove nights or extend trip dates`
+                : `📝 ${tripTotalDays - currentTotal} nights remaining to allocate`
+            }
+          </span>
+          {currentTotal !== tripTotalDays && (
+            <button
+              onClick={() => {
+                console.log('[AutoItinerary] User clicked Auto-allocate - regenerating allocations');
+                setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+              }}
+              className="ml-2 px-2 py-1 text-xs font-medium bg-white/80 hover:bg-white border rounded transition-colors whitespace-nowrap"
+            >
+              Auto-allocate
+            </button>
+          )}
         </div>
 
         {/* City allocations - only show when expanded */}
