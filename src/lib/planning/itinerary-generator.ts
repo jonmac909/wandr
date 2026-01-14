@@ -86,6 +86,8 @@ export interface GeneratedDay {
   hotelId?: string;             // Only if user selected one
 }
 
+export type TransportMode = 'flight' | 'train' | 'bus' | 'car' | 'ferry' | 'other';
+
 export interface CityAllocation {
   city: string;
   nights: number;
@@ -93,6 +95,7 @@ export interface CityAllocation {
   endDay: number;
   startDate?: string;           // ISO date if dates provided
   endDate?: string;
+  transportToNext?: TransportMode; // How to get to the NEXT city (used for transit days)
 }
 
 export interface GeneratedItinerary {

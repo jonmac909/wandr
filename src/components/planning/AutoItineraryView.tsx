@@ -1839,7 +1839,7 @@ const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
 };
 
 // Generate EMPTY days (no activities) - like Wanderlog
-// BUT auto-adds flights on transit days
+// BUT auto-adds transport on transit days (flight, bus, train, etc. based on route)
 function generateEmptyDays(allocations: CityAllocation[], cities?: string[], homeBase?: string): GeneratedDay[] {
   const days: GeneratedDay[] = [];
   let dayNumber = 1;
@@ -1854,13 +1854,16 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
       let activities: GeneratedActivity[] = [];
       let theme: string | undefined;
 
-      // Auto-add flight for transit days
-      if (isTransit && i === 0) { // Only add flight on first day of transit
-        // Find the city BEFORE this transit
+      // Auto-add transport for transit days
+      if (isTransit && i === 0) { // Only add transport on first day of transit
+        // Find the city BEFORE this transit and its transport type
         let fromCity = home;
+        let transportMode: string = 'flight'; // Default to flight
         for (let j = allocIndex - 1; j >= 0; j--) {
           if (!allocations[j].city.includes('Transit')) {
             fromCity = allocations[j].city;
+            // Use the transportToNext from the previous city
+            transportMode = allocations[j].transportToNext || 'flight';
             break;
           }
         }
@@ -1879,20 +1882,59 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
           toCity = destinationCities[0];
         }
 
-        const fromCode = getAirportCode(fromCity);
-        const toCode = getAirportCode(toCity);
-        const flightTime = FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
+        // Create transport activity based on mode
+        // Type must match GeneratedActivity types
+        type TransportActivityType = 'flight' | 'train' | 'bus' | 'drive' | 'transit';
+        let activityName: string;
+        let activityType: TransportActivityType;
+        let duration: number;
+        let tags: string[];
+
+        if (transportMode === 'flight') {
+          const fromCode = getAirportCode(fromCity);
+          const toCode = getAirportCode(toCity);
+          const flightTime = FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
+          activityName = `${fromCode}→${toCode} (${flightTime})`;
+          activityType = 'flight';
+          duration = 180;
+          tags = ['flight', 'transit', 'needs-booking'];
+        } else if (transportMode === 'bus') {
+          activityName = `${fromCity} → ${toCity}`;
+          activityType = 'bus';
+          duration = 180; // ~3hr default
+          tags = ['bus', 'transit', 'needs-booking'];
+        } else if (transportMode === 'train') {
+          activityName = `${fromCity} → ${toCity}`;
+          activityType = 'train';
+          duration = 120;
+          tags = ['train', 'transit', 'needs-booking'];
+        } else if (transportMode === 'car') {
+          activityName = `${fromCity} → ${toCity}`;
+          activityType = 'drive';
+          duration = 180;
+          tags = ['car', 'transit', 'driving'];
+        } else if (transportMode === 'ferry') {
+          activityName = `${fromCity} → ${toCity}`;
+          activityType = 'transit'; // ferry uses transit type
+          duration = 120;
+          tags = ['ferry', 'transit', 'needs-booking'];
+        } else {
+          activityName = `${fromCity} → ${toCity}`;
+          activityType = 'transit';
+          duration = 120;
+          tags = ['transit', 'needs-booking'];
+        }
 
         activities = [{
-          id: `flight-${dayNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          name: `${fromCode}→${toCode} (${flightTime})`,
-          type: 'flight',
+          id: `transport-${dayNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: activityName,
+          type: activityType,
           description: `Need to book · ${fromCity} to ${toCity}`,
           suggestedTime: '10:00',
-          duration: 180,
+          duration,
           neighborhood: toCity,
           priceRange: '$$',
-          tags: ['flight', 'transit', 'needs-booking'],
+          tags,
           transportDetails: {
             from: fromCity,
             to: toCity,
@@ -3554,7 +3596,57 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       );
                     })()}
 
-                    {/* Activity card with big image */}
+                    {/* Transport card (colored, no image) */}
+                    {['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type) ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                              {activity.type === 'flight' && <Plane className="w-5 h-5" />}
+                              {activity.type === 'train' && <Train className="w-5 h-5" />}
+                              {activity.type === 'bus' && <Bus className="w-5 h-5" />}
+                              {activity.type === 'drive' && <Car className="w-5 h-5" />}
+                              {activity.type === 'transit' && <Plane className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900">{activity.name}</h4>
+                              <p className="text-sm text-gray-600">{activity.description}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
+                            className="p-1.5 rounded-full hover:bg-blue-100 text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {/* Action buttons for transport */}
+                        <div className="mt-3 flex items-center gap-4 text-sm text-gray-500 pl-13">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingTimeId(activity.id); }}
+                            className="flex items-center gap-1.5 hover:text-blue-600"
+                          >
+                            <Clock className="w-4 h-4" />
+                            {activity.suggestedTime || 'Add time'}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAttachmentModalId(activity.id); }}
+                            className="flex items-center gap-1.5 hover:text-blue-600"
+                          >
+                            <Paperclip className="w-4 h-4" />
+                            Attach
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingCostId(activity.id); }}
+                            className="flex items-center gap-1.5 hover:text-blue-600"
+                          >
+                            <DollarSign className="w-4 h-4" />
+                            {activity.userCost ? `$${activity.userCost}` : 'Add cost'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                    /* Activity card with big image */
                     <button
                       onClick={() => onActivityTap(activity, idx + 1)}
                       className="w-full text-left"
@@ -3754,6 +3846,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                         )}
                       </div>
                     </button>
+                    )}
                   </div>
                 );
               })}
