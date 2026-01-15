@@ -2387,6 +2387,43 @@ export default function AutoItineraryView({
     return () => clearTimeout(timer);
   }, [allocations, hasLoadedInitialDays, cities]);
 
+  // Keep days' city assignments in sync with allocations
+  // When allocations change (city order, night counts), update each day's city to match
+  useEffect(() => {
+    if (days.length === 0 || allocations.length === 0) return;
+
+    // Build a map of dayNumber -> city from allocations
+    const dayToCityMap: Record<number, string> = {};
+    let dayNum = 1;
+    for (const alloc of allocations) {
+      for (let i = 0; i < alloc.nights; i++) {
+        dayToCityMap[dayNum] = alloc.city;
+        dayNum++;
+      }
+    }
+
+    // Check if any day's city doesn't match the allocation
+    let needsUpdate = false;
+    for (const day of days) {
+      const expectedCity = dayToCityMap[day.dayNumber];
+      if (expectedCity && day.city !== expectedCity) {
+        needsUpdate = true;
+        break;
+      }
+    }
+
+    if (needsUpdate) {
+      console.log('[AutoItinerary] Re-syncing days to match allocations');
+      setDays(prev => prev.map(day => {
+        const expectedCity = dayToCityMap[day.dayNumber];
+        if (expectedCity && day.city !== expectedCity) {
+          return { ...day, city: expectedCity };
+        }
+        return day;
+      }));
+    }
+  }, [allocations, days]);
+
   // Sync allocations back to parent whenever they change
   // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
   useEffect(() => {
