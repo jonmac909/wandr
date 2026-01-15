@@ -2413,16 +2413,21 @@ export default function AutoItineraryView({
     }
 
     if (needsUpdate) {
-      console.log('[AutoItinerary] Re-syncing days - activities stay with their cities');
+      console.log('[AutoItinerary] Re-syncing days - activities stay with their cities, transport regenerated');
 
-      // Collect all activities grouped by their original city
+      // Transport types to exclude from moving (will be regenerated)
+      const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+
+      // Collect all NON-TRANSPORT activities grouped by their original city
       const activitiesByCity: Record<string, GeneratedActivity[]> = {};
       for (const day of days) {
         if (!day.city.includes('Transit') && day.activities.length > 0) {
           if (!activitiesByCity[day.city]) {
             activitiesByCity[day.city] = [];
           }
-          activitiesByCity[day.city].push(...day.activities);
+          // Only keep non-transport activities
+          const nonTransport = day.activities.filter(a => !TRANSPORT_TYPES.includes(a.type));
+          activitiesByCity[day.city].push(...nonTransport);
         }
       }
 
@@ -2431,14 +2436,11 @@ export default function AutoItineraryView({
         // Track which activities we've placed for each city
         const placedCountByCity: Record<string, number> = {};
 
-        return prev.map(day => {
+        return prev.map((day, dayIdx) => {
           const newCity = newDayToCityMap[day.dayNumber];
           if (!newCity) return day;
 
-          // If city didn't change, keep activities
-          if (newCity === day.city) return day;
-
-          // Get activities for the new city
+          // Get activities for the new city (excluding transport)
           const cityActivities = activitiesByCity[newCity] || [];
           const placedCount = placedCountByCity[newCity] || 0;
 
@@ -2450,6 +2452,71 @@ export default function AutoItineraryView({
           const dayActivities = cityActivities.slice(startIdx, endIdx);
 
           placedCountByCity[newCity] = endIdx;
+
+          // Check if this is the FIRST day of a new city (need transport from previous city)
+          const prevCity = dayIdx > 0 ? newDayToCityMap[prev[dayIdx - 1].dayNumber] : null;
+          const isFirstDayOfCity = prevCity && prevCity !== newCity && !newCity.includes('Transit');
+
+          if (isFirstDayOfCity && prevCity && !prevCity.includes('Transit')) {
+            // Generate transport from previous city to this city
+            const routeOptions = getTransportOptions(prevCity, newCity);
+            const bestOption = routeOptions?.find(opt => opt.badge === 'best') || routeOptions?.[0];
+            const transportMode = bestOption?.mode || 'flight';
+
+            let transportActivity: GeneratedActivity | null = null;
+            const routeDuration = bestOption?.durationMinutes || 180;
+            const routeDurationStr = bestOption?.duration;
+            const routeOperator = bestOption?.operator;
+
+            if (transportMode === 'bus') {
+              transportActivity = {
+                id: `transport-${day.dayNumber}-${Date.now()}`,
+                name: `Bus: ${prevCity} → ${newCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+                type: 'bus',
+                duration: routeDuration,
+                description: routeOperator ? `${routeOperator} · ${prevCity} to ${newCity}` : `Bus · ${prevCity} to ${newCity}`,
+                tags: ['bus', 'transit', 'needs-booking'],
+              };
+            } else if (transportMode === 'train') {
+              transportActivity = {
+                id: `transport-${day.dayNumber}-${Date.now()}`,
+                name: `Train: ${prevCity} → ${newCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+                type: 'train',
+                duration: routeDuration,
+                description: routeOperator ? `${routeOperator} · ${prevCity} to ${newCity}` : `Train · ${prevCity} to ${newCity}`,
+                tags: ['train', 'transit', 'needs-booking'],
+              };
+            } else if (transportMode === 'drive') {
+              transportActivity = {
+                id: `transport-${day.dayNumber}-${Date.now()}`,
+                name: `Drive: ${prevCity} → ${newCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+                type: 'drive',
+                duration: routeDuration,
+                description: `Drive · ${prevCity} to ${newCity}`,
+                tags: ['drive', 'transit'],
+              };
+            } else {
+              // Default to flight
+              const fromCode = getAirportCode(prevCity);
+              const toCode = getAirportCode(newCity);
+              transportActivity = {
+                id: `transport-${day.dayNumber}-${Date.now()}`,
+                name: `${fromCode}→${toCode}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+                type: 'flight',
+                duration: routeDuration,
+                description: routeOperator ? `${routeOperator} · ${prevCity} to ${newCity}` : `Flight · ${prevCity} to ${newCity}`,
+                tags: ['flight', 'transit', 'needs-booking'],
+              };
+            }
+
+            if (transportActivity) {
+              return {
+                ...day,
+                city: newCity,
+                activities: [transportActivity, ...dayActivities],
+              };
+            }
+          }
 
           return {
             ...day,
