@@ -337,7 +337,7 @@ export function DayCard({
     )}>
       <CardHeader
         className={cn(
-          'cursor-pointer hover:bg-muted/50 transition-colors',
+          'group cursor-pointer hover:bg-muted/50 transition-colors',
           onToggle && 'cursor-pointer'
         )}
         onClick={onToggle}
