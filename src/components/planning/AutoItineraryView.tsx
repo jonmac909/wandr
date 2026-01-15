@@ -2528,6 +2528,121 @@ export default function AutoItineraryView({
     }
   }, [allocations, days]);
 
+  // Ensure transport exists on city transition days
+  // If first day of a city has no transport from previous city, add it
+  useEffect(() => {
+    if (days.length === 0 || allocations.length === 0) return;
+
+    const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+
+    // Build day-to-city map from allocations
+    const dayToCityMap: Record<number, string> = {};
+    let dayNum = 1;
+    for (const alloc of allocations) {
+      for (let i = 0; i < alloc.nights; i++) {
+        dayToCityMap[dayNum] = alloc.city;
+        dayNum++;
+      }
+    }
+
+    // Check each day for missing transport
+    let needsTransport = false;
+    for (let i = 1; i < days.length; i++) {
+      const day = days[i];
+      const prevDay = days[i - 1];
+      const currentCity = dayToCityMap[day.dayNumber];
+      const prevCity = dayToCityMap[prevDay.dayNumber];
+
+      if (currentCity && prevCity && currentCity !== prevCity &&
+          !currentCity.includes('Transit') && !prevCity.includes('Transit')) {
+        // This is a city transition - check if transport exists
+        const hasTransport = day.activities.some(a => TRANSPORT_TYPES.includes(a.type));
+        if (!hasTransport) {
+          needsTransport = true;
+          break;
+        }
+      }
+    }
+
+    if (needsTransport) {
+      console.log('[AutoItinerary] Adding missing transport on city transitions');
+      setDays(prev => {
+        return prev.map((day, dayIdx) => {
+          if (dayIdx === 0) return day;
+
+          const prevDay = prev[dayIdx - 1];
+          const currentCity = dayToCityMap[day.dayNumber];
+          const prevCity = dayToCityMap[prevDay.dayNumber];
+
+          if (!currentCity || !prevCity || currentCity === prevCity ||
+              currentCity.includes('Transit') || prevCity.includes('Transit')) {
+            return day;
+          }
+
+          // Check if transport already exists
+          const hasTransport = day.activities.some(a => TRANSPORT_TYPES.includes(a.type));
+          if (hasTransport) return day;
+
+          // Generate transport from previous city to this city
+          const routeOptions = getTransportOptions(prevCity, currentCity);
+          const bestOption = routeOptions?.find(opt => opt.badge === 'best') || routeOptions?.[0];
+          const transportMode = bestOption?.mode || 'flight';
+
+          const routeDuration = bestOption?.durationMinutes || 180;
+          const routeDurationStr = bestOption?.duration;
+          const routeOperator = bestOption?.operator;
+
+          let transportActivity: GeneratedActivity;
+
+          if (transportMode === 'bus') {
+            transportActivity = {
+              id: `transport-${day.dayNumber}-${Date.now()}`,
+              name: `Bus: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+              type: 'bus',
+              duration: routeDuration,
+              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Bus · ${prevCity} to ${currentCity}`,
+              tags: ['bus', 'transit', 'needs-booking'],
+            };
+          } else if (transportMode === 'train') {
+            transportActivity = {
+              id: `transport-${day.dayNumber}-${Date.now()}`,
+              name: `Train: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+              type: 'train',
+              duration: routeDuration,
+              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Train · ${prevCity} to ${currentCity}`,
+              tags: ['train', 'transit', 'needs-booking'],
+            };
+          } else if (transportMode === 'drive') {
+            transportActivity = {
+              id: `transport-${day.dayNumber}-${Date.now()}`,
+              name: `Drive: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+              type: 'drive',
+              duration: routeDuration,
+              description: `Drive · ${prevCity} to ${currentCity}`,
+              tags: ['drive', 'transit'],
+            };
+          } else {
+            const fromCode = getAirportCode(prevCity);
+            const toCode = getAirportCode(currentCity);
+            transportActivity = {
+              id: `transport-${day.dayNumber}-${Date.now()}`,
+              name: `${fromCode}→${toCode}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+              type: 'flight',
+              duration: routeDuration,
+              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Flight · ${prevCity} to ${currentCity}`,
+              tags: ['flight', 'transit', 'needs-booking'],
+            };
+          }
+
+          return {
+            ...day,
+            activities: [transportActivity, ...day.activities],
+          };
+        });
+      });
+    }
+  }, [allocations, days]);
+
   // Sync allocations back to parent whenever they change
   // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
   useEffect(() => {
