@@ -37,6 +37,7 @@ import {
   Bed,
   Utensils,
   MoreHorizontal,
+  ClipboardList,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
@@ -2091,6 +2092,44 @@ export default function AutoItineraryView({
   // View mode: 'picture' | 'compact' | 'map'
   const [viewMode, setViewMode] = useState<'picture' | 'compact' | 'map'>('picture');
 
+  // Category filter: 'all' | 'travel' | 'stay' | 'do'
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'travel' | 'stay' | 'do'>('all');
+
+  // Filter activities by category
+  const filterActivitiesByCategory = useCallback((activities: GeneratedActivity[], filter: 'all' | 'travel' | 'stay' | 'do') => {
+    if (filter === 'all') return activities;
+
+    const travelTypes = ['flight', 'train', 'bus', 'drive', 'transit'];
+
+    if (filter === 'travel') {
+      return activities.filter(a => travelTypes.includes(a.type));
+    }
+
+    if (filter === 'stay') {
+      // No dedicated accommodation type, filter by name keywords
+      const stayKeywords = ['hotel', 'hostel', 'accommodation', 'check-in', 'check in', 'airbnb', 'resort', 'lodge', 'inn'];
+      return activities.filter(a =>
+        stayKeywords.some(keyword => a.name.toLowerCase().includes(keyword))
+      );
+    }
+
+    // 'do' = everything that's not travel or stay
+    const stayKeywords = ['hotel', 'hostel', 'accommodation', 'check-in', 'check in', 'airbnb', 'resort', 'lodge', 'inn'];
+    return activities.filter(a =>
+      !travelTypes.includes(a.type) &&
+      !stayKeywords.some(keyword => a.name.toLowerCase().includes(keyword))
+    );
+  }, []);
+
+  // Filtered days based on category filter
+  const filteredDays = useMemo(() => {
+    if (categoryFilter === 'all') return days;
+    return days.map(day => ({
+      ...day,
+      activities: filterActivitiesByCategory(day.activities, categoryFilter)
+    })).filter(day => day.activities.length > 0);
+  }, [days, categoryFilter, filterActivitiesByCategory]);
+
   // Hotels per city
   const [selectedHotels, setSelectedHotels] = useState<Record<string, { name: string; id: string }>>({});
   const [hotelPickerCity, setHotelPickerCity] = useState<string | null>(null);
@@ -3061,51 +3100,52 @@ export default function AutoItineraryView({
 
   return (
     <div className="pb-20">
-      {/* Compact Sticky Header with Timeline */}
-      <div className="sticky top-0 z-40 bg-background border-b pb-3 pt-2 -mx-4 px-4 mb-4">
-        {/* Top row: Back, Title, Date button */}
-        <div className="flex items-center gap-2 mb-2">
+      {/* Compact Sticky Header */}
+      <div className="sticky top-0 z-40 bg-background border-b py-2 -mx-4 px-4 mb-4">
+        {/* Header row: Back, Title, Date button */}
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onBack}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h2 className="text-lg font-bold flex-1">Itinerary</h2>
+
+          {/* Dates button with badge if nights not allocated */}
           <button
             onClick={() => setIsAllocationSheetOpen(true)}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+            className="relative flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
           >
             <Calendar className="w-3 h-3" />
             {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
+            {currentTotal !== tripTotalNights && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                !
+              </span>
+            )}
           </button>
         </div>
 
-        {/* Timeline bar - tap to open sheet */}
-        <button
-          onClick={() => setIsAllocationSheetOpen(true)}
-          className="w-full"
-        >
-          <div className="flex h-2 rounded-full overflow-hidden bg-muted">
-            {allocations.map((alloc, idx) => {
-              const widthPercent = (alloc.nights / tripTotalNights) * 100;
-              const colorClass = alloc.city.includes('Transit') ? 'bg-gray-400' : cityColors[idx % cityColors.length];
-              return (
-                <div
-                  key={`${alloc.city}-${idx}`}
-                  className={`${colorClass} transition-all`}
-                  style={{ width: `${widthPercent}%` }}
-                  title={`${alloc.city}: ${alloc.nights} nights`}
-                />
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">
-              {tripTotalNights} nights • {allocations.filter(a => !a.city.includes('Transit')).length} cities
-            </span>
-            <span className={`text-[10px] ${currentTotal === tripTotalNights ? 'text-green-600' : 'text-amber-600'}`}>
-              {currentTotal === tripTotalNights ? '✓ Allocated' : `${tripTotalNights - currentTotal} to allocate`}
-            </span>
-          </div>
-        </button>
+        {/* Category filter tabs */}
+        <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide">
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'travel', label: 'Travel', icon: '✈️' },
+            { id: 'stay', label: 'Stay', icon: '🏨' },
+            { id: 'do', label: 'Do', icon: '🎯' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setCategoryFilter(tab.id as typeof categoryFilter)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                categoryFilter === tab.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {tab.icon && <span>{tab.icon}</span>}
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Allocation Sheet (Bottom Sheet) */}
@@ -3170,6 +3210,116 @@ export default function AutoItineraryView({
                 </button>
               )}
             </div>
+
+            {/* Calendar View */}
+            {(() => {
+              // Get the month to display (start with trip start month)
+              const startParts = tripStartDate.split('-').map(Number);
+              const endParts = tripEndDate.split('-').map(Number);
+              const startMonth = new Date(startParts[0], startParts[1] - 1, 1);
+              const endMonth = new Date(endParts[0], endParts[1] - 1, 1);
+
+              // Build array of months to show
+              const months: Date[] = [];
+              const current = new Date(startMonth);
+              while (current <= endMonth) {
+                months.push(new Date(current));
+                current.setMonth(current.getMonth() + 1);
+              }
+
+              // Helper to get city color for a date
+              const getCityForDate = (dateStr: string): { city: string; colorIndex: number } | null => {
+                for (let i = 0; i < allocations.length; i++) {
+                  const alloc = allocations[i];
+                  if (alloc.startDate && alloc.endDate && dateStr >= alloc.startDate && dateStr <= alloc.endDate) {
+                    return { city: alloc.city, colorIndex: i };
+                  }
+                }
+                return null;
+              };
+
+              // Calendar color classes (using Tailwind background colors)
+              const calendarColors = [
+                'bg-rose-200', 'bg-blue-200', 'bg-emerald-200', 'bg-amber-200',
+                'bg-purple-200', 'bg-cyan-200', 'bg-orange-200', 'bg-pink-200'
+              ];
+
+              return (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm">Calendar</h3>
+                  <div className="space-y-6">
+                    {months.map((month, monthIdx) => {
+                      const year = month.getFullYear();
+                      const monthNum = month.getMonth();
+                      const monthName = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                      // Get first day of month and total days
+                      const firstDay = new Date(year, monthNum, 1).getDay();
+                      const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+
+                      // Build calendar grid
+                      const cells: (number | null)[] = [];
+                      // Add empty cells for days before month starts
+                      for (let i = 0; i < firstDay; i++) cells.push(null);
+                      // Add days
+                      for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+                      return (
+                        <div key={monthIdx}>
+                          <div className="text-sm font-medium text-center mb-2">{monthName}</div>
+                          <div className="grid grid-cols-7 gap-0.5 text-xs">
+                            {/* Day headers */}
+                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                              <div key={day} className="text-center text-muted-foreground py-1">{day}</div>
+                            ))}
+                            {/* Calendar cells */}
+                            {cells.map((day, cellIdx) => {
+                              if (day === null) {
+                                return <div key={`empty-${cellIdx}`} className="h-7" />;
+                              }
+
+                              const dateStr = `${year}-${String(monthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                              const cityInfo = getCityForDate(dateStr);
+                              const isInTrip = dateStr >= tripStartDate && dateStr <= tripEndDate;
+                              const isTransit = cityInfo?.city.includes('Transit');
+
+                              let bgClass = '';
+                              if (cityInfo && !isTransit) {
+                                bgClass = calendarColors[cityInfo.colorIndex % calendarColors.length];
+                              } else if (isTransit) {
+                                bgClass = 'bg-gray-200';
+                              }
+
+                              return (
+                                <div
+                                  key={`day-${day}`}
+                                  className={`h-7 flex items-center justify-center rounded ${bgClass} ${
+                                    isInTrip ? 'font-medium' : 'text-muted-foreground/50'
+                                  }`}
+                                  title={cityInfo ? cityInfo.city : undefined}
+                                >
+                                  {day}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    {allocations.filter(a => !a.city.includes('Transit')).map((alloc, idx) => (
+                      <div key={alloc.city} className="flex items-center gap-1 text-xs">
+                        <div className={`w-3 h-3 rounded ${calendarColors[idx % calendarColors.length]}`} />
+                        <span className="truncate max-w-[80px]">{alloc.city}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* City allocations */}
             <div className="space-y-2">
@@ -3502,7 +3652,7 @@ export default function AutoItineraryView({
       )}
 
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}
-      {!isLoading && viewMode !== 'map' && days.map((day) => {
+      {!isLoading && viewMode !== 'map' && filteredDays.map((day) => {
         const cityIdx = allocations.findIndex(a => a.city === day.city);
         const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
 
@@ -3530,6 +3680,26 @@ export default function AutoItineraryView({
           />
         );
       })}
+
+      {/* Empty state when filter has no results */}
+      {!isLoading && viewMode !== 'map' && filteredDays.length === 0 && categoryFilter !== 'all' && (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            {categoryFilter === 'travel' && <Plane className="w-8 h-8 text-muted-foreground" />}
+            {categoryFilter === 'stay' && <Hotel className="w-8 h-8 text-muted-foreground" />}
+            {categoryFilter === 'do' && <MapPin className="w-8 h-8 text-muted-foreground" />}
+          </div>
+          <p className="text-muted-foreground font-medium">
+            No {categoryFilter === 'travel' ? 'travel' : categoryFilter === 'stay' ? 'accommodations' : 'activities'} found
+          </p>
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className="mt-3 text-sm text-primary hover:underline"
+          >
+            Show all
+          </button>
+        </div>
+      )}
 
       {/* Hotel Picker Modal */}
       {hotelPickerCity && (
@@ -4037,6 +4207,27 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                           </div>
                         )}
 
+                        {/* Booking status badge */}
+                        {activity.bookingRequired && (
+                          <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm ${
+                            activity.reservationStatus === 'done'
+                              ? 'bg-green-50 text-green-700 border border-green-200'
+                              : 'bg-orange-50 text-orange-700 border border-orange-200'
+                          }`}>
+                            {activity.reservationStatus === 'done' ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Booked</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                <span>Need to book</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+
                         {/* Action buttons row - Wanderlog style */}
                         <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
                           {/* Time button/input */}
@@ -4319,6 +4510,27 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                               <div className="mt-1.5 inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs">
                                 <MapPin className="w-3 h-3" />
                                 <span>{warning}</span>
+                              </div>
+                            )}
+
+                            {/* Booking status badge */}
+                            {activity.bookingRequired && (
+                              <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                                activity.reservationStatus === 'done'
+                                  ? 'bg-green-50 text-green-700 border border-green-200'
+                                  : 'bg-orange-50 text-orange-700 border border-orange-200'
+                              }`}>
+                                {activity.reservationStatus === 'done' ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    <span>Booked</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="w-3 h-3" />
+                                    <span>Need to book</span>
+                                  </>
+                                )}
                               </div>
                             )}
 
