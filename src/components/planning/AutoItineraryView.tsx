@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   ChevronLeft,
   ChevronRight,
@@ -2035,6 +2036,7 @@ export default function AutoItineraryView({
   const [tripStartDate, setTripStartDate] = useState(initialStartDate);
   const [tripTotalDays, setTripTotalDays] = useState(initialTotalDays);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
+  const [isAllocationSheetOpen, setIsAllocationSheetOpen] = useState(false);
 
   // Computed end date
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
@@ -2528,12 +2530,10 @@ export default function AutoItineraryView({
     }
   }, [allocations, days]);
 
-  // Ensure transport exists on city transition days
-  // If first day of a city has no transport from previous city, add it
-  useEffect(() => {
-    if (days.length === 0 || allocations.length === 0) return;
-
-    const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+  // Helper: Check if a day is a city transition (needs transport from previous city)
+  const getTransitionInfo = (dayNumber: number): { isTransition: boolean; fromCity: string; toCity: string } | null => {
+    const dayIdx = days.findIndex(d => d.dayNumber === dayNumber);
+    if (dayIdx <= 0) return null;
 
     // Build day-to-city map from allocations
     const dayToCityMap: Record<number, string> = {};
@@ -2545,103 +2545,87 @@ export default function AutoItineraryView({
       }
     }
 
-    // Check each day for missing transport
-    let needsTransport = false;
-    for (let i = 1; i < days.length; i++) {
-      const day = days[i];
-      const prevDay = days[i - 1];
-      const currentCity = dayToCityMap[day.dayNumber];
-      const prevCity = dayToCityMap[prevDay.dayNumber];
+    const currentCity = dayToCityMap[dayNumber];
+    const prevCity = dayToCityMap[days[dayIdx - 1].dayNumber];
 
-      if (currentCity && prevCity && currentCity !== prevCity &&
-          !currentCity.includes('Transit') && !prevCity.includes('Transit')) {
-        // This is a city transition - check if transport exists
-        const hasTransport = day.activities.some(a => TRANSPORT_TYPES.includes(a.type));
-        if (!hasTransport) {
-          needsTransport = true;
-          break;
-        }
-      }
+    if (!currentCity || !prevCity) return null;
+    if (currentCity === prevCity) return null;
+    if (currentCity.includes('Transit') || prevCity.includes('Transit')) return null;
+
+    return { isTransition: true, fromCity: prevCity, toCity: currentCity };
+  };
+
+  // Helper: Check if a day has transport
+  const dayHasTransport = (dayNumber: number): boolean => {
+    const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+    const day = days.find(d => d.dayNumber === dayNumber);
+    return day?.activities.some(a => TRANSPORT_TYPES.includes(a.type)) || false;
+  };
+
+  // Add transport to a day from route data
+  const addTransportToDay = (dayNumber: number, mode?: string) => {
+    const transitionInfo = getTransitionInfo(dayNumber);
+    if (!transitionInfo) return;
+
+    const { fromCity, toCity } = transitionInfo;
+    const routeOptions = getTransportOptions(fromCity, toCity);
+    const bestOption = routeOptions?.find(opt => opt.badge === 'best') || routeOptions?.[0];
+    const transportMode = mode || bestOption?.mode || 'flight';
+
+    const routeDuration = bestOption?.durationMinutes || 180;
+    const routeDurationStr = bestOption?.duration;
+    const routeOperator = bestOption?.operator;
+
+    let transportActivity: GeneratedActivity;
+
+    if (transportMode === 'bus') {
+      transportActivity = {
+        id: `transport-${dayNumber}-${Date.now()}`,
+        name: `Bus: ${fromCity} → ${toCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+        type: 'bus',
+        duration: routeDuration,
+        description: routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Bus · ${fromCity} to ${toCity}`,
+        tags: ['bus', 'transit', 'needs-booking'],
+      };
+    } else if (transportMode === 'train') {
+      transportActivity = {
+        id: `transport-${dayNumber}-${Date.now()}`,
+        name: `Train: ${fromCity} → ${toCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+        type: 'train',
+        duration: routeDuration,
+        description: routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Train · ${fromCity} to ${toCity}`,
+        tags: ['train', 'transit', 'needs-booking'],
+      };
+    } else if (transportMode === 'drive') {
+      transportActivity = {
+        id: `transport-${dayNumber}-${Date.now()}`,
+        name: `Drive: ${fromCity} → ${toCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+        type: 'drive',
+        duration: routeDuration,
+        description: `Drive · ${fromCity} to ${toCity}`,
+        tags: ['drive', 'transit'],
+      };
+    } else {
+      const fromCode = getAirportCode(fromCity);
+      const toCode = getAirportCode(toCity);
+      transportActivity = {
+        id: `transport-${dayNumber}-${Date.now()}`,
+        name: `${fromCode}→${toCode}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
+        type: 'flight',
+        duration: routeDuration,
+        description: routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Flight · ${fromCity} to ${toCity}`,
+        tags: ['flight', 'transit', 'needs-booking'],
+      };
     }
 
-    if (needsTransport) {
-      console.log('[AutoItinerary] Adding missing transport on city transitions');
-      setDays(prev => {
-        return prev.map((day, dayIdx) => {
-          if (dayIdx === 0) return day;
-
-          const prevDay = prev[dayIdx - 1];
-          const currentCity = dayToCityMap[day.dayNumber];
-          const prevCity = dayToCityMap[prevDay.dayNumber];
-
-          if (!currentCity || !prevCity || currentCity === prevCity ||
-              currentCity.includes('Transit') || prevCity.includes('Transit')) {
-            return day;
-          }
-
-          // Check if transport already exists
-          const hasTransport = day.activities.some(a => TRANSPORT_TYPES.includes(a.type));
-          if (hasTransport) return day;
-
-          // Generate transport from previous city to this city
-          const routeOptions = getTransportOptions(prevCity, currentCity);
-          const bestOption = routeOptions?.find(opt => opt.badge === 'best') || routeOptions?.[0];
-          const transportMode = bestOption?.mode || 'flight';
-
-          const routeDuration = bestOption?.durationMinutes || 180;
-          const routeDurationStr = bestOption?.duration;
-          const routeOperator = bestOption?.operator;
-
-          let transportActivity: GeneratedActivity;
-
-          if (transportMode === 'bus') {
-            transportActivity = {
-              id: `transport-${day.dayNumber}-${Date.now()}`,
-              name: `Bus: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
-              type: 'bus',
-              duration: routeDuration,
-              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Bus · ${prevCity} to ${currentCity}`,
-              tags: ['bus', 'transit', 'needs-booking'],
-            };
-          } else if (transportMode === 'train') {
-            transportActivity = {
-              id: `transport-${day.dayNumber}-${Date.now()}`,
-              name: `Train: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
-              type: 'train',
-              duration: routeDuration,
-              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Train · ${prevCity} to ${currentCity}`,
-              tags: ['train', 'transit', 'needs-booking'],
-            };
-          } else if (transportMode === 'drive') {
-            transportActivity = {
-              id: `transport-${day.dayNumber}-${Date.now()}`,
-              name: `Drive: ${prevCity} → ${currentCity}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
-              type: 'drive',
-              duration: routeDuration,
-              description: `Drive · ${prevCity} to ${currentCity}`,
-              tags: ['drive', 'transit'],
-            };
-          } else {
-            const fromCode = getAirportCode(prevCity);
-            const toCode = getAirportCode(currentCity);
-            transportActivity = {
-              id: `transport-${day.dayNumber}-${Date.now()}`,
-              name: `${fromCode}→${toCode}${routeDurationStr ? ` (${routeDurationStr})` : ''}`,
-              type: 'flight',
-              duration: routeDuration,
-              description: routeOperator ? `${routeOperator} · ${prevCity} to ${currentCity}` : `Flight · ${prevCity} to ${currentCity}`,
-              tags: ['flight', 'transit', 'needs-booking'],
-            };
-          }
-
-          return {
-            ...day,
-            activities: [transportActivity, ...day.activities],
-          };
-        });
-      });
-    }
-  }, [allocations, days]);
+    setDays(prev => prev.map(day => {
+      if (day.dayNumber !== dayNumber) return day;
+      return {
+        ...day,
+        activities: [transportActivity, ...day.activities],
+      };
+    }));
+  };
 
   // Sync allocations back to parent whenever they change
   // BUT only after parent has finished loading from IndexedDB (to prevent overwriting saved data with defaults)
@@ -3069,240 +3053,234 @@ export default function AutoItineraryView({
   // Get recommended nights for a city
   const getRecommendedNights = (city: string) => RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
 
+  // City colors for timeline bar
+  const cityColors = [
+    'bg-rose-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500',
+    'bg-purple-500', 'bg-cyan-500', 'bg-orange-500', 'bg-pink-500'
+  ];
+
   return (
-    <div className="space-y-4 pb-20">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack}>
+    <div className="pb-20">
+      {/* Compact Sticky Header with Timeline */}
+      <div className="sticky top-0 z-40 bg-background border-b pb-3 pt-2 -mx-4 px-4 mb-4">
+        {/* Top row: Back, Title, Date button */}
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onBack}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold">Itinerary</h2>
-          </div>
+          <h2 className="text-lg font-bold flex-1">Itinerary</h2>
           <button
-            onClick={() => setIsDateEditorOpen(!isDateEditorOpen)}
-            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+            onClick={() => setIsAllocationSheetOpen(true)}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
           >
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-3 h-3" />
             {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
-            <ChevronDown className={`w-3 h-3 transition-transform ${isDateEditorOpen ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
-      {/* Date Editor */}
-      {isDateEditorOpen && (
-        <div className="bg-card border rounded-xl p-4 space-y-4">
-          <h3 className="font-semibold text-sm">Edit Travel Dates</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
-              <input
-                type="date"
-                value={tripStartDate}
-                onChange={(e) => {
-                  const newStart = e.target.value;
-                  // Keep same duration, just shift dates
-                  setTripStartDate(newStart);
-                  onDatesChange?.(newStart, tripTotalDays);
-                }}
-                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
-              <input
-                type="date"
-                value={tripEndDate}
-                onChange={(e) => handleDateChange(tripStartDate, e.target.value)}
-                min={tripStartDate}
-                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t">
-            <span className="text-sm text-muted-foreground">Total: {tripTotalDays} days</span>
-            <Button size="sm" onClick={() => setIsDateEditorOpen(false)}>Done</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Day Allocation Summary - Collapsible (moved to top under dates) */}
-      <div className="bg-muted/30 rounded-xl overflow-hidden">
+        {/* Timeline bar - tap to open sheet */}
         <button
-          onClick={() => setIsDurationExpanded(!isDurationExpanded)}
-          className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          onClick={() => setIsAllocationSheetOpen(true)}
+          className="w-full"
         >
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Hotel className="w-4 h-4" />
-            Nights per City
-          </h3>
-          <div className="flex items-center gap-2">
-            <Badge variant={currentTotal === tripTotalNights ? 'default' : currentTotal > tripTotalNights ? 'destructive' : 'secondary'}>
-              {currentTotal} / {tripTotalNights} nights
-            </Badge>
-            {isDurationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </button>
-
-        {/* Guidance message when nights don't match trip duration - fixed height to prevent layout bounce */}
-        <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm min-h-[40px] flex items-center justify-between transition-all duration-200 ${
-          currentTotal === tripTotalNights
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : currentTotal > tripTotalNights
-              ? 'bg-red-50 text-red-700 border border-red-200'
-              : 'bg-amber-50 text-amber-700 border border-amber-200'
-        }`}>
-          <span>
-            {currentTotal === tripTotalNights
-              ? '✓ All nights allocated!'
-              : currentTotal > tripTotalNights
-                ? `⚠️ ${currentTotal - tripTotalNights} nights over — remove nights or extend trip dates`
-                : `📝 ${tripTotalNights - currentTotal} nights remaining to allocate`
-            }
-          </span>
-          {currentTotal !== tripTotalNights && (
-            <button
-              onClick={() => {
-                console.log('[AutoItinerary] User clicked Auto-allocate - regenerating allocations');
-                setAllocations(allocateDays(cities, tripTotalNights, tripDna, tripStartDate));
-              }}
-              className="ml-2 px-2 py-1 text-xs font-medium bg-white/80 hover:bg-white border rounded transition-colors whitespace-nowrap"
-            >
-              Auto-allocate
-            </button>
-          )}
-        </div>
-
-        {/* City allocations - only show when expanded */}
-        {isDurationExpanded && (
-          <div className="px-4 pb-4 space-y-2">
-            {allocations.map((alloc, allocIndex) => {
-              const recommended = getRecommendedNights(alloc.city);
-              const isTransit = alloc.city.includes('Transit');
+          <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+            {allocations.map((alloc, idx) => {
+              const widthPercent = (alloc.nights / tripTotalNights) * 100;
+              const colorClass = alloc.city.includes('Transit') ? 'bg-gray-400' : cityColors[idx % cityColors.length];
               return (
-                <div key={`${alloc.city}-${allocIndex}`} className={`flex items-center gap-3 p-2 rounded-lg ${isTransit ? 'bg-blue-50 border border-blue-200' : 'bg-muted/50'}`}>
-                  <div className={`w-2 h-8 rounded-full ${isTransit ? 'bg-blue-400' : 'bg-primary/60'}`} />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">
-                      {alloc.city}
-                      {!isTransit && (
-                        <span className="text-xs text-muted-foreground font-normal ml-1">
-                          ({recommended} nights rec&apos;d)
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isTransit ? (
-                      /* Delete button for transit days */
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAllocations(prev => {
-                            const newAllocations = prev.filter((_, idx) => idx !== allocIndex);
-                            // Recalculate dates
-                            let currentDay = 1;
-                            return newAllocations.map(a => {
-                              const startDay = currentDay;
-                              const endDay = currentDay + a.nights - 1;
-                              currentDay = endDay + 1;
-                              const start = parseLocalDate(tripStartDate);
-                              start.setDate(start.getDate() + startDay - 1);
-                              // End date is DEPARTURE date (day after last night)
-                              const end = parseLocalDate(tripStartDate);
-                              end.setDate(end.getDate() + endDay);
-                              const formatLocalDate = (d: Date) =>
-                                `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                              return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
-                            });
-                          });
-                        }}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
-                          disabled={alloc.nights <= 1}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <input
-                          type="number"
-                          min="1"
-                          max="99"
-                          value={alloc.nights}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val)) setAllocationNights(allocIndex, val);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-10 text-center font-semibold text-sm bg-transparent border border-transparent hover:border-muted-foreground/30 focus:border-primary focus:outline-none rounded px-1 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <div
+                  key={`${alloc.city}-${idx}`}
+                  className={`${colorClass} transition-all`}
+                  style={{ width: `${widthPercent}%` }}
+                  title={`${alloc.city}: ${alloc.nights} nights`}
+                />
               );
             })}
-
-            {/* Add Transit Day button */}
-            <button
-              onClick={() => {
-                // Add a transit day at the beginning
-                const transitAllocation: CityAllocation = {
-                  city: '✈️ In Transit',
-                  nights: 1,
-                  startDay: 1,
-                  endDay: 1,
-                  startDate: tripStartDate,
-                  endDate: tripStartDate,
-                };
-                setAllocations(prev => {
-                  const newAllocations = [transitAllocation, ...prev];
-                  // Recalculate dates for all allocations
-                  let currentDay = 1;
-                  return newAllocations.map(a => {
-                    const startDay = currentDay;
-                    const endDay = currentDay + a.nights - 1;
-                    currentDay = endDay + 1;
-                    const start = parseLocalDate(tripStartDate);
-                    start.setDate(start.getDate() + startDay - 1);
-                    // End date is DEPARTURE date (day after last night)
-                    const end = parseLocalDate(tripStartDate);
-                    end.setDate(end.getDate() + endDay);
-                    const formatLocalDate = (d: Date) =>
-                      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
-                  });
-                });
-              }}
-              className="w-full py-2 px-3 border-2 border-dashed border-muted-foreground/30 rounded-lg text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
-            >
-              <Plane className="w-4 h-4" />
-              Add Transit Day at Start
-            </button>
           </div>
-        )}
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-[10px] text-muted-foreground">
+              {tripTotalNights} nights • {allocations.filter(a => !a.city.includes('Transit')).length} cities
+            </span>
+            <span className={`text-[10px] ${currentTotal === tripTotalNights ? 'text-green-600' : 'text-amber-600'}`}>
+              {currentTotal === tripTotalNights ? '✓ Allocated' : `${tripTotalNights - currentTotal} to allocate`}
+            </span>
+          </div>
+        </button>
       </div>
+
+      {/* Allocation Sheet (Bottom Sheet) */}
+      <Sheet open={isAllocationSheetOpen} onOpenChange={setIsAllocationSheetOpen}>
+        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Dates & Nights</SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Date Editors */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Trip Dates</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Start</label>
+                  <input
+                    type="date"
+                    value={tripStartDate}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      setTripStartDate(newStart);
+                      onDatesChange?.(newStart, tripTotalDays);
+                    }}
+                    className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">End</label>
+                  <input
+                    type="date"
+                    value={tripEndDate}
+                    onChange={(e) => handleDateChange(tripStartDate, e.target.value)}
+                    min={tripStartDate}
+                    className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{tripTotalDays} days, {tripTotalNights} nights</p>
+            </div>
+
+            {/* Status message */}
+            <div className={`px-3 py-2 rounded-lg text-sm ${
+              currentTotal === tripTotalNights
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : currentTotal > tripTotalNights
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+              {currentTotal === tripTotalNights
+                ? '✓ All nights allocated!'
+                : currentTotal > tripTotalNights
+                  ? `⚠️ ${currentTotal - tripTotalNights} nights over`
+                  : `📝 ${tripTotalNights - currentTotal} nights remaining`
+              }
+              {currentTotal !== tripTotalNights && (
+                <button
+                  onClick={() => setAllocations(allocateDays(cities, tripTotalNights, tripDna, tripStartDate))}
+                  className="ml-2 px-2 py-0.5 text-xs font-medium bg-white/80 hover:bg-white border rounded"
+                >
+                  Auto-allocate
+                </button>
+              )}
+            </div>
+
+            {/* City allocations */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm">Nights per City</h3>
+              {allocations.map((alloc, allocIndex) => {
+                const recommended = getRecommendedNights(alloc.city);
+                const isTransit = alloc.city.includes('Transit');
+                const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
+                return (
+                  <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                    <div className={`w-3 h-8 rounded-full ${colorClass}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{alloc.city}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDate(alloc.startDate || '')} - {formatDate(alloc.endDate || '')}
+                        {!isTransit && <span className="ml-1">({recommended}n rec)</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {isTransit ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-500"
+                          onClick={() => {
+                            setAllocations(prev => {
+                              const newAllocations = prev.filter((_, idx) => idx !== allocIndex);
+                              let currentDay = 1;
+                              return newAllocations.map(a => {
+                                const startDay = currentDay;
+                                const endDay = currentDay + a.nights - 1;
+                                currentDay = endDay + 1;
+                                const start = parseLocalDate(tripStartDate);
+                                start.setDate(start.getDate() + startDay - 1);
+                                const end = parseLocalDate(tripStartDate);
+                                end.setDate(end.getDate() + endDay);
+                                const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                return { ...a, startDay, endDay, startDate: fmt(start), endDate: fmt(end) };
+                              });
+                            });
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => adjustAllocation(allocIndex, -1)}
+                            disabled={alloc.nights <= 1}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-6 text-center font-semibold text-sm">{alloc.nights}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => adjustAllocation(allocIndex, 1)}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Add Transit Day button */}
+              <button
+                onClick={() => {
+                  const transitAllocation: CityAllocation = {
+                    city: '✈️ In Transit',
+                    nights: 1,
+                    startDay: 1,
+                    endDay: 1,
+                    startDate: tripStartDate,
+                    endDate: tripStartDate,
+                  };
+                  setAllocations(prev => {
+                    const newAllocations = [transitAllocation, ...prev];
+                    let currentDay = 1;
+                    return newAllocations.map(a => {
+                      const startDay = currentDay;
+                      const endDay = currentDay + a.nights - 1;
+                      currentDay = endDay + 1;
+                      const start = parseLocalDate(tripStartDate);
+                      start.setDate(start.getDate() + startDay - 1);
+                      const end = parseLocalDate(tripStartDate);
+                      end.setDate(end.getDate() + endDay);
+                      const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                      return { ...a, startDay, endDay, startDate: fmt(start), endDate: fmt(end) };
+                    });
+                  });
+                }}
+                className="w-full py-2 px-3 border-2 border-dashed border-muted-foreground/30 rounded-lg text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
+              >
+                <Plane className="w-4 h-4" />
+                Add Transit Day
+              </button>
+            </div>
+
+            <Button onClick={() => setIsAllocationSheetOpen(false)} className="w-full">
+              Done
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Auto-fill entire trip button */}
       <Button
@@ -3528,6 +3506,10 @@ export default function AutoItineraryView({
         const cityIdx = allocations.findIndex(a => a.city === day.city);
         const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
 
+        // Check if this day needs transport (is a city transition without transport)
+        const transitionInfo = getTransitionInfo(day.dayNumber);
+        const needsTransport = transitionInfo && !dayHasTransport(day.dayNumber);
+
         return (
           <DayCard
             key={day.dayNumber}
@@ -3543,6 +3525,8 @@ export default function AutoItineraryView({
             onAutoFill={() => autoFillDay(day.dayNumber)}
             onAddReservation={(type) => handleAddReservation(day.dayNumber, type)}
             isLoadingDay={loadingDayNumber === day.dayNumber}
+            missingTransport={needsTransport ? transitionInfo : null}
+            onAddTransport={(mode) => addTransportToDay(day.dayNumber, mode)}
           />
         );
       })}
@@ -3674,9 +3658,11 @@ interface DayCardProps {
   onAddReservation: (type: ReservationType) => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
+  missingTransport?: { isTransition: boolean; fromCity: string; toCity: string } | null;
+  onAddTransport?: (mode?: string) => void;
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onAddReservation, isLoadingDay, dayRef }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onAddReservation, isLoadingDay, dayRef, missingTransport, onAddTransport }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
@@ -3798,6 +3784,30 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
               </>
             )}
           </div>
+
+          {/* Missing transport prompt - shows on city transition days */}
+          {missingTransport && onAddTransport && (
+            <div className="ml-8 bg-blue-50 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Bus className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900">
+                  {missingTransport.fromCity} → {missingTransport.toCity}
+                </p>
+                <p className="text-xs text-blue-600">
+                  Add transport for this travel day
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => onAddTransport()}
+              >
+                Add
+              </Button>
+            </div>
+          )}
 
           {/* Empty state - like Wanderlog */}
           {isEmpty && (
