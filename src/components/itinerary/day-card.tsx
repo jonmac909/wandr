@@ -31,6 +31,7 @@ interface DayCardProps {
   onToggle?: () => void;
   onUpdateDay?: (updatedDay: DayPlan) => void;
   onDeleteActivity?: (blockId: string) => void;
+  onDeleteDay?: () => void;
   location?: string;
   bases?: Base[]; // For looking up hotel nights
   // Drag and drop
@@ -174,6 +175,7 @@ export function DayCard({
   isExpanded = true,
   onToggle,
   onUpdateDay,
+  onDeleteDay,
   location,
   bases,
   onDragStart,
@@ -393,6 +395,21 @@ export function DayCard({
                         }}
                       >
                         <Pencil className="w-3 h-3" />
+                      </Button>
+                    )}
+                    {onDeleteDay && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:opacity-100 hover:text-destructive ml-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Delete this entire day (${formattedDate})? All activities will be removed.`)) {
+                            onDeleteDay();
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     )}
                   </p>

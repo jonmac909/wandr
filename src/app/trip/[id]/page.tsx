@@ -2373,6 +2373,39 @@ export default function TripPage() {
                                               >
                                                 <Pencil className="w-3 h-3" />
                                               </Button>
+                                              <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:text-destructive"
+                                                onClick={async (e) => {
+                                                  e.stopPropagation();
+                                                  if (confirm(`Delete ${group.startDay === group.endDay ? 'day' : 'days'} ${group.startDay}${group.startDay !== group.endDay ? `-${group.endDay}` : ''} (${group.location})? This will remove all activities.`)) {
+                                                    // Delete all days in this date range
+                                                    const updatedDays = itinerary.days.filter(
+                                                      d => d.date < group.startDate || d.date > group.endDate
+                                                    );
+                                                    // Update end date by reducing it by the number of days deleted
+                                                    const daysDeleted = group.endDay - group.startDay + 1;
+                                                    const currentEndDate = new Date(itinerary.meta.endDate);
+                                                    currentEndDate.setDate(currentEndDate.getDate() - daysDeleted);
+                                                    const newEndDate = currentEndDate.toISOString().split('T')[0];
+
+                                                    const updatedItinerary: Itinerary = {
+                                                      ...itinerary,
+                                                      meta: {
+                                                        ...itinerary.meta,
+                                                        endDate: newEndDate,
+                                                      },
+                                                      days: updatedDays,
+                                                      updatedAt: new Date(),
+                                                    };
+                                                    setItinerary(updatedItinerary);
+                                                    await tripDb.updateItinerary(tripId, updatedItinerary);
+                                                  }
+                                                }}
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
                                               <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                             </div>
                                           )}
@@ -2541,6 +2574,26 @@ export default function TripPage() {
                                       isToday={day.date === today}
                                       isExpanded={true}
                                       onUpdateDay={handleUpdateDay}
+                                      onDeleteDay={async () => {
+                                        // Delete this specific day
+                                        const updatedDays = itinerary.days.filter(d => d.date !== day.date);
+                                        // Update end date by reducing by 1 day
+                                        const currentEndDate = new Date(itinerary.meta.endDate);
+                                        currentEndDate.setDate(currentEndDate.getDate() - 1);
+                                        const newEndDate = currentEndDate.toISOString().split('T')[0];
+
+                                        const updatedItinerary: Itinerary = {
+                                          ...itinerary,
+                                          meta: {
+                                            ...itinerary.meta,
+                                            endDate: newEndDate,
+                                          },
+                                          days: updatedDays,
+                                          updatedAt: new Date(),
+                                        };
+                                        setItinerary(updatedItinerary);
+                                        await tripDb.updateItinerary(tripId, updatedItinerary);
+                                      }}
                                       location={getLocationForDay(day as DayPlan)}
                                       bases={itinerary.route.bases}
                                       onDragStart={handleDragStart}
