@@ -4,14 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Trippified is a travel planning PWA that helps users create, manage, and track trip itineraries. It uses AI to generate trip plans from user preferences (TripDNA) and stores data locally with optional Supabase cloud sync.
+Wandr is a travel planning PWA that helps users create, manage, and track trip itineraries. It uses AI to generate trip plans from user preferences (TripDNA) and stores data locally with optional Supabase cloud sync. Features include place discovery/saving, AI chatbot for trip modifications, and multi-destination support.
 
 ## Commands
 
 ```bash
-npm run dev      # Start development server (http://localhost:3000)
-npm run build    # Production build
+npm run build    # Production build (ALWAYS run before pushing)
 npm run lint     # Run ESLint
+npm test         # Run all Playwright tests
+npx playwright test tests/foo.spec.ts  # Run specific test
+npm run test:ui  # Run Playwright tests with UI
 ```
 
 ## Tech Stack
@@ -46,9 +48,10 @@ TripDNA (user preferences) → AI Generation → Itinerary → IndexedDB + Supab
 - **`itinerary.ts`** - Full trip structure: days, activities, bases, food, packing
 
 ### Database Layer (`src/lib/db/`)
-- **`indexed-db.ts`** - Dexie.js wrapper with `tripDb`, `documentDb`, `packingDb`, `preferencesDb`
+- **`indexed-db.ts`** - Dexie.js wrapper with `tripDb`, `documentDb`, `packingDb`, `preferencesDb`, `savedPlacesDb`
 - **`supabase.ts`** - Cloud sync for trips
 - Cloud-first reads with local fallback; writes go to both
+- **`savedPlacesDb`** - Stores user's saved places from Explore feature (attractions, restaurants, cafes, nightlife)
 
 ### Key Interfaces
 ```typescript
@@ -63,15 +66,17 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`/plan`** - 2-step trip creation (destinations → preferences)
 - **`/my-trips`** - Trip list with upcoming/past sections, stats
 - **`/trip/[id]`** - Trip detail OR planning dashboard (if no itinerary yet)
+- **`/explore`** - Place discovery with AI recommendations, save places by city/interest
 - **`/questionnaire`** - Legacy multi-step trip preferences form
 - **`/plan-mode`** - AI trip generation interface
 
 ### Components (`src/components/`)
 - **`dashboard/`** - Dashboard widgets (DashboardHeader, TripDrawer, DestinationInspiration, MonthCalendar, BucketList, ProfileSettings)
-- **`planning/`** - Trip planning curation (PlanningCuration with activities, hotels, neighborhoods, cafes, restaurants)
+- **`planning/`** - Trip planning curation (PlanningCuration with activities, hotels, neighborhoods, cafes, restaurants), ActivityMap
 - **`itinerary/`** - Trip display (DayCard, PackingListView, FoodLayerView, TripOverview)
 - **`trip/`** - Trip-specific (TripRouteMap, LeafletMap)
 - **`chat/`** - AI chatbot (ChatSheet for trips, GeneralChatSheet for general use)
+- **`explore/`** - Place discovery (AddPlaceSheet, ExploreMap)
 - **`ui/`** - shadcn/ui primitives (Button, Card, Input, Badge, etc.)
 - **`questionnaire/`** - Form step components
 
@@ -104,8 +109,11 @@ Claude-powered chatbot for modifying trips via natural language:
 
 ### API Routes (`src/app/api/`)
 - **`/api/generate-itinerary`** - POST: AI itinerary generation from TripDNA
-- **`/api/chat`** - POST: Trip-specific chat with tool calling
-- **`/api/chat/general`** - POST: General travel questions chat
+- **`/api/chat`** - POST/PUT: Trip-specific chat with tool calling (streaming SSE)
+- **`/api/chat/general`** - POST: General travel questions chat (streaming SSE)
+- **`/api/explore/recommendations`** - POST: AI place recommendations for cities
+- **`/api/parse-ticket`** - POST: Parse flight/train tickets from screenshots/text
+- **`/api/place-history`** - GET: Recent place search history
 - **`/api/city-image`** - GET: City hero images
 - **`/api/city-info`** - GET: City information for planning
 - **`/api/hotels`** - GET: Hotel search
@@ -143,8 +151,9 @@ Trip page overview shows countries/cities count:
 - **NEVER use `npm run dev`** - Do not start the dev server. It hogs resources (CPU/RAM) and blocks builds. User tests on live site only.
 - **NEVER use `npm run deploy`** - The local `@opennextjs/cloudflare build` hangs. Don't waste time on it.
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
-- **Live testing site: https://trippified.jon-c95.workers.dev/** - User tests here, NOT localhost
+- **Live testing site: https://wandr.jon-c95.workers.dev/** - User tests here, NOT localhost
 - **To deploy: just `git push`** - GitHub Actions auto-deploys to Cloudflare Workers. That's it.
+- **Build issues with Playwright**: `tsconfig.json` excludes `playwright.config.ts` and `tests/` to prevent build errors
 - **Kill resource hogs** - If things are slow, check for background processes with `ps aux | grep -E "node|npm"`. Kill any `npm run dev` or `next dev` processes immediately with `pkill -f "npm run dev" && pkill -f "next dev"`. Always tell the user if something is hogging resources.
 
 ## Deployment
@@ -154,12 +163,11 @@ GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `ma
 **Required GitHub secrets** (Settings → Secrets → Actions):
 - `CLOUDFLARE_API_TOKEN` - Get from Cloudflare dashboard → API Tokens
 - `CLOUDFLARE_ACCOUNT_ID` - Get from Cloudflare dashboard → Overview sidebar
+- `ANTHROPIC_API_KEY` - Claude API key for chatbot (also set directly in Cloudflare via `wrangler secret put`)
 
-**Playwright tests**: Run against deployed site to verify.
-```bash
-npm test                              # Run all Playwright tests
-npx playwright test tests/foo.spec.ts # Run specific test
-```
+**Playwright tests**: Run against deployed site to verify. Tests check homepage, chat API, and explore features.
+
+**Cloudflare secrets**: Managed via `wrangler secret put ANTHROPIC_API_KEY`. Use this for immediate updates without redeployment.
 
 ## Key Patterns
 
@@ -235,6 +243,12 @@ export default function Page() {
   );
 }
 ```
+
+### Chat API Message Validation
+The Anthropic API requires all messages to have non-empty content. The `useChat` hook filters out empty messages:
+- Before sending to API: `.filter((m) => m.content && m.content.trim().length > 0)`
+- Tool call continuations: Validates `assistantTurnContent.length > 0` before sending
+- This prevents "messages must have non-empty content" errors from the API
 
 ## How to Debug Properly
 
