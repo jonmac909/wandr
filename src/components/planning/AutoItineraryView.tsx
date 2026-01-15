@@ -2387,17 +2387,17 @@ export default function AutoItineraryView({
     return () => clearTimeout(timer);
   }, [allocations, hasLoadedInitialDays, cities]);
 
-  // Keep days' city assignments in sync with allocations
-  // When allocations change (city order, night counts), update each day's city to match
+  // Keep days and activities in sync with allocations
+  // When allocations change (city order), activities stay with their original city
   useEffect(() => {
     if (days.length === 0 || allocations.length === 0) return;
 
-    // Build a map of dayNumber -> city from allocations
-    const dayToCityMap: Record<number, string> = {};
+    // Build a map of dayNumber -> city from NEW allocations
+    const newDayToCityMap: Record<number, string> = {};
     let dayNum = 1;
     for (const alloc of allocations) {
       for (let i = 0; i < alloc.nights; i++) {
-        dayToCityMap[dayNum] = alloc.city;
+        newDayToCityMap[dayNum] = alloc.city;
         dayNum++;
       }
     }
@@ -2405,7 +2405,7 @@ export default function AutoItineraryView({
     // Check if any day's city doesn't match the allocation
     let needsUpdate = false;
     for (const day of days) {
-      const expectedCity = dayToCityMap[day.dayNumber];
+      const expectedCity = newDayToCityMap[day.dayNumber];
       if (expectedCity && day.city !== expectedCity) {
         needsUpdate = true;
         break;
@@ -2413,14 +2413,51 @@ export default function AutoItineraryView({
     }
 
     if (needsUpdate) {
-      console.log('[AutoItinerary] Re-syncing days to match allocations');
-      setDays(prev => prev.map(day => {
-        const expectedCity = dayToCityMap[day.dayNumber];
-        if (expectedCity && day.city !== expectedCity) {
-          return { ...day, city: expectedCity };
+      console.log('[AutoItinerary] Re-syncing days - activities stay with their cities');
+
+      // Collect all activities grouped by their original city
+      const activitiesByCity: Record<string, GeneratedActivity[]> = {};
+      for (const day of days) {
+        if (!day.city.includes('Transit') && day.activities.length > 0) {
+          if (!activitiesByCity[day.city]) {
+            activitiesByCity[day.city] = [];
+          }
+          activitiesByCity[day.city].push(...day.activities);
         }
-        return day;
-      }));
+      }
+
+      // Build new days with correct cities and redistributed activities
+      setDays(prev => {
+        // Track which activities we've placed for each city
+        const placedCountByCity: Record<string, number> = {};
+
+        return prev.map(day => {
+          const newCity = newDayToCityMap[day.dayNumber];
+          if (!newCity) return day;
+
+          // If city didn't change, keep activities
+          if (newCity === day.city) return day;
+
+          // Get activities for the new city
+          const cityActivities = activitiesByCity[newCity] || [];
+          const placedCount = placedCountByCity[newCity] || 0;
+
+          // How many days does this city have in the new allocation?
+          const daysForCity = Object.values(newDayToCityMap).filter(c => c === newCity).length;
+          const activitiesPerDay = Math.ceil(cityActivities.length / Math.max(daysForCity, 1));
+          const startIdx = placedCount;
+          const endIdx = Math.min(startIdx + activitiesPerDay, cityActivities.length);
+          const dayActivities = cityActivities.slice(startIdx, endIdx);
+
+          placedCountByCity[newCity] = endIdx;
+
+          return {
+            ...day,
+            city: newCity,
+            activities: dayActivities,
+          };
+        });
+      });
     }
   }, [allocations, days]);
 
