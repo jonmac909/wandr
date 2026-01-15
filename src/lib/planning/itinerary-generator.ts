@@ -75,6 +75,11 @@ export interface GeneratedActivity {
     name: string;
     url?: string;
   }>;
+
+  // Booking/Reservation
+  bookingRequired?: boolean;     // Whether booking is required
+  reservationStatus?: 'not-started' | 'done' | 'pending' | 'cancelled';
+  bookingUrl?: string;           // URL for booking
 }
 
 export interface GeneratedDay {
