@@ -2039,6 +2039,9 @@ export default function AutoItineraryView({
   // Computed end date
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
 
+  // Total nights needed = days - 1 (you leave on the last day, don't sleep there)
+  const tripTotalNights = tripTotalDays - 1;
+
   // Day allocation state - SIMPLE APPROACH:
   // Use initialAllocations directly if available, otherwise generate defaults
   // The key insight: initialAllocations comes from parent's savedAllocations state
@@ -2059,8 +2062,9 @@ export default function AutoItineraryView({
     }
 
     // No saved allocations or cities don't match - generate defaults
+    // Use initialTotalDays - 1 because nights = days - 1 (you leave on last day)
     console.log('[AutoItinerary] Generating default allocations');
-    return allocateDays(cities, initialTotalDays, tripDna, initialStartDate);
+    return allocateDays(cities, initialTotalDays - 1, tripDna, initialStartDate);
   });
 
   // Track if we loaded from saved data (to prevent regenerating on cities change)
@@ -2312,7 +2316,7 @@ export default function AutoItineraryView({
     if (currentCitiesKey !== prevCities) {
       console.log('[AutoItinerary] Cities CHANGED, regenerating allocations');
       setPrevCities(currentCitiesKey);
-      setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+      setAllocations(allocateDays(cities, tripTotalNights, tripDna, tripStartDate));
       setHasLoadedFromSaved(false); // User changed cities, no longer using saved
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2877,8 +2881,8 @@ export default function AutoItineraryView({
             Nights per City
           </h3>
           <div className="flex items-center gap-2">
-            <Badge variant={currentTotal === tripTotalDays ? 'default' : currentTotal > tripTotalDays ? 'destructive' : 'secondary'}>
-              {currentTotal} / {tripTotalDays} nights
+            <Badge variant={currentTotal === tripTotalNights ? 'default' : currentTotal > tripTotalNights ? 'destructive' : 'secondary'}>
+              {currentTotal} / {tripTotalNights} nights
             </Badge>
             {isDurationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
@@ -2886,25 +2890,25 @@ export default function AutoItineraryView({
 
         {/* Guidance message when nights don't match trip duration - fixed height to prevent layout bounce */}
         <div className={`mx-4 mb-3 px-3 py-2 rounded-lg text-sm min-h-[40px] flex items-center justify-between transition-all duration-200 ${
-          currentTotal === tripTotalDays
+          currentTotal === tripTotalNights
             ? 'bg-green-50 text-green-700 border border-green-200'
-            : currentTotal > tripTotalDays
+            : currentTotal > tripTotalNights
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-amber-50 text-amber-700 border border-amber-200'
         }`}>
           <span>
-            {currentTotal === tripTotalDays
+            {currentTotal === tripTotalNights
               ? '✓ All nights allocated!'
-              : currentTotal > tripTotalDays
-                ? `⚠️ ${currentTotal - tripTotalDays} nights over — remove nights or extend trip dates`
-                : `📝 ${tripTotalDays - currentTotal} nights remaining to allocate`
+              : currentTotal > tripTotalNights
+                ? `⚠️ ${currentTotal - tripTotalNights} nights over — remove nights or extend trip dates`
+                : `📝 ${tripTotalNights - currentTotal} nights remaining to allocate`
             }
           </span>
-          {currentTotal !== tripTotalDays && (
+          {currentTotal !== tripTotalNights && (
             <button
               onClick={() => {
                 console.log('[AutoItinerary] User clicked Auto-allocate - regenerating allocations');
-                setAllocations(allocateDays(cities, tripTotalDays, tripDna, tripStartDate));
+                setAllocations(allocateDays(cities, tripTotalNights, tripDna, tripStartDate));
               }}
               className="ml-2 px-2 py-1 text-xs font-medium bg-white/80 hover:bg-white border rounded transition-colors whitespace-nowrap"
             >
