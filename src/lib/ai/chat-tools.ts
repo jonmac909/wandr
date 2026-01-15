@@ -368,6 +368,27 @@ export const TRIP_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: 'delete_day',
+    description: 'Delete a day from the itinerary. This removes the day and all its scheduled activities from both Overview and Schedule.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dayNumber: {
+          type: 'number',
+          description: 'The day number to delete (1, 2, 3, etc.)',
+        },
+        dayId: {
+          type: 'string',
+          description: 'Alternative: the ID of the day to delete',
+        },
+        date: {
+          type: 'string',
+          description: 'Alternative: the date of the day to delete in YYYY-MM-DD format',
+        },
+      },
+    },
+  },
+  {
     name: 'update_trip_dates',
     description: 'Update the overall trip start/end dates. This will shift all activities and bases accordingly.',
     input_schema: {

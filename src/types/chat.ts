@@ -67,6 +67,7 @@ export type ToolName =
   | 'add_base'
   | 'update_base'
   | 'delete_base'
+  | 'delete_day'
   | 'update_trip_dates';
 
 export interface ToolDefinition {

@@ -61,6 +61,8 @@ export async function executeToolCall(
       return handleUpdateBase(input, context);
     case 'delete_base':
       return handleDeleteBase(input, context);
+    case 'delete_day':
+      return handleDeleteDay(input, context);
     case 'update_trip_dates':
       return handleUpdateTripDates(input, context);
     default:
@@ -730,8 +732,8 @@ function handleUpdateBase(
     const accInput = updates.accommodation as Record<string, unknown>;
     updatedBase.accommodation = {
       ...updatedBase.accommodation,
-      name: (accInput.name as string) ?? updatedBase.accommodation?.name,
-      type: (accInput.type as typeof updatedBase.accommodation.type) ?? updatedBase.accommodation?.type ?? 'hotel',
+      name: (accInput.name as string) ?? updatedBase.accommodation?.name ?? '',
+      type: (accInput.type as 'hotel' | 'resort' | 'boutique' | 'airbnb' | 'hostel' | 'ryokan') ?? updatedBase.accommodation?.type ?? 'hotel',
       priceRange: (accInput.priceRange as PriceRange) ?? updatedBase.accommodation?.priceRange ?? '$$',
       notes: (accInput.notes as string) ?? updatedBase.accommodation?.notes,
     };
@@ -788,6 +790,66 @@ function handleDeleteBase(
     result: {
       success: true,
       message: `Deleted ${baseToDelete.location}${baseToDelete.accommodation?.name ? ` (${baseToDelete.accommodation.name})` : ''}`,
+    },
+    updatedItinerary,
+  };
+}
+
+// Delete a day from the itinerary
+function handleDeleteDay(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const { itinerary } = context;
+  const dayNumber = input.dayNumber as number | undefined;
+  const dayId = input.dayId as string | undefined;
+  const date = input.date as string | undefined;
+
+  if (!dayNumber && !dayId && !date) {
+    return { result: null, error: 'Must provide dayNumber, dayId, or date' };
+  }
+
+  // Find the day to delete
+  let dayToDelete;
+  let dayIndex = -1;
+
+  if (dayNumber) {
+    dayIndex = dayNumber - 1; // Convert to 0-based index
+    dayToDelete = itinerary.days[dayIndex];
+  } else if (dayId) {
+    dayIndex = itinerary.days.findIndex((d) => d.id === dayId);
+    dayToDelete = itinerary.days[dayIndex];
+  } else if (date) {
+    dayIndex = itinerary.days.findIndex((d) => d.date === date);
+    dayToDelete = itinerary.days[dayIndex];
+  }
+
+  if (!dayToDelete || dayIndex === -1) {
+    return { result: null, error: `Day not found: ${dayNumber || dayId || date}` };
+  }
+
+  // Remove the day from the array
+  const updatedDays = itinerary.days.filter((_, index) => index !== dayIndex);
+
+  // Update trip end date (reduce by 1 day)
+  const currentEndDate = new Date(itinerary.meta.endDate);
+  currentEndDate.setDate(currentEndDate.getDate() - 1);
+  const newEndDate = currentEndDate.toISOString().split('T')[0];
+
+  const updatedItinerary: Itinerary = {
+    ...itinerary,
+    meta: {
+      ...itinerary.meta,
+      endDate: newEndDate,
+    },
+    days: updatedDays,
+    updatedAt: new Date(),
+  };
+
+  return {
+    result: {
+      success: true,
+      message: `Deleted day ${dayIndex + 1} (${dayToDelete.date}) and all its activities. Trip now ends on ${newEndDate}.`,
     },
     updatedItinerary,
   };
