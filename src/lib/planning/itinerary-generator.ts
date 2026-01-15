@@ -229,8 +229,9 @@ export function allocateDays(
       allocStartDate.setDate(start.getDate() + startDayNum - 1);
       allocation.startDate = allocStartDate.toISOString().split('T')[0];
 
+      // End date is DEPARTURE date (day after last night), not last night
       const allocEndDate = new Date(start);
-      allocEndDate.setDate(start.getDate() + endDayNum - 1);
+      allocEndDate.setDate(start.getDate() + endDayNum);
       allocation.endDate = allocEndDate.toISOString().split('T')[0];
     }
 

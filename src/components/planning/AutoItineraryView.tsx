@@ -2329,8 +2329,9 @@ export default function AutoItineraryView({
 
         const start = parseLocalDate(tripStartDate);
         start.setDate(start.getDate() + startDay - 1);
+        // End date is DEPARTURE date (day after last night), not last night
         const end = parseLocalDate(tripStartDate);
-        end.setDate(end.getDate() + endDay - 1);
+        end.setDate(end.getDate() + endDay);
 
         const formatLocalDate = (d: Date) =>
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2765,8 +2766,9 @@ export default function AutoItineraryView({
         // Use parseLocalDate to avoid timezone issues
         const start = parseLocalDate(tripStartDate);
         start.setDate(start.getDate() + startDay - 1);
+        // End date is DEPARTURE date (day after last night), not last night
         const end = parseLocalDate(tripStartDate);
-        end.setDate(end.getDate() + endDay - 1);
+        end.setDate(end.getDate() + endDay);
 
         const formatLocalDate = (d: Date) =>
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2952,8 +2954,9 @@ export default function AutoItineraryView({
                               currentDay = endDay + 1;
                               const start = parseLocalDate(tripStartDate);
                               start.setDate(start.getDate() + startDay - 1);
+                              // End date is DEPARTURE date (day after last night)
                               const end = parseLocalDate(tripStartDate);
-                              end.setDate(end.getDate() + endDay - 1);
+                              end.setDate(end.getDate() + endDay);
                               const formatLocalDate = (d: Date) =>
                                 `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                               return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
@@ -3023,8 +3026,9 @@ export default function AutoItineraryView({
                     currentDay = endDay + 1;
                     const start = parseLocalDate(tripStartDate);
                     start.setDate(start.getDate() + startDay - 1);
+                    // End date is DEPARTURE date (day after last night)
                     const end = parseLocalDate(tripStartDate);
-                    end.setDate(end.getDate() + endDay - 1);
+                    end.setDate(end.getDate() + endDay);
                     const formatLocalDate = (d: Date) =>
                       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                     return { ...a, startDay, endDay, startDate: formatLocalDate(start), endDate: formatLocalDate(end) };
