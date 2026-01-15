@@ -272,6 +272,118 @@ export const TRIP_TOOLS: ToolDefinition[] = [
       required: ['restaurant'],
     },
   },
+  {
+    name: 'add_base',
+    description: 'Add a new base (city/hotel stay) to the trip route. This updates the Overview section with a new destination and accommodation.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        location: {
+          type: 'string',
+          description: 'City or location name (e.g., "Tokyo", "Waikiki")',
+        },
+        region: {
+          type: 'string',
+          description: 'Specific region or neighborhood (optional)',
+        },
+        accommodation: {
+          type: 'object',
+          description: 'Hotel or accommodation details',
+          properties: {
+            name: { type: 'string', description: 'Hotel/accommodation name' },
+            type: { type: 'string', enum: ['hotel', 'resort', 'boutique', 'airbnb', 'hostel', 'ryokan'] },
+            priceRange: { type: 'string', enum: ['$', '$$', '$$$', '$$$$'] },
+            notes: { type: 'string' },
+          },
+        },
+        checkIn: {
+          type: 'string',
+          description: 'Check-in date in YYYY-MM-DD format',
+        },
+        checkOut: {
+          type: 'string',
+          description: 'Check-out date in YYYY-MM-DD format',
+        },
+        rationale: {
+          type: 'string',
+          description: 'Why this base was chosen (optional)',
+        },
+      },
+      required: ['location', 'checkIn', 'checkOut'],
+    },
+  },
+  {
+    name: 'update_base',
+    description: 'Update an existing base (city/hotel) in the trip route. Can modify hotel, dates, or location.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        baseId: {
+          type: 'string',
+          description: 'The ID of the base to update',
+        },
+        location: {
+          type: 'string',
+          description: 'Alternative: find base by location name to update',
+        },
+        updates: {
+          type: 'object',
+          description: 'Fields to update',
+          properties: {
+            location: { type: 'string' },
+            region: { type: 'string' },
+            accommodation: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                type: { type: 'string', enum: ['hotel', 'resort', 'boutique', 'airbnb', 'hostel', 'ryokan'] },
+                priceRange: { type: 'string', enum: ['$', '$$', '$$$', '$$$$'] },
+                notes: { type: 'string' },
+              },
+            },
+            checkIn: { type: 'string', description: 'YYYY-MM-DD format' },
+            checkOut: { type: 'string', description: 'YYYY-MM-DD format' },
+            rationale: { type: 'string' },
+          },
+        },
+      },
+      required: ['updates'],
+    },
+  },
+  {
+    name: 'delete_base',
+    description: 'Remove a base (city/hotel stay) from the trip route.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        baseId: {
+          type: 'string',
+          description: 'The ID of the base to delete',
+        },
+        location: {
+          type: 'string',
+          description: 'Alternative: location name of the base to delete',
+        },
+      },
+    },
+  },
+  {
+    name: 'update_trip_dates',
+    description: 'Update the overall trip start/end dates. This will shift all activities and bases accordingly.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        startDate: {
+          type: 'string',
+          description: 'New start date in YYYY-MM-DD format',
+        },
+        endDate: {
+          type: 'string',
+          description: 'New end date in YYYY-MM-DD format',
+        },
+      },
+    },
+  },
 ];
 
 // Web search tool - Claude's built-in capability

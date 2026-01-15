@@ -55,6 +55,14 @@ export async function executeToolCall(
       return handleAddRestaurant(input, context);
     case 'get_booking_link':
       return handleGetBookingLink(input, context);
+    case 'add_base':
+      return handleAddBase(input, context);
+    case 'update_base':
+      return handleUpdateBase(input, context);
+    case 'delete_base':
+      return handleDeleteBase(input, context);
+    case 'update_trip_dates':
+      return handleUpdateTripDates(input, context);
     default:
       return { result: null, error: `Unknown tool: ${toolName}` };
   }
@@ -624,5 +632,231 @@ function handleGetBookingLink(
       provider,
       message: `Here's the booking link for ${activityName}: ${url}`,
     },
+  };
+}
+
+// Add a new base (city/hotel stay) to the trip
+function handleAddBase(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const { itinerary } = context;
+  const location = input.location as string;
+  const region = input.region as string | undefined;
+  const checkIn = input.checkIn as string;
+  const checkOut = input.checkOut as string;
+  const rationale = input.rationale as string | undefined;
+  const accommodationInput = input.accommodation as Record<string, unknown> | undefined;
+
+  // Calculate nights
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+  const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Create the base
+  const newBase = {
+    id: crypto.randomUUID(),
+    location,
+    region,
+    nights,
+    checkIn,
+    checkOut,
+    rationale: rationale || `${nights} night${nights > 1 ? 's' : ''} in ${location}`,
+    accommodation: accommodationInput ? {
+      name: accommodationInput.name as string,
+      type: (accommodationInput.type as 'hotel' | 'resort' | 'boutique' | 'airbnb' | 'hostel' | 'ryokan') || 'hotel',
+      priceRange: (accommodationInput.priceRange as PriceRange) || '$$',
+      notes: accommodationInput.notes as string | undefined,
+    } : undefined,
+  };
+
+  const updatedItinerary: Itinerary = {
+    ...itinerary,
+    route: {
+      ...itinerary.route,
+      bases: [...itinerary.route.bases, newBase],
+    },
+    updatedAt: new Date(),
+  };
+
+  return {
+    result: {
+      success: true,
+      message: `Added ${location} (${nights} nights, ${checkIn} to ${checkOut})${accommodationInput?.name ? ` at ${accommodationInput.name}` : ''}`,
+      baseId: newBase.id,
+    },
+    updatedItinerary,
+  };
+}
+
+// Update an existing base
+function handleUpdateBase(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const { itinerary } = context;
+  const baseId = input.baseId as string | undefined;
+  const locationToFind = input.location as string | undefined;
+  const updates = input.updates as Record<string, unknown>;
+
+  // Find the base
+  const foundBase = itinerary.route.bases.find((b) =>
+    (baseId && b.id === baseId) ||
+    (locationToFind && b.location.toLowerCase().includes(locationToFind.toLowerCase()))
+  );
+
+  if (!foundBase) {
+    return { result: null, error: `Base not found: ${baseId || locationToFind}` };
+  }
+
+  // Apply updates
+  const updatedBase = { ...foundBase };
+
+  if (updates.location) updatedBase.location = updates.location as string;
+  if (updates.region) updatedBase.region = updates.region as string;
+  if (updates.rationale) updatedBase.rationale = updates.rationale as string;
+  if (updates.checkIn) updatedBase.checkIn = updates.checkIn as string;
+  if (updates.checkOut) updatedBase.checkOut = updates.checkOut as string;
+
+  // Recalculate nights if dates changed
+  if (updates.checkIn || updates.checkOut) {
+    const checkInDate = new Date(updatedBase.checkIn);
+    const checkOutDate = new Date(updatedBase.checkOut);
+    updatedBase.nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  // Update accommodation
+  if (updates.accommodation) {
+    const accInput = updates.accommodation as Record<string, unknown>;
+    updatedBase.accommodation = {
+      ...updatedBase.accommodation,
+      name: (accInput.name as string) ?? updatedBase.accommodation?.name,
+      type: (accInput.type as typeof updatedBase.accommodation.type) ?? updatedBase.accommodation?.type ?? 'hotel',
+      priceRange: (accInput.priceRange as PriceRange) ?? updatedBase.accommodation?.priceRange ?? '$$',
+      notes: (accInput.notes as string) ?? updatedBase.accommodation?.notes,
+    };
+  }
+
+  const updatedItinerary: Itinerary = {
+    ...itinerary,
+    route: {
+      ...itinerary.route,
+      bases: itinerary.route.bases.map((b) => b.id === foundBase!.id ? updatedBase : b),
+    },
+    updatedAt: new Date(),
+  };
+
+  return {
+    result: {
+      success: true,
+      message: `Updated ${updatedBase.location}${updatedBase.accommodation?.name ? ` (${updatedBase.accommodation.name})` : ''}`,
+      baseId: updatedBase.id,
+    },
+    updatedItinerary,
+  };
+}
+
+// Delete a base
+function handleDeleteBase(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const { itinerary } = context;
+  const baseId = input.baseId as string | undefined;
+  const locationToFind = input.location as string | undefined;
+
+  // Find the base
+  const baseToDelete = itinerary.route.bases.find((b) =>
+    (baseId && b.id === baseId) ||
+    (locationToFind && b.location.toLowerCase().includes(locationToFind.toLowerCase()))
+  );
+
+  if (!baseToDelete) {
+    return { result: null, error: `Base not found: ${baseId || locationToFind}` };
+  }
+
+  const updatedItinerary: Itinerary = {
+    ...itinerary,
+    route: {
+      ...itinerary.route,
+      bases: itinerary.route.bases.filter((b) => b.id !== baseToDelete.id),
+    },
+    updatedAt: new Date(),
+  };
+
+  return {
+    result: {
+      success: true,
+      message: `Deleted ${baseToDelete.location}${baseToDelete.accommodation?.name ? ` (${baseToDelete.accommodation.name})` : ''}`,
+    },
+    updatedItinerary,
+  };
+}
+
+// Update trip dates
+function handleUpdateTripDates(
+  input: Record<string, unknown>,
+  context: ToolContext
+): ToolResult {
+  const { itinerary } = context;
+  const newStartDate = input.startDate as string | undefined;
+  const newEndDate = input.endDate as string | undefined;
+
+  if (!newStartDate && !newEndDate) {
+    return { result: null, error: 'Must provide startDate or endDate' };
+  }
+
+  const currentStartDate = new Date(itinerary.meta.startDate);
+  const currentEndDate = new Date(itinerary.meta.endDate);
+  const targetStartDate = newStartDate ? new Date(newStartDate) : currentStartDate;
+  const targetEndDate = newEndDate ? new Date(newEndDate) : currentEndDate;
+
+  // Calculate the shift in days
+  const dayShift = Math.floor((targetStartDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Function to shift a date
+  const shiftDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + dayShift);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Update meta dates
+  const updatedMeta = {
+    ...itinerary.meta,
+    startDate: targetStartDate.toISOString().split('T')[0],
+    endDate: targetEndDate.toISOString().split('T')[0],
+  };
+
+  // Update day dates
+  const updatedDays = itinerary.days.map((day) => ({
+    ...day,
+    date: shiftDate(day.date),
+  }));
+
+  // Update base dates
+  const updatedBases = itinerary.route.bases.map((base) => ({
+    ...base,
+    checkIn: shiftDate(base.checkIn),
+    checkOut: shiftDate(base.checkOut),
+  }));
+
+  const updatedItinerary: Itinerary = {
+    ...itinerary,
+    meta: updatedMeta,
+    days: updatedDays,
+    route: {
+      ...itinerary.route,
+      bases: updatedBases,
+    },
+    updatedAt: new Date(),
+  };
+
+  return {
+    result: {
+      success: true,
+      message: `Updated trip dates to ${updatedMeta.startDate} - ${updatedMeta.endDate}${dayShift !== 0 ? ` (shifted ${Math.abs(dayShift)} days ${dayShift > 0 ? 'forward' : 'backward'})` : ''}`,
+    },
+    updatedItinerary,
   };
 }

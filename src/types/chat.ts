@@ -63,7 +63,11 @@ export type ToolName =
   | 'delete_activity'
   | 'move_activity'
   | 'add_restaurant'
-  | 'get_booking_link';
+  | 'get_booking_link'
+  | 'add_base'
+  | 'update_base'
+  | 'delete_base'
+  | 'update_trip_dates';
 
 export interface ToolDefinition {
   name: ToolName;
