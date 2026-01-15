@@ -163,11 +163,13 @@ export function useChat({
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // Prepare messages for API
-      const apiMessages = [...messages, userMessage].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      // Prepare messages for API (filter out empty content messages)
+      const apiMessages = [...messages, userMessage]
+        .filter((m) => m.content && m.content.trim().length > 0)
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
       const decoder = new TextDecoder();
       const assistantMessageId = crypto.randomUUID();
@@ -281,6 +283,12 @@ export function useChat({
               input: tc.input,
             })),
           ];
+
+          // Ensure assistant message has content (Anthropic API requirement)
+          if (assistantTurnContent.length === 0) {
+            console.warn('Assistant turn has no content, skipping continuation');
+            break;
+          }
 
           // Build tool result content for user message
           const toolResultContent = toolResults.map((tr) => ({
