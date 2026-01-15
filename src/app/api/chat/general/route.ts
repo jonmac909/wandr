@@ -1,6 +1,8 @@
 // General chat API route for Claude - works without trip context
 
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceApiKey, enforceRateLimit, enforceSameOrigin } from '@/lib/server/api-guard';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
@@ -39,6 +41,15 @@ interface ChatRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body: ChatRequestBody = await request.json();
     const { messages } = body;
 
@@ -49,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,7 +85,7 @@ export async function POST(request: NextRequest) {
         ],
         stream: true,
       }),
-    });
+    }, 120000);
 
     if (!response.ok) {
       const errorText = await response.text();

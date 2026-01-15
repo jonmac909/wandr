@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { getCountryCode, getCountryFlag, getCountryName, extractCountryFromLocation } from '@/lib/dashboard/country-utils';
+import { parseIsoDate } from '@/lib/dates';
 
 export interface CountryStat {
   code: string;
@@ -32,12 +33,12 @@ export function useTripStats(trips: StoredTrip[]): TripStats {
     // Filter trips by year based on start date
     const tripsThisYear = trips.filter(t => {
       const date = t.itinerary?.meta?.startDate;
-      return date && new Date(date).getFullYear() === currentYear;
+      return date && parseIsoDate(date).getFullYear() === currentYear;
     }).length;
 
     const tripsLastYear = trips.filter(t => {
       const date = t.itinerary?.meta?.startDate;
-      return date && new Date(date).getFullYear() === lastYear;
+      return date && parseIsoDate(date).getFullYear() === lastYear;
     }).length;
 
     // Calculate trend (percentage change)
@@ -52,7 +53,7 @@ export function useTripStats(trips: StoredTrip[]): TripStats {
 
     trips.forEach(trip => {
       const tripYear = trip.itinerary?.meta?.startDate
-        ? new Date(trip.itinerary.meta.startDate).getFullYear()
+        ? parseIsoDate(trip.itinerary.meta.startDate).getFullYear()
         : null;
 
       trip.itinerary?.route?.bases?.forEach(base => {
@@ -133,8 +134,8 @@ export function getTripDateRanges(trips: StoredTrip[]): TripDateRange[] {
     .map((t, i) => ({
       tripId: t.id,
       tripTitle: t.itinerary!.meta.title || 'Trip',
-      startDate: new Date(t.itinerary!.meta.startDate),
-      endDate: new Date(t.itinerary!.meta.endDate),
+      startDate: parseIsoDate(t.itinerary!.meta.startDate),
+      endDate: parseIsoDate(t.itinerary!.meta.endDate),
       color: colors[i % colors.length],
     }));
 }

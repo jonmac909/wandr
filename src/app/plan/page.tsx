@@ -181,6 +181,22 @@ function getCitiesForDestination(destination: string): string[] {
   return cityMap[destination] || [];
 }
 
+// Helper function to fetch real city images from API
+async function fetchCityImage(city: string, country: string): Promise<string> {
+  try {
+    const response = await fetch(`/api/city-image?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch city image');
+    }
+    const data = await response.json();
+    return data.imageUrl;
+  } catch (error) {
+    console.error(`Failed to fetch image for ${city}:`, error);
+    // Fallback to static function
+    return getCityImage(city, country);
+  }
+}
+
 export default function PlanPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
@@ -707,21 +723,57 @@ function PlanPageContent() {
       setCompletedSections(prev => [...new Set([...prev, 'where' as PlanningSection, 'prefs' as PlanningSection])]);
       setCurrentSection('cities');
 
-      // Generate city items for planning
+      // Generate city items for planning with real images
       const mockItems: PlanningItem[] = [];
+
+      // Fetch images for all cities in parallel
+      const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
+
       destinations.forEach((dest: string, destIdx: number) => {
         const cityNames = getCitiesForDestination(dest);
         cityNames.forEach((city, idx) => {
+          const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
+            city,
+            destIdx,
+            idx,
+            imageUrl
+          }));
+          imageFetches.push(imagePromise);
+        });
+      });
+
+      // Wait for all images to fetch
+      try {
+        const imageResults = await Promise.all(imageFetches);
+
+        imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
           mockItems.push({
             id: `city-${destIdx}-${idx}`,
             name: city,
             description: `Explore ${city}`,
-            imageUrl: getCityImage(city, dest),
+            imageUrl,  // Now using real API images!
             category: 'activities',
-            tags: ['cities', dest],
+            tags: ['cities', destinations[destIdx]],
           });
         });
-      });
+      } catch (error) {
+        console.error('Failed to fetch city images, falling back to static:', error);
+        // Fallback: use static images
+        destinations.forEach((dest: string, destIdx: number) => {
+          const cityNames = getCitiesForDestination(dest);
+          cityNames.forEach((city, idx) => {
+            mockItems.push({
+              id: `city-${destIdx}-${idx}`,
+              name: city,
+              description: `Explore ${city}`,
+              imageUrl: getCityImage(city, dest),  // Static fallback
+              category: 'activities',
+              tags: ['cities', dest],
+            });
+          });
+        });
+      }
+
       setPlanningItems(mockItems);
     } catch (error) {
       console.error('Failed to save trip:', error);
@@ -1309,22 +1361,58 @@ function PlanPageContent() {
                 }
               }
             }}
-            onSearchAI={(query, category) => {
+            onSearchAI={async (query, category) => {
               if (category === 'cities') {
                 const mockItems: PlanningItem[] = [];
+
+                // Fetch images for all cities in parallel
+                const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
+
                 destinations.forEach((dest: string, destIdx: number) => {
                   const cityNames = getCitiesForDestination(dest);
                   cityNames.forEach((city, idx) => {
+                    const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
+                      city,
+                      destIdx,
+                      idx,
+                      imageUrl
+                    }));
+                    imageFetches.push(imagePromise);
+                  });
+                });
+
+                // Wait for all images to fetch
+                try {
+                  const imageResults = await Promise.all(imageFetches);
+
+                  imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
                     mockItems.push({
                       id: `city-${destIdx}-${idx}`,
                       name: city,
                       description: `Explore ${city}`,
-                      imageUrl: getCityImage(city, dest),
+                      imageUrl,  // Using real API images
                       category: 'activities',
-                      tags: ['cities', dest],
+                      tags: ['cities', destinations[destIdx]],
                     });
                   });
-                });
+                } catch (error) {
+                  console.error('Failed to fetch city images, falling back to static:', error);
+                  // Fallback: use static images
+                  destinations.forEach((dest: string, destIdx: number) => {
+                    const cityNames = getCitiesForDestination(dest);
+                    cityNames.forEach((city, idx) => {
+                      mockItems.push({
+                        id: `city-${destIdx}-${idx}`,
+                        name: city,
+                        description: `Explore ${city}`,
+                        imageUrl: getCityImage(city, dest),  // Static fallback
+                        category: 'activities',
+                        tags: ['cities', dest],
+                      });
+                    });
+                  });
+                }
+
                 setPlanningItems(mockItems);
               }
             }}

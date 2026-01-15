@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { enforceApiKey, enforceRateLimit, enforceSameOrigin } from '@/lib/server/api-guard';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 // API key from environment (same pattern as chat route)
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
@@ -73,8 +76,40 @@ const INTEREST_DESCRIPTIONS: Record<string, string> = {
   'local-culture': 'authentic local experiences, cultural sites, and community spots',
 };
 
+const PlaceSchema = z.object({
+  id: z.string().optional().default(''),
+  name: z.string().min(1),
+  type: z.enum(['attraction', 'restaurant', 'cafe', 'activity', 'nightlife']),
+  city: z.string().min(1),
+  neighborhood: z.string().optional().default(''),
+  description: z.string().optional().default(''),
+  rating: z.number().optional(),
+  reviewCount: z.number().optional(),
+  priceRange: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
+  coordinates: z
+    .object({
+      lat: z.number(),
+      lng: z.number(),
+    })
+    .optional(),
+});
+
+const PlacesResponseSchema = z.object({
+  places: z.array(PlaceSchema),
+});
+
 export async function POST(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { city, category, interests } = await request.json();
 
     // If no API key, return mock data
@@ -163,7 +198,7 @@ Include:
 IMPORTANT: Return ONLY the JSON object, no other text.`;
 
     // Use direct fetch like chat route (SDK may not work in Cloudflare Workers)
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -180,7 +215,7 @@ IMPORTANT: Return ONLY the JSON object, no other text.`;
           },
         ],
       }),
-    });
+    }, 60000);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -208,8 +243,16 @@ IMPORTANT: Return ONLY the JSON object, no other text.`;
     }
 
     const data = JSON.parse(jsonStr);
+    const parsed = PlacesResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      console.error('Invalid AI recommendations schema', parsed.error.flatten());
+      return NextResponse.json(
+        { error: 'Invalid AI response format', places: [] },
+        { status: 502 }
+      );
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json(parsed.data);
   } catch (error) {
     console.error('Error generating recommendations:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

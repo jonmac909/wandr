@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
+import { enforceApiKey, enforceRateLimit, enforceSameOrigin } from '@/lib/server/api-guard';
+import { debug } from '@/lib/logger';
+import { withTimeout } from '@/lib/async';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -11,15 +15,40 @@ interface AIActivity {
   type: 'attraction' | 'restaurant' | 'activity';
   description: string;
   suggestedTime?: string;
-  duration: number;
+  duration?: number;
   openingHours?: string;
   neighborhood: string;
   priceRange: string;
   tags: string[];
 }
 
+const ActivitySchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(['attraction', 'restaurant', 'activity']),
+  description: z.string().optional().default(''),
+  suggestedTime: z.string().optional(),
+  duration: z.number().int().min(0).optional(),
+  openingHours: z.string().optional(),
+  neighborhood: z.string().optional().default(''),
+  priceRange: z.string().optional().default('$'),
+  tags: z.array(z.string()).optional().default([]),
+});
+
+const ActivitiesResponseSchema = z.object({
+  activities: z.array(ActivitySchema),
+});
+
 export async function POST(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Check if API key is available
     if (!process.env.ANTHROPIC_API_KEY) {
       console.error('[generate-itinerary] ANTHROPIC_API_KEY is not set');
@@ -57,7 +86,7 @@ export async function POST(request: NextRequest) {
       ? `\n\nDO NOT INCLUDE these places (already in itinerary): ${excludeActivities.join(', ')}`
       : '';
 
-    console.log(`[generate-itinerary] Requesting ${activitiesToRequest} unique activities for ${nights} days in ${city}${excludeActivities?.length ? `, excluding ${excludeActivities.length} already-used` : ''}`);
+    debug(`[generate-itinerary] Requesting ${activitiesToRequest} unique activities for ${nights} days in ${city}${excludeActivities?.length ? `, excluding ${excludeActivities.length} already-used` : ''}`);
 
     // NEW APPROACH: Request a FLAT LIST of unique activities, then distribute
     const prompt = `You are a travel expert recommending places to visit in ${city}${country ? `, ${country}` : ''}.
@@ -113,7 +142,7 @@ Return ONLY valid JSON in this exact format:
   ]
 }`;
 
-    const message = await anthropic.messages.create({
+    const message = await withTimeout(anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       messages: [
@@ -122,7 +151,7 @@ Return ONLY valid JSON in this exact format:
           content: prompt,
         },
       ],
-    });
+    }), 60000, 'Anthropic request timed out');
 
     // Extract the text content
     const textContent = message.content.find((block) => block.type === 'text');
@@ -137,9 +166,15 @@ Return ONLY valid JSON in this exact format:
     }
 
     const data = JSON.parse(jsonMatch[0]);
-    let allActivities: AIActivity[] = data.activities || [];
+    const parsed = ActivitiesResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      console.error('[generate-itinerary] Invalid AI response schema', parsed.error.flatten());
+      return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
+    }
 
-    console.log(`[generate-itinerary] Received ${allActivities.length} activities from AI`);
+    let allActivities: AIActivity[] = parsed.data.activities;
+
+    debug(`[generate-itinerary] Received ${allActivities.length} activities from AI`);
 
     // DEDUPLICATE: Remove any activities with similar names
     const seenNames = new Set<string>();
@@ -149,7 +184,7 @@ Return ONLY valid JSON in this exact format:
       // Check for exact or partial duplicates
       for (const seen of seenNames) {
         if (normalizedName.includes(seen) || seen.includes(normalizedName)) {
-          console.log(`[generate-itinerary] Removing duplicate: "${act.name}"`);
+          debug(`[generate-itinerary] Removing duplicate: "${act.name}"`);
           return false;
         }
       }
@@ -158,7 +193,7 @@ Return ONLY valid JSON in this exact format:
       return true;
     });
 
-    console.log(`[generate-itinerary] After deduplication: ${allActivities.length} unique activities`);
+    debug(`[generate-itinerary] After deduplication: ${allActivities.length} unique activities`);
 
     // DISTRIBUTE activities across days
     const days = [];
@@ -187,6 +222,10 @@ Return ONLY valid JSON in this exact format:
         dayActivities.push({
           ...activity,
           suggestedTime,
+          duration: activity.duration ?? 90,
+          neighborhood: activity.neighborhood || city,
+          priceRange: activity.priceRange || '$',
+          tags: activity.tags || [],
           id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${dayNum}-${i}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           imageUrl: getActivityImage(activity.type, city),
           matchScore: 85 + Math.floor(Math.random() * 15),
@@ -205,7 +244,7 @@ Return ONLY valid JSON in this exact format:
         activities: dayActivities,
       });
 
-      console.log(`[generate-itinerary] Day ${dayNum} "${dayTheme}": ${dayActivities.map(a => a.name).join(', ')}`);
+      debug(`[generate-itinerary] Day ${dayNum} "${dayTheme}": ${dayActivities.map(a => a.name).join(', ')}`);
     }
 
     // Verify uniqueness across all days
@@ -214,7 +253,7 @@ Return ONLY valid JSON in this exact format:
     if (allNames.length !== uniqueNames.size) {
       console.error(`[generate-itinerary] ERROR: Found duplicate activities after distribution!`);
     } else {
-      console.log(`[generate-itinerary] SUCCESS: All ${allNames.length} activities are unique across ${nights} days`);
+      debug(`[generate-itinerary] SUCCESS: All ${allNames.length} activities are unique across ${nights} days`);
     }
 
     return NextResponse.json({ days });

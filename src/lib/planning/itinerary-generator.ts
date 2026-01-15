@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { TripDNA } from '@/types/trip-dna';
+import { addDaysToIso } from '@/lib/dates';
+import { allocateDays, type CityAllocation } from '@/lib/planning/itinerary-allocations';
 
 // ============ TYPES ============
 
@@ -91,171 +93,10 @@ export interface GeneratedDay {
   hotelId?: string;             // Only if user selected one
 }
 
-export type TransportMode = 'flight' | 'train' | 'bus' | 'car' | 'ferry' | 'other';
-
-export interface CityAllocation {
-  city: string;
-  nights: number;
-  startDay: number;             // Day number in trip (1-indexed)
-  endDay: number;
-  startDate?: string;           // ISO date if dates provided
-  endDate?: string;
-  transportToNext?: TransportMode; // How to get to the NEXT city (used for transit days)
-}
-
 export interface GeneratedItinerary {
   dayAllocation: CityAllocation[];
   days: GeneratedDay[];
   totalDays: number;
-}
-
-// ============ RECOMMENDED NIGHTS PER CITY ============
-
-// Base recommended nights (can be adjusted by pace preference)
-const RECOMMENDED_NIGHTS: Record<string, number> = {
-  // Japan
-  'Tokyo': 4, 'Kyoto': 3, 'Osaka': 2, 'Hakone': 2, 'Nara': 1, 'Hiroshima': 2, 'Fukuoka': 2, 'Nikko': 1,
-  // Thailand
-  'Bangkok': 3, 'Chiang Mai': 3, 'Chiang Rai': 2, 'Phuket': 4, 'Krabi': 3,
-  'Koh Samui': 4, 'Koh Phangan': 3, 'Koh Tao': 3, 'Koh Lanta': 3, 'Koh Phi Phi': 2,
-  'Sukhothai': 1, 'Ayutthaya': 1, 'Pai': 2, 'Hua Hin': 2, 'Kanchanaburi': 2,
-  // Vietnam
-  'Hanoi': 3, 'Ho Chi Minh City': 3, 'Da Nang': 2, 'Hoi An': 3, 'Hue': 2,
-  'Nha Trang': 3, 'Ha Long Bay': 2, 'Ninh Binh': 2, 'Sapa': 2,
-  // Hawaii
-  'Honolulu': 4, 'Maui': 4, 'Kauai': 3, 'Big Island': 3,
-  // Spain
-  'Barcelona': 4, 'Madrid': 3, 'Seville': 3, 'Valencia': 2, 'Granada': 2,
-  'San Sebastian': 2, 'Bilbao': 2, 'Malaga': 2, 'Toledo': 1, 'Cordoba': 1,
-  // Portugal
-  'Lisbon': 4, 'Porto': 3, 'Lagos': 3, 'Sintra': 1, 'Cascais': 1, 'Faro': 2,
-  // France
-  'Paris': 4, 'Nice': 3, 'Lyon': 2, 'Marseille': 2,
-  // Italy
-  'Rome': 4, 'Florence': 3, 'Venice': 2, 'Milan': 2, 'Naples': 2, 'Amalfi': 3,
-  // Greece
-  'Athens': 3, 'Santorini': 3, 'Mykonos': 3,
-  // Turkey
-  'Istanbul': 4, 'Cappadocia': 3, 'Antalya': 4,
-};
-
-// Default nights for unknown cities
-const DEFAULT_NIGHTS = 2;
-
-// Export for UI access
-export { RECOMMENDED_NIGHTS, DEFAULT_NIGHTS };
-
-// ============ DAY ALLOCATION ============
-
-/**
- * Allocate trip days across cities based on:
- * 1. Recommended nights per city (from database)
- * 2. TripDNA pace preference (relaxed = more nights, fast = fewer)
- * 3. Total available days
- */
-export function allocateDays(
-  cities: string[],
-  totalDays: number,
-  tripDna: TripDNA | null | undefined,
-  startDate?: string
-): CityAllocation[] {
-  if (cities.length === 0) return [];
-
-  // Get pace multiplier (default to balanced if tripDna not available)
-  const paceMultiplier = getPaceMultiplier(tripDna?.vibeAndPace?.tripPace || 'balanced');
-
-  // Calculate base allocation
-  const baseAllocations = cities.map(city => {
-    const baseNights = RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
-    return {
-      city,
-      nights: Math.round(baseNights * paceMultiplier),
-    };
-  });
-
-  // Calculate total base nights
-  const totalBaseNights = baseAllocations.reduce((sum, a) => sum + a.nights, 0);
-
-  // Scale allocations to fit total days
-  const scaleFactor = totalDays / totalBaseNights;
-  const allocations = baseAllocations.map(a => ({
-    city: a.city,
-    nights: Math.max(1, Math.round(a.nights * scaleFactor)),
-  }));
-
-  // Adjust to exactly match totalDays
-  let currentTotal = allocations.reduce((sum, a) => sum + a.nights, 0);
-
-  while (currentTotal !== totalDays) {
-    if (currentTotal < totalDays) {
-      // Add nights to cities with most recommended nights first
-      const sortedByRecommended = [...allocations].sort((a, b) =>
-        (RECOMMENDED_NIGHTS[b.city] || DEFAULT_NIGHTS) - (RECOMMENDED_NIGHTS[a.city] || DEFAULT_NIGHTS)
-      );
-      for (const alloc of sortedByRecommended) {
-        if (currentTotal >= totalDays) break;
-        alloc.nights += 1;
-        currentTotal += 1;
-      }
-    } else {
-      // Remove nights from cities with fewer recommended nights first
-      const sortedByRecommended = [...allocations].sort((a, b) =>
-        (RECOMMENDED_NIGHTS[a.city] || DEFAULT_NIGHTS) - (RECOMMENDED_NIGHTS[b.city] || DEFAULT_NIGHTS)
-      );
-      for (const alloc of sortedByRecommended) {
-        if (currentTotal <= totalDays) break;
-        if (alloc.nights > 1) {
-          alloc.nights -= 1;
-          currentTotal -= 1;
-        }
-      }
-    }
-  }
-
-  // Calculate day numbers and dates
-  let currentDay = 1;
-  const start = startDate ? new Date(startDate) : undefined;
-
-  const result: CityAllocation[] = allocations.map(alloc => {
-    const startDayNum = currentDay;
-    const endDayNum = currentDay + alloc.nights - 1;
-    currentDay = endDayNum + 1;
-
-    const allocation: CityAllocation = {
-      city: alloc.city,
-      nights: alloc.nights,
-      startDay: startDayNum,
-      endDay: endDayNum,
-    };
-
-    // Add dates if start date provided
-    if (start) {
-      const allocStartDate = new Date(start);
-      allocStartDate.setDate(start.getDate() + startDayNum - 1);
-      allocation.startDate = allocStartDate.toISOString().split('T')[0];
-
-      // End date is DEPARTURE date (day after last night), not last night
-      const allocEndDate = new Date(start);
-      allocEndDate.setDate(start.getDate() + endDayNum);
-      allocation.endDate = allocEndDate.toISOString().split('T')[0];
-    }
-
-    return allocation;
-  });
-
-  return result;
-}
-
-/**
- * Get pace multiplier based on trip pace preference
- */
-function getPaceMultiplier(pace: 'relaxed' | 'balanced' | 'fast'): number {
-  switch (pace) {
-    case 'relaxed': return 1.3;  // 30% more nights
-    case 'balanced': return 1.0; // Standard
-    case 'fast': return 0.7;     // 30% fewer nights
-    default: return 1.0;
-  }
 }
 
 // ============ IMAGE GENERATION ============
@@ -508,7 +349,7 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
       return parsed.days.map((day, idx) => {
         const globalDayNumber = dayOffset + idx + 1;
         const date = allocation.startDate
-          ? addDays(allocation.startDate, idx)
+          ? addDaysToIso(allocation.startDate, idx)
           : '';
 
         // Add walking times between activities
@@ -567,7 +408,7 @@ Return ONLY valid JSON (no markdown, no explanation) with this structure:
   // Fallback: return placeholder days
   return Array.from({ length: allocation.nights }, (_, idx) => ({
     dayNumber: dayOffset + idx + 1,
-    date: allocation.startDate ? addDays(allocation.startDate, idx) : '',
+    date: allocation.startDate ? addDaysToIso(allocation.startDate, idx) : '',
     city: allocation.city,
     theme: `Day ${idx + 1} in ${allocation.city}`,
     activities: [],
@@ -584,14 +425,6 @@ function estimateWalkingTime(from: string, to: string): number {
   return 15 + Math.floor(Math.random() * 15); // 15-30 min different neighborhood
 }
 
-/**
- * Add days to a date string
- */
-function addDays(dateStr: string, days: number): string {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
-}
 
 // ============ ALTERNATIVES GENERATION ============
 

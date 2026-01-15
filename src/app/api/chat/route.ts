@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildChatSystemPrompt } from '@/lib/ai/chat-prompts';
 import { getToolsForAPI } from '@/lib/ai/chat-tools';
 import type { Itinerary } from '@/types/itinerary';
+import { enforceApiKey, enforceRateLimit, enforceSameOrigin } from '@/lib/server/api-guard';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
+import { debug } from '@/lib/logger';
 
 // API key from environment variable (standard Anthropic API key, not OAuth)
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
@@ -20,6 +23,15 @@ interface ChatRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body: ChatRequestBody = await request.json();
     const { messages, itinerary } = body;
 
@@ -37,7 +49,7 @@ export async function POST(request: NextRequest) {
     const tools = getToolsForAPI();
 
     // Make streaming request to Claude API with web search enabled
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +68,7 @@ export async function POST(request: NextRequest) {
         tools,
         stream: true,
       }),
-    });
+    }, 120000);
 
     // Check for errors
     if (!response.ok) {
@@ -104,11 +116,20 @@ export async function POST(request: NextRequest) {
 // Handle tool results - client sends tool execution results back
 export async function PUT(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const { messages, toolResults, itinerary } = body;
 
-    console.log('PUT /api/chat - Tool results received:', toolResults?.length);
-    console.log('PUT /api/chat - Messages count:', messages?.length);
+    debug('PUT /api/chat - Tool results received:', toolResults?.length);
+    debug('PUT /api/chat - Messages count:', messages?.length);
 
     if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
@@ -135,17 +156,17 @@ export async function PUT(request: NextRequest) {
           content: toolResultContent,
         },
       ];
-      console.log('PUT /api/chat - Tool result content added:', JSON.stringify(toolResultContent, null, 2));
+      debug('PUT /api/chat - Tool result content added:', JSON.stringify(toolResultContent, null, 2));
     }
 
-    console.log('PUT /api/chat - Messages count:', messagesWithToolResults.length);
-    console.log('PUT /api/chat - Last message role:', messagesWithToolResults[messagesWithToolResults.length - 1]?.role);
-    console.log('PUT /api/chat - Sending to Claude API...');
+    debug('PUT /api/chat - Messages count:', messagesWithToolResults.length);
+    debug('PUT /api/chat - Last message role:', messagesWithToolResults[messagesWithToolResults.length - 1]?.role);
+    debug('PUT /api/chat - Sending to Claude API...');
 
     const systemPrompt = buildChatSystemPrompt(itinerary);
     const tools = getToolsForAPI();
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -161,10 +182,10 @@ export async function PUT(request: NextRequest) {
         tools,
         stream: true,
       }),
-    });
+    }, 120000);
 
-    console.log('PUT /api/chat - Claude API response status:', response.status);
-    console.log('PUT /api/chat - Claude API response headers:', Object.fromEntries(response.headers.entries()));
+    debug('PUT /api/chat - Claude API response status:', response.status);
+    debug('PUT /api/chat - Claude API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();

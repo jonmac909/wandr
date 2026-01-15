@@ -63,6 +63,7 @@ import { getCityImage, getSiteImage } from '@/lib/planning/city-images';
 import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
 import { planningDb } from '@/lib/db/indexed-db';
 import dynamic from 'next/dynamic';
+import { debug, debugWarn } from '@/lib/logger';
 
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
@@ -1183,19 +1184,19 @@ export function SwipeablePlanningView({
     const loadPersistedState = async () => {
       try {
         const saved = await planningDb.get(tripId);
-        console.log('[SwipeablePlanning] Loaded from IndexedDB:', saved);
-        console.log('[SwipeablePlanning] Allocations in DB:', (saved as { allocations?: unknown })?.allocations);
+        debug('[SwipeablePlanning] Loaded from IndexedDB:', saved);
+        debug('[SwipeablePlanning] Allocations in DB:', (saved as { allocations?: unknown })?.allocations);
 
         if (saved) {
           // Always load allocations if we have them
           if ((saved as { allocations?: typeof savedAllocations }).allocations?.length) {
-            console.log('[SwipeablePlanning] Setting savedAllocations from DB');
+            debug('[SwipeablePlanning] Setting savedAllocations from DB');
             setSavedAllocations((saved as { allocations: typeof savedAllocations }).allocations);
           }
 
           // Load generated days if we have them
           if ((saved as { generatedDays?: typeof savedGeneratedDays }).generatedDays?.length) {
-            console.log('[SwipeablePlanning] Setting savedGeneratedDays from DB');
+            debug('[SwipeablePlanning] Setting savedGeneratedDays from DB');
             setSavedGeneratedDays((saved as { generatedDays: typeof savedGeneratedDays }).generatedDays);
           }
 
@@ -1218,7 +1219,7 @@ export function SwipeablePlanningView({
           }
         }
       } catch (error) {
-        console.warn('Failed to load planning state:', error);
+        debugWarn('Failed to load planning state:', error);
       }
       setPersistenceLoaded(true);
     };
@@ -1243,13 +1244,13 @@ export function SwipeablePlanningView({
           generatedDays: savedGeneratedDays,
         });
       } catch (error) {
-        console.warn('Failed to save planning state:', error);
+        debugWarn('Failed to save planning state:', error);
       }
     };
 
     // Debounce saves
     const timer = setTimeout(() => {
-      console.log('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations, 'generatedDays:', savedGeneratedDays.length);
+      debug('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations, 'generatedDays:', savedGeneratedDays.length);
       saveState();
     }, 500);
     return () => clearTimeout(timer);
@@ -2170,15 +2171,15 @@ export function SwipeablePlanningView({
         onAllocationsChange={(newAllocations) => {
           // CRITICAL: Don't overwrite saved allocations with empty array
           if (newAllocations.length === 0) {
-            console.log('[SwipeablePlanning] Ignoring empty allocations from child');
+            debug('[SwipeablePlanning] Ignoring empty allocations from child');
             return;
           }
-          console.log('[SwipeablePlanning] Accepting allocations from child:', newAllocations.map(a => `${a.city}:${a.nights}`));
+          debug('[SwipeablePlanning] Accepting allocations from child:', newAllocations.map(a => `${a.city}:${a.nights}`));
           setSavedAllocations(newAllocations);
         }}
         initialGeneratedDays={savedGeneratedDays}
         onGeneratedDaysChange={(newDays) => {
-          console.log('[SwipeablePlanning] Accepting generatedDays from child:', newDays.length, 'days');
+          debug('[SwipeablePlanning] Accepting generatedDays from child:', newDays.length, 'days');
           setSavedGeneratedDays(newDays);
         }}
         parentLoadComplete={persistenceLoaded}
@@ -2566,18 +2567,18 @@ export function SwipeablePlanningView({
 
     // Optimize route function - nearest neighbor algorithm within each country
     const optimizeRoute = () => {
-      console.log('[OptimizeRoute] Starting...');
-      console.log('[OptimizeRoute] routeOrder:', routeOrder);
-      console.log('[OptimizeRoute] selectedCities:', selectedCities);
-      console.log('[OptimizeRoute] countryOrder:', countryOrder);
-      console.log('[OptimizeRoute] destinations:', destinations);
+      debug('[OptimizeRoute] Starting...');
+      debug('[OptimizeRoute] routeOrder:', routeOrder);
+      debug('[OptimizeRoute] selectedCities:', selectedCities);
+      debug('[OptimizeRoute] countryOrder:', countryOrder);
+      debug('[OptimizeRoute] destinations:', destinations);
 
       // Use routeOrder if available, otherwise fall back to selectedCities
       const citiesToOptimize = routeOrder.length > 0 ? routeOrder : selectedCities;
-      console.log('[OptimizeRoute] citiesToOptimize:', citiesToOptimize);
+      debug('[OptimizeRoute] citiesToOptimize:', citiesToOptimize);
 
       if (citiesToOptimize.length === 0) {
-        console.log('[OptimizeRoute] No cities to optimize - aborting');
+        debug('[OptimizeRoute] No cities to optimize - aborting');
         return;
       }
 
@@ -2588,12 +2589,12 @@ export function SwipeablePlanningView({
       // Group cities by country
       citiesToOptimize.forEach(city => {
         const country = getCityCountry(city) || 'Unknown';
-        console.log(`[OptimizeRoute] City "${city}" -> Country "${country}"`);
+        debug(`[OptimizeRoute] City "${city}" -> Country "${country}"`);
         if (!countryGroups[country]) countryGroups[country] = [];
         countryGroups[country].push(city);
       });
 
-      console.log('[OptimizeRoute] countryGroups:', countryGroups);
+      debug('[OptimizeRoute] countryGroups:', countryGroups);
 
       // Helper to optimize cities within a group using nearest neighbor
       const optimizeCityGroup = (cities: string[]): string[] => {
@@ -2622,38 +2623,38 @@ export function SwipeablePlanningView({
 
       // For each country in countryOrder, optimize the cities within
       const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
-      console.log('[OptimizeRoute] orderedCountries:', orderedCountries);
+      debug('[OptimizeRoute] orderedCountries:', orderedCountries);
 
       orderedCountries.forEach(country => {
         const cities = countryGroups[country] || [];
-        console.log(`[OptimizeRoute] Processing "${country}" -> cities:`, cities);
+        debug(`[OptimizeRoute] Processing "${country}" -> cities:`, cities);
         if (cities.length > 0) {
           const optimized = optimizeCityGroup(cities);
-          console.log(`[OptimizeRoute] Optimized "${country}":`, optimized);
+          debug(`[OptimizeRoute] Optimized "${country}":`, optimized);
           optimizedOrder.push(...optimized);
           processedCountries.add(country);
         }
       });
 
       // Include any cities from countries not in orderedCountries (prevent losing cities)
-      console.log('[OptimizeRoute] processedCountries:', Array.from(processedCountries));
-      console.log('[OptimizeRoute] countryGroups keys:', Object.keys(countryGroups));
+      debug('[OptimizeRoute] processedCountries:', Array.from(processedCountries));
+      debug('[OptimizeRoute] countryGroups keys:', Object.keys(countryGroups));
 
       Object.keys(countryGroups).forEach(country => {
         if (!processedCountries.has(country)) {
-          console.log(`[OptimizeRoute] Unprocessed country "${country}" - adding cities:`, countryGroups[country]);
+          debug(`[OptimizeRoute] Unprocessed country "${country}" - adding cities:`, countryGroups[country]);
           optimizedOrder.push(...optimizeCityGroup(countryGroups[country]));
         }
       });
 
-      console.log('[OptimizeRoute] Final optimizedOrder:', optimizedOrder);
+      debug('[OptimizeRoute] Final optimizedOrder:', optimizedOrder);
 
       // Only update if we have cities (prevent clearing the route)
       if (optimizedOrder.length > 0) {
-        console.log('[OptimizeRoute] Setting new route order');
+        debug('[OptimizeRoute] Setting new route order');
         setRouteOrder(optimizedOrder);
       } else {
-        console.log('[OptimizeRoute] No cities to set - skipping');
+        debug('[OptimizeRoute] No cities to set - skipping');
       }
     };
 

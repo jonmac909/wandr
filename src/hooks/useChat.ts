@@ -5,6 +5,7 @@ import type { ChatMessage, ToolCall } from '@/types/chat';
 import type { Itinerary } from '@/types/itinerary';
 import { executeToolCall } from '@/lib/ai/tool-handlers';
 import type { ToolName } from '@/types/chat';
+import { debug, debugWarn } from '@/lib/logger';
 
 interface UseChatOptions {
   tripId: string;
@@ -43,7 +44,7 @@ async function parseStreamResponse(
   let currentToolInputJson = '';
   let chunkCount = 0;
 
-  console.log('parseStreamResponse: Starting to read stream...');
+  debug('parseStreamResponse: Starting to read stream...');
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Stream read timeout')), timeoutMs);
@@ -55,13 +56,13 @@ async function parseStreamResponse(
       const { done, value } = await Promise.race([readPromise, timeoutPromise]);
 
       if (done) {
-        console.log(`parseStreamResponse: Stream done after ${chunkCount} chunks`);
+        debug(`parseStreamResponse: Stream done after ${chunkCount} chunks`);
         break;
       }
       chunkCount++;
 
       if (chunkCount % 10 === 0) {
-        console.log(`parseStreamResponse: Read ${chunkCount} chunks so far...`);
+        debug(`parseStreamResponse: Read ${chunkCount} chunks so far...`);
       }
 
       buffer += decoder.decode(value, { stream: true });
@@ -122,9 +123,9 @@ async function parseStreamResponse(
     // Return what we have so far
   }
 
-  console.log(`parseStreamResponse: Finished. Content length: ${content.length}, Tool calls: ${toolCalls.length}`);
+  debug(`parseStreamResponse: Finished. Content length: ${content.length}, Tool calls: ${toolCalls.length}`);
   if (toolCalls.length > 0) {
-    console.log('parseStreamResponse: Tool calls found:', toolCalls.map(tc => tc.name));
+    debug('parseStreamResponse: Tool calls found:', toolCalls.map(tc => tc.name));
   }
 
   return { content, toolCalls };
@@ -142,11 +143,16 @@ export function useChat({
   const hasToken = true;
 
   const currentItinerary = useRef(itinerary);
+  const messagesRef = useRef<ChatMessage[]>([]);
 
   // Keep itinerary ref updated
   useEffect(() => {
     currentItinerary.current = itinerary;
   }, [itinerary]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -161,10 +167,11 @@ export function useChat({
         timestamp: new Date(),
       };
 
+      messagesRef.current = [...messagesRef.current, userMessage];
       setMessages((prev) => [...prev, userMessage]);
 
       // Prepare messages for API (filter out empty content messages)
-      const apiMessages = [...messages, userMessage]
+      const apiMessages = [...messagesRef.current]
         .filter((m) => m.content && m.content.trim().length > 0)
         .map((m) => ({
           role: m.role,
@@ -238,13 +245,13 @@ export function useChat({
 
         while (allToolCalls.length > 0 && iteration < maxIterations) {
           iteration++;
-          console.log(`Tool execution iteration ${iteration}, tools:`, allToolCalls.map(tc => tc.name));
+          debug(`Tool execution iteration ${iteration}, tools:`, allToolCalls.map(tc => tc.name));
 
           // Filter out server-managed tools
           const clientToolCalls = allToolCalls.filter(tc => !SERVER_MANAGED_TOOLS.includes(tc.name));
 
           if (clientToolCalls.length === 0) {
-            console.log('No client-side tools to execute');
+            debug('No client-side tools to execute');
             break;
           }
 
@@ -252,13 +259,13 @@ export function useChat({
           const toolResults: Array<{ toolCallId: string; result: unknown }> = [];
 
           for (const toolCall of clientToolCalls) {
-            console.log('Executing tool:', toolCall.name, toolCall.input);
+            debug('Executing tool:', toolCall.name, toolCall.input);
             const result = await executeToolCall(
               toolCall.name as ToolName,
               toolCall.input,
               { itinerary: currentItinerary.current, tripId }
             );
-            console.log('Tool result:', result);
+            debug('Tool result:', result);
 
             toolResults.push({
               toolCallId: toolCall.id,
@@ -286,7 +293,7 @@ export function useChat({
 
           // Ensure assistant message has content (Anthropic API requirement)
           if (assistantTurnContent.length === 0) {
-            console.warn('Assistant turn has no content, skipping continuation');
+            debugWarn('Assistant turn has no content, skipping continuation');
             break;
           }
 
@@ -304,11 +311,11 @@ export function useChat({
             { role: 'user', content: toolResultContent },
           ];
 
-          console.log('Assistant turn content:', JSON.stringify(assistantTurnContent, null, 2));
-          console.log('Tool results being sent:', JSON.stringify(toolResults, null, 2));
+          debug('Assistant turn content:', JSON.stringify(assistantTurnContent, null, 2));
+          debug('Tool results being sent:', JSON.stringify(toolResults, null, 2));
 
           // Send to Claude for continuation (messages already include tool_result)
-          console.log('Sending continuation request to API...');
+          debug('Sending continuation request to API...');
           const continuationResponse = await fetch('/api/chat', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -319,8 +326,8 @@ export function useChat({
             }),
           });
 
-          console.log('Continuation response status:', continuationResponse.status);
-          console.log('Continuation response content-type:', continuationResponse.headers.get('content-type'));
+          debug('Continuation response status:', continuationResponse.status);
+          debug('Continuation response content-type:', continuationResponse.headers.get('content-type'));
 
           if (!continuationResponse.ok) {
             const errorText = await continuationResponse.text();
@@ -372,11 +379,11 @@ export function useChat({
           );
         }
 
-        console.log(`Exited tool loop after ${iteration} iterations. Final content length: ${accumulatedContent.length}`);
+        debug(`Exited tool loop after ${iteration} iterations. Final content length: ${accumulatedContent.length}`);
 
         // Final message update
         if (!accumulatedContent) {
-          console.warn('No content received from Claude');
+          debugWarn('No content received from Claude');
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId
@@ -387,7 +394,7 @@ export function useChat({
         }
 
         if (iteration >= maxIterations) {
-          console.warn('Max tool iterations reached');
+          debugWarn('Max tool iterations reached');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -396,7 +403,7 @@ export function useChat({
         setIsLoading(false);
       }
     },
-    [messages, tripId, onItineraryUpdate]
+    [tripId, onItineraryUpdate]
   );
 
   const clearMessages = useCallback(() => {

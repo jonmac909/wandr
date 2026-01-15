@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
+import { parseIsoDate } from '@/lib/dates';
 
 interface TripDrawerProps {
   open: boolean;
@@ -190,7 +191,7 @@ function DrawerTripCard({
           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
             <Calendar className="w-3 h-3" />
             <span>
-              {new Date(trip.itinerary.meta.startDate).toLocaleDateString('en-US', {
+              {parseIsoDate(trip.itinerary.meta.startDate).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',

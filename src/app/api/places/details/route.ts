@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 interface PlaceSearchResult {
   places?: Array<{
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Use Places API (New) - Text Search
-    const searchResponse = await fetch(
+    const searchResponse = await fetchWithTimeout(
       'https://places.googleapis.com/v1/places:searchText',
       {
         method: 'POST',
@@ -56,7 +57,8 @@ export async function GET(request: NextRequest) {
           textQuery: query,
           maxResultCount: 1,
         }),
-      }
+      },
+      15000
     );
 
     if (!searchResponse.ok) {

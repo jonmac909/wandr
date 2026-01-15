@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ChatMessage } from '@/types/chat';
 
 interface UseGeneralChatReturn {
@@ -15,6 +15,11 @@ export function useGeneralChat(): UseGeneralChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -29,10 +34,11 @@ export function useGeneralChat(): UseGeneralChatReturn {
         timestamp: new Date(),
       };
 
+      messagesRef.current = [...messagesRef.current, userMessage];
       setMessages((prev) => [...prev, userMessage]);
 
       // Prepare messages for API
-      const apiMessages = [...messages, userMessage].map((m) => ({
+      const apiMessages = [...messagesRef.current].map((m) => ({
         role: m.role,
         content: m.content,
       }));
@@ -114,7 +120,7 @@ export function useGeneralChat(): UseGeneralChatReturn {
         setIsLoading(false);
       }
     },
-    [messages]
+    []
   );
 
   const clearMessages = useCallback(() => {

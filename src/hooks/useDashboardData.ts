@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { tripDb, StoredTrip } from '@/lib/db/indexed-db';
+import { parseIsoDate } from '@/lib/dates';
 
 interface UseDashboardDataReturn {
   trips: StoredTrip[];
@@ -110,11 +111,11 @@ export function getUpcomingTrips(trips: StoredTrip[]): StoredTrip[] {
   return trips
     .filter(t => {
       if (t.status !== 'generated' || !t.itinerary?.meta?.startDate) return false;
-      return new Date(t.itinerary.meta.startDate) >= today;
+      return parseIsoDate(t.itinerary.meta.startDate) >= today;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.itinerary!.meta.startDate);
-      const dateB = new Date(b.itinerary!.meta.startDate);
+      const dateA = parseIsoDate(a.itinerary!.meta.startDate);
+      const dateB = parseIsoDate(b.itinerary!.meta.startDate);
       return dateA.getTime() - dateB.getTime();
     });
 }
@@ -136,11 +137,11 @@ export function getPastTrips(trips: StoredTrip[]): StoredTrip[] {
   return trips
     .filter(t => {
       if (!t.itinerary?.meta?.endDate) return false;
-      return new Date(t.itinerary.meta.endDate) < today;
+      return parseIsoDate(t.itinerary.meta.endDate) < today;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.itinerary!.meta.endDate);
-      const dateB = new Date(b.itinerary!.meta.endDate);
+      const dateA = parseIsoDate(a.itinerary!.meta.endDate);
+      const dateB = parseIsoDate(b.itinerary!.meta.endDate);
       return dateB.getTime() - dateA.getTime(); // Most recent first
     });
 }

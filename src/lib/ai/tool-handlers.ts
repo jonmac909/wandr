@@ -20,6 +20,7 @@ import type {
   FoodType,
   PriceRange,
 } from '@/types/itinerary';
+import { addDaysToIso, formatIsoDate, parseIsoDate } from '@/lib/dates';
 
 interface ToolContext {
   itinerary: Itinerary;
@@ -651,8 +652,8 @@ function handleAddBase(
   const accommodationInput = input.accommodation as Record<string, unknown> | undefined;
 
   // Calculate nights
-  const checkInDate = new Date(checkIn);
-  const checkOutDate = new Date(checkOut);
+  const checkInDate = parseIsoDate(checkIn);
+  const checkOutDate = parseIsoDate(checkOut);
   const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Create the base
@@ -722,8 +723,8 @@ function handleUpdateBase(
 
   // Recalculate nights if dates changed
   if (updates.checkIn || updates.checkOut) {
-    const checkInDate = new Date(updatedBase.checkIn);
-    const checkOutDate = new Date(updatedBase.checkOut);
+    const checkInDate = parseIsoDate(updatedBase.checkIn);
+    const checkOutDate = parseIsoDate(updatedBase.checkOut);
     updatedBase.nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
   }
 
@@ -832,9 +833,7 @@ function handleDeleteDay(
   const updatedDays = itinerary.days.filter((_, index) => index !== dayIndex);
 
   // Update trip end date (reduce by 1 day)
-  const currentEndDate = new Date(itinerary.meta.endDate);
-  currentEndDate.setDate(currentEndDate.getDate() - 1);
-  const newEndDate = currentEndDate.toISOString().split('T')[0];
+  const newEndDate = addDaysToIso(itinerary.meta.endDate, -1);
 
   const updatedItinerary: Itinerary = {
     ...itinerary,
@@ -868,26 +867,24 @@ function handleUpdateTripDates(
     return { result: null, error: 'Must provide startDate or endDate' };
   }
 
-  const currentStartDate = new Date(itinerary.meta.startDate);
-  const currentEndDate = new Date(itinerary.meta.endDate);
-  const targetStartDate = newStartDate ? new Date(newStartDate) : currentStartDate;
-  const targetEndDate = newEndDate ? new Date(newEndDate) : currentEndDate;
+  const currentStartDate = parseIsoDate(itinerary.meta.startDate);
+  const currentEndDate = parseIsoDate(itinerary.meta.endDate);
+  const targetStartDate = newStartDate ? parseIsoDate(newStartDate) : currentStartDate;
+  const targetEndDate = newEndDate ? parseIsoDate(newEndDate) : currentEndDate;
 
   // Calculate the shift in days
   const dayShift = Math.floor((targetStartDate.getTime() - currentStartDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Function to shift a date
   const shiftDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + dayShift);
-    return date.toISOString().split('T')[0];
+    return addDaysToIso(dateStr, dayShift);
   };
 
   // Update meta dates
   const updatedMeta = {
     ...itinerary.meta,
-    startDate: targetStartDate.toISOString().split('T')[0],
-    endDate: targetEndDate.toISOString().split('T')[0],
+    startDate: formatIsoDate(targetStartDate),
+    endDate: formatIsoDate(targetEndDate),
   };
 
   // Update day dates

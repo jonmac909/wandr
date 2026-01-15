@@ -40,10 +40,12 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
-import type { GeneratedActivity, GeneratedDay, CityAllocation } from '@/lib/planning/itinerary-generator';
-import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-generator';
+import type { GeneratedActivity, GeneratedDay } from '@/lib/planning/itinerary-generator';
+import type { CityAllocation } from '@/lib/planning/itinerary-allocations';
+import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning/itinerary-allocations';
 import { getTransportOptions } from '@/lib/planning/transport-options';
 import dynamic from 'next/dynamic';
+import { debug, debugWarn } from '@/lib/logger';
 
 // Dynamically import HotelPicker, RouteMap, and ActivityMap
 const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
@@ -151,1654 +153,17 @@ const FLIGHT_TIMES: Record<string, string> = {
 };
 
 // Mock activities data for auto-fill
-const MOCK_ACTIVITIES: Record<string, GeneratedActivity[]> = {
-  'Bangkok': [
-    {
-      id: 'bkk-1',
-      name: 'Grand Palace',
-      type: 'attraction',
-      description: 'Thailand\'s most famous landmark with stunning gold spires and intricate architecture',
-      imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 120,
-      openingHours: '8:30AM-3:30PM',
-      neighborhood: 'Rattanakosin',
-      matchScore: 95,
-      matchReasons: ['Top attraction', 'Historic site'],
-      priceRange: '$$',
-      tags: ['temple', 'history', 'photography'],
-      walkingTimeToNext: 8,
-    },
-    {
-      id: 'bkk-2',
-      name: 'Wat Pho',
-      type: 'attraction',
-      description: 'Home to the massive reclining Buddha statue and traditional Thai massage school',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '11:30',
-      duration: 90,
-      openingHours: '8AM-6:30PM',
-      neighborhood: 'Rattanakosin',
-      matchScore: 92,
-      matchReasons: ['Near Grand Palace', 'Must-see temple'],
-      priceRange: '$',
-      tags: ['temple', 'buddha', 'culture'],
-      walkingTimeToNext: 5,
-    },
-    {
-      id: 'bkk-3',
-      name: 'Wat Arun',
-      type: 'attraction',
-      description: 'Iconic riverside temple with stunning Khmer-style spire covered in porcelain',
-      imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-      suggestedTime: '13:00',
-      duration: 60,
-      openingHours: '8AM-6PM',
-      neighborhood: 'Thonburi',
-      matchScore: 88,
-      matchReasons: ['Iconic landmark', 'River views'],
-      priceRange: '$',
-      tags: ['temple', 'photography', 'river'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'bkk-4',
-      name: 'Chatuchak Weekend Market',
-      type: 'activity',
-      description: 'World\'s largest weekend market with 15,000+ stalls',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '16:00',
-      duration: 180,
-      openingHours: '6AM-6PM (Sat-Sun)',
-      neighborhood: 'Chatuchak',
-      matchScore: 85,
-      matchReasons: ['Shopping paradise', 'Local culture'],
-      priceRange: '$',
-      tags: ['market', 'shopping', 'local'],
-    },
-  ],
-  'Chiang Mai': [
-    {
-      id: 'cnx-1',
-      name: 'Doi Suthep Temple',
-      type: 'attraction',
-      description: 'Sacred hilltop temple with 309 steps and panoramic city views',
-      imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 150,
-      openingHours: '6AM-6PM',
-      neighborhood: 'Doi Suthep',
-      matchScore: 94,
-      matchReasons: ['Most sacred temple', 'Amazing views'],
-      priceRange: '$',
-      tags: ['temple', 'mountain', 'viewpoint'],
-      walkingTimeToNext: 45,
-    },
-    {
-      id: 'cnx-2',
-      name: 'Wat Chedi Luang',
-      type: 'attraction',
-      description: 'Ancient ruined temple with massive chedi and the city pillar shrine',
-      imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 60,
-      openingHours: '6AM-6PM',
-      neighborhood: 'Old City',
-      matchScore: 91,
-      matchReasons: ['Historic ruins', 'City center'],
-      priceRange: '$',
-      tags: ['temple', 'ruins', 'history'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'cnx-3',
-      name: 'Sunday Walking Street',
-      type: 'activity',
-      description: 'Weekly night market along Ratchadamnoen Road with crafts and food',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '17:00',
-      duration: 180,
-      openingHours: '4PM-10PM (Sun)',
-      neighborhood: 'Old City',
-      matchScore: 87,
-      matchReasons: ['Local culture', 'Great food stalls'],
-      priceRange: '$',
-      tags: ['market', 'crafts', 'street food'],
-    },
-  ],
-  'Tokyo': [
-    // Asakusa Area
-    { id: 'tyo-1', name: 'Senso-ji Temple', type: 'attraction', description: 'Tokyo\'s oldest Buddhist temple with iconic Thunder Gate', imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80', suggestedTime: '09:00', duration: 90, openingHours: '6AM-5PM', neighborhood: 'Asakusa', matchScore: 95, matchReasons: ['Historic temple'], priceRange: '$', tags: ['temple', 'history'] },
-    { id: 'tyo-2', name: 'Nakamise Shopping Street', type: 'activity', description: 'Traditional shopping street leading to Senso-ji with snacks and souvenirs', imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80', suggestedTime: '10:30', duration: 60, openingHours: '9AM-7PM', neighborhood: 'Asakusa', matchScore: 88, matchReasons: ['Near Senso-ji'], priceRange: '$', tags: ['shopping', 'snacks'] },
-    { id: 'tyo-3', name: 'Tokyo Skytree', type: 'attraction', description: 'Tallest tower in Japan with observation decks and stunning city views', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '11:30', duration: 120, openingHours: '10AM-9PM', neighborhood: 'Sumida', matchScore: 92, matchReasons: ['Panoramic views'], priceRange: '$$', tags: ['viewpoint', 'landmark'] },
-    // Shibuya/Harajuku Area
-    { id: 'tyo-4', name: 'Shibuya Crossing', type: 'attraction', description: 'World\'s busiest pedestrian crossing - iconic Tokyo experience', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '18:00', duration: 60, openingHours: '24 hours', neighborhood: 'Shibuya', matchScore: 89, matchReasons: ['Iconic Tokyo'], priceRange: '$', tags: ['landmark', 'photography'] },
-    { id: 'tyo-5', name: 'Meiji Shrine', type: 'attraction', description: 'Serene Shinto shrine in forested area dedicated to Emperor Meiji', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '08:00', duration: 60, openingHours: 'Sunrise-Sunset', neighborhood: 'Harajuku', matchScore: 88, matchReasons: ['Peaceful oasis'], priceRange: '$', tags: ['shrine', 'nature'] },
-    { id: 'tyo-6', name: 'Takeshita Street', type: 'activity', description: 'Colorful pedestrian street famous for youth fashion and crepes', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '14:00', duration: 90, openingHours: '10AM-8PM', neighborhood: 'Harajuku', matchScore: 85, matchReasons: ['Youth culture'], priceRange: '$', tags: ['shopping', 'fashion'] },
-    { id: 'tyo-7', name: 'Yoyogi Park', type: 'attraction', description: 'Large urban park perfect for picnics and people-watching', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 60, openingHours: '24 hours', neighborhood: 'Harajuku', matchScore: 82, matchReasons: ['Relaxing'], priceRange: '$', tags: ['park', 'nature'] },
-    // Shinjuku Area
-    { id: 'tyo-8', name: 'Shinjuku Gyoen', type: 'attraction', description: 'Beautiful garden with Japanese, French, and English landscape styles', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '09:00', duration: 90, openingHours: '9AM-4PM', neighborhood: 'Shinjuku', matchScore: 90, matchReasons: ['Stunning gardens'], priceRange: '$', tags: ['garden', 'nature'] },
-    { id: 'tyo-9', name: 'Tokyo Metropolitan Government Building', type: 'attraction', description: 'Free observation decks with panoramic views of Tokyo and Mt. Fuji', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '17:00', duration: 60, openingHours: '9:30AM-11PM', neighborhood: 'Shinjuku', matchScore: 87, matchReasons: ['Free views'], priceRange: '$', tags: ['viewpoint', 'free'] },
-    { id: 'tyo-10', name: 'Golden Gai', type: 'activity', description: 'Maze of tiny bars in narrow alleys - unique nightlife experience', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '20:00', duration: 120, openingHours: '7PM-2AM', neighborhood: 'Shinjuku', matchScore: 86, matchReasons: ['Nightlife'], priceRange: '$$', tags: ['nightlife', 'bars'] },
-    { id: 'tyo-11', name: 'Omoide Yokocho', type: 'activity', description: 'Atmospheric alley of tiny yakitori stalls near Shinjuku Station', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '19:00', duration: 90, openingHours: '5PM-12AM', neighborhood: 'Shinjuku', matchScore: 84, matchReasons: ['Local atmosphere'], priceRange: '$', tags: ['food', 'local'] },
-    // Akihabara/Ueno Area
-    { id: 'tyo-12', name: 'Akihabara Electric Town', type: 'activity', description: 'Electronics and anime/manga paradise with multi-story shops', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '13:00', duration: 120, openingHours: '10AM-9PM', neighborhood: 'Akihabara', matchScore: 88, matchReasons: ['Otaku culture'], priceRange: '$$', tags: ['anime', 'electronics'] },
-    { id: 'tyo-13', name: 'Ueno Park', type: 'attraction', description: 'Large park with museums, temples, and zoo - cherry blossom hotspot', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 120, openingHours: '5AM-11PM', neighborhood: 'Ueno', matchScore: 86, matchReasons: ['Museums nearby'], priceRange: '$', tags: ['park', 'culture'] },
-    { id: 'tyo-14', name: 'Tokyo National Museum', type: 'attraction', description: 'Japan\'s oldest and largest museum with samurai swords and art', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 180, openingHours: '9:30AM-5PM', neighborhood: 'Ueno', matchScore: 89, matchReasons: ['World-class art'], priceRange: '$$', tags: ['museum', 'history'] },
-    { id: 'tyo-15', name: 'Ameya-Yokocho Market', type: 'activity', description: 'Bustling market street under train tracks with bargains galore', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '14:00', duration: 90, openingHours: '10AM-7PM', neighborhood: 'Ueno', matchScore: 83, matchReasons: ['Local market'], priceRange: '$', tags: ['market', 'shopping'] },
-    // Odaiba/Waterfront
-    { id: 'tyo-16', name: 'teamLab Borderless', type: 'attraction', description: 'Immersive digital art museum with interactive light installations', imageUrl: 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=600&q=80', suggestedTime: '14:00', duration: 180, openingHours: '10AM-7PM', neighborhood: 'Odaiba', matchScore: 91, matchReasons: ['Unique experience'], priceRange: '$$', tags: ['art', 'interactive'] },
-    { id: 'tyo-17', name: 'Odaiba Beach', type: 'attraction', description: 'Man-made beach with views of Rainbow Bridge and Statue of Liberty replica', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '16:00', duration: 60, openingHours: '24 hours', neighborhood: 'Odaiba', matchScore: 80, matchReasons: ['Sunset views'], priceRange: '$', tags: ['beach', 'views'] },
-    // Ginza/Tsukiji Area
-    { id: 'tyo-18', name: 'Tsukiji Outer Market', type: 'activity', description: 'Famous market area with fresh sushi and Japanese street food', imageUrl: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=80', suggestedTime: '07:00', duration: 120, openingHours: '5AM-2PM', neighborhood: 'Tsukiji', matchScore: 93, matchReasons: ['Fresh sushi'], priceRange: '$$', tags: ['food', 'market'] },
-    { id: 'tyo-19', name: 'Ginza District', type: 'activity', description: 'Upscale shopping district with department stores and galleries', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '15:00', duration: 120, openingHours: '11AM-8PM', neighborhood: 'Ginza', matchScore: 82, matchReasons: ['Luxury shopping'], priceRange: '$$$', tags: ['shopping', 'luxury'] },
-    // Roppongi Area
-    { id: 'tyo-20', name: 'Mori Art Museum', type: 'attraction', description: 'Contemporary art museum on 53rd floor with city views', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '11:00', duration: 120, openingHours: '10AM-10PM', neighborhood: 'Roppongi', matchScore: 85, matchReasons: ['Modern art'], priceRange: '$$', tags: ['museum', 'art'] },
-    { id: 'tyo-21', name: 'Tokyo Tower', type: 'attraction', description: 'Iconic red and white tower inspired by Eiffel Tower', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '18:00', duration: 90, openingHours: '9AM-11PM', neighborhood: 'Minato', matchScore: 87, matchReasons: ['Classic landmark'], priceRange: '$$', tags: ['viewpoint', 'landmark'] },
-    // More diverse attractions
-    { id: 'tyo-22', name: 'Imperial Palace East Gardens', type: 'attraction', description: 'Beautiful gardens on former Edo Castle grounds - free entry', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '09:00', duration: 90, openingHours: '9AM-4PM', neighborhood: 'Chiyoda', matchScore: 86, matchReasons: ['Historic gardens'], priceRange: '$', tags: ['garden', 'history'] },
-    { id: 'tyo-23', name: 'Yanaka Ginza', type: 'activity', description: 'Charming old-Tokyo shopping street with traditional atmosphere', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '14:00', duration: 90, openingHours: '10AM-6PM', neighborhood: 'Yanaka', matchScore: 84, matchReasons: ['Old Tokyo charm'], priceRange: '$', tags: ['shopping', 'traditional'] },
-    { id: 'tyo-24', name: 'Nezu Shrine', type: 'attraction', description: 'Beautiful shrine famous for thousands of vermillion torii gates', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 60, openingHours: '6AM-5PM', neighborhood: 'Bunkyo', matchScore: 83, matchReasons: ['Torii gates'], priceRange: '$', tags: ['shrine', 'photography'] },
-    { id: 'tyo-25', name: 'Edo-Tokyo Museum', type: 'attraction', description: 'Interactive museum showcasing Tokyo\'s history from Edo period', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 150, openingHours: '9:30AM-5:30PM', neighborhood: 'Ryogoku', matchScore: 85, matchReasons: ['History buffs'], priceRange: '$$', tags: ['museum', 'history'] },
-    { id: 'tyo-26', name: 'Ryogoku Sumo District', type: 'activity', description: 'Sumo wrestling heartland with stables and chanko nabe restaurants', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '11:00', duration: 120, openingHours: 'Varies', neighborhood: 'Ryogoku', matchScore: 82, matchReasons: ['Unique culture'], priceRange: '$$', tags: ['sumo', 'culture'] },
-    { id: 'tyo-27', name: 'Shimokitazawa', type: 'activity', description: 'Bohemian neighborhood with vintage shops, cafes, and live music', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '14:00', duration: 120, openingHours: '11AM-9PM', neighborhood: 'Shimokitazawa', matchScore: 84, matchReasons: ['Hip neighborhood'], priceRange: '$', tags: ['vintage', 'cafes'] },
-    { id: 'tyo-28', name: 'Gotokuji Temple', type: 'attraction', description: 'Lucky cat temple with thousands of maneki-neko statues', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '10:00', duration: 60, openingHours: '6AM-6PM', neighborhood: 'Setagaya', matchScore: 81, matchReasons: ['Instagram-worthy'], priceRange: '$', tags: ['temple', 'cats'] },
-    { id: 'tyo-29', name: 'Kappabashi Kitchen Street', type: 'activity', description: 'Kitchen supply district with fake food samples and chef knives', imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&q=80', suggestedTime: '11:00', duration: 90, openingHours: '9AM-5PM', neighborhood: 'Taito', matchScore: 80, matchReasons: ['Unique souvenirs'], priceRange: '$$', tags: ['shopping', 'food'] },
-    { id: 'tyo-30', name: 'Zojoji Temple', type: 'attraction', description: 'Historic temple with Tokyo Tower backdrop - great photo spot', imageUrl: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80', suggestedTime: '09:00', duration: 45, openingHours: '6AM-5:30PM', neighborhood: 'Minato', matchScore: 79, matchReasons: ['Photo spot'], priceRange: '$', tags: ['temple', 'photography'] },
-  ],
-  'Kyoto': [
-    {
-      id: 'kyo-1',
-      name: 'Fushimi Inari Shrine',
-      type: 'attraction',
-      description: 'Iconic shrine famous for thousands of vermillion torii gates',
-      imageUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'Fushimi',
-      matchScore: 96,
-      matchReasons: ['Most iconic shrine', 'Best at sunrise'],
-      priceRange: '$',
-      tags: ['shrine', 'torii', 'hiking'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'kyo-2',
-      name: 'Kinkaku-ji (Golden Pavilion)',
-      type: 'attraction',
-      description: 'Stunning Zen temple covered in gold leaf overlooking a reflective pond',
-      imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 60,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Kita',
-      matchScore: 94,
-      matchReasons: ['UNESCO site', 'Stunning photography'],
-      priceRange: '$',
-      tags: ['temple', 'zen', 'photography'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'kyo-3',
-      name: 'Arashiyama Bamboo Grove',
-      type: 'attraction',
-      description: 'Magical bamboo forest path in western Kyoto',
-      imageUrl: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 90,
-      openingHours: '24 hours',
-      neighborhood: 'Arashiyama',
-      matchScore: 93,
-      matchReasons: ['Unique landscape', 'Peaceful walk'],
-      priceRange: '$',
-      tags: ['nature', 'bamboo', 'photography'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'kyo-4',
-      name: 'Gion District',
-      type: 'activity',
-      description: 'Historic geisha district with traditional wooden machiya houses',
-      imageUrl: 'https://images.unsplash.com/photo-1493780474015-ba834fd0ce2f?w=600&q=80',
-      suggestedTime: '17:00',
-      duration: 120,
-      openingHours: '24 hours',
-      neighborhood: 'Gion',
-      matchScore: 90,
-      matchReasons: ['Geisha spotting', 'Traditional atmosphere'],
-      priceRange: '$',
-      tags: ['culture', 'geisha', 'historic'],
-    },
-  ],
-  'Osaka': [
-    {
-      id: 'osa-1',
-      name: 'Osaka Castle',
-      type: 'attraction',
-      description: 'Iconic castle with museum and beautiful park grounds',
-      imageUrl: 'https://images.unsplash.com/photo-1590253230532-a67f6bc61c9e?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 120,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Chuo',
-      matchScore: 92,
-      matchReasons: ['Historic landmark', 'Great views'],
-      priceRange: '$',
-      tags: ['castle', 'history', 'park'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'osa-2',
-      name: 'Dotonbori',
-      type: 'activity',
-      description: 'Vibrant entertainment district famous for neon lights and street food',
-      imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'Namba',
-      matchScore: 95,
-      matchReasons: ['Iconic Osaka', 'Amazing food'],
-      priceRange: '$$',
-      tags: ['nightlife', 'food', 'entertainment'],
-      walkingTimeToNext: 5,
-    },
-    {
-      id: 'osa-3',
-      name: 'Kuromon Market',
-      type: 'activity',
-      description: 'Osaka\'s kitchen - 170+ year old market with fresh seafood and street food',
-      imageUrl: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 90,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Nippombashi',
-      matchScore: 91,
-      matchReasons: ['Fresh seafood', 'Local experience'],
-      priceRange: '$$',
-      tags: ['market', 'seafood', 'food'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'osa-4',
-      name: 'Takoyaki at Wanaka',
-      type: 'restaurant',
-      description: 'Famous takoyaki (octopus balls) - Osaka\'s signature street food',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '13:00',
-      duration: 30,
-      openingHours: '10AM-9PM',
-      neighborhood: 'Namba',
-      matchScore: 89,
-      matchReasons: ['Must-try Osaka food', 'Local favorite'],
-      priceRange: '$',
-      tags: ['takoyaki', 'street food', 'local'],
-    },
-  ],
-  'Hakone': [
-    {
-      id: 'hak-1',
-      name: 'Hakone Open-Air Museum',
-      type: 'attraction',
-      description: 'Stunning outdoor sculpture museum with Picasso collection and mountain views',
-      imageUrl: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 150,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Ninotaira',
-      matchScore: 94,
-      matchReasons: ['World-class art', 'Beautiful setting'],
-      priceRange: '$$',
-      tags: ['art', 'museum', 'outdoor'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'hak-2',
-      name: 'Lake Ashi Cruise',
-      type: 'activity',
-      description: 'Scenic boat ride with views of Mt. Fuji on clear days',
-      imageUrl: 'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 60,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Moto-Hakone',
-      matchScore: 92,
-      matchReasons: ['Mt. Fuji views', 'Relaxing cruise'],
-      priceRange: '$$',
-      tags: ['cruise', 'lake', 'scenic'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'hak-3',
-      name: 'Owakudani Valley',
-      type: 'attraction',
-      description: 'Volcanic valley with hot springs and famous black eggs',
-      imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 90,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Owakudani',
-      matchScore: 90,
-      matchReasons: ['Unique landscape', 'Try black eggs'],
-      priceRange: '$',
-      tags: ['volcanic', 'nature', 'hot springs'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'hak-4',
-      name: 'Hakone Onsen',
-      type: 'activity',
-      description: 'Traditional Japanese hot spring bath experience',
-      imageUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80',
-      suggestedTime: '17:00',
-      duration: 120,
-      openingHours: '10AM-9PM',
-      neighborhood: 'Hakone-Yumoto',
-      matchScore: 95,
-      matchReasons: ['Relaxing onsen', 'Japanese tradition'],
-      priceRange: '$$',
-      tags: ['onsen', 'relaxation', 'traditional'],
-    },
-  ],
-  'Hoi An': [
-    {
-      id: 'hoi-1',
-      name: 'Ancient Town Walking Tour',
-      type: 'activity',
-      description: 'UNESCO-listed old town with lantern-lit streets and historic architecture',
-      imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'Ancient Town',
-      matchScore: 96,
-      matchReasons: ['UNESCO World Heritage', 'Beautiful at night'],
-      priceRange: '$',
-      tags: ['historic', 'walking', 'culture'],
-      walkingTimeToNext: 5,
-    },
-    {
-      id: 'hoi-2',
-      name: 'Japanese Covered Bridge',
-      type: 'attraction',
-      description: 'Iconic 18th-century bridge and symbol of Hoi An',
-      imageUrl: 'https://images.unsplash.com/photo-1557750255-c76072a7aad1?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 30,
-      openingHours: '7AM-9PM',
-      neighborhood: 'Ancient Town',
-      matchScore: 91,
-      matchReasons: ['Iconic landmark', 'Historic site'],
-      priceRange: '$',
-      tags: ['bridge', 'historic', 'photography'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'hoi-3',
-      name: 'Cao Lau at Morning Glory',
-      type: 'restaurant',
-      description: 'Famous noodle dish unique to Hoi An - must try local specialty',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 60,
-      openingHours: '10AM-10PM',
-      neighborhood: 'Ancient Town',
-      matchScore: 93,
-      matchReasons: ['Local specialty', 'Only in Hoi An'],
-      priceRange: '$',
-      tags: ['noodles', 'local food', 'vietnamese'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'hoi-4',
-      name: 'Tailor Shopping',
-      type: 'activity',
-      description: 'Custom tailored clothing made in 24-48 hours at amazing prices',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 120,
-      openingHours: '8AM-9PM',
-      neighborhood: 'Ancient Town',
-      matchScore: 88,
-      matchReasons: ['World-famous tailors', 'Great value'],
-      priceRange: '$$',
-      tags: ['shopping', 'tailoring', 'fashion'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'hoi-5',
-      name: 'Lantern Night Market',
-      type: 'activity',
-      description: 'Magical evening market with handmade lanterns and local crafts',
-      imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 120,
-      openingHours: '5PM-10PM',
-      neighborhood: 'An Hoi',
-      matchScore: 94,
-      matchReasons: ['Magical atmosphere', 'Great photos'],
-      priceRange: '$',
-      tags: ['market', 'lanterns', 'night'],
-    },
-  ],
-  'Da Nang': [
-    {
-      id: 'dan-1',
-      name: 'Ba Na Hills & Golden Bridge',
-      type: 'attraction',
-      description: 'Iconic bridge held by giant stone hands with stunning mountain views',
-      imageUrl: 'https://images.unsplash.com/photo-1557750255-c76072a7aad1?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 360,
-      openingHours: '7AM-10PM',
-      neighborhood: 'Ba Na Hills',
-      matchScore: 96,
-      matchReasons: ['World-famous bridge', 'Full-day adventure'],
-      priceRange: '$$$',
-      tags: ['bridge', 'mountain', 'theme park'],
-      walkingTimeToNext: 60,
-    },
-    {
-      id: 'dan-2',
-      name: 'My Khe Beach',
-      type: 'activity',
-      description: 'One of the most beautiful beaches in Vietnam with soft white sand',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '06:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'My Khe',
-      matchScore: 92,
-      matchReasons: ['Beautiful beach', 'Great for swimming'],
-      priceRange: '$',
-      tags: ['beach', 'swimming', 'relaxation'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'dan-3',
-      name: 'Marble Mountains',
-      type: 'attraction',
-      description: 'Cluster of five marble hills with caves, pagodas, and panoramic views',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 150,
-      openingHours: '7AM-5:30PM',
-      neighborhood: 'Ngu Hanh Son',
-      matchScore: 91,
-      matchReasons: ['Unique geology', 'Buddhist caves'],
-      priceRange: '$',
-      tags: ['mountain', 'caves', 'temples'],
-      walkingTimeToNext: 25,
-    },
-    {
-      id: 'dan-4',
-      name: 'Dragon Bridge Fire Show',
-      type: 'activity',
-      description: 'Iconic dragon-shaped bridge that breathes fire on weekend nights',
-      imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80',
-      suggestedTime: '21:00',
-      duration: 30,
-      openingHours: '9PM (Sat-Sun)',
-      neighborhood: 'Han River',
-      matchScore: 89,
-      matchReasons: ['Unique spectacle', 'Weekend only'],
-      priceRange: '$',
-      tags: ['bridge', 'fire show', 'nightlife'],
-    },
-  ],
-  'Hanoi': [
-    {
-      id: 'han-1',
-      name: 'Old Quarter Walking Tour',
-      type: 'activity',
-      description: 'Maze of 36 ancient streets each specializing in different trades',
-      imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'Old Quarter',
-      matchScore: 95,
-      matchReasons: ['Historic heart of Hanoi', 'Amazing street food'],
-      priceRange: '$',
-      tags: ['historic', 'walking', 'street food'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'han-2',
-      name: 'Hoan Kiem Lake',
-      type: 'attraction',
-      description: 'Sacred lake in heart of Hanoi with Turtle Tower and Ngoc Son Temple',
-      imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80',
-      suggestedTime: '06:00',
-      duration: 60,
-      openingHours: '24 hours',
-      neighborhood: 'Hoan Kiem',
-      matchScore: 93,
-      matchReasons: ['Iconic Hanoi', 'Beautiful at sunrise'],
-      priceRange: '$',
-      tags: ['lake', 'temple', 'scenic'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'han-3',
-      name: 'Pho at Pho Gia Truyen',
-      type: 'restaurant',
-      description: 'Legendary pho shop serving Hanoi-style beef noodle soup since 1950s',
-      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 45,
-      openingHours: '6AM-10AM, 6PM-8PM',
-      neighborhood: 'Old Quarter',
-      matchScore: 94,
-      matchReasons: ['Best pho in Hanoi', 'Local institution'],
-      priceRange: '$',
-      tags: ['pho', 'noodles', 'local'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'han-4',
-      name: 'Temple of Literature',
-      type: 'attraction',
-      description: 'Vietnam\'s first university from 1070 with beautiful traditional architecture',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 90,
-      openingHours: '8AM-5PM',
-      neighborhood: 'Dong Da',
-      matchScore: 91,
-      matchReasons: ['Historic landmark', 'Beautiful architecture'],
-      priceRange: '$',
-      tags: ['temple', 'history', 'architecture'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'han-5',
-      name: 'Water Puppet Show',
-      type: 'activity',
-      description: 'Traditional Vietnamese art form with puppets performing on water',
-      imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 60,
-      openingHours: 'Shows at 3PM, 4PM, 5PM, 6:30PM, 8PM',
-      neighborhood: 'Hoan Kiem',
-      matchScore: 88,
-      matchReasons: ['Unique Vietnamese art', 'Cultural experience'],
-      priceRange: '$',
-      tags: ['culture', 'performance', 'traditional'],
-    },
-  ],
-  'Ho Chi Minh City': [
-    {
-      id: 'hcm-1',
-      name: 'War Remnants Museum',
-      type: 'attraction',
-      description: 'Powerful museum documenting Vietnam War with artifacts and photographs',
-      imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 150,
-      openingHours: '7:30AM-6PM',
-      neighborhood: 'District 3',
-      matchScore: 94,
-      matchReasons: ['Important history', 'Eye-opening'],
-      priceRange: '$',
-      tags: ['museum', 'history', 'war'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'hcm-2',
-      name: 'Ben Thanh Market',
-      type: 'activity',
-      description: 'Iconic central market with everything from food to souvenirs',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 120,
-      openingHours: '6AM-6PM',
-      neighborhood: 'District 1',
-      matchScore: 90,
-      matchReasons: ['Iconic HCMC', 'Great for shopping'],
-      priceRange: '$',
-      tags: ['market', 'shopping', 'local'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'hcm-3',
-      name: 'Banh Mi at Banh Mi Huynh Hoa',
-      type: 'restaurant',
-      description: 'Best banh mi in the city - legendary Vietnamese sandwich shop',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 30,
-      openingHours: '2:30PM-11PM',
-      neighborhood: 'District 1',
-      matchScore: 95,
-      matchReasons: ['Best banh mi ever', 'Worth the queue'],
-      priceRange: '$',
-      tags: ['banh mi', 'sandwich', 'street food'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'hcm-4',
-      name: 'Cu Chi Tunnels',
-      type: 'attraction',
-      description: 'Underground tunnel network used during Vietnam War - day trip',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 300,
-      openingHours: '7AM-5PM',
-      neighborhood: 'Cu Chi District',
-      matchScore: 92,
-      matchReasons: ['Unique experience', 'Historical site'],
-      priceRange: '$$',
-      tags: ['history', 'tunnels', 'day trip'],
-      walkingTimeToNext: 60,
-    },
-    {
-      id: 'hcm-5',
-      name: 'Rooftop Bar at Saigon Saigon',
-      type: 'activity',
-      description: 'Classic rooftop bar with views over the city at Caravelle Hotel',
-      imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 120,
-      openingHours: '11AM-12AM',
-      neighborhood: 'District 1',
-      matchScore: 87,
-      matchReasons: ['Great views', 'Classic HCMC'],
-      priceRange: '$$',
-      tags: ['rooftop', 'bar', 'views'],
-    },
-  ],
-  'Chiang Rai': [
-    {
-      id: 'cri-1',
-      name: 'White Temple (Wat Rong Khun)',
-      type: 'attraction',
-      description: 'Stunning contemporary Buddhist temple covered in white plaster and mirrors',
-      imageUrl: 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 120,
-      openingHours: '8AM-5PM',
-      neighborhood: 'Chiang Rai',
-      matchScore: 96,
-      matchReasons: ['Architectural wonder', 'Must-see Thailand'],
-      priceRange: '$',
-      tags: ['temple', 'architecture', 'art'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'cri-2',
-      name: 'Blue Temple (Wat Rong Suea Ten)',
-      type: 'attraction',
-      description: 'Striking blue temple with intricate carvings and giant white Buddha',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 60,
-      openingHours: '7AM-8PM',
-      neighborhood: 'Chiang Rai',
-      matchScore: 91,
-      matchReasons: ['Unique blue color', 'Less crowded'],
-      priceRange: '$',
-      tags: ['temple', 'blue', 'buddha'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'cri-3',
-      name: 'Black House (Baan Dam)',
-      type: 'attraction',
-      description: 'Dark, unconventional art museum by national artist Thawan Duchanee',
-      imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 90,
-      openingHours: '9AM-5PM',
-      neighborhood: 'Nang Lae',
-      matchScore: 88,
-      matchReasons: ['Unique art', 'Contrast to White Temple'],
-      priceRange: '$',
-      tags: ['art', 'museum', 'dark'],
-      walkingTimeToNext: 25,
-    },
-    {
-      id: 'cri-4',
-      name: 'Night Bazaar',
-      type: 'activity',
-      description: 'Lively evening market with local food, crafts, and hill tribe goods',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 120,
-      openingHours: '6PM-11PM',
-      neighborhood: 'City Center',
-      matchScore: 86,
-      matchReasons: ['Local culture', 'Great food stalls'],
-      priceRange: '$',
-      tags: ['market', 'night', 'food'],
-    },
-  ],
-  'Phuket': [
-    {
-      id: 'phu-1',
-      name: 'Phi Phi Islands Day Trip',
-      type: 'activity',
-      description: 'Stunning islands with crystal-clear water, snorkeling, and Maya Bay',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 480,
-      openingHours: 'Boats depart 7AM-9AM',
-      neighborhood: 'Phi Phi Islands',
-      matchScore: 96,
-      matchReasons: ['Stunning islands', 'The Beach filming location'],
-      priceRange: '$$$',
-      tags: ['islands', 'snorkeling', 'beach'],
-      walkingTimeToNext: 0,
-    },
-    {
-      id: 'phu-2',
-      name: 'Patong Beach',
-      type: 'activity',
-      description: 'Most famous beach in Phuket with water sports and beachside dining',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 240,
-      openingHours: '24 hours',
-      neighborhood: 'Patong',
-      matchScore: 88,
-      matchReasons: ['Famous beach', 'Water sports'],
-      priceRange: '$',
-      tags: ['beach', 'swimming', 'nightlife'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'phu-3',
-      name: 'Big Buddha',
-      type: 'attraction',
-      description: '45-meter white marble Buddha statue with panoramic island views',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '16:00',
-      duration: 90,
-      openingHours: '6AM-7PM',
-      neighborhood: 'Chalong',
-      matchScore: 90,
-      matchReasons: ['Iconic landmark', 'Sunset views'],
-      priceRange: '$',
-      tags: ['buddha', 'viewpoint', 'temple'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'phu-4',
-      name: 'Old Phuket Town',
-      type: 'activity',
-      description: 'Charming Sino-Portuguese architecture, street art, and local cafes',
-      imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 150,
-      openingHours: '24 hours',
-      neighborhood: 'Old Town',
-      matchScore: 85,
-      matchReasons: ['Historic charm', 'Great for photos'],
-      priceRange: '$',
-      tags: ['historic', 'architecture', 'cafes'],
-    },
-  ],
-  'Honolulu': [
-    {
-      id: 'hon-1',
-      name: 'Waikiki Beach',
-      type: 'activity',
-      description: 'World-famous beach with Diamond Head backdrop and perfect waves',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 240,
-      openingHours: '24 hours',
-      neighborhood: 'Waikiki',
-      matchScore: 95,
-      matchReasons: ['Iconic beach', 'Great for surfing'],
-      priceRange: '$',
-      tags: ['beach', 'surfing', 'swimming'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'hon-2',
-      name: 'Diamond Head Hike',
-      type: 'activity',
-      description: 'Iconic volcanic crater hike with stunning views of Honolulu',
-      imageUrl: 'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=600&q=80',
-      suggestedTime: '06:00',
-      duration: 120,
-      openingHours: '6AM-6PM',
-      neighborhood: 'Diamond Head',
-      matchScore: 94,
-      matchReasons: ['Must-do hike', 'Amazing views'],
-      priceRange: '$',
-      tags: ['hiking', 'volcano', 'views'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'hon-3',
-      name: 'Pearl Harbor Memorial',
-      type: 'attraction',
-      description: 'Historic WWII memorial site including USS Arizona Memorial',
-      imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 240,
-      openingHours: '7AM-5PM',
-      neighborhood: 'Pearl Harbor',
-      matchScore: 92,
-      matchReasons: ['Historic significance', 'Moving experience'],
-      priceRange: '$',
-      tags: ['history', 'memorial', 'wwii'],
-      walkingTimeToNext: 45,
-    },
-    {
-      id: 'hon-4',
-      name: 'North Shore Beaches',
-      type: 'activity',
-      description: 'Famous surfing beaches including Pipeline and Sunset Beach',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 300,
-      openingHours: '24 hours',
-      neighborhood: 'North Shore',
-      matchScore: 91,
-      matchReasons: ['World-class surf', 'Scenic drive'],
-      priceRange: '$',
-      tags: ['surfing', 'beach', 'scenic'],
-      walkingTimeToNext: 60,
-    },
-    {
-      id: 'hon-5',
-      name: 'Poke at Ono Seafood',
-      type: 'restaurant',
-      description: 'Fresh Hawaiian poke bowls - the best in Honolulu',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 45,
-      openingHours: '9AM-6PM',
-      neighborhood: 'Kapahulu',
-      matchScore: 93,
-      matchReasons: ['Best poke', 'Local favorite'],
-      priceRange: '$',
-      tags: ['poke', 'seafood', 'local'],
-    },
-  ],
-  'Bali': [
-    {
-      id: 'bal-1',
-      name: 'Tegallalang Rice Terraces',
-      type: 'attraction',
-      description: 'Stunning terraced rice paddies with traditional Balinese irrigation',
-      imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 120,
-      openingHours: '8AM-6PM',
-      neighborhood: 'Tegallalang',
-      matchScore: 95,
-      matchReasons: ['Iconic Bali', 'Instagram famous'],
-      priceRange: '$',
-      tags: ['rice terraces', 'nature', 'photography'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'bal-2',
-      name: 'Ubud Monkey Forest',
-      type: 'attraction',
-      description: 'Sacred forest sanctuary with hundreds of long-tailed macaques',
-      imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 90,
-      openingHours: '8:30AM-6PM',
-      neighborhood: 'Ubud',
-      matchScore: 91,
-      matchReasons: ['Unique experience', 'Sacred site'],
-      priceRange: '$',
-      tags: ['monkeys', 'forest', 'temple'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'bal-3',
-      name: 'Tirta Empul Temple',
-      type: 'attraction',
-      description: 'Sacred water temple where Balinese come for ritual purification',
-      imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 90,
-      openingHours: '8AM-6PM',
-      neighborhood: 'Tampaksiring',
-      matchScore: 93,
-      matchReasons: ['Spiritual experience', 'Holy spring'],
-      priceRange: '$',
-      tags: ['temple', 'spiritual', 'water'],
-      walkingTimeToNext: 25,
-    },
-    {
-      id: 'bal-4',
-      name: 'Seminyak Beach Club',
-      type: 'activity',
-      description: 'Trendy beach clubs with pools, cocktails, and sunset views',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '15:00',
-      duration: 240,
-      openingHours: '10AM-11PM',
-      neighborhood: 'Seminyak',
-      matchScore: 88,
-      matchReasons: ['Great vibes', 'Sunset spot'],
-      priceRange: '$$$',
-      tags: ['beach club', 'pool', 'cocktails'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'bal-5',
-      name: 'Nasi Goreng at Warung Babi Guling',
-      type: 'restaurant',
-      description: 'Traditional Balinese roast pork and fried rice',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 60,
-      openingHours: '10AM-6PM',
-      neighborhood: 'Ubud',
-      matchScore: 90,
-      matchReasons: ['Local favorite', 'Authentic taste'],
-      priceRange: '$',
-      tags: ['balinese', 'pork', 'local'],
-    },
-  ],
-  'Singapore': [
-    {
-      id: 'sin-1',
-      name: 'Gardens by the Bay',
-      type: 'attraction',
-      description: 'Futuristic gardens with iconic Supertrees and climate-controlled domes',
-      imageUrl: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
-      suggestedTime: '17:00',
-      duration: 180,
-      openingHours: '5AM-2AM (outdoor)',
-      neighborhood: 'Marina Bay',
-      matchScore: 96,
-      matchReasons: ['Must-see Singapore', 'Light show at night'],
-      priceRange: '$$',
-      tags: ['gardens', 'supertrees', 'futuristic'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'sin-2',
-      name: 'Marina Bay Sands',
-      type: 'attraction',
-      description: 'Iconic hotel with rooftop infinity pool and observation deck',
-      imageUrl: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
-      suggestedTime: '20:00',
-      duration: 120,
-      openingHours: '9:30AM-10PM',
-      neighborhood: 'Marina Bay',
-      matchScore: 93,
-      matchReasons: ['Iconic building', 'Amazing views'],
-      priceRange: '$$$',
-      tags: ['skyline', 'views', 'landmark'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'sin-3',
-      name: 'Hawker Centre at Maxwell Food Centre',
-      type: 'restaurant',
-      description: 'Famous food court with Michelin-starred chicken rice',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 60,
-      openingHours: '8AM-10PM',
-      neighborhood: 'Chinatown',
-      matchScore: 94,
-      matchReasons: ['Cheap Michelin star', 'Local experience'],
-      priceRange: '$',
-      tags: ['hawker', 'local food', 'chicken rice'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'sin-4',
-      name: 'Chinatown',
-      type: 'activity',
-      description: 'Historic district with temples, street food, and traditional shops',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 150,
-      openingHours: '24 hours',
-      neighborhood: 'Chinatown',
-      matchScore: 89,
-      matchReasons: ['Cultural heritage', 'Great food'],
-      priceRange: '$',
-      tags: ['chinatown', 'culture', 'temples'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'sin-5',
-      name: 'Singapore Sling at Raffles Hotel',
-      type: 'activity',
-      description: 'Birthplace of the Singapore Sling cocktail in historic Long Bar',
-      imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 90,
-      openingHours: '11AM-12:30AM',
-      neighborhood: 'City Hall',
-      matchScore: 87,
-      matchReasons: ['Historic cocktail', 'Colonial elegance'],
-      priceRange: '$$$',
-      tags: ['cocktails', 'historic', 'bar'],
-    },
-  ],
-  'Seoul': [
-    {
-      id: 'seo-1',
-      name: 'Gyeongbokgung Palace',
-      type: 'attraction',
-      description: 'Grand royal palace from Joseon dynasty with changing of the guard',
-      imageUrl: 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 150,
-      openingHours: '9AM-6PM',
-      neighborhood: 'Jongno',
-      matchScore: 96,
-      matchReasons: ['Must-see Seoul', 'Wear hanbok free entry'],
-      priceRange: '$',
-      tags: ['palace', 'history', 'hanbok'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'seo-2',
-      name: 'Bukchon Hanok Village',
-      type: 'activity',
-      description: 'Traditional Korean village with 600-year-old houses',
-      imageUrl: 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=600&q=80',
-      suggestedTime: '11:30',
-      duration: 90,
-      openingHours: '10AM-5PM',
-      neighborhood: 'Bukchon',
-      matchScore: 92,
-      matchReasons: ['Traditional Korea', 'Great for photos'],
-      priceRange: '$',
-      tags: ['traditional', 'hanok', 'village'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'seo-3',
-      name: 'Korean BBQ at Maple Tree House',
-      type: 'restaurant',
-      description: 'Premium Korean BBQ with wagyu beef in stylish setting',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '18:00',
-      duration: 90,
-      openingHours: '11:30AM-10PM',
-      neighborhood: 'Itaewon',
-      matchScore: 94,
-      matchReasons: ['Best Korean BBQ', 'Quality meat'],
-      priceRange: '$$$',
-      tags: ['korean bbq', 'meat', 'dinner'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'seo-4',
-      name: 'Myeongdong Shopping',
-      type: 'activity',
-      description: 'Shopping mecca for K-beauty, fashion, and street food',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 180,
-      openingHours: '10AM-10PM',
-      neighborhood: 'Myeongdong',
-      matchScore: 89,
-      matchReasons: ['K-beauty paradise', 'Great street food'],
-      priceRange: '$$',
-      tags: ['shopping', 'beauty', 'street food'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'seo-5',
-      name: 'N Seoul Tower',
-      type: 'attraction',
-      description: 'Iconic tower on Namsan Mountain with panoramic city views',
-      imageUrl: 'https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=600&q=80',
-      suggestedTime: '20:00',
-      duration: 90,
-      openingHours: '10AM-11PM',
-      neighborhood: 'Namsan',
-      matchScore: 90,
-      matchReasons: ['Night views', 'Love locks'],
-      priceRange: '$$',
-      tags: ['tower', 'views', 'night'],
-    },
-  ],
-  'Paris': [
-    {
-      id: 'par-1',
-      name: 'Eiffel Tower',
-      type: 'attraction',
-      description: 'Iconic iron lattice tower and symbol of Paris',
-      imageUrl: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce65f4?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 180,
-      openingHours: '9AM-12:45AM',
-      neighborhood: 'Champ de Mars',
-      matchScore: 98,
-      matchReasons: ['Must-see Paris', 'Iconic landmark'],
-      priceRange: '$$',
-      tags: ['tower', 'landmark', 'views'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'par-2',
-      name: 'Louvre Museum',
-      type: 'attraction',
-      description: 'World\'s largest art museum with Mona Lisa and Venus de Milo',
-      imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 240,
-      openingHours: '9AM-6PM',
-      neighborhood: 'Louvre',
-      matchScore: 96,
-      matchReasons: ['World-class art', 'Historic palace'],
-      priceRange: '$$',
-      tags: ['museum', 'art', 'mona lisa'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'par-3',
-      name: 'Croissant at Du Pain et des Idées',
-      type: 'restaurant',
-      description: 'Award-winning bakery with best croissants in Paris',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 30,
-      openingHours: '6:45AM-8PM',
-      neighborhood: 'Canal Saint-Martin',
-      matchScore: 93,
-      matchReasons: ['Best croissants', 'Historic bakery'],
-      priceRange: '$',
-      tags: ['bakery', 'croissants', 'breakfast'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'par-4',
-      name: 'Montmartre & Sacré-Cœur',
-      type: 'activity',
-      description: 'Artistic hilltop neighborhood with stunning white basilica',
-      imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80',
-      suggestedTime: '15:00',
-      duration: 180,
-      openingHours: '6AM-10:30PM',
-      neighborhood: 'Montmartre',
-      matchScore: 94,
-      matchReasons: ['Artistic quarter', 'Panoramic views'],
-      priceRange: '$',
-      tags: ['basilica', 'art', 'views'],
-      walkingTimeToNext: 25,
-    },
-    {
-      id: 'par-5',
-      name: 'Seine River Cruise',
-      type: 'activity',
-      description: 'Evening cruise past illuminated monuments',
-      imageUrl: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce65f4?w=600&q=80',
-      suggestedTime: '20:00',
-      duration: 75,
-      openingHours: 'Multiple departures',
-      neighborhood: 'Seine River',
-      matchScore: 91,
-      matchReasons: ['Romantic', 'See all landmarks'],
-      priceRange: '$$',
-      tags: ['cruise', 'river', 'night'],
-    },
-  ],
-  'London': [
-    {
-      id: 'lon-1',
-      name: 'British Museum',
-      type: 'attraction',
-      description: 'World-famous museum with Rosetta Stone and Egyptian mummies',
-      imageUrl: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 180,
-      openingHours: '10AM-5PM',
-      neighborhood: 'Bloomsbury',
-      matchScore: 95,
-      matchReasons: ['Free entry', 'World treasures'],
-      priceRange: '$',
-      tags: ['museum', 'history', 'free'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'lon-2',
-      name: 'Tower of London',
-      type: 'attraction',
-      description: 'Historic castle with Crown Jewels and 1000 years of history',
-      imageUrl: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 180,
-      openingHours: '9AM-5:30PM',
-      neighborhood: 'Tower Hill',
-      matchScore: 94,
-      matchReasons: ['Crown Jewels', 'Historic site'],
-      priceRange: '$$',
-      tags: ['castle', 'history', 'crown jewels'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'lon-3',
-      name: 'Fish & Chips at Poppies',
-      type: 'restaurant',
-      description: 'Award-winning traditional fish and chips in retro setting',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '12:30',
-      duration: 60,
-      openingHours: '11AM-11PM',
-      neighborhood: 'Spitalfields',
-      matchScore: 91,
-      matchReasons: ['Best fish & chips', 'Classic British'],
-      priceRange: '$$',
-      tags: ['fish and chips', 'british', 'classic'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'lon-4',
-      name: 'Westminster & Big Ben',
-      type: 'activity',
-      description: 'Iconic area with Parliament, Big Ben, and Westminster Abbey',
-      imageUrl: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 150,
-      openingHours: '24 hours (outdoor)',
-      neighborhood: 'Westminster',
-      matchScore: 96,
-      matchReasons: ['Iconic London', 'Must-see landmarks'],
-      priceRange: '$',
-      tags: ['big ben', 'parliament', 'landmark'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'lon-5',
-      name: 'Borough Market',
-      type: 'activity',
-      description: 'London\'s most famous food market with gourmet treats',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 120,
-      openingHours: '10AM-5PM',
-      neighborhood: 'Southwark',
-      matchScore: 90,
-      matchReasons: ['Foodie paradise', 'Local favorites'],
-      priceRange: '$$',
-      tags: ['market', 'food', 'gourmet'],
-    },
-  ],
-  'New York': [
-    {
-      id: 'nyc-1',
-      name: 'Central Park',
-      type: 'activity',
-      description: 'Iconic 843-acre urban park in the heart of Manhattan',
-      imageUrl: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 180,
-      openingHours: '6AM-1AM',
-      neighborhood: 'Central Park',
-      matchScore: 95,
-      matchReasons: ['Iconic NYC', 'Beautiful any season'],
-      priceRange: '$',
-      tags: ['park', 'nature', 'walking'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'nyc-2',
-      name: 'Statue of Liberty',
-      type: 'attraction',
-      description: 'Symbol of freedom and democracy - America\'s most famous landmark',
-      imageUrl: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 240,
-      openingHours: '8:30AM-4PM',
-      neighborhood: 'Liberty Island',
-      matchScore: 96,
-      matchReasons: ['Must-see NYC', 'Historic symbol'],
-      priceRange: '$$',
-      tags: ['landmark', 'statue', 'history'],
-      walkingTimeToNext: 60,
-    },
-    {
-      id: 'nyc-3',
-      name: 'Pizza at Joe\'s Pizza',
-      type: 'restaurant',
-      description: 'Legendary NYC slice shop - the quintessential New York pizza',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '12:00',
-      duration: 30,
-      openingHours: '10AM-5AM',
-      neighborhood: 'Greenwich Village',
-      matchScore: 93,
-      matchReasons: ['Best NYC pizza', 'Cash only classic'],
-      priceRange: '$',
-      tags: ['pizza', 'new york', 'classic'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'nyc-4',
-      name: 'Times Square',
-      type: 'activity',
-      description: 'The crossroads of the world with dazzling billboards and Broadway',
-      imageUrl: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
-      suggestedTime: '20:00',
-      duration: 90,
-      openingHours: '24 hours',
-      neighborhood: 'Midtown',
-      matchScore: 88,
-      matchReasons: ['Iconic NYC', 'Best at night'],
-      priceRange: '$',
-      tags: ['times square', 'nightlife', 'broadway'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'nyc-5',
-      name: 'Metropolitan Museum of Art',
-      type: 'attraction',
-      description: 'One of the world\'s greatest art museums with 2 million works',
-      imageUrl: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 240,
-      openingHours: '10AM-5PM',
-      neighborhood: 'Upper East Side',
-      matchScore: 94,
-      matchReasons: ['World-class art', 'Huge collection'],
-      priceRange: '$$',
-      tags: ['museum', 'art', 'culture'],
-    },
-  ],
-  'Barcelona': [
-    {
-      id: 'bcn-1',
-      name: 'La Sagrada Familia',
-      type: 'attraction',
-      description: 'Gaudí\'s unfinished masterpiece - Barcelona\'s most famous landmark',
-      imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 150,
-      openingHours: '9AM-8PM',
-      neighborhood: 'Eixample',
-      matchScore: 98,
-      matchReasons: ['Must-see Barcelona', 'Architectural wonder'],
-      priceRange: '$$',
-      tags: ['church', 'gaudi', 'architecture'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'bcn-2',
-      name: 'Park Güell',
-      type: 'attraction',
-      description: 'Whimsical Gaudí park with colorful mosaics and city views',
-      imageUrl: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 120,
-      openingHours: '9:30AM-7:30PM',
-      neighborhood: 'Gràcia',
-      matchScore: 94,
-      matchReasons: ['Gaudí masterpiece', 'Beautiful views'],
-      priceRange: '$',
-      tags: ['park', 'gaudi', 'mosaics'],
-      walkingTimeToNext: 25,
-    },
-    {
-      id: 'bcn-3',
-      name: 'Tapas at El Xampanyet',
-      type: 'restaurant',
-      description: 'Classic tapas bar serving cava and traditional dishes since 1929',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '13:00',
-      duration: 90,
-      openingHours: '12PM-4PM, 7PM-11PM',
-      neighborhood: 'El Born',
-      matchScore: 92,
-      matchReasons: ['Authentic tapas', 'Local institution'],
-      priceRange: '$$',
-      tags: ['tapas', 'cava', 'traditional'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'bcn-4',
-      name: 'La Boqueria Market',
-      type: 'activity',
-      description: 'Vibrant food market with fresh produce, seafood, and tapas',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 90,
-      openingHours: '8AM-8:30PM',
-      neighborhood: 'Las Ramblas',
-      matchScore: 91,
-      matchReasons: ['Famous market', 'Fresh everything'],
-      priceRange: '$$',
-      tags: ['market', 'food', 'fresh'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'bcn-5',
-      name: 'Barceloneta Beach',
-      type: 'activity',
-      description: 'Popular city beach with great seafood restaurants nearby',
-      imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-      suggestedTime: '16:00',
-      duration: 180,
-      openingHours: '24 hours',
-      neighborhood: 'Barceloneta',
-      matchScore: 88,
-      matchReasons: ['Beach in the city', 'Great for sunset'],
-      priceRange: '$',
-      tags: ['beach', 'seafood', 'sunset'],
-    },
-  ],
-  'Rome': [
-    {
-      id: 'rom-1',
-      name: 'Colosseum',
-      type: 'attraction',
-      description: 'Ancient Roman amphitheater and one of the New Seven Wonders',
-      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80',
-      suggestedTime: '08:00',
-      duration: 180,
-      openingHours: '8:30AM-7PM',
-      neighborhood: 'Colosseo',
-      matchScore: 98,
-      matchReasons: ['Must-see Rome', 'Ancient wonder'],
-      priceRange: '$$',
-      tags: ['colosseum', 'ancient', 'history'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'rom-2',
-      name: 'Vatican Museums & Sistine Chapel',
-      type: 'attraction',
-      description: 'World\'s greatest art collection including Michelangelo\'s masterpiece',
-      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 240,
-      openingHours: '8:30AM-6PM',
-      neighborhood: 'Vatican City',
-      matchScore: 97,
-      matchReasons: ['Sistine Chapel', 'Art treasures'],
-      priceRange: '$$',
-      tags: ['vatican', 'art', 'sistine chapel'],
-      walkingTimeToNext: 30,
-    },
-    {
-      id: 'rom-3',
-      name: 'Pasta at Roscioli',
-      type: 'restaurant',
-      description: 'Famous deli-restaurant with incredible cacio e pepe',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '13:00',
-      duration: 75,
-      openingHours: '12:30PM-4PM, 7PM-12AM',
-      neighborhood: 'Centro Storico',
-      matchScore: 94,
-      matchReasons: ['Best pasta', 'Local legend'],
-      priceRange: '$$$',
-      tags: ['pasta', 'italian', 'gourmet'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'rom-4',
-      name: 'Trevi Fountain',
-      type: 'attraction',
-      description: 'Baroque masterpiece - toss a coin to ensure your return to Rome',
-      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80',
-      suggestedTime: '07:00',
-      duration: 30,
-      openingHours: '24 hours',
-      neighborhood: 'Trevi',
-      matchScore: 93,
-      matchReasons: ['Iconic Rome', 'Best at dawn'],
-      priceRange: '$',
-      tags: ['fountain', 'baroque', 'landmark'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'rom-5',
-      name: 'Gelato at Giolitti',
-      type: 'restaurant',
-      description: 'Rome\'s most famous gelateria since 1900',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '15:00',
-      duration: 30,
-      openingHours: '7AM-1AM',
-      neighborhood: 'Pantheon',
-      matchScore: 91,
-      matchReasons: ['Best gelato', 'Roman institution'],
-      priceRange: '$',
-      tags: ['gelato', 'dessert', 'italian'],
-    },
-  ],
-  'Dubai': [
-    {
-      id: 'dub-1',
-      name: 'Burj Khalifa',
-      type: 'attraction',
-      description: 'World\'s tallest building with observation deck at 555m',
-      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80',
-      suggestedTime: '17:00',
-      duration: 120,
-      openingHours: '8:30AM-11PM',
-      neighborhood: 'Downtown Dubai',
-      matchScore: 97,
-      matchReasons: ['World\'s tallest', 'Sunset views'],
-      priceRange: '$$$',
-      tags: ['skyscraper', 'views', 'landmark'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'dub-2',
-      name: 'Dubai Mall & Fountain Show',
-      type: 'activity',
-      description: 'World\'s largest mall with spectacular dancing fountain show',
-      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80',
-      suggestedTime: '19:00',
-      duration: 180,
-      openingHours: '10AM-12AM',
-      neighborhood: 'Downtown Dubai',
-      matchScore: 92,
-      matchReasons: ['Free fountain show', 'Shopping paradise'],
-      priceRange: '$$',
-      tags: ['mall', 'fountain', 'shopping'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'dub-3',
-      name: 'Old Dubai & Gold Souk',
-      type: 'activity',
-      description: 'Historic creek area with traditional markets and abra rides',
-      imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 180,
-      openingHours: '10AM-10PM',
-      neighborhood: 'Deira',
-      matchScore: 89,
-      matchReasons: ['Traditional Dubai', 'Gold shopping'],
-      priceRange: '$',
-      tags: ['souk', 'traditional', 'gold'],
-      walkingTimeToNext: 20,
-    },
-    {
-      id: 'dub-4',
-      name: 'Desert Safari',
-      type: 'activity',
-      description: 'Dune bashing, camel rides, and BBQ dinner under the stars',
-      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80',
-      suggestedTime: '15:00',
-      duration: 360,
-      openingHours: 'Afternoon departures',
-      neighborhood: 'Dubai Desert',
-      matchScore: 94,
-      matchReasons: ['Unique experience', 'Sunset in desert'],
-      priceRange: '$$$',
-      tags: ['desert', 'adventure', 'sunset'],
-    },
-  ],
-  'Amsterdam': [
-    {
-      id: 'ams-1',
-      name: 'Anne Frank House',
-      type: 'attraction',
-      description: 'Moving museum in the actual hiding place of Anne Frank',
-      imageUrl: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=600&q=80',
-      suggestedTime: '09:00',
-      duration: 90,
-      openingHours: '9AM-10PM',
-      neighborhood: 'Jordaan',
-      matchScore: 96,
-      matchReasons: ['Powerful history', 'Book in advance'],
-      priceRange: '$$',
-      tags: ['museum', 'history', 'wwii'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'ams-2',
-      name: 'Van Gogh Museum',
-      type: 'attraction',
-      description: 'World\'s largest collection of Van Gogh\'s works',
-      imageUrl: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=600&q=80',
-      suggestedTime: '11:00',
-      duration: 150,
-      openingHours: '9AM-6PM',
-      neighborhood: 'Museumplein',
-      matchScore: 95,
-      matchReasons: ['Van Gogh masterpieces', 'Must-see Amsterdam'],
-      priceRange: '$$',
-      tags: ['museum', 'art', 'van gogh'],
-      walkingTimeToNext: 10,
-    },
-    {
-      id: 'ams-3',
-      name: 'Canal Cruise',
-      type: 'activity',
-      description: 'Cruise through UNESCO World Heritage canals',
-      imageUrl: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=600&q=80',
-      suggestedTime: '14:00',
-      duration: 75,
-      openingHours: 'Multiple departures',
-      neighborhood: 'City Center',
-      matchScore: 92,
-      matchReasons: ['See Amsterdam from water', 'Relaxing'],
-      priceRange: '$$',
-      tags: ['cruise', 'canals', 'scenic'],
-      walkingTimeToNext: 15,
-    },
-    {
-      id: 'ams-4',
-      name: 'Stroopwafel at Albert Cuyp Market',
-      type: 'restaurant',
-      description: 'Fresh stroopwafels at Amsterdam\'s famous street market',
-      imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-      suggestedTime: '10:00',
-      duration: 90,
-      openingHours: '9AM-5PM',
-      neighborhood: 'De Pijp',
-      matchScore: 89,
-      matchReasons: ['Best stroopwafels', 'Local market'],
-      priceRange: '$',
-      tags: ['stroopwafel', 'market', 'dutch'],
-    },
-  ],
-};
+let mockActivitiesCache: Record<string, GeneratedActivity[]> | null = null;
+let mockActivitiesPromise: Promise<Record<string, GeneratedActivity[]>> | null = null;
+
+async function getMockActivities(): Promise<Record<string, GeneratedActivity[]>> {
+  if (mockActivitiesCache) return mockActivitiesCache;
+  if (!mockActivitiesPromise) {
+    mockActivitiesPromise = import('@/lib/planning/mock-activities').then((mod) => mod.MOCK_ACTIVITIES);
+  }
+  mockActivitiesCache = await mockActivitiesPromise;
+  return mockActivitiesCache;
+}
 
 // Generate EMPTY days (no activities) - like Wanderlog
 // BUT auto-adds transport on transit days (flight, bus, train, etc. based on route)
@@ -1948,31 +313,6 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
   return days;
 }
 
-// Fill a single day with activities
-function fillDayWithActivities(day: GeneratedDay, dayIndex: number): GeneratedDay {
-  const cityActivities = MOCK_ACTIVITIES[day.city] || MOCK_ACTIVITIES['Bangkok'] || [];
-
-  // Filter out restaurants - user picks their own dining spots
-  const nonRestaurantActivities = cityActivities.filter(act => act.type !== 'restaurant');
-
-  // Create unique IDs for this day's activities
-  const dayActivities = nonRestaurantActivities.map((act, idx) => ({
-    ...act,
-    id: `${day.city.toLowerCase().replace(/\s+/g, '-')}-day${day.dayNumber}-${idx}-${Date.now()}`,
-  }));
-
-  return {
-    ...day,
-    theme: dayIndex === 0 ? 'Highlights Day' : dayIndex === 1 ? 'Local Discovery' : 'Relaxed Exploration',
-    activities: dayActivities.slice(0, 3 + (dayIndex % 2)),
-  };
-}
-
-// Fill ALL days with activities
-function fillAllDays(days: GeneratedDay[]): GeneratedDay[] {
-  return days.map((day, idx) => fillDayWithActivities(day, idx));
-}
-
 // Parse date string without timezone issues (YYYY-MM-DD -> local date)
 function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -2051,7 +391,7 @@ export default function AutoItineraryView({
   // which is populated from IndexedDB BEFORE this component renders (because parent
   // only renders us after persistenceLoaded=true)
   const [allocations, setAllocations] = useState<CityAllocation[]>(() => {
-    console.log('[AutoItinerary] useState init - initialAllocations:', initialAllocations?.length, 'parentLoadComplete:', parentLoadComplete);
+    debug('[AutoItinerary] useState init - initialAllocations:', initialAllocations?.length, 'parentLoadComplete:', parentLoadComplete);
 
     // If parent has loaded and has saved allocations, use them
     if (initialAllocations && initialAllocations.length > 0) {
@@ -2059,14 +399,14 @@ export default function AutoItineraryView({
       const citiesMatch = cities.length === savedRouteCities.length &&
         cities.every((c, i) => c === savedRouteCities[i]);
       if (citiesMatch) {
-        console.log('[AutoItinerary] Using saved allocations from parent');
+        debug('[AutoItinerary] Using saved allocations from parent');
         return initialAllocations;
       }
     }
 
     // No saved allocations or cities don't match - generate defaults
     // Use initialTotalDays - 1 because nights = days - 1 (you leave on last day)
-    console.log('[AutoItinerary] Generating default allocations');
+    debug('[AutoItinerary] Generating default allocations');
     return allocateDays(cities, initialTotalDays - 1, tripDna, initialStartDate);
   });
 
@@ -2355,7 +695,7 @@ export default function AutoItineraryView({
     const currentCitiesKey = cities.join(',');
     // Only regenerate if cities actually changed (not on initial mount)
     if (currentCitiesKey !== prevCities) {
-      console.log('[AutoItinerary] Cities CHANGED, regenerating allocations');
+      debug('[AutoItinerary] Cities CHANGED, regenerating allocations');
       setPrevCities(currentCitiesKey);
       setAllocations(allocateDays(cities, tripTotalNights, tripDna, tripStartDate));
       setHasLoadedFromSaved(false); // User changed cities, no longer using saved
@@ -2454,7 +794,7 @@ export default function AutoItineraryView({
     }
 
     if (needsUpdate) {
-      console.log('[AutoItinerary] Re-syncing days - activities stay with their cities, transport regenerated');
+      debug('[AutoItinerary] Re-syncing days - activities stay with their cities, transport regenerated');
 
       // Transport types to exclude from moving (will be regenerated)
       const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
@@ -2672,15 +1012,15 @@ export default function AutoItineraryView({
     // CRITICAL: Don't sync until parent has finished loading from IndexedDB
     // Otherwise we'll overwrite saved allocations with freshly-generated defaults
     if (!parentLoadComplete) {
-      console.log('[AutoItinerary] Parent not loaded yet, NOT syncing');
+      debug('[AutoItinerary] Parent not loaded yet, NOT syncing');
       return;
     }
     // Don't sync empty allocations - this would overwrite saved data
     if (allocations.length === 0) {
-      console.log('[AutoItinerary] Allocations empty, NOT syncing');
+      debug('[AutoItinerary] Allocations empty, NOT syncing');
       return;
     }
-    console.log('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
+    debug('[AutoItinerary] Syncing allocations to parent:', allocations.map(a => `${a.city}:${a.nights}`));
     onAllocationsChange?.(allocations);
   }, [allocations, onAllocationsChange, parentLoadComplete]);
 
@@ -2698,13 +1038,13 @@ export default function AutoItineraryView({
     if (!hasActivities) {
       return;
     }
-    console.log('[AutoItinerary] Syncing days to parent:', days.length, 'days');
+    debug('[AutoItinerary] Syncing days to parent:', days.length, 'days');
     onGeneratedDaysChange?.(days);
   }, [days, onGeneratedDaysChange, parentLoadComplete]);
 
   // AI-powered auto-fill for a single city's days (with fallback to mock data)
   const autoFillCityDays = async (city: string, nights: number) => {
-    console.log(`[AutoFill API] Requesting ${nights} days for ${city}`);
+    debug(`[AutoFill API] Requesting ${nights} days for ${city}`);
     try {
       const response = await fetch('/api/generate-itinerary', {
         method: 'POST',
@@ -2727,7 +1067,7 @@ export default function AutoItineraryView({
       }
 
       const data = await response.json();
-      console.log(`[AutoFill API] Got ${data.days?.length || 0} days for ${city}:`,
+      debug(`[AutoFill API] Got ${data.days?.length || 0} days for ${city}:`,
         data.days?.map((d: { dayNumber: number; theme?: string; activities: { name: string }[] }) =>
           `Day ${d.dayNumber}: ${d.theme || 'no theme'} (${d.activities.length} activities: ${d.activities.map(a => a.name).slice(0, 2).join(', ')}...)`
         )
@@ -2739,7 +1079,7 @@ export default function AutoItineraryView({
           const day1Names = data.days[0].activities.map((a: { name: string }) => a.name).sort().join(',');
           const day2Names = data.days[1].activities.map((a: { name: string }) => a.name).sort().join(',');
           if (day1Names === day2Names) {
-            console.warn(`[AutoFill API] WARNING: Day 1 and Day 2 have identical activities!`);
+            debugWarn(`[AutoFill API] WARNING: Day 1 and Day 2 have identical activities!`);
           }
         }
         return data.days;
@@ -2748,20 +1088,21 @@ export default function AutoItineraryView({
     } catch (error) {
       console.error('[AutoFill API] AI itinerary failed, using mock data for', city, error);
       // Fallback to mock data
-      return generateMockDaysForCity(city, nights);
+      return await generateMockDaysForCity(city, nights);
     }
   };
 
   // Generate mock days as fallback when API fails
   // FIX: Distribute activities across days instead of giving same activities to each day
-  const generateMockDaysForCity = (city: string, nights: number) => {
-    const allCityActivities = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
+  const generateMockDaysForCity = async (city: string, nights: number) => {
+    const mockActivities = await getMockActivities();
+    const allCityActivities = mockActivities[city] || mockActivities['Bangkok'] || [];
     // Filter out restaurants - user picks their own dining spots
     const cityActivities = allCityActivities.filter(act => act.type !== 'restaurant');
     const days = [];
     const activitiesPerDay = 3;
 
-    console.log(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} activities (excluding restaurants)`);
+    debug(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} activities (excluding restaurants)`);
 
     for (let i = 0; i < nights; i++) {
       // Calculate which activities to use for this day
@@ -2784,7 +1125,7 @@ export default function AutoItineraryView({
         activities: dayActivities,
       });
 
-      console.log(`[Mock Data] Day ${i + 1}: ${dayActivities.map(a => a.name).join(', ')}`);
+      debug(`[Mock Data] Day ${i + 1}: ${dayActivities.map(a => a.name).join(', ')}`);
     }
 
     return days;
@@ -2809,7 +1150,7 @@ export default function AutoItineraryView({
       }
     });
 
-    console.log(`[AutoFill] Day ${dayNumber} of ${targetDay.city}, already used: ${usedActivityNames.size} activities`);
+    debug(`[AutoFill] Day ${dayNumber} of ${targetDay.city}, already used: ${usedActivityNames.size} activities`);
 
     // ALWAYS call API fresh - no caching to avoid stale data
     const cityNights = allocations.find(a => a.city === targetDay.city)?.nights || 3;
@@ -2845,7 +1186,7 @@ export default function AutoItineraryView({
           act.type !== 'restaurant'
         );
 
-        console.log(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique (excluding restaurants)`);
+        debug(`[AutoFill] Got ${aiDay.activities.length} activities, ${uniqueActivities.length} are unique (excluding restaurants)`);
 
         // Only replace activities if we have unique ones to add
         if (uniqueActivities.length > 0) {
@@ -2868,13 +1209,13 @@ export default function AutoItineraryView({
             return day;
           }));
         } else {
-          console.log('[AutoFill] No unique activities found from API, keeping existing activities');
+          debug('[AutoFill] No unique activities found from API, keeping existing activities');
         }
       }
     } catch (error) {
       console.error('[AutoFill] API failed, using fallback', error);
       // Fallback to mock data, filtering out used activities and restaurants
-      const mockDays = generateMockDaysForCity(targetDay.city, 1);
+      const mockDays = await generateMockDaysForCity(targetDay.city, 1);
       if (mockDays[0]) {
         const uniqueActivities = mockDays[0].activities.filter(act =>
           !usedActivityNames.has(act.name.toLowerCase()) &&
@@ -2893,7 +1234,7 @@ export default function AutoItineraryView({
             return day;
           }));
         } else {
-          console.log('[AutoFill] No unique mock activities found, keeping existing activities');
+          debug('[AutoFill] No unique mock activities found, keeping existing activities');
         }
       }
     }
@@ -2912,7 +1253,9 @@ export default function AutoItineraryView({
       .map(a => a.city);
     const uniqueCities = [...new Set(citiesNeedingActivities)];
 
-    console.log('[AutoFill] Fetching activities for cities:', uniqueCities);
+    debug('[AutoFill] Fetching activities for cities:', uniqueCities);
+
+    const mockActivities = await getMockActivities();
 
     // Fetch activities for each city in parallel
     const cityActivitiesMap: Record<string, GeneratedActivity[]> = {};
@@ -2940,12 +1283,12 @@ export default function AutoItineraryView({
           // Flatten all activities from all days
           const allActivities = (data.days || []).flatMap((d: { activities: GeneratedActivity[] }) => d.activities || []);
           cityActivitiesMap[city] = allActivities;
-          console.log(`[AutoFill] Got ${allActivities.length} activities for ${city}`);
+          debug(`[AutoFill] Got ${allActivities.length} activities for ${city}`);
         }
       } catch (error) {
         console.error(`[AutoFill] Failed to fetch activities for ${city}:`, error);
         // Use mock data as fallback
-        cityActivitiesMap[city] = MOCK_ACTIVITIES[city] || MOCK_ACTIVITIES['Bangkok'] || [];
+        cityActivitiesMap[city] = mockActivities[city] || mockActivities['Bangkok'] || [];
       }
     }));
 
@@ -2969,7 +1312,7 @@ export default function AutoItineraryView({
         }
 
         // Get activities for this city
-        const cityActivities = cityActivitiesMap[day.city] || MOCK_ACTIVITIES[day.city] || [];
+        const cityActivities = cityActivitiesMap[day.city] || mockActivities[day.city] || [];
         const usedSet = usedActivitiesPerCity[day.city] || new Set();
 
         // Pick 3-4 unused activities for this day

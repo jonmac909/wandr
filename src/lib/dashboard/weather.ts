@@ -1,5 +1,7 @@
 // Weather utilities using Open-Meteo API (free, no API key required)
 
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
+
 export interface WeatherData {
   temperature: number;
   condition: string;
@@ -13,7 +15,7 @@ export interface WeatherData {
 // Geocoding to get coordinates from city name
 async function getCoordinates(city: string): Promise<{ lat: number; lon: number; name: string } | null> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
     );
     const data = await response.json();
@@ -74,7 +76,7 @@ export async function fetchWeather(city: string): Promise<WeatherData | null> {
     if (!coords) return null;
 
     // Fetch current weather
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`
     );
     const data = await response.json();

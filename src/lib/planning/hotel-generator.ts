@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
+import { withTimeout } from '@/lib/async';
 
 export interface HotelInfo {
   id: string;
@@ -44,6 +46,25 @@ const HOTEL_IMAGE_KEYWORDS: Record<string, string> = {
   'guesthouse': 'guesthouse+cozy+room',
   'villa': 'villa+private+pool',
 };
+
+const HotelSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(['hotel', 'hostel', 'resort', 'boutique', 'guesthouse', 'villa']),
+  priceRange: z.enum(['$', '$$', '$$$', '$$$$']),
+  pricePerNight: z.string().min(1),
+  rating: z.number().optional().default(4.2),
+  reviews: z.number().optional().default(0),
+  neighborhood: z.string().optional().default(''),
+  description: z.string().optional().default(''),
+  amenities: z.array(z.string()).optional().default([]),
+  idealFor: z.array(z.string()).optional().default([]),
+  highlights: z.array(z.string()).optional().default([]),
+  walkingDistance: z.array(z.string()).optional().default([]),
+  matchScore: z.number().optional(),
+  matchReasons: z.array(z.string()).optional(),
+});
+
+const HotelsSchema = z.array(HotelSchema);
 
 // Generate hotel ID from name
 function generateHotelId(name: string, city: string): string {
@@ -151,30 +172,21 @@ Use REAL hotels that actually exist in ${city}. Be specific with neighborhoods a
 ${preferences?.nearbyActivities ? `\nIMPORTANT: Recommend hotels in neighborhoods CLOSE TO these activities: ${preferences.nearbyActivities.join(', ')}` : ''}`;
 
   try {
-    const response = await client.messages.create({
+    const response = await withTimeout(client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
-    });
+    }), 60000, 'Anthropic request timed out');
 
     const content = response.content[0];
     if (content.type === 'text') {
-      const hotels = JSON.parse(content.text) as Array<{
-        name: string;
-        type: HotelInfo['type'];
-        priceRange: HotelInfo['priceRange'];
-        pricePerNight: string;
-        rating: number;
-        reviews: number;
-        neighborhood: string;
-        description: string;
-        amenities: string[];
-        idealFor: string[];
-        highlights: string[];
-        walkingDistance: string[];
-        matchScore?: number;
-        matchReasons?: string[];
-      }>;
+      const parsed = HotelsSchema.safeParse(JSON.parse(content.text));
+      if (!parsed.success) {
+        console.error('Invalid hotel schema from AI', parsed.error.flatten());
+        return generateFallbackHotels(city, country);
+      }
+
+      const hotels = parsed.data;
 
       // Transform to full HotelInfo with IDs and images
       const hotelInfos: HotelInfo[] = hotels.map((hotel) => ({
@@ -190,15 +202,15 @@ ${preferences?.nearbyActivities ? `\nIMPORTANT: Recommend hotels in neighborhood
         ],
         priceRange: hotel.priceRange,
         pricePerNight: hotel.pricePerNight,
-        rating: hotel.rating,
-        reviews: hotel.reviews,
+        rating: hotel.rating ?? 4.2,
+        reviews: hotel.reviews ?? 0,
         type: hotel.type,
-        amenities: hotel.amenities,
-        neighborhood: hotel.neighborhood,
-        description: hotel.description,
-        idealFor: hotel.idealFor,
-        highlights: hotel.highlights,
-        walkingDistance: hotel.walkingDistance,
+        amenities: hotel.amenities ?? [],
+        neighborhood: hotel.neighborhood || '',
+        description: hotel.description || '',
+        idealFor: hotel.idealFor ?? [],
+        highlights: hotel.highlights ?? [],
+        walkingDistance: hotel.walkingDistance ?? [],
         matchScore: hotel.matchScore,
         matchReasons: hotel.matchReasons,
       }));

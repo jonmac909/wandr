@@ -1,9 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { enforceApiKey, enforceRateLimit, enforceSameOrigin } from '@/lib/server/api-guard';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
+import { debug } from '@/lib/logger';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+
+const TransportSchema = z.object({
+  type: z.enum(['flight', 'train', 'bus', 'taxi', 'ferry', 'other']).optional(),
+  operator: z.string().nullable().optional(),
+  vehicleNumber: z.string().nullable().optional(),
+  from: z.string().nullable().optional(),
+  fromCode: z.string().nullable().optional(),
+  to: z.string().nullable().optional(),
+  toCode: z.string().nullable().optional(),
+  departureDate: z.string().nullable().optional(),
+  departureTime: z.string().nullable().optional(),
+  arrivalDate: z.string().nullable().optional(),
+  arrivalTime: z.string().nullable().optional(),
+  duration: z.string().nullable().optional(),
+  confirmationNumber: z.string().nullable().optional(),
+  seatNumber: z.string().nullable().optional(),
+  class: z.string().nullable().optional(),
+  passenger: z.string().nullable().optional(),
+  cost: z.string().nullable().optional(),
+});
+
+const TicketResponseSchema = z.object({
+  transports: z.array(TransportSchema),
+});
 
 export async function POST(request: NextRequest) {
   try {
+    const originResponse = enforceSameOrigin(request);
+    if (originResponse) return originResponse;
+
+    const apiKeyResponse = enforceApiKey(request);
+    if (apiKeyResponse) return apiKeyResponse;
+
+    const rateLimitResponse = enforceRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
+
     if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'Anthropic API key not configured' },
@@ -16,6 +54,13 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: 'File too large. Please upload a file under 10MB.' },
+        { status: 413 }
+      );
     }
 
     // Convert file to base64
@@ -122,7 +167,7 @@ Extract multiple segments if this is a multi-leg journey. Use null for any field
         ];
 
     // Call Claude Vision API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -139,7 +184,7 @@ Extract multiple segments if this is a multi-leg journey. Use null for any field
           },
         ],
       }),
-    });
+    }, 60000);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -169,10 +214,18 @@ Extract multiple segments if this is a multi-leg journey. Use null for any field
     }
 
     const data = JSON.parse(jsonStr);
+    const parsed = TicketResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      console.error('[parse-ticket] Invalid AI response schema', parsed.error.flatten());
+      return NextResponse.json(
+        { error: 'Invalid ticket response format' },
+        { status: 502 }
+      );
+    }
 
-    console.log('[parse-ticket] Extracted transports:', data.transports?.length || 0);
+    debug('[parse-ticket] Extracted transports:', parsed.data.transports?.length || 0);
 
-    return NextResponse.json(data);
+    return NextResponse.json(parsed.data);
   } catch (error) {
     console.error('Error parsing ticket:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

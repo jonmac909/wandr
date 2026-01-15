@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 // Curated high-quality images for popular cities (fast loading)
 const CURATED_IMAGES: Record<string, string> = {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   // 3. Try to fetch from Wikipedia API (free, no API key needed)
   try {
     const searchTerm = country ? `${city}, ${country}` : city;
-    const wikiResponse = await fetch(
+    const wikiResponse = await fetchWithTimeout(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`
     );
 

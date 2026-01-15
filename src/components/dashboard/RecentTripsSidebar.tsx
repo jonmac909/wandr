@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { RecentTripCard } from './RecentTripCard';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
+import { parseIsoDate } from '@/lib/dates';
 
 interface RecentTripsSidebarProps {
   trips: StoredTrip[];
@@ -28,13 +29,13 @@ export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: Recen
     .filter(trip => {
       const startDate = trip.itinerary?.meta?.startDate;
       if (!startDate) return false;
-      const tripStart = new Date(startDate);
+      const tripStart = parseIsoDate(startDate);
       tripStart.setHours(0, 0, 0, 0);
       return tripStart >= today;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.itinerary!.meta.startDate);
-      const dateB = new Date(b.itinerary!.meta.startDate);
+      const dateA = parseIsoDate(a.itinerary!.meta.startDate);
+      const dateB = parseIsoDate(b.itinerary!.meta.startDate);
       return dateA.getTime() - dateB.getTime(); // Soonest first
     });
 
@@ -43,7 +44,7 @@ export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: Recen
     .filter(trip => {
       const startDate = trip.itinerary?.meta?.startDate;
       if (!startDate) return true; // No date = still planning
-      const tripStart = new Date(startDate);
+      const tripStart = parseIsoDate(startDate);
       tripStart.setHours(0, 0, 0, 0);
       return tripStart < today; // Past trips or drafts
     })
@@ -150,14 +151,14 @@ function FeaturedUpcomingTrip({ trip }: { trip: StoredTrip }) {
 }
 
 function formatDateRange(start: string, end?: string): string {
-  const startDate = new Date(start);
+  const startDate = parseIsoDate(start);
   const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
 
   if (!end) {
     return startDate.toLocaleDateString('en-US', options);
   }
 
-  const endDate = new Date(end);
+  const endDate = parseIsoDate(end);
 
   // Same month
   if (startDate.getMonth() === endDate.getMonth()) {
