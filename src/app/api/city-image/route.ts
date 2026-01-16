@@ -1,47 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// In-memory cache for Pexels results (persists across requests in the same worker)
-const pexelsCache = new Map<string, string>();
+// In-memory cache (persists across requests in the same worker)
+const imageCache = new Map<string, string>();
 
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
+const GOOGLE_API_KEY = 'AIzaSyBGLXcx7JZLa4vcIdD0d-hpcvFNbE0Xy-k';
 
-// Pexels API search for city images
-async function searchPexels(city: string, country?: string): Promise<string | null> {
-  const apiKey = process.env.PEXELS_API_KEY;
-  if (!apiKey) {
-    console.warn('PEXELS_API_KEY not configured');
-    return null;
-  }
-
-  const query = country 
-    ? `${city} ${country} travel landscape` 
-    : `${city} travel landmark`;
+// Google Places Text Search for city images
+async function searchGooglePlaces(city: string, country?: string): Promise<string | null> {
+  const query = country ? `${city}, ${country}` : city;
   
   try {
-    const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-      {
-        headers: {
-          'Authorization': apiKey,
-        },
-      }
+    const searchResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=locality&key=${GOOGLE_API_KEY}`
     );
 
-    if (!response.ok) {
-      console.error('Pexels API error:', response.status);
-      return null;
+    if (!searchResponse.ok) return null;
+
+    const searchData = await searchResponse.json();
+    
+    if (searchData.status !== 'OK' || !searchData.results?.length) {
+      // Try without type restriction for smaller cities
+      const fallbackResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' city')}&key=${GOOGLE_API_KEY}`
+      );
+      const fallbackData = await fallbackResponse.json();
+      if (fallbackData.status !== 'OK' || !fallbackData.results?.length) return null;
+      searchData.results = fallbackData.results;
     }
 
-    const data = await response.json();
-    
-    if (data.photos && data.photos.length > 0) {
-      // Use medium size (350px height) - good for cards
-      return data.photos[0].src.medium;
-    }
-    
-    return null;
+    const place = searchData.results[0];
+    if (!place.photos?.length) return null;
+
+    // Get photo URL
+    const photoRef = place.photos[0].photo_reference;
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
   } catch (error) {
-    console.error('Pexels fetch error:', error);
+    console.error('Google Places fetch error:', error);
     return null;
   }
 }
@@ -55,29 +50,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'City parameter required' }, { status: 400 });
   }
 
-  const cacheKey = `${city}-${country || ''}`.toLowerCase();
+  const cacheKey = `city:${city}-${country || ''}`.toLowerCase();
 
   // 1. Check cache first
-  if (pexelsCache.has(cacheKey)) {
+  if (imageCache.has(cacheKey)) {
     return NextResponse.json({ 
-      imageUrl: pexelsCache.get(cacheKey), 
+      imageUrl: imageCache.get(cacheKey), 
       source: 'cache' 
     });
   }
 
-  // 2. Search Pexels API
-  const pexelsUrl = await searchPexels(city, country || undefined);
+  // 2. Search Google Places API
+  const googleUrl = await searchGooglePlaces(city, country || undefined);
   
-  if (pexelsUrl) {
-    pexelsCache.set(cacheKey, pexelsUrl);
+  if (googleUrl) {
+    imageCache.set(cacheKey, googleUrl);
     return NextResponse.json({ 
-      imageUrl: pexelsUrl, 
-      source: 'pexels',
-      photographer: 'Pexels' // Attribution
+      imageUrl: googleUrl, 
+      source: 'google-places'
     });
   }
 
-  // 3. Fallback to generic travel image
+  // 3. Fallback
   return NextResponse.json({ 
     imageUrl: FALLBACK_IMAGE, 
     source: 'fallback' 
