@@ -1266,7 +1266,8 @@ export function SwipeablePlanningView({
   const [showWhyLove, setShowWhyLove] = useState(false); // Expanded "Why you'll love it"
   const [showWatchOut, setShowWatchOut] = useState(false); // Expanded "Watch out for"
   const [showLocalTip, setShowLocalTip] = useState(false); // Expanded local tip
-  const [enrichedCityInfo, setEnrichedCityInfo] = useState<CityInfo | null>(null); // AI-generated city data
+  const [enrichedCityInfo, setEnrichedCityInfo] = useState<CityInfo | null>(null); // AI-generated city data for current modal
+  const [cityInfoCache, setCityInfoCache] = useState<Record<string, CityInfo>>({}); // Preloaded city info for all cities
   const [isLoadingCityInfo, setIsLoadingCityInfo] = useState(false); // Loading state for city info
   const [siteImages, setSiteImages] = useState<Record<string, string>>({}); // Dynamic Pexels images for sites
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
@@ -1368,28 +1369,38 @@ export function SwipeablePlanningView({
     }
   }, [phase, currentStepIndex, stepItems.length, onSearchAI, currentStep.id, destinations, selectedCities]);
 
-  // Fetch enriched city info when modal opens (if not already in database)
+  // Use cached city info when modal opens, or fetch if not cached
   useEffect(() => {
     if (!cityDetailItem) {
       setEnrichedCityInfo(null);
       return;
     }
 
-    const basicInfo = getCityInfo(cityDetailItem.name);
+    const cityName = cityDetailItem.name;
+    
+    // Use cached info if available
+    if (cityInfoCache[cityName]) {
+      setEnrichedCityInfo(cityInfoCache[cityName]);
+      setIsLoadingCityInfo(false);
+      return;
+    }
+
+    const basicInfo = getCityInfo(cityName);
     // If city already has highlights and ratings, use it directly
     if (basicInfo.highlights && basicInfo.ratings) {
       setEnrichedCityInfo(basicInfo);
       return;
     }
 
-    // Otherwise fetch from API to get AI-generated data
+    // Otherwise fetch from API (fallback if preload didn't complete)
     setIsLoadingCityInfo(true);
     const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
 
-    fetch(`/api/city-info?city=${encodeURIComponent(cityDetailItem.name)}&country=${encodeURIComponent(country || '')}`)
+    fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
       .then(res => res.json())
       .then(data => {
         setEnrichedCityInfo(data);
+        setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
         setIsLoadingCityInfo(false);
       })
       .catch(err => {
@@ -1397,7 +1408,7 @@ export function SwipeablePlanningView({
         setEnrichedCityInfo(basicInfo);
         setIsLoadingCityInfo(false);
       });
-  }, [cityDetailItem, destinations]);
+  }, [cityDetailItem, destinations, cityInfoCache]);
 
   // Track previous city to know when to clear images
   const prevCityRef = useRef<string | null>(null);
@@ -1446,7 +1457,7 @@ export function SwipeablePlanningView({
     });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
-  // Preload ALL city images on mount so they're ready when modal opens
+  // Preload ALL city info and images on mount so they're ready when modal opens
   useEffect(() => {
     const cityItems = items.filter(item => isCity(item));
     if (cityItems.length === 0) return;
@@ -1454,30 +1465,44 @@ export function SwipeablePlanningView({
     cityItems.forEach(item => {
       const cityName = item.name;
       const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
-      const cityInfo = getCityInfo(cityName);
-      const sites = cityInfo.topSites.slice(0, 4);
 
-      // Skip if already loaded
-      if (siteImages[cityName]) return;
+      // Skip city info if already cached
+      if (!cityInfoCache[cityName]) {
+        const basicInfo = getCityInfo(cityName);
+        // If not in hardcoded list, fetch from API
+        if (!basicInfo.highlights || !basicInfo.ratings) {
+          fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+            .then(res => res.json())
+            .then(data => {
+              setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
+              // Also fetch images for the sites once we have real data
+              const sites = data.topSites?.slice(0, 4) || [];
+              sites.forEach((site: string) => {
+                if (site && site !== 'Loading...' && !siteImages[site]) {
+                  fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+                    .then(res => res.json())
+                    .then(imgData => {
+                      setSiteImages(prev => ({ ...prev, [site]: imgData.imageUrl }));
+                    })
+                    .catch(() => {});
+                }
+              });
+            })
+            .catch(() => {});
+        } else {
+          setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
+        }
+      }
 
-      // Fetch city image
-      fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
-        .then(res => res.json())
-        .then(data => {
-          setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
-        })
-        .catch(() => {});
-
-      // Fetch site images
-      sites.forEach(site => {
-        if (siteImages[site]) return;
-        fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+      // Fetch city image if not already loaded
+      if (!siteImages[cityName]) {
+        fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
           .then(res => res.json())
           .then(data => {
-            setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+            setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
           })
           .catch(() => {});
-      });
+      }
     });
   }, [items, destinations]); // eslint-disable-line react-hooks/exhaustive-deps
 
