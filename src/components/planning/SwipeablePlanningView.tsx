@@ -1416,16 +1416,13 @@ export function SwipeablePlanningView({
 
     // Use enriched city info if available, otherwise fallback to basic city info
     const cityInfo = enrichedCityInfo || getCityInfo(cityDetailItem.name);
-    console.log('[SiteImages] cityDetailItem:', cityDetailItem.name, 'cityInfo topSites:', cityInfo?.topSites);
     
     if (!cityInfo?.topSites || cityInfo.topSites[0] === 'Loading...') {
-      console.log('[SiteImages] Skipping - no topSites or still loading');
       return;
     }
 
     const cityName = cityDetailItem.name;
     const sites = cityInfo.topSites.slice(0, 4);
-    console.log('[SiteImages] Fetching images for city:', cityName, 'sites:', sites);
     
     // Fetch city image and site images in parallel
     const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
@@ -1434,20 +1431,18 @@ export function SwipeablePlanningView({
     fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
       .then(res => res.json())
       .then(data => {
-        console.log('[SiteImages] City image loaded:', cityName, data.imageUrl);
         setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
       })
-      .catch((err) => console.error('[SiteImages] City image error:', err));
+      .catch(() => {});
 
     // Fetch site images
     sites.forEach(site => {
       fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
         .then(res => res.json())
         .then(data => {
-          console.log('[SiteImages] Site image loaded:', site, data.imageUrl);
           setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
         })
-        .catch((err) => console.error('[SiteImages] Site image error:', site, err));
+        .catch(() => {});
     });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
