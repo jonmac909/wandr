@@ -23,6 +23,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import { getCityImage } from '@/lib/planning/city-images';
 
 interface Listing {
   id: string;
@@ -139,22 +140,6 @@ const DESTINATION_CITIES: Record<string, { name: string; description: string; ta
     { name: 'St. Moritz', description: 'Glamorous Alpine resort with luxury skiing and sparkling lake.', tags: ['Luxury', 'Skiing', 'Resort'] },
   ],
 };
-
-// Get city image based on name
-function getCityImage(cityName: string): string {
-  const cityImages: Record<string, string> = {
-    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
-    'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
-    'Osaka': 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=600&q=80',
-    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&q=80',
-    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80',
-    'Barcelona': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80',
-    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=600&q=80',
-    'Zurich': 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=600&q=80',
-    'default': 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=80',
-  };
-  return cityImages[cityName] || cityImages['default'];
-}
 
 // Generate cities for destination
 function generateCities(destination: string): Listing[] {
