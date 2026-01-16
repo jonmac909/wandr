@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
   turbopack: {},
   // Required for OpenNext/Cloudflare deployment
   output: 'standalone',
+  // Expose server-side env vars
+  env: {
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+  },
 };
 
 export default withPWA(nextConfig);
