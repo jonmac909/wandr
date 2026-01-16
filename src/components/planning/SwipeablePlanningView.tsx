@@ -1446,6 +1446,41 @@ export function SwipeablePlanningView({
     });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
+  // Preload ALL city images on mount so they're ready when modal opens
+  useEffect(() => {
+    const cityItems = items.filter(item => isCity(item));
+    if (cityItems.length === 0) return;
+
+    cityItems.forEach(item => {
+      const cityName = item.name;
+      const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
+      const cityInfo = getCityInfo(cityName);
+      const sites = cityInfo.topSites.slice(0, 4);
+
+      // Skip if already loaded
+      if (siteImages[cityName]) return;
+
+      // Fetch city image
+      fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+        .then(res => res.json())
+        .then(data => {
+          setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+        })
+        .catch(() => {});
+
+      // Fetch site images
+      sites.forEach(site => {
+        if (siteImages[site]) return;
+        fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+          .then(res => res.json())
+          .then(data => {
+            setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+          })
+          .catch(() => {});
+      });
+    });
+  }, [items, destinations]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
     return items.filter((i) => i.isFavorited);
