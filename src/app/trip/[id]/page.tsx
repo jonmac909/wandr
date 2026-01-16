@@ -36,6 +36,55 @@ import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningVi
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
 import { getCityImage } from '@/lib/planning/city-images';
+
+// Pexels image arrays for mock data
+const PEXELS_HOTEL_IMAGES = [
+  'https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg',
+  'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
+  'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
+  'https://images.pexels.com/photos/262048/pexels-photo-262048.jpeg',
+  'https://images.pexels.com/photos/1134176/pexels-photo-1134176.jpeg',
+  'https://images.pexels.com/photos/2507010/pexels-photo-2507010.jpeg',
+];
+
+const PEXELS_RESTAURANT_IMAGES = [
+  'https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg',
+  'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg',
+  'https://images.pexels.com/photos/1579739/pexels-photo-1579739.jpeg',
+  'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg',
+  'https://images.pexels.com/photos/696218/pexels-photo-696218.jpeg',
+  'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg',
+];
+
+const PEXELS_ACTIVITY_IMAGES = [
+  'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg',
+  'https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg',
+  'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg',
+  'https://images.pexels.com/photos/2104152/pexels-photo-2104152.jpeg',
+  'https://images.pexels.com/photos/2440061/pexels-photo-2440061.jpeg',
+  'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg',
+];
+
+const PEXELS_CAFE_IMAGES = [
+  'https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg',
+  'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg',
+  'https://images.pexels.com/photos/1813466/pexels-photo-1813466.jpeg',
+  'https://images.pexels.com/photos/2074130/pexels-photo-2074130.jpeg',
+  'https://images.pexels.com/photos/1395967/pexels-photo-1395967.jpeg',
+];
+
+function getMockPexelsImage(name: string, category: 'hotel' | 'restaurant' | 'activity' | 'cafe'): string {
+  const images = category === 'hotel' ? PEXELS_HOTEL_IMAGES :
+                 category === 'restaurant' ? PEXELS_RESTAURANT_IMAGES :
+                 category === 'cafe' ? PEXELS_CAFE_IMAGES : PEXELS_ACTIVITY_IMAGES;
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return `${images[Math.abs(hash) % images.length]}?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop`;
+}
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1515,12 +1564,11 @@ export default function TripPage() {
                 citiesToUse.forEach((city, cityIdx) => {
                   const cityHotels = hotelsByCity[city] || defaultHotels;
                   cityHotels.forEach((hotel, idx) => {
-                    const seed = `hotel${city}${hotel}`.toLowerCase().replace(/[^a-z0-9]/g, '');
                     mockItems.push({
                       id: `hotel-${cityIdx}-${idx}`,
                       name: hotel,
                       description: `${city} • ${['$150-250', '$200-400', '$300-600', '$400-800', '$500+'][idx % 5]}/night`,
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(`${city}${hotel}`, 'hotel'),
                       category: 'hotels',
                       tags: ['hotels', city],
                       neighborhood: city,
@@ -1547,12 +1595,11 @@ export default function TripPage() {
                 citiesToUse.forEach((city, cityIdx) => {
                   const cityRestos = restaurantsByCity[city] || defaultRestaurants;
                   cityRestos.forEach((resto, idx) => {
-                    const seed = `resto${city}${resto}`.toLowerCase().replace(/[^a-z0-9]/g, '');
                     mockItems.push({
                       id: `resto-${cityIdx}-${idx}`,
                       name: resto,
                       description: `${city} • ${['Turkish', 'Mediterranean', 'Local', 'International', 'Seafood'][idx % 5]}`,
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(`${city}${resto}`, 'restaurant'),
                       category: 'restaurants',
                       tags: ['restaurants', city],
                       neighborhood: city,
@@ -1610,12 +1657,11 @@ export default function TripPage() {
                       || ['Local Experience', 'Guided Tour', 'Day Activity'];
 
                     prefActivities.slice(0, 3).forEach((act, idx) => {
-                      const seed = `act${city}${pref}${act}`.toLowerCase().replace(/[^a-z0-9]/g, '');
                       mockItems.push({
                         id: `act-${cityIdx}-${prefIdx}-${idx}`,
                         name: act,
                         description: `${city} • ${pref.charAt(0).toUpperCase() + pref.slice(1)} • ${['2-3 hours', '3-4 hours', 'Half day'][idx % 3]}`,
-                        imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                        imageUrl: getMockPexelsImage(`${city}${pref}${act}`, 'activity'),
                         category: 'activities',
                         tags: ['activities', city, pref],
                         neighborhood: city,
@@ -1792,12 +1838,11 @@ export default function TripPage() {
                     'Nature Hike'
                   ];
                   experiences.forEach((exp, idx) => {
-                    const seed = exp.toLowerCase().replace(/[^a-z0-9]/g, '');
                     mockItems.push({
                       id: `exp-${idx}`,
                       name: exp,
                       description: `Experience the best ${exp.toLowerCase()}`,
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(exp, 'activity'),
                       category: 'activities',
                       tags: ['experiences'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1808,12 +1853,11 @@ export default function TripPage() {
                 } else if (category === 'hotels') {
                   const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
                   hotelTypes.forEach((hotel, idx) => {
-                    const seed = `hotel${hotel.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `hotel-${idx}`,
                       name: hotel,
                       description: 'Beautiful accommodations',
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(hotel, 'hotel'),
                       category: 'hotels',
                       tags: ['hotels'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1824,12 +1868,11 @@ export default function TripPage() {
                 } else if (category === 'restaurants') {
                   const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food Market', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Cafe & Brunch'];
                   restaurants.forEach((resto, idx) => {
-                    const seed = `food${resto.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `resto-${idx}`,
                       name: resto,
                       description: 'Delicious local cuisine',
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(resto, 'restaurant'),
                       category: 'restaurants',
                       tags: ['restaurants'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),
@@ -1840,12 +1883,11 @@ export default function TripPage() {
                 } else if (category === 'cafes') {
                   const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
                   cafes.forEach((cafe, idx) => {
-                    const seed = `cafe${cafe.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     mockItems.push({
                       id: `cafe-${idx}`,
                       name: cafe,
                       description: 'Perfect spot for coffee',
-                      imageUrl: `https://picsum.photos/seed/${seed}/400/300`,
+                      imageUrl: getMockPexelsImage(cafe, 'cafe'),
                       category: 'cafes',
                       tags: ['cafes'],
                       rating: parseFloat((4 + Math.random()).toFixed(1)),

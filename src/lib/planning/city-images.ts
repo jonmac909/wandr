@@ -16,13 +16,25 @@ function getWikimediaImageUrl(cityName: string, country?: string): string {
 }
 
 /**
- * Generate a reliable fallback image using Picsum with city-based seed
- * This ensures same city always gets same image
+ * Generate a reliable fallback image using Pexels
+ * Hash-based selection ensures same city always gets same image
  */
 function getSeededFallback(cityName: string): string {
-  // Create a hash from city name for consistent seeding
-  const seed = cityName.toLowerCase().replace(/\s+/g, '-');
-  return `https://picsum.photos/seed/${seed}-travel/600/400`;
+  const FALLBACK_IMAGES = [
+    'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg',
+    'https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg',
+    'https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg',
+    'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg',
+    'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg',
+    'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg',
+  ];
+  let hash = 0;
+  const str = cityName.toLowerCase();
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return `${FALLBACK_IMAGES[Math.abs(hash) % FALLBACK_IMAGES.length]}?auto=compress&cs=tinysrgb&w=600`;
 }
 
 // Curated city images - using picsum with meaningful seeds
