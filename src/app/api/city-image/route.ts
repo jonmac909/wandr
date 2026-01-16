@@ -32,9 +32,16 @@ async function searchGooglePlaces(city: string, country?: string): Promise<strin
     const place = searchData.results[0];
     if (!place.photos?.length) return null;
 
-    // Get photo URL
+    // Get photo reference and follow redirect to get stable URL
     const photoRef = place.photos[0].photo_reference;
-    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
+    const photoApiUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
+    
+    // Follow the redirect to get the stable lh3.googleusercontent.com URL
+    const photoResponse = await fetch(photoApiUrl, { redirect: 'follow' });
+    if (!photoResponse.ok) return null;
+    
+    // The final URL after redirect is stable and doesn't expire
+    return photoResponse.url;
   } catch (error) {
     console.error('Google Places fetch error:', error);
     return null;
