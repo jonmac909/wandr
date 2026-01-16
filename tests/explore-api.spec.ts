@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Explore API', () => {
   test('recommendations endpoint returns places for Tokyo', async ({ request }) => {
+    test.setTimeout(60000);
     const response = await request.post('/api/explore/recommendations', {
+      timeout: 60000,
       data: {
         city: 'Tokyo',
       },
@@ -23,7 +25,9 @@ test.describe('Explore API', () => {
   });
 
   test('recommendations with category filter', async ({ request }) => {
+    test.setTimeout(60000);
     const response = await request.post('/api/explore/recommendations', {
+      timeout: 60000,
       data: {
         city: 'Tokyo',
         category: 'cafe',

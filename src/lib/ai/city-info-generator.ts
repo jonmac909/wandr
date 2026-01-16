@@ -429,6 +429,39 @@ export const POPULAR_CITY_INFO: Record<string, CityInfo> = {
       ],
     }
   },
+  'Kanchanaburi': {
+    bestFor: ['History', 'Nature', 'Adventure'],
+    crowdLevel: 'Low',
+    bestTime: 'Nov-Feb',
+    topSites: ['Bridge over River Kwai', 'Erawan National Park', 'Death Railway', 'Hellfire Pass'],
+    localTip: 'Take the historic train ride along the Death Railway for stunning views over the river',
+    avgDays: '2-3 days',
+    pros: ['WWII history sites', 'Stunning waterfalls', 'Less touristy than other areas'],
+    cons: ['Spread out attractions require transport', 'Very hot in summer', 'Limited nightlife'],
+    ratings: { calm: 4, wow: 4, history: 5, friction: 2 },
+    idealFor: ['History buffs', 'Nature lovers', 'Off-the-beaten-path seekers'],
+    highlights: {
+      landmarks: [
+        { name: 'Bridge over River Kwai', description: 'Famous WWII bridge rebuilt after Allied bombing - walk across and see the museum' },
+        { name: 'Death Railway', description: 'Historic railway built by POWs - take the scenic train ride along the original route' },
+        { name: 'Hellfire Pass', description: 'Moving memorial cut through rock by hand - excellent museum tells POW stories' },
+        { name: 'JEATH War Museum', description: 'Replica POW camp with artifacts and photos from the Burma Railway construction' },
+      ],
+      history: [
+        { name: 'Burma Railway (1942-1943)', description: 'Over 100,000 POWs and laborers died building the "Death Railway" for Japanese forces' },
+        { name: 'Allied War Cemeteries', description: 'Beautifully maintained graves of 6,982 POWs who died during construction' },
+      ],
+      nature: [
+        { name: 'Erawan National Park', description: 'Seven-tiered turquoise waterfall - swim in the pools if you hike to the top' },
+        { name: 'Sai Yok National Park', description: 'Caves, smaller waterfalls, and bamboo rafting on the Kwai Noi River' },
+        { name: 'Elephant World Sanctuary', description: 'Ethical elephant care center where you can observe rescued elephants' },
+      ],
+      food: [
+        { name: 'Floating Restaurants', description: 'Dine on rafts along the River Kwai with fresh river fish and Thai classics' },
+        { name: 'Local Markets', description: 'Night market near the bridge for authentic Thai street food' },
+      ],
+    }
+  },
   'Phuket': { bestFor: ['Beach', 'Nightlife', 'Water Sports'], crowdLevel: 'High', bestTime: 'Nov-Apr', topSites: ['Patong Beach', 'Big Buddha', 'Old Phuket Town', 'Phi Phi Islands'], localTip: 'Stay in Kata or Karon for beaches without Patong party crowds', avgDays: '3-5 days', pros: ['Beautiful beaches', 'Great diving and snorkeling', 'Island hopping base'], cons: ['Very touristy', 'Overdeveloped in parts', 'Rainy season Jun-Oct'] },
   'Krabi': { bestFor: ['Nature', 'Beach', 'Rock Climbing'], crowdLevel: 'Moderate', bestTime: 'Nov-Apr', topSites: ['Railay Beach', 'Tiger Cave Temple', 'Four Islands', 'Ao Nang'], localTip: 'Railay Beach is only accessible by boat - plan accordingly', avgDays: '3-4 days', pros: ['Dramatic limestone cliffs', 'World-class rock climbing', 'Less crowded than Phuket'], cons: ['Boat-only access to best beaches', 'Limited nightlife', 'Monsoon season flooding'] },
   'Koh Samui': { bestFor: ['Beach', 'Luxury', 'Romance'], crowdLevel: 'Moderate', bestTime: 'Dec-Apr', topSites: ['Chaweng Beach', 'Big Buddha Temple', 'Ang Thong Marine Park', 'Fisherman\'s Village'], localTip: 'Visit during full moon for the famous party on nearby Koh Phangan', avgDays: '3-5 days', pros: ['Beautiful palm-fringed beaches', 'Upscale resorts', 'Good infrastructure'], cons: ['More expensive than mainland', 'Rainy Oct-Dec', 'Full moon party crowds'] },
