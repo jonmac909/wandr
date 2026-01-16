@@ -18,6 +18,7 @@ function getSupabase() {
 // Google Places Text Search to find a city and get its photos
 async function searchGooglePlaces(city: string, country?: string): Promise<{ url: string; placeId: string } | null> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  console.log('[city-image] API key exists:', !!apiKey, 'length:', apiKey?.length || 0);
   if (!apiKey) {
     console.warn('GOOGLE_MAPS_API_KEY not configured');
     return null;
@@ -37,6 +38,7 @@ async function searchGooglePlaces(city: string, country?: string): Promise<{ url
     }
 
     const searchData = await searchResponse.json();
+    console.log('[city-image] Google response status:', searchData.status, 'results:', searchData.results?.length || 0);
     
     if (searchData.status !== 'OK' || !searchData.results?.length) {
       // Try without type restriction for smaller cities
