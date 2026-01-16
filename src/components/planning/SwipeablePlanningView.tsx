@@ -4133,13 +4133,13 @@ export function SwipeablePlanningView({
             const isSelected = selectedIds.has(cityDetailItem.id);
             const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, cityDetailItem.name);
 
-            // Create image slides: city overview + top sites (using Pexels images)
-            const fallbackImage = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
+            // Create image slides: city overview + top sites
+            // Use null for loading state instead of Cappadocia fallback
             const imageSlides = [
-              { label: cityDetailItem.name, url: siteImages[cityDetailItem.name] || fallbackImage },
+              { label: cityDetailItem.name, url: siteImages[cityDetailItem.name] || null },
               ...cityInfo.topSites.slice(0, 4).map((site) => ({
                 label: site,
-                url: siteImages[site] || fallbackImage
+                url: siteImages[site] || null
               }))
             ];
 

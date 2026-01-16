@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
 
 interface CityImageProps {
-  src?: string;
+  src?: string | null;
   alt: string;
   className?: string;
 }
