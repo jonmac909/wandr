@@ -60,7 +60,7 @@ import {
   extractCitiesFromItinerary,
   getItineraryDuration,
 } from '@/lib/planning/itinerary-to-planning';
-import { getCityImage, getSiteImage } from '@/lib/planning/city-images';
+// City/site images now fetched dynamically from Pexels API
 import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
 import { planningDb } from '@/lib/db/indexed-db';
 import dynamic from 'next/dynamic';
@@ -1268,6 +1268,7 @@ export function SwipeablePlanningView({
   const [showLocalTip, setShowLocalTip] = useState(false); // Expanded local tip
   const [enrichedCityInfo, setEnrichedCityInfo] = useState<CityInfo | null>(null); // AI-generated city data
   const [isLoadingCityInfo, setIsLoadingCityInfo] = useState(false); // Loading state for city info
+  const [siteImages, setSiteImages] = useState<Record<string, string>>({}); // Dynamic Pexels images for sites
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [favoriteCityModal, setFavoriteCityModal] = useState<string | null>(null); // City modal in favorites view
   const [favoriteCityTab, setFavoriteCityTab] = useState<'hotels' | 'restaurants' | 'cafes' | 'activities'>('hotels');
@@ -1397,6 +1398,42 @@ export function SwipeablePlanningView({
         setIsLoadingCityInfo(false);
       });
   }, [cityDetailItem, destinations]);
+
+  // Fetch site images from Pexels when city info is available
+  useEffect(() => {
+    if (!cityDetailItem || !enrichedCityInfo?.topSites) {
+      setSiteImages({});
+      return;
+    }
+
+    const cityName = cityDetailItem.name;
+    const sites = enrichedCityInfo.topSites.slice(0, 4);
+    
+    // Fetch city image and site images in parallel
+    const fetchImages = async () => {
+      const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
+      
+      // Fetch city image
+      fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+        .then(res => res.json())
+        .then(data => {
+          setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+        })
+        .catch(() => {});
+
+      // Fetch site images
+      sites.forEach(site => {
+        fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+          .then(res => res.json())
+          .then(data => {
+            setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+          })
+          .catch(() => {});
+      });
+    };
+
+    fetchImages();
+  }, [cityDetailItem, enrichedCityInfo, destinations]);
 
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
@@ -4084,13 +4121,13 @@ export function SwipeablePlanningView({
             const isSelected = selectedIds.has(cityDetailItem.id);
             const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, cityDetailItem.name);
 
-            // Create image slides: city overview + top sites (using real Unsplash images)
-            const country = destinations.length > 0 ? destinations[0] : undefined;
+            // Create image slides: city overview + top sites (using Pexels images)
+            const fallbackImage = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
             const imageSlides = [
-              { label: cityDetailItem.name, url: getCityImage(cityDetailItem.name, country) },
+              { label: cityDetailItem.name, url: siteImages[cityDetailItem.name] || fallbackImage },
               ...cityInfo.topSites.slice(0, 4).map((site) => ({
                 label: site,
-                url: getSiteImage(site)
+                url: siteImages[site] || fallbackImage
               }))
             ];
 
