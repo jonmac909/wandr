@@ -11,14 +11,15 @@ interface CityImageProps {
 }
 
 export function CityImage({ src, alt, className = '' }: CityImageProps) {
-  const [imgSrc, setImgSrc] = useState(src || FALLBACK_IMAGE);
+  const [imgSrc, setImgSrc] = useState<string | null>(src || null);
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(!src);
 
-  // Update imgSrc when src prop changes (fixes issue where initial undefined src
-  // would stay as fallback even after parent provides the real URL)
+  // Update imgSrc when src prop changes
   useEffect(() => {
     if (src && src !== imgSrc && !hasError) {
       setImgSrc(src);
+      setIsLoading(false);
     }
   }, [src, imgSrc, hasError]);
 
@@ -26,8 +27,20 @@ export function CityImage({ src, alt, className = '' }: CityImageProps) {
     if (!hasError) {
       setHasError(true);
       setImgSrc(FALLBACK_IMAGE);
+      setIsLoading(false);
     }
   };
+
+  const handleLoad = () => {
+    setIsLoading(false);
+  };
+
+  // Show loading skeleton while waiting for image
+  if (!imgSrc || isLoading) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse`} />
+    );
+  }
 
   return (
     <img
@@ -35,6 +48,7 @@ export function CityImage({ src, alt, className = '' }: CityImageProps) {
       alt={alt}
       className={className}
       onError={handleError}
+      onLoad={handleLoad}
     />
   );
 }
