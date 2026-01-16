@@ -1410,12 +1410,18 @@ export function SwipeablePlanningView({
       prevCityRef.current = cityDetailItem?.name || null;
     }
 
-    if (!cityDetailItem || !enrichedCityInfo?.topSites) {
+    if (!cityDetailItem) {
+      return;
+    }
+
+    // Use enriched city info if available, otherwise fallback to basic city info
+    const cityInfo = enrichedCityInfo || getCityInfo(cityDetailItem.name);
+    if (!cityInfo?.topSites || cityInfo.topSites[0] === 'Loading...') {
       return;
     }
 
     const cityName = cityDetailItem.name;
-    const sites = enrichedCityInfo.topSites.slice(0, 4);
+    const sites = cityInfo.topSites.slice(0, 4);
     
     // Fetch city image and site images in parallel
     const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
