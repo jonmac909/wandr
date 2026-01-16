@@ -2616,18 +2616,18 @@ export function SwipeablePlanningView({
 
     // Optimize route function - nearest neighbor algorithm within each country
     const optimizeRoute = () => {
-      debug('[OptimizeRoute] Starting...');
-      debug('[OptimizeRoute] routeOrder:', routeOrder);
-      debug('[OptimizeRoute] selectedCities:', selectedCities);
-      debug('[OptimizeRoute] countryOrder:', countryOrder);
-      debug('[OptimizeRoute] destinations:', destinations);
+      console.log('[OptimizeRoute] Starting optimization...');
+      console.log('[OptimizeRoute] routeOrder:', routeOrder);
+      console.log('[OptimizeRoute] selectedCities:', selectedCities);
+      console.log('[OptimizeRoute] countryOrder:', countryOrder);
+      console.log('[OptimizeRoute] destinations:', destinations);
 
       // Use routeOrder if available, otherwise fall back to selectedCities
       const citiesToOptimize = routeOrder.length > 0 ? routeOrder : selectedCities;
-      debug('[OptimizeRoute] citiesToOptimize:', citiesToOptimize);
+      console.log('[OptimizeRoute] citiesToOptimize:', citiesToOptimize);
 
       if (citiesToOptimize.length === 0) {
-        debug('[OptimizeRoute] No cities to optimize - aborting');
+        console.log('[OptimizeRoute] No cities to optimize - aborting');
         return;
       }
 
@@ -2696,14 +2696,15 @@ export function SwipeablePlanningView({
         }
       });
 
-      debug('[OptimizeRoute] Final optimizedOrder:', optimizedOrder);
+      console.log('[OptimizeRoute] Final optimizedOrder:', optimizedOrder);
+      console.log('[OptimizeRoute] Original order was:', citiesToOptimize);
 
       // Only update if we have cities (prevent clearing the route)
       if (optimizedOrder.length > 0) {
-        debug('[OptimizeRoute] Setting new route order');
+        console.log('[OptimizeRoute] Setting new route order');
         setRouteOrder(optimizedOrder);
       } else {
-        debug('[OptimizeRoute] No cities to set - skipping');
+        console.log('[OptimizeRoute] No cities to set - skipping');
       }
     };
 
