@@ -1457,41 +1457,41 @@ export function SwipeablePlanningView({
     });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
-  // Preload ALL city info and images on mount so they're ready when modal opens
+  // Preload city info and images whenever items change (including AI search results)
   useEffect(() => {
     const cityItems = items.filter(item => item.tags?.includes('cities'));
     if (cityItems.length === 0) return;
 
     cityItems.forEach(item => {
       const cityName = item.name;
+      // Skip if already cached
+      if (cityInfoCache[cityName]) return;
+      
       const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
-
-      // Skip city info if already cached
-      if (!cityInfoCache[cityName]) {
-        const basicInfo = getCityInfo(cityName);
-        // If not in hardcoded list, fetch from API
-        if (!basicInfo.highlights || !basicInfo.ratings) {
-          fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
-            .then(res => res.json())
-            .then(data => {
-              setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
-              // Also fetch images for the sites once we have real data
-              const sites = data.topSites?.slice(0, 4) || [];
-              sites.forEach((site: string) => {
-                if (site && site !== 'Loading...' && !siteImages[site]) {
-                  fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
-                    .then(res => res.json())
-                    .then(imgData => {
-                      setSiteImages(prev => ({ ...prev, [site]: imgData.imageUrl }));
-                    })
-                    .catch(() => {});
-                }
-              });
-            })
-            .catch(() => {});
-        } else {
-          setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
-        }
+      const basicInfo = getCityInfo(cityName);
+      
+      // If not in hardcoded list, fetch from API
+      if (!basicInfo.highlights || !basicInfo.ratings) {
+        fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+          .then(res => res.json())
+          .then(data => {
+            setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
+            // Also fetch images for the sites
+            const sites = data.topSites?.slice(0, 4) || [];
+            sites.forEach((site: string) => {
+              if (site && site !== 'Loading...') {
+                fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+                  .then(res => res.json())
+                  .then(imgData => {
+                    setSiteImages(prev => ({ ...prev, [site]: imgData.imageUrl }));
+                  })
+                  .catch(() => {});
+              }
+            });
+          })
+          .catch(() => {});
+      } else {
+        setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
       }
 
       // Fetch city image if not already loaded
@@ -1504,7 +1504,7 @@ export function SwipeablePlanningView({
           .catch(() => {});
       }
     });
-  }, [items, destinations]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items, destinations, cityInfoCache, siteImages]);
 
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
@@ -4554,17 +4554,6 @@ export function SwipeablePlanningView({
         </DialogContent>
       </Dialog>
 
-      {/* Pexels Attribution */}
-      <div className="text-center pt-4 pb-2">
-        <a
-          href="https://www.pexels.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground"
-        >
-          Photos by Pexels
-        </a>
-      </div>
     </div>
   );
 }
