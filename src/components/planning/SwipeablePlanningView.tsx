@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1399,10 +1399,18 @@ export function SwipeablePlanningView({
       });
   }, [cityDetailItem, destinations]);
 
+  // Track previous city to know when to clear images
+  const prevCityRef = useRef<string | null>(null);
+
   // Fetch site images from Pexels when city info is available
   useEffect(() => {
-    if (!cityDetailItem || !enrichedCityInfo?.topSites) {
+    // Clear images only when switching to a different city
+    if (cityDetailItem?.name !== prevCityRef.current) {
       setSiteImages({});
+      prevCityRef.current = cityDetailItem?.name || null;
+    }
+
+    if (!cityDetailItem || !enrichedCityInfo?.topSites) {
       return;
     }
 
@@ -1410,29 +1418,25 @@ export function SwipeablePlanningView({
     const sites = enrichedCityInfo.topSites.slice(0, 4);
     
     // Fetch city image and site images in parallel
-    const fetchImages = async () => {
-      const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
-      
-      // Fetch city image
-      fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+    const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
+    
+    // Fetch city image
+    fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+      .then(res => res.json())
+      .then(data => {
+        setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+      })
+      .catch(() => {});
+
+    // Fetch site images
+    sites.forEach(site => {
+      fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
         .then(res => res.json())
         .then(data => {
-          setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+          setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
         })
         .catch(() => {});
-
-      // Fetch site images
-      sites.forEach(site => {
-        fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
-          .then(res => res.json())
-          .then(data => {
-            setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
-          })
-          .catch(() => {});
-      });
-    };
-
-    fetchImages();
+    });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
   // Get selected/favorited items
