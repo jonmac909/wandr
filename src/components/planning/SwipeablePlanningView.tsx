@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CityImage } from '@/components/ui/city-image';
 import {
   Dialog,
   DialogContent,
@@ -1960,7 +1961,7 @@ export function SwipeablePlanningView({
           }}
           className="absolute inset-0 w-full h-full"
         >
-          <img
+          <CityImage
             src={item.imageUrl}
             alt={item.name}
             className="w-full h-full object-cover"
@@ -2285,7 +2286,7 @@ export function SwipeablePlanningView({
                             {/* City image */}
                             <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
                               {cityItem?.imageUrl ? (
-                                <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
+                                <CityImage src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                                   <Building2 className="w-5 h-5 text-primary" />
@@ -2367,7 +2368,7 @@ export function SwipeablePlanningView({
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
                   {modalCityItem?.imageUrl ? (
-                    <img src={modalCityItem.imageUrl} alt={modalCity || ''} className="w-full h-full object-cover" />
+                    <CityImage src={modalCityItem.imageUrl} alt={modalCity || ''} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-primary" />
@@ -2488,7 +2489,7 @@ export function SwipeablePlanningView({
                           onClick={() => toggleSelect(item.id, item.name)}
                         >
                           <div className="aspect-square">
-                            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                            <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                           </div>
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                           <div className="absolute bottom-0 left-0 right-0 p-1.5">
@@ -3103,7 +3104,7 @@ export function SwipeablePlanningView({
                   {/* City image */}
                   {cityItem?.imageUrl && (
                     <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                      <img src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
+                      <CityImage src={cityItem.imageUrl} alt={city} className="w-full h-full object-cover" />
                     </div>
                   )}
 
@@ -3438,7 +3439,7 @@ export function SwipeablePlanningView({
                     }}
                   >
                     {cityItem?.imageUrl && (
-                      <img src={cityItem.imageUrl} alt={city} className="w-8 h-8 rounded object-cover" />
+                      <CityImage src={cityItem.imageUrl} alt={city} className="w-8 h-8 rounded object-cover" />
                     )}
                     <div className="text-sm">
                       <div className="font-medium">{city}</div>
@@ -3534,7 +3535,7 @@ export function SwipeablePlanningView({
                     e.dataTransfer.setData('itemId', item.id);
                   }}
                 >
-                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                  <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/30" />
                   <GripVertical className="absolute top-1 right-1 w-3 h-3 text-white/70" />
                 </div>
@@ -3583,7 +3584,7 @@ export function SwipeablePlanningView({
                     <div className="flex -space-x-2">
                       {dayItems.slice(0, 3).map((item) => (
                         <div key={item.id} className="w-8 h-8 rounded-full overflow-hidden border-2 border-background">
-                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                          <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                         </div>
                       ))}
                       {dayItems.length > 3 && (
@@ -3622,7 +3623,7 @@ export function SwipeablePlanningView({
                             <div className="flex-1 mb-2 p-3 rounded-xl bg-background border shadow-sm">
                               <div className="flex gap-3">
                                 <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                  <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-semibold text-sm line-clamp-1">{item.name}</h4>
@@ -3863,7 +3864,7 @@ export function SwipeablePlanningView({
                     onClick={() => setCityDetailItem(item)}
                   >
                     <div className="relative aspect-square">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                       <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                         recommendation.match === 'great' ? 'bg-green-500 text-white' :
                         recommendation.match === 'neutral' ? 'bg-gray-400 text-white' : recommendation.match === 'consider' ? 'bg-amber-500 text-white' :
@@ -3978,7 +3979,7 @@ export function SwipeablePlanningView({
             <div className="flex flex-col max-h-[85vh]">
               {/* Hero Image with Overlay */}
               <div className="relative h-48 flex-shrink-0">
-                <img src={detailItem.imageUrl} alt={detailItem.name} className="w-full h-full object-cover" />
+                <CityImage src={detailItem.imageUrl} alt={detailItem.name} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
                 {/* Close button */}
@@ -4173,7 +4174,7 @@ export function SwipeablePlanningView({
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
-                  <img
+                  <CityImage
                     src={imageSlides[cityImageIndex].url}
                     alt={imageSlides[cityImageIndex].label}
                     className="w-full h-full object-cover"
