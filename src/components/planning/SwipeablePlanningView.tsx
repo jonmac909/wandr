@@ -4444,6 +4444,18 @@ export function SwipeablePlanningView({
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Pexels Attribution */}
+      <div className="text-center pt-4 pb-2">
+        <a
+          href="https://www.pexels.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground"
+        >
+          Photos by Pexels
+        </a>
+      </div>
     </div>
   );
 }

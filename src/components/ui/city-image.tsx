@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80';
+const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
 
 interface CityImageProps {
   src?: string;
