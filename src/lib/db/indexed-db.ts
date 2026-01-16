@@ -4,7 +4,13 @@ import Dexie, { type EntityTable } from 'dexie';
 import { TripDNA } from '@/types/trip-dna';
 import { Itinerary } from '@/types/itinerary';
 import { SavedPlace, PlaceCategory } from '@/types/saved-place';
-import { supabaseTrips } from './supabase';
+import { 
+  supabaseTrips, 
+  supabasePlanningStates, 
+  supabaseSavedPlaces, 
+  supabasePackingStates, 
+  supabasePreferences 
+} from './supabase';
 
 // Stored trip with metadata
 export interface StoredTrip {
@@ -354,23 +360,39 @@ export const documentDb = {
   },
 };
 
-// Packing state operations
+// Packing state operations - cloud-synced
 export const packingDb = {
-  // Get packing state
+  // Get packing state (cloud-first)
   async get(tripId: string): Promise<PackingState | undefined> {
+    try {
+      if (supabasePackingStates.isConfigured()) {
+        const cloudState = await supabasePackingStates.get(tripId);
+        if (cloudState) {
+          await db.packingStates.put(cloudState);
+          return cloudState;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud packing state fetch failed:', error);
+    }
     return db.packingStates.get(tripId);
   },
 
-  // Update packing state
+  // Update packing state (save to both local and cloud)
   async update(tripId: string, checkedItems: string[]): Promise<void> {
-    await db.packingStates.put({
+    const state: PackingState = {
       tripId,
       checkedItems,
       updatedAt: new Date(),
-    });
+    };
+    await db.packingStates.put(state);
+    // Sync to cloud
+    if (supabasePackingStates.isConfigured()) {
+      supabasePackingStates.save(state).catch(err => console.warn('Cloud sync failed:', err));
+    }
   },
 
-  // Toggle item
+  // Toggle item (with cloud sync)
   async toggleItem(tripId: string, itemKey: string): Promise<string[]> {
     const state = await db.packingStates.get(tripId);
     const current = state?.checkedItems || [];
@@ -379,22 +401,16 @@ export const packingDb = {
       ? current.filter(k => k !== itemKey)
       : [...current, itemKey];
 
-    await db.packingStates.put({
-      tripId,
-      checkedItems: updated,
-      updatedAt: new Date(),
-    });
-
+    await this.update(tripId, updated);
     return updated;
   },
 };
 
-// Preferences operations
+// Preferences operations - cloud-synced
 export const preferencesDb = {
-  // Get preferences
+  // Get preferences (cloud-first)
   async get(): Promise<UserPreferences> {
-    const prefs = await db.preferences.get('user');
-    return prefs || {
+    const defaultPrefs: UserPreferences = {
       id: 'user',
       theme: 'system',
       defaultCurrency: 'USD',
@@ -406,30 +422,68 @@ export const preferencesDb = {
       homeAirport: '',
       travelInterests: [],
     };
+
+    try {
+      if (supabasePreferences.isConfigured()) {
+        const cloudPrefs = await supabasePreferences.get();
+        if (cloudPrefs) {
+          await db.preferences.put(cloudPrefs);
+          return cloudPrefs;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud preferences fetch failed:', error);
+    }
+
+    const prefs = await db.preferences.get('user');
+    return prefs || defaultPrefs;
   },
 
-  // Update preferences
+  // Update preferences (save to both local and cloud)
   async update(updates: Partial<UserPreferences>): Promise<void> {
-    const current = await this.get();
-    await db.preferences.put({
+    const current = await db.preferences.get('user') || {
+      id: 'user',
+      theme: 'system',
+      defaultCurrency: 'USD',
+      measurementSystem: 'metric',
+      notifications: true,
+      travelInterests: [],
+    };
+    const updated: UserPreferences = {
       ...current,
       ...updates,
       id: 'user',
-    });
+    };
+    await db.preferences.put(updated);
+    // Sync to cloud
+    if (supabasePreferences.isConfigured()) {
+      supabasePreferences.save(updated).catch(err => console.warn('Cloud sync failed:', err));
+    }
   },
 };
 
-// Planning state operations (for trip curation progress)
+// Planning state operations (for trip curation progress) - cloud-synced
 export const planningDb = {
-  // Get planning state for a trip
+  // Get planning state for a trip (cloud-first)
   async get(tripId: string): Promise<PlanningState | undefined> {
+    try {
+      if (supabasePlanningStates.isConfigured()) {
+        const cloudState = await supabasePlanningStates.get(tripId);
+        if (cloudState) {
+          await db.planningStates.put(cloudState);
+          return cloudState;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud planning state fetch failed:', error);
+    }
     return db.planningStates.get(tripId);
   },
 
-  // Update planning state
+  // Update planning state (save to both local and cloud)
   async update(tripId: string, updates: Partial<Omit<PlanningState, 'tripId' | 'updatedAt'>>): Promise<void> {
     const existing = await db.planningStates.get(tripId);
-    await db.planningStates.put({
+    const state: PlanningState = {
       tripId,
       selectedIds: updates.selectedIds ?? existing?.selectedIds ?? [],
       selectedCities: updates.selectedCities ?? existing?.selectedCities ?? [],
@@ -440,26 +494,49 @@ export const planningDb = {
       allocations: updates.allocations ?? existing?.allocations,
       generatedDays: updates.generatedDays ?? existing?.generatedDays,
       updatedAt: new Date(),
-    });
+    };
+    await db.planningStates.put(state);
+    // Sync to cloud (fire and forget)
+    if (supabasePlanningStates.isConfigured()) {
+      supabasePlanningStates.save(state).catch(err => console.warn('Cloud sync failed:', err));
+    }
   },
 
-  // Delete planning state
+  // Delete planning state (from both local and cloud)
   async delete(tripId: string): Promise<void> {
     await db.planningStates.delete(tripId);
+    if (supabasePlanningStates.isConfigured()) {
+      supabasePlanningStates.delete(tripId).catch(err => console.warn('Cloud delete failed:', err));
+    }
   },
 };
 
 // Saved places operations (Explore feature)
+// Saved places operations (Explore feature) - cloud-synced
 export const savedPlacesDb = {
-  // Get all saved places
+  // Get all saved places (cloud-first)
   async getAll(): Promise<SavedPlace[]> {
+    try {
+      if (supabaseSavedPlaces.isConfigured()) {
+        const cloudPlaces = await supabaseSavedPlaces.getAll();
+        if (cloudPlaces.length > 0) {
+          // Cache to local
+          for (const place of cloudPlaces) {
+            await db.savedPlaces.put(place);
+          }
+          return cloudPlaces;
+        }
+      }
+    } catch (error) {
+      console.warn('Cloud saved places fetch failed:', error);
+    }
     return db.savedPlaces.orderBy('savedAt').reverse().toArray();
   },
 
   // Get saved places by city
   async getByCity(city: string): Promise<SavedPlace[]> {
     const normalizedCity = city.toLowerCase();
-    const all = await db.savedPlaces.toArray();
+    const all = await this.getAll();
     return all.filter(p => p.city.toLowerCase().includes(normalizedCity));
   },
 
@@ -468,21 +545,18 @@ export const savedPlacesDb = {
     if (category === 'all') {
       return this.getAll();
     }
-    return db.savedPlaces.where('type').equals(category).toArray();
+    const all = await this.getAll();
+    return all.filter(p => p.type === category);
   },
 
   // Get saved places by city and category
   async getByCityAndCategory(city: string, category: PlaceCategory): Promise<SavedPlace[]> {
     const normalizedCity = city.toLowerCase();
-    let places: SavedPlace[];
-
-    if (category === 'all') {
-      places = await db.savedPlaces.toArray();
-    } else {
-      places = await db.savedPlaces.where('type').equals(category).toArray();
-    }
-
-    return places.filter(p => p.city.toLowerCase().includes(normalizedCity));
+    const all = await this.getAll();
+    return all.filter(p => 
+      p.city.toLowerCase().includes(normalizedCity) &&
+      (category === 'all' || p.type === category)
+    );
   },
 
   // Get single saved place
@@ -494,14 +568,14 @@ export const savedPlacesDb = {
   async isSaved(name: string, city: string): Promise<boolean> {
     const normalizedName = name.toLowerCase();
     const normalizedCity = city.toLowerCase();
-    const all = await db.savedPlaces.toArray();
+    const all = await db.savedPlaces.toArray(); // Use local for quick check
     return all.some(p =>
       p.name.toLowerCase() === normalizedName &&
       p.city.toLowerCase().includes(normalizedCity)
     );
   },
 
-  // Save a new place
+  // Save a new place (to both local and cloud)
   async save(place: Omit<SavedPlace, 'id' | 'savedAt'>): Promise<SavedPlace> {
     const savedPlace: SavedPlace = {
       ...place,
@@ -509,17 +583,29 @@ export const savedPlacesDb = {
       savedAt: new Date().toISOString(),
     };
     await db.savedPlaces.add(savedPlace);
+    // Sync to cloud
+    if (supabaseSavedPlaces.isConfigured()) {
+      supabaseSavedPlaces.save(savedPlace).catch(err => console.warn('Cloud sync failed:', err));
+    }
     return savedPlace;
   },
 
-  // Update a saved place
+  // Update a saved place (both local and cloud)
   async update(id: string, updates: Partial<Omit<SavedPlace, 'id' | 'savedAt'>>): Promise<void> {
     await db.savedPlaces.update(id, updates);
+    // Sync to cloud
+    const updated = await db.savedPlaces.get(id);
+    if (updated && supabaseSavedPlaces.isConfigured()) {
+      supabaseSavedPlaces.save(updated).catch(err => console.warn('Cloud sync failed:', err));
+    }
   },
 
-  // Delete a saved place
+  // Delete a saved place (from both local and cloud)
   async delete(id: string): Promise<void> {
     await db.savedPlaces.delete(id);
+    if (supabaseSavedPlaces.isConfigured()) {
+      supabaseSavedPlaces.delete(id).catch(err => console.warn('Cloud delete failed:', err));
+    }
   },
 
   // Delete by name and city (for unsaving from browse)
@@ -532,13 +618,13 @@ export const savedPlacesDb = {
       p.city.toLowerCase().includes(normalizedCity)
     );
     if (toDelete) {
-      await db.savedPlaces.delete(toDelete.id);
+      await this.delete(toDelete.id);
     }
   },
 
   // Get unique cities from saved places
   async getCities(): Promise<string[]> {
-    const all = await db.savedPlaces.toArray();
+    const all = await this.getAll();
     const cities = [...new Set(all.map(p => p.city))];
     return cities.sort();
   },

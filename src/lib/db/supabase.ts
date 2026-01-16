@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { StoredTrip } from './indexed-db';
+import type { StoredTrip, PlanningState, PackingState, UserPreferences } from './indexed-db';
+import type { SavedPlace } from '@/types/saved-place';
 
 // Lazy initialization to avoid build-time errors
 let supabaseClient: SupabaseClient | null = null;
@@ -16,6 +17,11 @@ function getSupabase(): SupabaseClient | null {
 
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
   return supabaseClient;
+}
+
+// Check if Supabase is configured
+export function isSupabaseConfigured(): boolean {
+  return getSupabase() !== null;
 }
 
 // Database row type
@@ -135,6 +141,342 @@ export const supabaseTrips = {
   },
 
   // Check if Supabase is configured
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// ============================================
+// Planning States Sync
+// ============================================
+interface PlanningStateRow {
+  trip_id: string;
+  selected_ids: string[];
+  selected_cities: string[];
+  route_order: string[];
+  country_order: string[];
+  allocations: unknown;
+  generated_days: unknown;
+  phase: string;
+  current_step_index: number;
+  updated_at: string;
+}
+
+function rowToPlanningState(row: PlanningStateRow): PlanningState {
+  return {
+    tripId: row.trip_id,
+    selectedIds: row.selected_ids || [],
+    selectedCities: row.selected_cities || [],
+    routeOrder: row.route_order || [],
+    countryOrder: row.country_order || [],
+    allocations: row.allocations as PlanningState['allocations'],
+    generatedDays: row.generated_days as PlanningState['generatedDays'],
+    phase: row.phase as PlanningState['phase'],
+    currentStepIndex: row.current_step_index || 0,
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+function planningStateToRow(state: PlanningState): PlanningStateRow {
+  return {
+    trip_id: state.tripId,
+    selected_ids: state.selectedIds || [],
+    selected_cities: state.selectedCities || [],
+    route_order: state.routeOrder || [],
+    country_order: state.countryOrder || [],
+    allocations: state.allocations,
+    generated_days: state.generatedDays,
+    phase: state.phase,
+    current_step_index: state.currentStepIndex,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export const supabasePlanningStates = {
+  async get(tripId: string): Promise<PlanningState | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('planning_states')
+      .select('*')
+      .eq('trip_id', tripId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      console.error('Supabase planning state get error:', error);
+      return null;
+    }
+
+    return rowToPlanningState(data);
+  },
+
+  async save(state: PlanningState): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('planning_states')
+      .upsert(planningStateToRow(state), { onConflict: 'trip_id' });
+
+    if (error) {
+      console.error('Supabase planning state save error:', error);
+    }
+  },
+
+  async delete(tripId: string): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    await supabase.from('planning_states').delete().eq('trip_id', tripId);
+  },
+
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// ============================================
+// Saved Places Sync
+// ============================================
+interface SavedPlaceRow {
+  id: string;
+  name: string;
+  city: string;
+  type: string;
+  address: string | null;
+  rating: number | null;
+  price_level: string | null;
+  image_url: string | null;
+  description: string | null;
+  tags: string[];
+  notes: string | null;
+  saved_at: string;
+  source: string | null;
+}
+
+function rowToSavedPlace(row: SavedPlaceRow): SavedPlace {
+  return {
+    id: row.id,
+    name: row.name,
+    city: row.city,
+    type: row.type as SavedPlace['type'],
+    address: row.address || undefined,
+    rating: row.rating || undefined,
+    priceRange: row.price_level || undefined,
+    imageUrl: row.image_url || undefined,
+    description: row.description || undefined,
+    tags: row.tags || [],
+    notes: row.notes || undefined,
+    savedAt: row.saved_at,
+    source: (row.source as SavedPlace['source']) || 'manual',
+  };
+}
+
+function savedPlaceToRow(place: SavedPlace): SavedPlaceRow {
+  return {
+    id: place.id,
+    name: place.name,
+    city: place.city,
+    type: place.type,
+    address: place.address || null,
+    rating: place.rating || null,
+    price_level: place.priceRange || null,
+    image_url: place.imageUrl || null,
+    description: place.description || null,
+    tags: place.tags || [],
+    notes: place.notes || null,
+    saved_at: place.savedAt,
+    source: place.source || 'manual',
+  };
+}
+
+export const supabaseSavedPlaces = {
+  async getAll(): Promise<SavedPlace[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from('saved_places')
+      .select('*')
+      .order('saved_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase saved places getAll error:', error);
+      return [];
+    }
+
+    return (data || []).map(rowToSavedPlace);
+  },
+
+  async save(place: SavedPlace): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('saved_places')
+      .upsert(savedPlaceToRow(place), { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase saved place save error:', error);
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    await supabase.from('saved_places').delete().eq('id', id);
+  },
+
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// ============================================
+// Packing States Sync
+// ============================================
+interface PackingStateRow {
+  trip_id: string;
+  checked_items: string[];
+  updated_at: string;
+}
+
+function rowToPackingState(row: PackingStateRow): PackingState {
+  return {
+    tripId: row.trip_id,
+    checkedItems: row.checked_items || [],
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+function packingStateToRow(state: PackingState): PackingStateRow {
+  return {
+    trip_id: state.tripId,
+    checked_items: state.checkedItems || [],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export const supabasePackingStates = {
+  async get(tripId: string): Promise<PackingState | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('packing_states')
+      .select('*')
+      .eq('trip_id', tripId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      console.error('Supabase packing state get error:', error);
+      return null;
+    }
+
+    return rowToPackingState(data);
+  },
+
+  async save(state: PackingState): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('packing_states')
+      .upsert(packingStateToRow(state), { onConflict: 'trip_id' });
+
+    if (error) {
+      console.error('Supabase packing state save error:', error);
+    }
+  },
+
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// ============================================
+// User Preferences Sync
+// ============================================
+interface PreferencesRow {
+  id: string;
+  theme: string;
+  default_currency: string;
+  measurement_system: string;
+  notifications: boolean;
+  name: string | null;
+  location: string | null;
+  timezone: string | null;
+  home_airport: string | null;
+  travel_interests: string[];
+}
+
+function rowToPreferences(row: PreferencesRow): UserPreferences {
+  return {
+    id: row.id,
+    theme: row.theme as UserPreferences['theme'],
+    defaultCurrency: row.default_currency,
+    measurementSystem: row.measurement_system as UserPreferences['measurementSystem'],
+    notifications: row.notifications,
+    name: row.name || undefined,
+    location: row.location || undefined,
+    timezone: row.timezone || undefined,
+    homeAirport: row.home_airport || undefined,
+    travelInterests: row.travel_interests as UserPreferences['travelInterests'],
+  };
+}
+
+function preferencesToRow(prefs: UserPreferences): PreferencesRow {
+  return {
+    id: prefs.id || 'user',
+    theme: prefs.theme,
+    default_currency: prefs.defaultCurrency,
+    measurement_system: prefs.measurementSystem,
+    notifications: prefs.notifications,
+    name: prefs.name || null,
+    location: prefs.location || null,
+    timezone: prefs.timezone || null,
+    home_airport: prefs.homeAirport || null,
+    travel_interests: prefs.travelInterests || [],
+  };
+}
+
+export const supabasePreferences = {
+  async get(): Promise<UserPreferences | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('id', 'user')
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      console.error('Supabase preferences get error:', error);
+      return null;
+    }
+
+    return rowToPreferences(data);
+  },
+
+  async save(prefs: UserPreferences): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert(preferencesToRow(prefs), { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase preferences save error:', error);
+    }
+  },
+
   isConfigured(): boolean {
     return getSupabase() !== null;
   },
