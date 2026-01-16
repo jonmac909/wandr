@@ -47,6 +47,7 @@ export function CityImage({ src, alt, className = '' }: CityImageProps) {
       src={imgSrc}
       alt={alt}
       className={className}
+      loading="lazy"
       onError={handleError}
       onLoad={handleLoad}
     />

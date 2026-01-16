@@ -66,6 +66,19 @@ import { planningDb } from '@/lib/db/indexed-db';
 import dynamic from 'next/dynamic';
 import { debug, debugWarn } from '@/lib/logger';
 
+// Throttle concurrent API requests to prevent browser resource exhaustion
+async function throttledFetchAll<T>(
+  items: T[],
+  fetchFn: (item: T) => Promise<void>,
+  maxConcurrent: number = 3
+): Promise<void> {
+  const results: Promise<void>[] = [];
+  for (let i = 0; i < items.length; i += maxConcurrent) {
+    const batch = items.slice(i, i + maxConcurrent);
+    await Promise.all(batch.map(fetchFn));
+  }
+}
+
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import('./RouteMap'), { ssr: false });
 
@@ -1446,14 +1459,15 @@ export function SwipeablePlanningView({
       })
       .catch(() => {});
 
-    // Fetch site images
-    sites.forEach(site => {
-      fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
-        .then(res => res.json())
-        .then(data => {
-          setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
-        })
-        .catch(() => {});
+    // Fetch site images with throttling to prevent resource exhaustion
+    throttledFetchAll(sites, async (site) => {
+      try {
+        const res = await fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`);
+        const data = await res.json();
+        setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+      } catch (error) {
+        // Silently fail
+      }
     });
   }, [cityDetailItem, enrichedCityInfo, destinations]);
 
@@ -1462,48 +1476,55 @@ export function SwipeablePlanningView({
     const cityItems = items.filter(item => item.tags?.includes('cities'));
     if (cityItems.length === 0) return;
 
-    cityItems.forEach(item => {
-      const cityName = item.name;
-      // Skip if already cached
-      if (cityInfoCache[cityName]) return;
-      
-      const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
-      const basicInfo = getCityInfo(cityName);
-      
-      // If not in hardcoded list, fetch from API
-      if (!basicInfo.highlights || !basicInfo.ratings) {
-        fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
-          .then(res => res.json())
-          .then(data => {
+    // Throttle city info and image fetching to prevent resource exhaustion
+    const fetchCityData = async () => {
+      await throttledFetchAll(cityItems, async (item) => {
+        const cityName = item.name;
+        // Skip if already cached
+        if (cityInfoCache[cityName]) return;
+        
+        const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
+        const basicInfo = getCityInfo(cityName);
+        
+        // If not in hardcoded list, fetch from API
+        if (!basicInfo.highlights || !basicInfo.ratings) {
+          try {
+            const res = await fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`);
+            const data = await res.json();
             setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
-            // Also fetch images for the sites
-            const sites = data.topSites?.slice(0, 4) || [];
-            sites.forEach((site: string) => {
-              if (site && site !== 'Loading...') {
-                fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
-                  .then(res => res.json())
-                  .then(imgData => {
-                    setSiteImages(prev => ({ ...prev, [site]: imgData.imageUrl }));
-                  })
-                  .catch(() => {});
+            
+            // Also fetch images for the sites (throttled)
+            const sites = (data.topSites?.slice(0, 4) || []).filter((s: string) => s && s !== 'Loading...');
+            await throttledFetchAll(sites, async (site: string) => {
+              try {
+                const imgRes = await fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`);
+                const imgData = await imgRes.json();
+                setSiteImages(prev => ({ ...prev, [site]: imgData.imageUrl }));
+              } catch (error) {
+                // Silently fail
               }
-            });
-          })
-          .catch(() => {});
-      } else {
-        setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
-      }
+            }, 2); // Limit to 2 concurrent site image requests per city
+          } catch (error) {
+            // Silently fail
+          }
+        } else {
+          setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
+        }
 
-      // Fetch city image if not already loaded
-      if (!siteImages[cityName]) {
-        fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
-          .then(res => res.json())
-          .then(data => {
+        // Fetch city image if not already loaded
+        if (!siteImages[cityName]) {
+          try {
+            const res = await fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`);
+            const data = await res.json();
             setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
-          })
-          .catch(() => {});
-      }
-    });
+          } catch (error) {
+            // Silently fail
+          }
+        }
+      }, 2); // Limit to 2 concurrent cities at a time
+    };
+
+    fetchCityData();
   }, [items, destinations, cityInfoCache, siteImages]);
 
   // Get selected/favorited items
