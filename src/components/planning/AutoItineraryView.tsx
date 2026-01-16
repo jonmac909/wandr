@@ -2511,7 +2511,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       {/* Large image */}
                       <div className="relative w-full h-48 rounded-xl overflow-hidden">
                         <img
-                          src={activity.imageUrl || 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80'}
+                          src={activity.imageUrl || 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600'}
                           alt={activity.name}
                           className="w-full h-full object-cover"
                         />
@@ -2812,7 +2812,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                           {/* Thumbnail */}
                           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                             <img
-                              src={activity.imageUrl || 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=200&q=80'}
+                              src={activity.imageUrl || 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=200'}
                               alt={activity.name}
                               className="w-full h-full object-cover"
                             />

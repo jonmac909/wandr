@@ -101,19 +101,16 @@ export interface GeneratedItinerary {
 
 // ============ IMAGE GENERATION ============
 
-// Get activity image from Unsplash based on type and name
+// Get activity image - Pexels fallback by type
 function getActivityImage(name: string, type: GeneratedActivity['type'], city: string): string {
-  const typeKeywords: Record<string, string> = {
-    'attraction': 'landmark+temple+monument',
-    'restaurant': 'restaurant+food+dining',
-    'cafe': 'cafe+coffee+bakery',
-    'activity': 'adventure+tour+experience',
-    'nightlife': 'bar+nightclub+night',
+  const typeFallbacks: Record<string, string> = {
+    'attraction': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'restaurant': 'https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'cafe': 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'activity': 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'nightlife': 'https://images.pexels.com/photos/1267697/pexels-photo-1267697.jpeg?auto=compress&cs=tinysrgb&w=600',
   };
-
-  const keyword = typeKeywords[type] || 'travel';
-  const seed = `${name}-${city}`.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  return `https://source.unsplash.com/600x400/?${keyword}&sig=${seed}`;
+  return typeFallbacks[type] || 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
 }
 
 // ============ FULL ITINERARY GENERATION ============

@@ -61,18 +61,13 @@ export async function GET(
   const { name } = await params;
   const searchName = decodeURIComponent(name);
 
-  // Get optimized search terms or use the name directly
-  const searchTerms = CITY_SEARCH_TERMS[searchName] || `${searchName.toLowerCase().replace(/\s+/g, '+')},travel,destination`;
+  // Redirect to Pexels fallback image (this endpoint is deprecated, use /api/city-image instead)
+  const pexelsFallback = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
 
-  // Use Unsplash Source for free images
-  // Format: https://source.unsplash.com/featured/WIDTHxHEIGHT/?SEARCH_TERMS
-  const unsplashUrl = `https://source.unsplash.com/featured/800x600/?${searchTerms}`;
-
-  // Redirect to Unsplash image
-  return NextResponse.redirect(unsplashUrl, {
-    status: 302, // Temporary redirect so browser doesn't cache
+  return NextResponse.redirect(pexelsFallback, {
+    status: 302,
     headers: {
-      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      'Cache-Control': 'public, max-age=3600',
     },
   });
 }

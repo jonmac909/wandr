@@ -71,12 +71,18 @@ function generateHotelId(name: string, city: string): string {
   return `${city.toLowerCase().replace(/\s+/g, '-')}-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
 }
 
-// Get hotel image from Unsplash
+// Get hotel image - uses Pexels fallback (actual images fetched client-side)
 function getHotelImage(hotelName: string, type: string, index: number = 0): string {
-  const keyword = HOTEL_IMAGE_KEYWORDS[type] || 'hotel+room';
-  // Use hotel name + type for variety
-  const seed = `${hotelName}-${index}`.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  return `https://source.unsplash.com/800x600/?${keyword}&sig=${seed}`;
+  // Return a placeholder that will be replaced by Pexels API call client-side
+  // For now, use a generic Pexels hotel image as fallback
+  const fallbacks: Record<string, string> = {
+    'luxury': 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'boutique': 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'budget': 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'resort': 'https://images.pexels.com/photos/338504/pexels-photo-338504.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'hostel': 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600',
+  };
+  return fallbacks[type] || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=600';
 }
 
 // Generate hotels for a city using AI

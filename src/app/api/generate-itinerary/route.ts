@@ -270,22 +270,22 @@ Return ONLY valid JSON in this exact format:
 // Helper to get relevant placeholder images based on activity type
 function getActivityImage(type: string, city: string): string {
   const cityImages: Record<string, string> = {
-    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
-    'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
-    'Bangkok': 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-    'Chiang Mai': 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-    'Chiang Rai': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-    'Paris': 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80',
-    'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
-    'New York': 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&q=80',
-    'Singapore': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
-    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80',
+    'Tokyo': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Kyoto': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Bangkok': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Chiang Mai': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Chiang Rai': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Paris': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'London': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'New York': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Singapore': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Bali': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
   };
 
   const typeImages: Record<string, string> = {
-    'restaurant': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-    'attraction': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-    'activity': 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
+    'restaurant': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'attraction': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'activity': 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
   };
 
   // Use city-specific image or fall back to type-based
