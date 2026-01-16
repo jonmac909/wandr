@@ -1459,7 +1459,7 @@ export function SwipeablePlanningView({
 
   // Preload ALL city info and images on mount so they're ready when modal opens
   useEffect(() => {
-    const cityItems = items.filter(item => isCity(item));
+    const cityItems = items.filter(item => item.tags?.includes('cities'));
     if (cityItems.length === 0) return;
 
     cityItems.forEach(item => {
@@ -4188,8 +4188,8 @@ export function SwipeablePlanningView({
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab(''); setModalMainTab('overview'); setShowCityDetails(false); setShowWhyLove(false); setShowWatchOut(false); setShowLocalTip(false); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 h-[95vh] max-h-[800px] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
-            // Use enriched city info if available, otherwise fallback to basic
-            const cityInfo = enrichedCityInfo || getCityInfo(cityDetailItem.name);
+            // Use enriched city info if available, or cached info, otherwise fallback to basic
+            const cityInfo = enrichedCityInfo || cityInfoCache[cityDetailItem.name] || getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
             const recommendation = getPersonalizedRecommendation(cityInfo, tripDna, cityDetailItem.name);
 
