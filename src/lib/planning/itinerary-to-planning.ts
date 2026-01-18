@@ -3,53 +3,12 @@
 import type { Itinerary, Base, Activity, FoodRecommendation } from '@/types/itinerary';
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 
-// Curated Pexels images for different categories
-const CITY_IMAGES = [
-  'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg',
-  'https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg',
-  'https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg',
-  'https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg',
-  'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg',
-  'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg',
-];
-
-const HOTEL_IMAGES = [
-  'https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg',
-  'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
-  'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
-  'https://images.pexels.com/photos/262048/pexels-photo-262048.jpeg',
-];
-
-const ACTIVITY_IMAGES = [
-  'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg',
-  'https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg',
-  'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg',
-  'https://images.pexels.com/photos/2104152/pexels-photo-2104152.jpeg',
-  'https://images.pexels.com/photos/2440061/pexels-photo-2440061.jpeg',
-];
-
-const RESTAURANT_IMAGES = [
-  'https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg',
-  'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg',
-  'https://images.pexels.com/photos/1579739/pexels-photo-1579739.jpeg',
-  'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg',
-];
-
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
-}
-
-function getPexelsImage(name: string, category: 'city' | 'hotel' | 'activity' | 'restaurant'): string {
-  const images = category === 'city' ? CITY_IMAGES : 
-                 category === 'hotel' ? HOTEL_IMAGES :
-                 category === 'restaurant' ? RESTAURANT_IMAGES : ACTIVITY_IMAGES;
-  const hash = hashString(name.toLowerCase());
-  return `${images[hash % images.length]}?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop`;
+/**
+ * Returns empty string - components should fetch real images async
+ * from /api/site-image or /api/city-image endpoints
+ */
+function getPlaceholderImage(): string {
+  return '';
 }
 
 /**
@@ -75,7 +34,7 @@ export function itineraryToPlanningItems(itinerary: Itinerary | null | undefined
         id: `city-${base.id}`,
         name: cityName,
         description: base.rationale || `${base.nights} nights in ${cityName}`,
-        imageUrl: getPexelsImage(cityName, 'city'),
+        imageUrl: getPlaceholderImage(),
         category: 'activities', // Cities are a special case
         tags: ['cities'],
         isFavorited: true,
@@ -92,7 +51,7 @@ export function itineraryToPlanningItems(itinerary: Itinerary | null | undefined
         id: `hotel-${base.id}`,
         name: base.accommodation.name,
         description: `${base.accommodation.type} in ${base.location}`,
-        imageUrl: getPexelsImage(base.accommodation.name, 'hotel'),
+        imageUrl: getPlaceholderImage(),
         category: 'hotels',
         priceInfo: base.accommodation.priceRange,
         neighborhood: base.location,
@@ -120,7 +79,7 @@ export function itineraryToPlanningItems(itinerary: Itinerary | null | undefined
           id: activity.id,
           name: activity.name,
           description: activity.description,
-          imageUrl: getPexelsImage(activity.name, 'activity'),
+          imageUrl: getPlaceholderImage(),
           category,
           rating: undefined,
           priceInfo: activity.cost ? `${activity.cost.currency} ${activity.cost.amount}` : undefined,
@@ -149,7 +108,7 @@ export function itineraryToPlanningItems(itinerary: Itinerary | null | undefined
       id: food.id,
       name: food.name,
       description: food.notes || `${food.cuisine} cuisine`,
-      imageUrl: getPexelsImage(food.name, 'restaurant'),
+      imageUrl: getPlaceholderImage(),
       category: 'restaurants',
       priceInfo: food.priceRange,
       neighborhood: food.location?.name,

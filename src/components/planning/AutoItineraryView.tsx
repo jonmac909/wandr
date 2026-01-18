@@ -495,9 +495,19 @@ export default function AutoItineraryView({
             if (data.imageUrl && !data.imageUrl.includes('pexels')) {
               imageUpdates[item.activityId] = data.imageUrl;
               debug(`[AutoItinerary] Got Google Places image for ${item.activityName}`);
+            } else {
+              // No valid image from Google Places - clear the old Pexels URL so placeholder shows
+              imageUpdates[item.activityId] = '';
+              debug(`[AutoItinerary] No Google image for ${item.activityName}, showing placeholder`);
             }
+          } else {
+            // API returned error (404 etc) - clear the old Pexels URL so placeholder shows
+            imageUpdates[item.activityId] = '';
+            debug(`[AutoItinerary] API error for ${item.activityName}, showing placeholder`);
           }
         } catch (error) {
+          // Network error - clear the old Pexels URL so placeholder shows
+          imageUpdates[item.activityId] = '';
           console.error(`[AutoItinerary] Failed to fetch image for ${item.activityName}:`, error);
         }
       });
