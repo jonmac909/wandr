@@ -13,6 +13,7 @@ interface SeasonalDestination {
   destination: string;
   country: string;
   why: string;
+  landmark: string; // Iconic landmark for hero image
 }
 
 interface Season {
@@ -33,24 +34,28 @@ const SEASONS: Season[] = [
         destination: 'Vienna',
         country: 'Austria',
         why: 'Christmas markets, opera season, imperial palaces in snow',
+        landmark: 'Vienna Austria cityscape',
       },
       {
         id: 'tromso-winter',
         destination: 'Tromsø',
         country: 'Norway',
         why: 'Northern lights peak, dog sledding, Arctic adventures',
+        landmark: 'Tromsø Norway northern lights',
       },
       {
         id: 'thailand-winter',
         destination: 'Bangkok',
         country: 'Thailand',
         why: 'Dry season, escape winter, temple tours & beaches',
+        landmark: 'Bangkok Thailand skyline',
       },
       {
         id: 'swiss-alps-winter',
         destination: 'Zermatt',
         country: 'Switzerland',
         why: 'World-class skiing, fondue, scenic train rides',
+        landmark: 'Zermatt Matterhorn view',
       },
     ],
   },
@@ -64,24 +69,28 @@ const SEASONS: Season[] = [
         destination: 'Kyoto',
         country: 'Japan',
         why: 'Cherry blossoms peak, mild weather, before Golden Week crowds',
+        landmark: 'Kyoto Japan cherry blossoms',
       },
       {
         id: 'amsterdam-spring',
         destination: 'Amsterdam',
         country: 'Netherlands',
         why: 'Tulip season at Keukenhof, pleasant cycling weather',
+        landmark: 'Amsterdam Netherlands canals',
       },
       {
         id: 'paris-spring',
         destination: 'Paris',
         country: 'France',
         why: 'Gardens in bloom, outdoor cafés, fewer tourists than summer',
+        landmark: 'Paris France cityscape',
       },
       {
         id: 'queenstown-spring',
         destination: 'Queenstown',
         country: 'New Zealand',
         why: 'Autumn colors, wine harvest, adventure sports season',
+        landmark: 'Queenstown New Zealand lake mountains',
       },
     ],
   },
@@ -95,24 +104,28 @@ const SEASONS: Season[] = [
         destination: 'Reykjavik',
         country: 'Iceland',
         why: 'Midnight sun, highland roads open, waterfalls at peak',
+        landmark: 'Iceland landscape waterfall',
       },
       {
         id: 'dubrovnik-summer',
         destination: 'Dubrovnik',
         country: 'Croatia',
         why: 'Adriatic beaches, Game of Thrones sites, island hopping',
+        landmark: 'Dubrovnik Croatia old town aerial',
       },
       {
         id: 'alaska-summer',
         destination: 'Anchorage',
         country: 'USA',
         why: 'Wildlife viewing, glacier tours, 20+ hours of daylight',
+        landmark: 'Alaska mountains glacier',
       },
       {
         id: 'santorini-summer',
         destination: 'Santorini',
         country: 'Greece',
         why: 'Iconic sunsets, beach clubs, perfect swimming weather',
+        landmark: 'Santorini Greece sunset view',
       },
     ],
   },
@@ -126,24 +139,28 @@ const SEASONS: Season[] = [
         destination: 'Marrakech',
         country: 'Morocco',
         why: 'Cooler 25°C temps, shoulder season prices, perfect for souks',
+        landmark: 'Marrakech Morocco medina',
       },
       {
         id: 'boston-fall',
         destination: 'Boston',
         country: 'USA',
         why: 'Peak fall foliage, apple picking, historic walks',
+        landmark: 'Boston Massachusetts fall foliage',
       },
       {
         id: 'munich-fall',
         destination: 'Munich',
         country: 'Germany',
         why: 'Oktoberfest (late Sep), beer gardens, Bavarian Alps',
+        landmark: 'Munich Germany cityscape',
       },
       {
         id: 'buenos-aires-fall',
         destination: 'Buenos Aires',
         country: 'Argentina',
         why: 'Spring wildflowers, fewer crowds, tango season',
+        landmark: 'Buenos Aires Argentina cityscape',
       },
     ],
   },
@@ -154,6 +171,7 @@ const PLACES_TO_AVOID = [
   {
     id: 'avoid-bali-summer',
     destination: 'Bali',
+    landmark: 'Bali Indonesia rice terraces',
     reason: 'Rainy season',
     details: 'Nov-Mar monsoon brings daily heavy rain',
     icon: '🌧️',
@@ -161,6 +179,7 @@ const PLACES_TO_AVOID = [
   {
     id: 'avoid-caribbean-hurricane',
     destination: 'Caribbean',
+    landmark: 'Caribbean beach tropical',
     reason: 'Hurricane season',
     details: 'Jun-Nov peak storm activity',
     icon: '🌀',
@@ -168,6 +187,7 @@ const PLACES_TO_AVOID = [
   {
     id: 'avoid-europe-august',
     destination: 'Europe',
+    landmark: 'Rome Italy cityscape',
     reason: 'Peak crowds',
     details: 'Aug is most crowded & expensive',
     icon: '👥',
@@ -175,6 +195,7 @@ const PLACES_TO_AVOID = [
   {
     id: 'avoid-india-summer',
     destination: 'India',
+    landmark: 'India landscape panorama',
     reason: 'Extreme heat',
     details: 'Apr-Jun temps exceed 40°C',
     icon: '🔥',
@@ -186,11 +207,12 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
 
   // Fetch city images from API (which uses Supabase cache + Google Places)
   useEffect(() => {
+    // Fetch seasonal destination images using landmark for establishing shots
     const allDestinations = SEASONS.flatMap(s => s.destinations);
-
     allDestinations.forEach(async (dest) => {
       try {
-        const res = await fetch(`/api/city-image?city=${encodeURIComponent(dest.destination)}&country=${encodeURIComponent(dest.country)}`);
+        // Use landmark for better establishing shots
+        const res = await fetch(`/api/city-image?city=${encodeURIComponent(dest.landmark)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.imageUrl) {
@@ -199,6 +221,21 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
         }
       } catch (error) {
         console.error(`Failed to fetch image for ${dest.destination}:`, error);
+      }
+    });
+
+    // Fetch images for places to avoid
+    PLACES_TO_AVOID.forEach(async (place) => {
+      try {
+        const res = await fetch(`/api/city-image?city=${encodeURIComponent(place.landmark)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imageUrl) {
+            setImageUrls(prev => ({ ...prev, [place.id]: data.imageUrl }));
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to fetch image for ${place.destination}:`, error);
       }
     });
   }, []);
@@ -280,17 +317,31 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
           {PLACES_TO_AVOID.map((place) => (
             <div
               key={place.id}
-              className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900"
+              className="relative aspect-square rounded-xl overflow-hidden"
             >
+              {/* Background Image or Loading State */}
+              {imageUrls[place.id] ? (
+                <img
+                  src={imageUrls[place.id]}
+                  alt={place.destination}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse" />
+              )}
+
+              {/* Dark overlay for warning effect */}
+              <div className="absolute inset-0 bg-black/50" />
+
               {/* Red warning stripe */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500 z-10" />
 
               {/* Content */}
-              <div className="absolute inset-0 p-2 flex flex-col justify-between text-white">
-                <span className="text-xl">{place.icon}</span>
+              <div className="absolute inset-0 p-2 flex flex-col justify-between text-white z-10">
+                <span className="text-xl drop-shadow-md">{place.icon}</span>
                 <div>
-                  <h4 className="font-bold text-xs leading-tight">{place.destination}</h4>
-                  <p className="text-[9px] text-red-300 font-medium leading-tight">{place.reason}</p>
+                  <h4 className="font-bold text-xs leading-tight drop-shadow-md">{place.destination}</h4>
+                  <p className="text-[9px] text-red-300 font-medium leading-tight drop-shadow-sm">{place.reason}</p>
                 </div>
               </div>
             </div>
