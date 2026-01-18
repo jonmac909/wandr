@@ -2348,7 +2348,7 @@ export default function TripPage() {
               </div>
             </TripHubSection>
 
-            {/* Cities Section - using SteppedCuration */}
+            {/* Cities Section - using SwipeablePlanningView picking phase */}
             <TripHubSection
               icon={<MapPin className="w-5 h-5" />}
               title="Cities"
@@ -2358,16 +2358,17 @@ export default function TripPage() {
               expanded={expandedSection === 'cities'}
               onToggle={() => toggleSection('cities')}
             >
-              <SteppedCuration
-                destination={destinations[0] || destination}
-                tripStyles={tripStyles}
-                onTripStylesChange={setTripStyles}
-                selectedCities={selectedCities}
-                onCitiesChange={setSelectedCities}
-                selectedHotels={selectedHotels}
-                onHotelsChange={setSelectedHotels}
-                selectedActivities={selectedActivities}
-                onActivitiesChange={setSelectedActivities}
+              <SwipeablePlanningView
+                tripDna={tripDna}
+                tripId={tripId}
+                itinerary={itinerary}
+                items={planningItems}
+                onItemsChange={setPlanningItems}
+                duration={duration}
+                startDate={startDate}
+                endDate={endDate}
+                isTripLocked={false}
+                controlledPhase="picking"
               />
             </TripHubSection>
 
