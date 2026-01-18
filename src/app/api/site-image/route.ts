@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabasePlaces } from '@/lib/db/supabase';
 
-// In-memory cache
+// In-memory cache (persists across requests in the same worker)
 const imageCache = new Map<string, string>();
 
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
@@ -67,29 +68,73 @@ export async function GET(request: NextRequest) {
 
   const cacheKey = `site:${site}-${city || ''}`.toLowerCase();
 
-  // 1. Check cache first
+  // 1. Check in-memory cache first (fastest)
   if (imageCache.has(cacheKey)) {
     return NextResponse.json({
       imageUrl: imageCache.get(cacheKey),
-      source: 'cache'
+      source: 'memory-cache'
     });
   }
 
-  // 2. Search Google Places API
+  // 2. Check Supabase cache
+  try {
+    if (city) {
+      const cachedPlaces = await supabasePlaces.getByCity(city);
+      const cachedPlace = cachedPlaces.find(p =>
+        p.name.toLowerCase() === site.toLowerCase() ||
+        p.name.toLowerCase().includes(site.toLowerCase()) ||
+        site.toLowerCase().includes(p.name.toLowerCase())
+      );
+      if (cachedPlace?.image_url) {
+        console.log(`[site-image] Found ${site} in Supabase cache`);
+        imageCache.set(cacheKey, cachedPlace.image_url);
+        return NextResponse.json({
+          imageUrl: cachedPlace.image_url,
+          source: 'supabase-cache'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[site-image] Supabase cache check failed:', error);
+  }
+
+  // 3. Search Google Places API
   const googleUrl = await searchGooglePlaces(site, city || undefined);
 
   if (googleUrl) {
+    console.log(`[site-image] Got image for ${site} from Google Places, caching...`);
     imageCache.set(cacheKey, googleUrl);
+
+    // Save to Supabase cache for future requests
+    try {
+      // Generate a simple place ID from name+city
+      const placeId = `site_${site}_${city || 'unknown'}`.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      await supabasePlaces.save({
+        google_place_id: placeId,
+        name: site,
+        city: city || 'unknown',
+        place_type: 'attraction',
+        place_data: { fetchedAt: new Date().toISOString() },
+        image_url: googleUrl,
+      });
+      console.log(`[site-image] Saved ${site} image to Supabase cache`);
+    } catch (error) {
+      console.error('[site-image] Failed to save to Supabase cache:', error);
+    }
+
     return NextResponse.json({
       imageUrl: googleUrl,
       source: 'google-places'
     });
   }
 
-  // 3. No fallback - return error if Google Places fails
+  // 4. No image found
+  console.error(`[site-image] Failed to get image for ${site}. API key configured: ${!!GOOGLE_API_KEY}`);
+
   return NextResponse.json({
     error: 'Could not find image for site',
     site,
-    city
+    city,
+    apiKeyConfigured: !!GOOGLE_API_KEY
   }, { status: 404 });
 }
