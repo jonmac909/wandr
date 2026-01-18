@@ -2066,86 +2066,6 @@ export function SwipeablePlanningView({
   // Check if item is a city
   const isCity = (item: PlanningItem) => item.tags?.includes('cities');
 
-  // Item grid square component
-  const ItemSquare = ({ item }: { item: PlanningItem }) => {
-    const isSelected = selectedIds.has(item.id);
-    const itemIsCity = isCity(item);
-
-    // Get match recommendation for cities
-    const cityMatchInfo = itemIsCity ? (() => {
-      const cityInfo = getCityInfo(item.name);
-      return getPersonalizedRecommendation(cityInfo, tripDna, item.name);
-    })() : null;
-
-    return (
-      <div
-        className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
-        onClick={() => {
-          if (itemIsCity) {
-            setCityDetailItem(item);
-          } else {
-            setDetailItem(item);
-          }
-        }}
-      >
-        {/* Image and gradient */}
-        <CityImage
-          src={item.imageUrl}
-          alt={item.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-        {/* Match label for cities (top-right) */}
-        {itemIsCity && cityMatchInfo && (
-          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-            cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
-            cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
-            cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
-            'bg-blue-500 text-white'
-          }`}>
-            {cityMatchInfo.match === 'great' ? 'Great Choice' :
-             cityMatchInfo.match === 'good' ? 'Good Choice' :
-             cityMatchInfo.match === 'neutral' ? 'Neutral' : 'Consider'}
-          </div>
-        )}
-
-        {/* Rating (top-left) - only for non-cities */}
-        {!itemIsCity && item.rating && (
-          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">
-            <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
-            <span className="text-[10px] text-white font-medium">{item.rating}</span>
-          </div>
-        )}
-
-        {/* Heart button (bottom-right) - toggles selection */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSelect(item.id, item.name);
-          }}
-          className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-            isSelected
-              ? 'bg-white scale-100'
-              : 'bg-black/40 backdrop-blur-sm hover:bg-black/60 scale-90 group-hover:scale-100'
-          }`}
-        >
-          <Heart className={`w-4 h-4 ${isSelected ? 'text-red-500 fill-red-500' : 'text-white'}`} />
-        </button>
-
-        {/* Name */}
-        <div className="absolute bottom-0 left-0 right-10 p-2">
-          <p className="text-xs font-semibold text-white line-clamp-2 leading-tight">
-            {item.name}
-          </p>
-          {item.priceInfo && (
-            <p className="text-[10px] text-white/70 mt-0.5">{item.priceInfo}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   // Get favorites organized by city, then category within each city
   const getFavoritesByCity = () => {
     // First, identify all cities from selected items or route
@@ -4026,9 +3946,66 @@ export function SwipeablePlanningView({
       {/* Items grid (3x3 = 9 squares) */}
       {stepItems.length > 0 ? (
         <div className="grid grid-cols-3 gap-2">
-          {stepItems.slice(gridOffset, gridOffset + currentStep.gridSize).map((item) => (
-            <ItemSquare key={item.id} item={item} />
-          ))}
+          {stepItems.slice(gridOffset, gridOffset + currentStep.gridSize).map((item) => {
+            const itemIsCity = isCity(item);
+            const itemIsSelected = selectedIds.has(item.id);
+            const cityMatchInfo = itemIsCity ? getPersonalizedRecommendation(getCityInfo(item.name), tripDna, item.name) : null;
+
+            return (
+              <div
+                key={item.id}
+                className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                onClick={() => {
+                  if (itemIsCity) {
+                    setCityDetailItem(item);
+                  } else {
+                    setDetailItem(item);
+                  }
+                }}
+              >
+                <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                {/* Match label for cities */}
+                {itemIsCity && cityMatchInfo && (
+                  <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
+                    cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
+                    cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
+                    cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
+                    'bg-blue-500 text-white'
+                  }`}>
+                    {cityMatchInfo.match === 'great' ? 'Great Choice' :
+                     cityMatchInfo.match === 'good' ? 'Good Choice' :
+                     cityMatchInfo.match === 'neutral' ? 'Neutral' : 'Consider'}
+                  </div>
+                )}
+
+                {/* Rating for non-cities */}
+                {!itemIsCity && item.rating && (
+                  <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">
+                    <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+                    <span className="text-[10px] text-white font-medium">{item.rating}</span>
+                  </div>
+                )}
+
+                {/* Heart button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(item.id, item.name); }}
+                  className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                    itemIsSelected ? 'bg-white scale-100' : 'bg-black/40 backdrop-blur-sm hover:bg-black/60 scale-90 group-hover:scale-100'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${itemIsSelected ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                </button>
+
+                {/* Name */}
+                <div className="absolute bottom-0 left-0 right-10 p-2">
+                  <p className="text-xs font-semibold text-white line-clamp-2 leading-tight">{item.name}</p>
+                  {item.priceInfo && <p className="text-[10px] text-white/70 mt-0.5">{item.priceInfo}</p>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="py-12 text-center">
