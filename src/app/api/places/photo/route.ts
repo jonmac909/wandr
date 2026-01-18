@@ -10,8 +10,8 @@ const photoCache = new Map<string, string>();
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const photoRef = searchParams.get('ref'); // Google Places photo reference (e.g., places/xxx/photos/yyy)
-  const maxWidth = searchParams.get('maxWidth') || '400';
-  const maxHeight = searchParams.get('maxHeight') || '300';
+  const maxWidth = searchParams.get('maxWidth') || '600';
+  const maxHeight = searchParams.get('maxHeight') || '400';
 
   if (!photoRef) {
     return NextResponse.json({ error: 'Photo reference required' }, { status: 400 });
@@ -27,14 +27,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(cachedUrl, { status: 302 });
   }
 
-  // Check Supabase storage
+  // Check Supabase storage cache
   const publicUrl = supabaseStorage.getPublicUrl(PLACE_IMAGES_BUCKET, storagePath);
   if (publicUrl) {
-    // Try to check if it exists by attempting to fetch headers
     try {
       const checkResponse = await fetch(publicUrl, { method: 'HEAD' });
       if (checkResponse.ok) {
-        // Cache in memory for hot path
         photoCache.set(safeFilename, publicUrl);
         return NextResponse.redirect(publicUrl, { status: 302 });
       }
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Not in cache, fetch from Google Places API
+  // Fetch from Google Places API
   if (!GOOGLE_API_KEY) {
     return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
   }
@@ -54,14 +52,14 @@ export async function GET(request: NextRequest) {
     const photoResponse = await fetch(googlePhotoUrl);
 
     if (!photoResponse.ok) {
-      console.error('Google Places photo API error:', photoResponse.status);
-      return NextResponse.json({ error: 'Failed to fetch photo' }, { status: 500 });
+      console.error('Google Places photo API error:', photoResponse.status, await photoResponse.text());
+      return NextResponse.json({ error: 'Failed to fetch photo from Google Places' }, { status: photoResponse.status });
     }
 
     const imageBuffer = await photoResponse.arrayBuffer();
     const contentType = photoResponse.headers.get('content-type') || 'image/jpeg';
 
-    // Upload to Supabase storage
+    // Upload to Supabase storage for caching
     const uploadedUrl = await supabaseStorage.uploadImage(
       PLACE_IMAGES_BUCKET,
       storagePath,
@@ -70,23 +68,19 @@ export async function GET(request: NextRequest) {
     );
 
     if (uploadedUrl) {
-      // Cache in memory
       photoCache.set(safeFilename, uploadedUrl);
       return NextResponse.redirect(uploadedUrl, { status: 302 });
     }
 
-    // Fallback: return the image directly if Supabase upload fails
+    // Return the image directly if Supabase upload fails
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        'Cache-Control': 'public, max-age=86400',
       },
     });
   } catch (error) {
-    console.error('Error fetching/caching photo:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching photo from Google Places:', error);
+    return NextResponse.json({ error: 'Failed to fetch photo' }, { status: 500 });
   }
 }

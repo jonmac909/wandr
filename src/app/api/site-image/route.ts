@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // In-memory cache
 const imageCache = new Map<string, string>();
 
-const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
-const GOOGLE_API_KEY = 'AIzaSyBGLXcx7JZLa4vcIdD0d-hpcvFNbE0Xy-k';
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Simple hash function for consistent image selection
 function hashString(str: string): number {
@@ -19,8 +18,13 @@ function hashString(str: string): number {
 
 // Google Places Text Search for attractions/sites
 async function searchGooglePlaces(siteName: string, city?: string): Promise<string | null> {
+  if (!GOOGLE_API_KEY) {
+    console.error('Google Maps API key not configured');
+    return null;
+  }
+
   const query = city ? `${siteName} ${city}` : siteName;
-  
+
   try {
     const searchResponse = await fetch(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}`
@@ -39,11 +43,11 @@ async function searchGooglePlaces(siteName: string, city?: string): Promise<stri
     const photoIndex = siteHash % place.photos.length;
     const photoRef = place.photos[photoIndex].photo_reference;
     const photoApiUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
-    
+
     // Follow the redirect to get the stable lh3.googleusercontent.com URL
     const photoResponse = await fetch(photoApiUrl, { redirect: 'follow' });
     if (!photoResponse.ok) return null;
-    
+
     return photoResponse.url;
   } catch (error) {
     console.error('Google Places fetch error:', error);
@@ -64,26 +68,27 @@ export async function GET(request: NextRequest) {
 
   // 1. Check cache first
   if (imageCache.has(cacheKey)) {
-    return NextResponse.json({ 
-      imageUrl: imageCache.get(cacheKey), 
-      source: 'cache' 
+    return NextResponse.json({
+      imageUrl: imageCache.get(cacheKey),
+      source: 'cache'
     });
   }
 
   // 2. Search Google Places API
   const googleUrl = await searchGooglePlaces(site, city || undefined);
-  
+
   if (googleUrl) {
     imageCache.set(cacheKey, googleUrl);
-    return NextResponse.json({ 
-      imageUrl: googleUrl, 
+    return NextResponse.json({
+      imageUrl: googleUrl,
       source: 'google-places'
     });
   }
 
-  // 3. Fallback
-  return NextResponse.json({ 
-    imageUrl: FALLBACK_IMAGE, 
-    source: 'fallback' 
-  });
+  // 3. No fallback - return error if Google Places fails
+  return NextResponse.json({
+    error: 'Could not find image for site',
+    site,
+    city
+  }, { status: 404 });
 }

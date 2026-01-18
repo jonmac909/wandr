@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
-
 interface CityImageProps {
   src?: string | null;
   alt: string;
@@ -26,7 +24,7 @@ export function CityImage({ src, alt, className = '' }: CityImageProps) {
   const handleError = () => {
     if (!hasError) {
       setHasError(true);
-      setImgSrc(FALLBACK_IMAGE);
+      setImgSrc(null); // No fallback - show placeholder on error
       setIsLoading(false);
     }
   };
@@ -35,10 +33,19 @@ export function CityImage({ src, alt, className = '' }: CityImageProps) {
     setIsLoading(false);
   };
 
-  // Show loading skeleton while waiting for image
+  // Show placeholder if no image or loading
   if (!imgSrc || isLoading) {
     return (
       <div className={`${className} bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse`} />
+    );
+  }
+
+  // Show placeholder on error
+  if (hasError) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center`}>
+        <span className="text-3xl">📍</span>
+      </div>
     );
   }
 

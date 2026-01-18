@@ -206,6 +206,13 @@ function buildItinerary(
       const duration = isRestaurant ? 60 : 90;
       const suggestedTime = `${String(currentHour).padStart(2, '0')}:00`;
 
+      // Only include places that have photos from Google
+      const photoRef = place.photos?.[0]?.name;
+      if (!photoRef) {
+        console.log(`[GenerateItinerary] Skipping ${place.displayName?.text} - no photos available`);
+        continue;
+      }
+
       dayActivities.push({
         id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${dayNum}-${i}-${Date.now()}`,
         name: place.displayName?.text || 'Unknown Place',
@@ -218,9 +225,7 @@ function buildItinerary(
         priceRange: getPriceRange(place.priceLevel),
         tags: getTags(place.types),
         walkingTimeToNext: 15,
-        imageUrl: place.photos?.[0]?.name
-          ? `/api/places/photo?ref=${encodeURIComponent(place.photos[0].name)}`
-          : getDefaultImage(getActivityType(place.types), city),
+        imageUrl: `/api/places/photo?ref=${encodeURIComponent(photoRef)}`,
         rating: place.rating || 4.5,
         reviewCount: place.userRatingCount || 100,
         mapsUrl: place.googleMapsUri || '',
@@ -239,27 +244,6 @@ function buildItinerary(
   }
 
   return { days };
-}
-
-// Helper to get default images
-function getDefaultImage(type: string, city: string): string {
-  const cityImages: Record<string, string> = {
-    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&q=80',
-    'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&q=80',
-    'Bangkok': 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&q=80',
-    'Chiang Mai': 'https://images.unsplash.com/photo-1512553424870-a2a2d9e5ed73?w=600&q=80',
-    'Paris': 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&q=80',
-    'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
-    'Singapore': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&q=80',
-  };
-
-  const typeImages: Record<string, string> = {
-    'restaurant': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80',
-    'attraction': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80',
-    'activity': 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=80',
-  };
-
-  return cityImages[city] || typeImages[type] || typeImages['attraction'];
 }
 
 export async function POST(request: NextRequest) {

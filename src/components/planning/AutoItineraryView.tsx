@@ -152,19 +152,6 @@ const FLIGHT_TIMES: Record<string, string> = {
   'Honolulu': '8-10hr', 'Paris': '12-14hr', 'London': '10-12hr', 'Seoul': '12-14hr',
 };
 
-// Mock activities data for auto-fill
-let mockActivitiesCache: Record<string, GeneratedActivity[]> | null = null;
-let mockActivitiesPromise: Promise<Record<string, GeneratedActivity[]>> | null = null;
-
-async function getMockActivities(): Promise<Record<string, GeneratedActivity[]>> {
-  if (mockActivitiesCache) return mockActivitiesCache;
-  if (!mockActivitiesPromise) {
-    mockActivitiesPromise = import('@/lib/planning/mock-activities').then((mod) => mod.MOCK_ACTIVITIES);
-  }
-  mockActivitiesCache = await mockActivitiesPromise;
-  return mockActivitiesCache;
-}
-
 // Generate EMPTY days (no activities) - like Wanderlog
 // BUT auto-adds transport on transit days (flight, bus, train, etc. based on route)
 function generateEmptyDays(allocations: CityAllocation[], cities?: string[], homeBase?: string): GeneratedDay[] {
@@ -1086,49 +1073,10 @@ export default function AutoItineraryView({
       }
       throw new Error('No days returned');
     } catch (error) {
-      console.error('[AutoFill API] AI itinerary failed, using mock data for', city, error);
-      // Fallback to mock data
-      return await generateMockDaysForCity(city, nights);
+      console.error('[AutoFill API] Google Places itinerary failed for', city, error);
+      // Return empty array - no fallback, only Google Places data
+      return [];
     }
-  };
-
-  // Generate mock days as fallback when API fails
-  // FIX: Distribute activities across days instead of giving same activities to each day
-  const generateMockDaysForCity = async (city: string, nights: number) => {
-    const mockActivities = await getMockActivities();
-    const allCityActivities = mockActivities[city] || mockActivities['Bangkok'] || [];
-    // Filter out restaurants - user picks their own dining spots
-    const cityActivities = allCityActivities.filter(act => act.type !== 'restaurant');
-    const days = [];
-    const activitiesPerDay = 3;
-
-    debug(`[Mock Data] Generating ${nights} days for ${city} with ${cityActivities.length} activities (excluding restaurants)`);
-
-    for (let i = 0; i < nights; i++) {
-      // Calculate which activities to use for this day
-      // Rotate through activities so each day gets different ones
-      const startIdx = (i * activitiesPerDay) % cityActivities.length;
-      const dayActivities: GeneratedActivity[] = [];
-
-      for (let j = 0; j < activitiesPerDay; j++) {
-        const actIdx = (startIdx + j) % cityActivities.length;
-        const act = cityActivities[actIdx];
-        dayActivities.push({
-          ...act,
-          id: `${city.toLowerCase().replace(/\s+/g, '-')}-day${i + 1}-${j}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        });
-      }
-
-      days.push({
-        dayNumber: i + 1,
-        theme: i === 0 ? 'Highlights Day' : i === 1 ? 'Local Discovery' : 'Relaxed Exploration',
-        activities: dayActivities,
-      });
-
-      debug(`[Mock Data] Day ${i + 1}: ${dayActivities.map(a => a.name).join(', ')}`);
-    }
-
-    return days;
   };
 
   // Auto-fill a single day - ALWAYS fetch fresh from API to guarantee unique activities
@@ -1213,30 +1161,8 @@ export default function AutoItineraryView({
         }
       }
     } catch (error) {
-      console.error('[AutoFill] API failed, using fallback', error);
-      // Fallback to mock data, filtering out used activities and restaurants
-      const mockDays = await generateMockDaysForCity(targetDay.city, 1);
-      if (mockDays[0]) {
-        const uniqueActivities = mockDays[0].activities.filter(act =>
-          !usedActivityNames.has(act.name.toLowerCase()) &&
-          act.type !== 'restaurant'
-        );
-        // Only replace activities if we have unique ones to add
-        if (uniqueActivities.length > 0) {
-          setDays(prev => prev.map(day => {
-            if (day.dayNumber === dayNumber) {
-              // PRESERVE existing transport activities
-              const existingTransport = day.activities.filter(a =>
-                ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
-              );
-              return { ...day, theme: mockDays[0].theme, activities: [...existingTransport, ...uniqueActivities] };
-            }
-            return day;
-          }));
-        } else {
-          debug('[AutoFill] No unique mock activities found, keeping existing activities');
-        }
-      }
+      console.error('[AutoFill] Google Places API failed for', targetDay.city, error);
+      // No fallback - only use Google Places data
     }
 
     setLoadingDayNumber(null);
@@ -1253,11 +1179,9 @@ export default function AutoItineraryView({
       .map(a => a.city);
     const uniqueCities = [...new Set(citiesNeedingActivities)];
 
-    debug('[AutoFill] Fetching activities for cities:', uniqueCities);
+    debug('[AutoFill] Fetching activities from Google Places for cities:', uniqueCities);
 
-    const mockActivities = await getMockActivities();
-
-    // Fetch activities for each city in parallel
+    // Fetch activities for each city in parallel from Google Places API
     const cityActivitiesMap: Record<string, GeneratedActivity[]> = {};
 
     await Promise.all(uniqueCities.map(async (city) => {
@@ -1283,12 +1207,14 @@ export default function AutoItineraryView({
           // Flatten all activities from all days
           const allActivities = (data.days || []).flatMap((d: { activities: GeneratedActivity[] }) => d.activities || []);
           cityActivitiesMap[city] = allActivities;
-          debug(`[AutoFill] Got ${allActivities.length} activities for ${city}`);
+          debug(`[AutoFill] Got ${allActivities.length} activities from Google Places for ${city}`);
+        } else {
+          console.error(`[AutoFill] Google Places API returned ${response.status} for ${city}`);
+          cityActivitiesMap[city] = [];
         }
       } catch (error) {
-        console.error(`[AutoFill] Failed to fetch activities for ${city}:`, error);
-        // Use mock data as fallback
-        cityActivitiesMap[city] = mockActivities[city] || mockActivities['Bangkok'] || [];
+        console.error(`[AutoFill] Failed to fetch Google Places activities for ${city}:`, error);
+        cityActivitiesMap[city] = [];
       }
     }));
 
@@ -1311,8 +1237,8 @@ export default function AutoItineraryView({
           return day;
         }
 
-        // Get activities for this city
-        const cityActivities = cityActivitiesMap[day.city] || mockActivities[day.city] || [];
+        // Get activities for this city from Google Places
+        const cityActivities = cityActivitiesMap[day.city] || [];
         const usedSet = usedActivitiesPerCity[day.city] || new Set();
 
         // Pick 3-4 unused activities for this day
@@ -2510,11 +2436,17 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                     >
                       {/* Large image */}
                       <div className="relative w-full h-48 rounded-xl overflow-hidden">
-                        <img
-                          src={activity.imageUrl || 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600'}
-                          alt={activity.name}
-                          className="w-full h-full object-cover"
-                        />
+                        {activity.imageUrl ? (
+                          <img
+                            src={activity.imageUrl}
+                            alt={activity.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
+                            <span className="text-4xl">📍</span>
+                          </div>
+                        )}
                         {/* Number badge */}
                         <div className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold shadow-lg">
                           {activityNumber}
@@ -2811,11 +2743,17 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                         >
                           {/* Thumbnail */}
                           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                            <img
-                              src={activity.imageUrl || 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=200'}
-                              alt={activity.name}
-                              className="w-full h-full object-cover"
-                            />
+                            {activity.imageUrl ? (
+                              <img
+                                src={activity.imageUrl}
+                                alt={activity.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
+                                <span className="text-xl">📍</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Content */}

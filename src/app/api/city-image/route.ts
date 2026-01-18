@@ -3,13 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 // In-memory cache (persists across requests in the same worker)
 const imageCache = new Map<string, string>();
 
-const FALLBACK_IMAGE = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
-const GOOGLE_API_KEY = 'AIzaSyBGLXcx7JZLa4vcIdD0d-hpcvFNbE0Xy-k';
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Google Places Text Search for city images
 async function searchGooglePlaces(city: string, country?: string): Promise<string | null> {
+  if (!GOOGLE_API_KEY) {
+    console.error('Google Maps API key not configured');
+    return null;
+  }
+
   const query = country ? `${city}, ${country}` : city;
-  
+
   try {
     const searchResponse = await fetch(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=locality&key=${GOOGLE_API_KEY}`
@@ -18,7 +22,7 @@ async function searchGooglePlaces(city: string, country?: string): Promise<strin
     if (!searchResponse.ok) return null;
 
     const searchData = await searchResponse.json();
-    
+
     if (searchData.status !== 'OK' || !searchData.results?.length) {
       // Try without type restriction for smaller cities
       const fallbackResponse = await fetch(
@@ -35,11 +39,11 @@ async function searchGooglePlaces(city: string, country?: string): Promise<strin
     // Get photo reference and follow redirect to get stable URL
     const photoRef = place.photos[0].photo_reference;
     const photoApiUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
-    
+
     // Follow the redirect to get the stable lh3.googleusercontent.com URL
     const photoResponse = await fetch(photoApiUrl, { redirect: 'follow' });
     if (!photoResponse.ok) return null;
-    
+
     // The final URL after redirect is stable and doesn't expire
     return photoResponse.url;
   } catch (error) {
@@ -61,26 +65,26 @@ export async function GET(request: NextRequest) {
 
   // 1. Check cache first
   if (imageCache.has(cacheKey)) {
-    return NextResponse.json({ 
-      imageUrl: imageCache.get(cacheKey), 
-      source: 'cache' 
+    return NextResponse.json({
+      imageUrl: imageCache.get(cacheKey),
+      source: 'cache'
     });
   }
 
   // 2. Search Google Places API
   const googleUrl = await searchGooglePlaces(city, country || undefined);
-  
+
   if (googleUrl) {
     imageCache.set(cacheKey, googleUrl);
-    return NextResponse.json({ 
-      imageUrl: googleUrl, 
+    return NextResponse.json({
+      imageUrl: googleUrl,
       source: 'google-places'
     });
   }
 
-  // 3. Fallback
-  return NextResponse.json({ 
-    imageUrl: FALLBACK_IMAGE, 
-    source: 'fallback' 
-  });
+  // 3. No fallback - return error if Google Places fails
+  return NextResponse.json({
+    error: 'Could not find image for city',
+    city
+  }, { status: 404 });
 }
