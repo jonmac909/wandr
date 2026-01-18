@@ -22,12 +22,14 @@ import {
   LayoutList, CalendarDays, FileText, DollarSign, GripVertical,
   Check, Circle, Hotel, UtensilsCrossed, Compass, MapPin, MoreHorizontal, ChevronDown,
   Shield, CreditCard, Stethoscope, Car, Ticket, Upload, Plus, ExternalLink,
-  Lock, Unlock
+  Lock, Unlock, Heart
 } from 'lucide-react';
 import Link from 'next/link';
 import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
+import { TripHubSection } from '@/components/trip/TripHubSection';
+import { TripHubHero } from '@/components/trip/TripHubHero';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningCuration } from '@/components/planning/PlanningCuration';
 import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningView';
@@ -375,11 +377,9 @@ export default function TripPage() {
     if (itinerary && itinerary.days.length > 0) {
       // Has generated itinerary - default to trip view
       setViewMode('trip');
-    } else if (tripDna) {
-      // Draft trip - redirect to /plan for 5-section planning flow
-      router.replace(`/plan?edit=${tripId}`);
     }
-  }, [loading, itinerary, tripDna, tripId, router]);
+    // Draft trips now show Trip Hub on this page instead of redirecting to /plan
+  }, [loading, itinerary]);
 
   // Initialize planning items from existing itinerary
   useEffect(() => {
@@ -1421,260 +1421,344 @@ export default function TripPage() {
     );
   }
 
-  // If no itinerary yet, show planning dashboard
+  // Track expanded section for accordion behavior
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  // Editable date state for Trip Hub
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
+  // Initialize edit dates from tripDna
+  useEffect(() => {
+    if (tripDna) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const start = dna.constraints?.dates?.startDate || dna.constraints?.startDate || '';
+      const end = dna.constraints?.dates?.endDate || dna.constraints?.endDate || '';
+      setEditStartDate(start);
+      setEditEndDate(end);
+    }
+  }, [tripDna]);
+
+  // Save dates to tripDna
+  const handleSaveDates = async () => {
+    if (!tripDna) return;
+    setIsSavingDates(true);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedDna: any = {
+        ...tripDna,
+        constraints: {
+          ...(tripDna as any).constraints,
+          dates: {
+            ...((tripDna as any).constraints?.dates || {}),
+            type: 'fixed',
+            startDate: editStartDate || undefined,
+            endDate: editEndDate || undefined,
+          },
+        },
+        updatedAt: new Date(),
+      };
+
+      // Update title with new year if dates changed
+      if (editStartDate) {
+        const year = new Date(editStartDate).getFullYear();
+        const dest = updatedDna.interests?.destination || updatedDna.interests?.destinations?.[0] || 'Trip';
+        updatedDna.meta = {
+          ...updatedDna.meta,
+          title: `${dest} ${year}`,
+        };
+      }
+
+      await tripDb.save({
+        id: tripId,
+        tripDna: updatedDna,
+        itinerary: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        syncedAt: null,
+        status: 'draft',
+      });
+
+      setTripDna(updatedDna);
+      setExpandedSection(null); // Collapse section after save
+    } catch (error) {
+      console.error('Failed to save dates:', error);
+    } finally {
+      setIsSavingDates(false);
+    }
+  };
+
+  // If no itinerary yet, show Trip Hub with collapsible sections
   if (!itinerary) {
     // Use type assertion for flexible tripDna structure from different sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dna = tripDna as any;
-    const destination = dna.interests?.destination || 'Your Trip';
-    const partyType = dna.travelerProfile?.partyType || dna.travelers?.type || 'traveler';
-    const pace = dna.vibeAndPace?.tripPace || 'balanced';
+    const destination = dna.interests?.destination || dna.meta?.title || 'Your Trip';
+    const destinations = dna.interests?.destinations || [destination];
+    const startDate = dna.constraints?.dates?.startDate || dna.constraints?.startDate;
+    const endDate = dna.constraints?.dates?.endDate || dna.constraints?.endDate;
+    const duration = dna.constraints?.duration?.days || dna.constraints?.dates?.totalDays || 7;
+    const budgetLevel = dna.constraints?.budget?.level || null;
+    const pace = dna.vibeAndPace?.tripPace || null;
     const tripTypes = dna.travelerProfile?.travelIdentities || dna.interests?.tripTypes || [];
-    const duration = dna.constraints?.duration?.days || dna.constraints?.duration?.min || 7;
-    const budgetLevel = dna.constraints?.budget?.level || '$$';
+
+    // Generate title: "Destination Year" or "Multi-country Year"
+    const year = startDate ? new Date(startDate).getFullYear() : new Date().getFullYear();
+    const title = dna.meta?.title || (destinations.length > 1 ? `Multi-country ${year}` : `${destinations[0]} ${year}`);
+    const subtitle = destinations.length > 1 ? `Exploring ${destinations.join(', ')}` : undefined;
+
+    // Status helpers
+    const hasDates = startDate && endDate;
+    const hasPreferences = budgetLevel || pace || tripTypes.length > 0;
+    const dateDisplay = hasDates
+      ? `${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : 'Dates not set';
+
+    const toggleSection = (section: string) => {
+      setExpandedSection(prev => prev === section ? null : section);
+    };
 
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <DashboardHeader
           onOpenDrawer={() => setDrawerOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
         />
 
         <main className="max-w-2xl mx-auto px-4 py-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
+          {/* Back button */}
+          <div className="mb-4">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
+              className="gap-1 -ml-2"
               onClick={() => router.push('/')}
             >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold">{destination}</h1>
-                <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs font-medium rounded">Draft</span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              <Trash2 className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
+              Back
             </Button>
           </div>
 
-          {/* Trip Summary - Minimal with Edit */}
-          <div className="mb-4 p-3 rounded-lg bg-muted/30 border">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 text-sm">
-                  <span className="font-medium capitalize">{partyType}</span>
-                  <span className="text-muted-foreground">•</span>
-                  <span>{duration} days</span>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="capitalize">{pace}</span>
-                  <span className="text-muted-foreground">•</span>
-                  <span>{budgetLevel}</span>
+          {/* Hero Image */}
+          <TripHubHero
+            destinations={destinations}
+            title={title}
+            subtitle={subtitle}
+          />
+
+          {/* 5 Collapsible Sections */}
+          <div className="space-y-3">
+            {/* Dates Section */}
+            <TripHubSection
+              icon={<Calendar className="w-5 h-5" />}
+              title="Dates"
+              status={dateDisplay}
+              buttonText={hasDates ? 'Edit' : 'Set'}
+              onButtonClick={() => toggleSection('dates')}
+              expanded={expandedSection === 'dates'}
+              onToggle={() => toggleSection('dates')}
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Start Date</label>
+                    <Input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">End Date</label>
+                    <Input
+                      type="date"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      min={editStartDate}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-                {tripTypes.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap">
-                    {tripTypes.slice(0, 5).map((type: string) => (
-                      <span key={type} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
-                        {type}
-                      </span>
-                    ))}
+
+                {editStartDate && editEndDate && (
+                  <div className="text-sm text-muted-foreground">
+                    {(() => {
+                      const start = new Date(editStartDate);
+                      const end = new Date(editEndDate);
+                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      return `${days} day${days !== 1 ? 's' : ''}`;
+                    })()}
                   </div>
                 )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditStartDate(startDate || '');
+                      setEditEndDate(endDate || '');
+                      setExpandedSection(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDates}
+                    disabled={isSavingDates}
+                  >
+                    {isSavingDates ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
               </div>
-              <button
-                onClick={() => router.push(`/plan?edit=${tripId}`)}
-                className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-muted flex-shrink-0"
-                title="Edit preferences"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            </div>
+            </TripHubSection>
+
+            {/* Preferences Section */}
+            <TripHubSection
+              icon={<Heart className="w-5 h-5" />}
+              title="Preferences"
+              status={hasPreferences ? `${budgetLevel || ''} ${pace ? `• ${pace}` : ''}`.trim() : 'Not set'}
+              buttonText={hasPreferences ? 'Edit' : 'Set'}
+              onButtonClick={() => toggleSection('preferences')}
+              expanded={expandedSection === 'preferences'}
+              onToggle={() => toggleSection('preferences')}
+            >
+              <div className="space-y-6">
+                {/* Budget */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Budget</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['$', '$$', '$$$', '$$$$'].map((level) => (
+                      <button
+                        key={level}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          budgetLevel === level
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-white hover:bg-muted border-input'
+                        }`}
+                        onClick={() => {
+                          // Would save to tripDna
+                        }}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pace */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Pace</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { id: 'relaxed', label: 'Relaxed' },
+                      { id: 'balanced', label: 'Balanced' },
+                      { id: 'fast', label: 'Fast-paced' },
+                    ].map(({ id, label }) => (
+                      <button
+                        key={id}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          pace === id
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-white hover:bg-muted border-input'
+                        }`}
+                        onClick={() => {
+                          // Would save to tripDna
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Things to Avoid - placeholder for now */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Things to Avoid</label>
+                  <p className="text-xs text-muted-foreground mb-2">Select any you want to skip</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      'Big cities', 'Crowds', 'Tourist traps', 'Hot weather',
+                      'Cold weather', 'Long drives', 'Early mornings', 'Spicy food'
+                    ].map((item) => (
+                      <button
+                        key={item}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium border bg-white hover:bg-muted border-input transition-colors"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExpandedSection(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setExpandedSection(null)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </TripHubSection>
+
+            {/* Cities Section */}
+            <TripHubSection
+              icon={<MapPin className="w-5 h-5" />}
+              title="Cities"
+              status={`Exploring ${destinations.join(', ')}`}
+              buttonText="Edit"
+              onButtonClick={() => toggleSection('cities')}
+              expanded={expandedSection === 'cities'}
+              onToggle={() => toggleSection('cities')}
+            >
+              <div className="text-sm text-muted-foreground">
+                City picker will go here
+              </div>
+            </TripHubSection>
+
+            {/* Route Section */}
+            <TripHubSection
+              icon={<Map className="w-5 h-5" />}
+              title="Route"
+              status="Route not set"
+              buttonText="Set"
+              onButtonClick={() => toggleSection('route')}
+              expanded={expandedSection === 'route'}
+              onToggle={() => toggleSection('route')}
+            >
+              <div className="text-sm text-muted-foreground">
+                Route planner will go here
+              </div>
+            </TripHubSection>
+
+            {/* Itinerary Section */}
+            <TripHubSection
+              icon={<CalendarDays className="w-5 h-5" />}
+              title="Itinerary"
+              status="Not started"
+              buttonText="Set"
+              onButtonClick={() => toggleSection('itinerary')}
+              expanded={expandedSection === 'itinerary'}
+              onToggle={() => toggleSection('itinerary')}
+            >
+              <div className="text-sm text-muted-foreground">
+                Itinerary builder will go here
+              </div>
+            </TripHubSection>
           </div>
-
-          {/* Planning View - Pick cities, hotels, restaurants, etc. */}
-          <SwipeablePlanningView
-            tripDna={tripDna}
-            tripId={tripId}
-            itinerary={null}
-            items={planningItems}
-            onItemsChange={setPlanningItems}
-            duration={duration}
-            isTripLocked={false}
-            onSearchAI={(query, category) => {
-              // Generate items for the category
-              const mockItems: PlanningItem[] = [];
-
-              // Get destinations array (for proper filtering)
-              // Parse "Turkey → Spain" or "Turkey - Spain" into ["Turkey", "Spain"]
-              const parseDestinations = (dest: string): string[] => {
-                if (dest.includes('→')) return dest.split('→').map(d => d.trim());
-                if (dest.includes('->')) return dest.split('->').map(d => d.trim());
-                if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
-                return [dest];
-              };
-              const destinations = dna.interests?.destinations?.length > 0
-                ? dna.interests.destinations
-                : parseDestinations(destination);
-
-              if (category === 'cities') {
-                // Generate cities for EACH destination
-                destinations.forEach((dest: string, destIdx: number) => {
-                  const cityNames = getCitiesForDestination(dest);
-                  cityNames.forEach((city, idx) => {
-                    mockItems.push({
-                      id: `city-${destIdx}-${idx}`,
-                      name: city,
-                      description: `Explore ${city}`,
-                      imageUrl: getCityImage(city, dest),
-                      category: 'activities',
-                      tags: ['cities', dest], // Tag with specific destination for filtering
-                      isFavorited: false,
-                    });
-                  });
-                });
-              } else if (category === 'hotels') {
-                // Get selected cities from current planning items
-                const selectedCities = planningItems
-                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
-                  .map(item => item.name);
-                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
-
-                // Generate hotels for each selected city
-                const hotelsByCity: Record<string, string[]> = {
-                  'Istanbul': ['Pera Palace Hotel', 'Four Seasons Sultanahmet', 'Raffles Istanbul', 'St. Regis Istanbul', 'Ciragan Palace'],
-                  'Cappadocia': ['Museum Hotel', 'Argos in Cappadocia', 'Sultan Cave Suites', 'Kelebek Cave Hotel', 'Kayakapi Premium Caves'],
-                  'Antalya': ['Mardan Palace', 'Rixos Premium', 'Akra Hotel', 'Titanic Beach', 'Regnum Carya'],
-                  'Barcelona': ['Hotel Arts', 'W Barcelona', 'Mandarin Oriental', 'El Palace', 'Casa Camper'],
-                  'Madrid': ['The Westin Palace', 'Hotel Ritz', 'Four Seasons Madrid', 'Rosewood Villa Magna', 'Urso Hotel'],
-                };
-                const defaultHotels = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Luxury Resort', 'Charming B&B'];
-
-                citiesToUse.forEach((city, cityIdx) => {
-                  const cityHotels = hotelsByCity[city] || defaultHotels;
-                  cityHotels.forEach((hotel, idx) => {
-                    mockItems.push({
-                      id: `hotel-${cityIdx}-${idx}`,
-                      name: hotel,
-                      description: `${city} • ${['$150-250', '$200-400', '$300-600', '$400-800', '$500+'][idx % 5]}/night`,
-                      imageUrl: getMockPexelsImage(`${city}${hotel}`, 'hotel'),
-                      category: 'hotels',
-                      tags: ['hotels', city],
-                      neighborhood: city,
-                      rating: parseFloat((4.2 + Math.random() * 0.7).toFixed(1)),
-                      priceInfo: ['$$', '$$$', '$$$$'][idx % 3],
-                      isFavorited: false,
-                    });
-                  });
-                });
-              } else if (category === 'restaurants') {
-                const selectedCities = planningItems
-                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
-                  .map(item => item.name);
-                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
-
-                const restaurantsByCity: Record<string, string[]> = {
-                  'Istanbul': ['Mikla', 'Nusr-Et Steakhouse', 'Karaköy Lokantası', 'Çiya Sofrası', 'Asitane'],
-                  'Cappadocia': ['Seki Restaurant', 'Topdeck Cave', 'Ziggy Cafe', 'Old Greek House', 'Dibek'],
-                  'Barcelona': ['Tickets', 'Can Culleretes', 'El Xampanyet', 'Cervecería Catalana', 'Cal Pep'],
-                  'Madrid': ['Sobrino de Botín', 'DiverXO', 'Mercado San Miguel', 'La Barraca', 'Casa Lucio'],
-                };
-                const defaultRestaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food', 'Fine Dining', 'Seafood'];
-
-                citiesToUse.forEach((city, cityIdx) => {
-                  const cityRestos = restaurantsByCity[city] || defaultRestaurants;
-                  cityRestos.forEach((resto, idx) => {
-                    mockItems.push({
-                      id: `resto-${cityIdx}-${idx}`,
-                      name: resto,
-                      description: `${city} • ${['Turkish', 'Mediterranean', 'Local', 'International', 'Seafood'][idx % 5]}`,
-                      imageUrl: getMockPexelsImage(`${city}${resto}`, 'restaurant'),
-                      category: 'restaurants',
-                      tags: ['restaurants', city],
-                      neighborhood: city,
-                      rating: parseFloat((4 + Math.random() * 0.9).toFixed(1)),
-                      priceInfo: ['$', '$$', '$$$'][idx % 3],
-                      isFavorited: false,
-                    });
-                  });
-                });
-              } else if (category === 'activities') {
-                const selectedCities = planningItems
-                  .filter(item => item.tags?.includes('cities') && item.isFavorited)
-                  .map(item => item.name);
-                const citiesToUse = selectedCities.length > 0 ? selectedCities : ['Istanbul', 'Cappadocia'];
-
-                // Get user's trip preferences (culture, beach, food, etc.)
-                const userPreferences = dna.interests?.tripTypes || ['culture', 'food'];
-
-                // Activities by category/preference
-                const activitiesByPreference: Record<string, Record<string, string[]>> = {
-                  'culture': {
-                    'Istanbul': ['Hagia Sophia Tour', 'Blue Mosque Visit', 'Topkapi Palace', 'Byzantine Museum', 'Sufi Ceremony'],
-                    'Cappadocia': ['Underground City Tour', 'Cave Churches', 'Goreme Open Air Museum', 'Local Village Visit', 'Turkish Night Show'],
-                    'Barcelona': ['Sagrada Familia Tour', 'Gothic Quarter Walk', 'Picasso Museum', 'Flamenco Show', 'Catalan History Tour'],
-                    '_default': ['Museum Tour', 'Historical Walking Tour', 'Cultural Performance', 'Art Gallery', 'Local Traditions'],
-                  },
-                  'beach': {
-                    'Istanbul': ['Princes Islands Day Trip', 'Bosphorus Beach Club', 'Black Sea Coast Trip', 'Beach Sunset Cruise', 'Swimming at Kilyos'],
-                    'Antalya': ['Konyaaltı Beach', 'Lara Beach Day', 'Boat Trip to Waterfalls', 'Beach Club Experience', 'Cleopatra Beach Trip'],
-                    '_default': ['Beach Day', 'Coastal Walk', 'Sunset Beach', 'Water Sports', 'Beach Club'],
-                  },
-                  'food': {
-                    'Istanbul': ['Food Walking Tour', 'Cooking Class', 'Spice Bazaar Visit', 'Street Food Tour', 'Turkish Breakfast Experience'],
-                    'Cappadocia': ['Wine Tasting Tour', 'Pottery & Lunch', 'Local Cuisine Night', 'Farm to Table Dinner', 'Turkish Coffee Ritual'],
-                    'Barcelona': ['Tapas Tour', 'La Boqueria Market', 'Paella Cooking Class', 'Wine & Cheese Tasting', 'Michelin Star Experience'],
-                    '_default': ['Food Tour', 'Cooking Class', 'Market Visit', 'Wine Tasting', 'Local Cuisine Night'],
-                  },
-                  'adventure': {
-                    'Istanbul': ['Bosphorus Kayaking', 'Paragliding Experience', 'Sailing Trip', 'Night Fishing Tour', 'Off-Road City Tour'],
-                    'Cappadocia': ['Hot Air Balloon Ride', 'ATV Valley Tour', 'Horseback Riding', 'Hiking Red Valley', 'Sunrise Jeep Safari'],
-                    '_default': ['Adventure Tour', 'Hiking', 'Outdoor Activity', 'Nature Excursion', 'Active Experience'],
-                  },
-                  'relaxation': {
-                    'Istanbul': ['Turkish Bath (Hammam)', 'Spa Day', 'Bosphorus Sunset Cruise', 'Tea Garden Experience', 'Rooftop Lounge'],
-                    'Cappadocia': ['Cave Spa Treatment', 'Hot Springs Visit', 'Sunrise Viewing', 'Vineyard Relaxation', 'Yoga Session'],
-                    '_default': ['Spa Day', 'Wellness Experience', 'Scenic Relaxation', 'Nature Retreat', 'Peaceful Excursion'],
-                  },
-                };
-
-                // Generate activities based on user preferences for each city
-                citiesToUse.forEach((city, cityIdx) => {
-                  userPreferences.forEach((pref: string, prefIdx: number) => {
-                    const prefActivities = activitiesByPreference[pref.toLowerCase()]?.[city]
-                      || activitiesByPreference[pref.toLowerCase()]?.['_default']
-                      || ['Local Experience', 'Guided Tour', 'Day Activity'];
-
-                    prefActivities.slice(0, 3).forEach((act, idx) => {
-                      mockItems.push({
-                        id: `act-${cityIdx}-${prefIdx}-${idx}`,
-                        name: act,
-                        description: `${city} • ${pref.charAt(0).toUpperCase() + pref.slice(1)} • ${['2-3 hours', '3-4 hours', 'Half day'][idx % 3]}`,
-                        imageUrl: getMockPexelsImage(`${city}${pref}${act}`, 'activity'),
-                        category: 'activities',
-                        tags: ['activities', city, pref],
-                        neighborhood: city,
-                        rating: parseFloat((4.3 + Math.random() * 0.6).toFixed(1)),
-                        priceInfo: ['$30-50', '$50-100', '$100-200'][idx % 3],
-                        isFavorited: false,
-                      });
-                    });
-                  });
-                });
-              }
-
-              const existingIds = new Set(planningItems.map(i => i.id));
-              const newItems = mockItems.filter(i => !existingIds.has(i.id));
-              setPlanningItems([...planningItems, ...newItems]);
-            }}
-          />
         </main>
 
         {/* Delete Confirmation Modal */}
@@ -1684,7 +1768,7 @@ export default function TripPage() {
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">Delete Trip?</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  This will permanently delete this trip draft.
+                  This will permanently delete this trip.
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
@@ -1706,7 +1790,7 @@ export default function TripPage() {
     );
   }
 
-  // Full itinerary view
+  // Full itinerary view (for trips that have generated itineraries)
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Food Recommendation Modal */}

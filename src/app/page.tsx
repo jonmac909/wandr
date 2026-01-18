@@ -2,9 +2,18 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, Upload, Plane } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Sparkles, Upload, Plane, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   DashboardHeader,
   TripDrawer,
@@ -13,13 +22,79 @@ import {
   DestinationInspiration,
 } from '@/components/dashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { tripDb } from '@/lib/db/indexed-db';
 
 export default function Home() {
+  const router = useRouter();
   const { trips, loading, refresh } = useDashboardData();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // New trip modal state
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [destination, setDestination] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateTrip = async () => {
+    if (!destination.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const id = crypto.randomUUID();
+      const year = startDate ? new Date(startDate).getFullYear() : new Date().getFullYear();
+      const title = `${destination.trim()} ${year}`;
+
+      // Create minimal tripDna - using 'as any' since we have a simplified structure
+      // that will be fleshed out in the Trip Hub
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tripDna: any = {
+        id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        interests: {
+          destination: destination.trim(),
+          destinations: [destination.trim()],
+        },
+        constraints: {
+          dates: {
+            type: 'flexible',
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+          },
+        },
+        meta: {
+          title,
+        },
+      };
+
+      await tripDb.save({
+        id,
+        tripDna,
+        itinerary: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        syncedAt: null,
+        status: 'draft',
+      });
+
+      // Reset modal state
+      setDestination('');
+      setStartDate('');
+      setEndDate('');
+      setPlanModalOpen(false);
+
+      // Navigate to trip hub
+      router.push(`/trip/${id}`);
+    } catch (error) {
+      console.error('Failed to create trip:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -49,7 +124,7 @@ export default function Home() {
 
         {/* CTAs */}
         <div className="space-y-3 mb-8">
-          <Link href="/plan" className="block">
+          <button onClick={() => setPlanModalOpen(true)} className="w-full text-left">
             <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="p-3 rounded-xl bg-primary/10">
@@ -61,7 +136,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </button>
 
           <button onClick={() => setImportModalOpen(true)} className="w-full text-left">
             <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
@@ -109,6 +184,81 @@ export default function Home() {
         open={profileOpen}
         onOpenChange={setProfileOpen}
       />
+
+      {/* Plan New Trip Modal */}
+      <Dialog open={planModalOpen} onOpenChange={setPlanModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Plan New Trip</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Destination Input */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Where to?</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="e.g. Paris, Hawaii, Japan"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Date Inputs (Optional) */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Dates <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Start</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">End</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setPlanModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateTrip}
+              disabled={!destination.trim() || isCreating}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isCreating ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Trip'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
