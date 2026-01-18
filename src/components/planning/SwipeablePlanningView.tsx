@@ -4209,7 +4209,6 @@ export function SwipeablePlanningView({
       </Dialog>
 
       {/* City Detail Modal */}
-      {console.log('[CityDetailModal] cityDetailItem:', cityDetailItem?.name, 'open:', !!cityDetailItem)}
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab(''); setModalMainTab('overview'); setShowCityDetails(false); setShowWhyLove(false); setShowWatchOut(false); setShowLocalTip(false); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 h-[95vh] max-h-[800px] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
