@@ -2082,12 +2082,9 @@ export function SwipeablePlanningView({
         {/* Main click area - opens modal */}
         <button
           onClick={() => {
-            console.log('[ItemSquare] Click!', item.name, 'isCity:', itemIsCity);
             if (itemIsCity) {
-              console.log('[ItemSquare] Setting cityDetailItem:', item);
               setCityDetailItem(item);
             } else {
-              console.log('[ItemSquare] Setting detailItem:', item);
               setDetailItem(item);
             }
           }}
@@ -2103,7 +2100,7 @@ export function SwipeablePlanningView({
 
         {/* Match label for cities (top-right) */}
         {itemIsCity && cityMatchInfo && (
-          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold pointer-events-none ${
+          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold pointer-events-none z-20 ${
             cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
             cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
             cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
@@ -2117,7 +2114,7 @@ export function SwipeablePlanningView({
 
         {/* Rating (top-left) - only for non-cities */}
         {!itemIsCity && item.rating && (
-          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 pointer-events-none">
+          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 pointer-events-none z-20">
             <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
             <span className="text-[10px] text-white font-medium">{item.rating}</span>
           </div>
@@ -2129,7 +2126,7 @@ export function SwipeablePlanningView({
             e.stopPropagation();
             toggleSelect(item.id, item.name);
           }}
-          className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+          className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all z-20 ${
             isSelected
               ? 'bg-white scale-100'
               : 'bg-black/40 backdrop-blur-sm hover:bg-black/60 scale-90 group-hover:scale-100'
@@ -2139,7 +2136,7 @@ export function SwipeablePlanningView({
         </button>
 
         {/* Name */}
-        <div className="absolute bottom-0 left-0 right-10 p-2 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-10 p-2 pointer-events-none z-20">
           <p className="text-xs font-semibold text-white line-clamp-2 leading-tight">
             {item.name}
           </p>
@@ -4212,7 +4209,6 @@ export function SwipeablePlanningView({
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab(''); setModalMainTab('overview'); setShowCityDetails(false); setShowWhyLove(false); setShowWatchOut(false); setShowLocalTip(false); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 h-[95vh] max-h-[800px] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
-            console.log('[CityDetailModal] Rendering modal for:', cityDetailItem.name);
             // Use enriched city info if available, or cached info, otherwise fallback to basic
             const cityInfo = enrichedCityInfo || cityInfoCache[cityDetailItem.name] || getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
