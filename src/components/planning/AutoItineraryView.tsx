@@ -448,6 +448,71 @@ export default function AutoItineraryView({
     );
   }, []);
 
+  // Detect and refresh activities with old mock/Pexels images
+  // This handles persisted data from before we switched to Google Places only
+  useEffect(() => {
+    const OLD_PEXELS_URL = 'pexels.com/photos/2325446';
+
+    // Check if any activities have old Pexels mock images
+    const activitiesWithOldImages: { dayNumber: number; activityId: string; activityName: string; city: string }[] = [];
+
+    days.forEach(day => {
+      day.activities.forEach(activity => {
+        if (activity.imageUrl?.includes(OLD_PEXELS_URL)) {
+          activitiesWithOldImages.push({
+            dayNumber: day.dayNumber,
+            activityId: activity.id,
+            activityName: activity.name,
+            city: day.city
+          });
+        }
+      });
+    });
+
+    if (activitiesWithOldImages.length === 0) return;
+
+    debug(`[AutoItinerary] Found ${activitiesWithOldImages.length} activities with old Pexels images, fetching Google Places images...`);
+
+    // Fetch real images from Google Places for each activity
+    const fetchRealImages = async () => {
+      const imageUpdates: Record<string, string> = {};
+
+      // Fetch in batches to avoid overwhelming the API
+      for (const item of activitiesWithOldImages) {
+        try {
+          const response = await fetch(
+            `/api/site-image?site=${encodeURIComponent(item.activityName)}&city=${encodeURIComponent(item.city)}`
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.imageUrl && !data.imageUrl.includes('pexels')) {
+              imageUpdates[item.activityId] = data.imageUrl;
+              debug(`[AutoItinerary] Got Google Places image for ${item.activityName}`);
+            }
+          }
+        } catch (error) {
+          console.error(`[AutoItinerary] Failed to fetch image for ${item.activityName}:`, error);
+        }
+      }
+
+      // Update days with new images
+      if (Object.keys(imageUpdates).length > 0) {
+        setDays(prev => prev.map(day => ({
+          ...day,
+          activities: day.activities.map(activity =>
+            imageUpdates[activity.id]
+              ? { ...activity, imageUrl: imageUpdates[activity.id] }
+              : activity
+          )
+        })));
+        debug(`[AutoItinerary] Updated ${Object.keys(imageUpdates).length} activities with Google Places images`);
+      }
+    };
+
+    fetchRealImages();
+  }, [days.length]); // Only run when days array changes length (initial load)
+
   // Filtered days based on category filter
   const filteredDays = useMemo(() => {
     if (categoryFilter === 'all') return days;
