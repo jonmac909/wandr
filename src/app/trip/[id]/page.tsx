@@ -36,6 +36,7 @@ import { TripHubHero } from '@/components/trip/TripHubHero';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningCuration } from '@/components/planning/PlanningCuration';
 import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningView';
+import { SteppedCuration } from '@/components/planning/SteppedCuration';
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
 import { getCityImage } from '@/lib/planning/city-images';
@@ -376,8 +377,11 @@ export default function TripPage() {
   const [editSpecialRequests, setEditSpecialRequests] = useState('');
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
-  // Trip Hub - Cities state
+  // Trip Hub - Cities state (for SteppedCuration)
+  const [tripStyles, setTripStyles] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedHotels, setSelectedHotels] = useState<string[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [cityImages, setCityImages] = useState<Record<string, string>>({});
   const [isSavingCities, setIsSavingCities] = useState(false);
 
@@ -2344,7 +2348,7 @@ export default function TripPage() {
               </div>
             </TripHubSection>
 
-            {/* Cities Section */}
+            {/* Cities Section - using SteppedCuration */}
             <TripHubSection
               icon={<MapPin className="w-5 h-5" />}
               title="Cities"
@@ -2354,85 +2358,17 @@ export default function TripPage() {
               expanded={expandedSection === 'cities'}
               onToggle={() => toggleSection('cities')}
             >
-              <div className="space-y-4">
-                {/* City Grid - matching SteppedCuration style */}
-                <div className="grid grid-cols-2 gap-3">
-                  {getCitiesForDestination(destinations[0] || destination).map((city) => (
-                    <button
-                      key={city}
-                      onClick={() => toggleCity(city)}
-                      className={`group relative aspect-square rounded-xl overflow-hidden shadow-sm transition-all duration-300 text-left ${
-                        selectedCities.includes(city) ? 'ring-2 ring-primary ring-offset-2' : 'hover:shadow-lg'
-                      }`}
-                    >
-                      {/* Background Image */}
-                      {cityImages[city] ? (
-                        <img
-                          src={cityImages[city]}
-                          alt={city}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-600 to-slate-800 animate-pulse" />
-                      )}
-
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                      {/* Selection Toggle */}
-                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full transition-all z-10 flex items-center justify-center ${
-                        selectedCities.includes(city)
-                          ? 'bg-primary text-white'
-                          : 'bg-white/80 text-gray-400 hover:bg-white'
-                      }`}>
-                        <Check className={`w-4 h-4 ${selectedCities.includes(city) ? '' : 'opacity-0'}`} />
-                      </div>
-
-                      {/* Content */}
-                      <div className="absolute inset-0 p-3 flex flex-col justify-end text-white">
-                        <h4 className="font-bold text-sm leading-tight drop-shadow-md line-clamp-2">
-                          {city}
-                        </h4>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Selected cities summary */}
-                {selectedCities.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2 border-t">
-                    <span className="text-sm text-muted-foreground">Selected:</span>
-                    {selectedCities.map((city) => (
-                      <span key={city} className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                        {city}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Save/Cancel Buttons */}
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Reset to saved values
-                      const dna = tripDna as any;
-                      setSelectedCities(dna.interests?.selectedCities || []);
-                      setExpandedSection(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveCities}
-                    disabled={isSavingCities}
-                  >
-                    {isSavingCities ? 'Saving...' : 'Save'}
-                  </Button>
-                </div>
-              </div>
+              <SteppedCuration
+                destination={destinations[0] || destination}
+                tripStyles={tripStyles}
+                onTripStylesChange={setTripStyles}
+                selectedCities={selectedCities}
+                onCitiesChange={setSelectedCities}
+                selectedHotels={selectedHotels}
+                onHotelsChange={setSelectedHotels}
+                selectedActivities={selectedActivities}
+                onActivitiesChange={setSelectedActivities}
+              />
             </TripHubSection>
 
             {/* Route Section */}
