@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseStorage } from '@/lib/db/supabase';
 
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+// Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const PLACE_IMAGES_BUCKET = 'place-images';
 
 // In-memory cache for very hot paths (cleared on deploy)
