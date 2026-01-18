@@ -46,7 +46,18 @@ export default function Home() {
     try {
       const id = crypto.randomUUID();
       const year = startDate ? new Date(startDate).getFullYear() : new Date().getFullYear();
-      const title = `${destination.trim()} ${year}`;
+
+      // Parse comma-separated destinations into an array
+      const destinations = destination
+        .split(',')
+        .map(d => d.trim())
+        .filter(d => d.length > 0)
+        .map(d => d.charAt(0).toUpperCase() + d.slice(1).toLowerCase()); // Capitalize
+
+      // Generate title based on number of destinations
+      const title = destinations.length > 1
+        ? `Multi-country ${year}`
+        : `${destinations[0]} ${year}`;
 
       // Create minimal tripDna - using 'as any' since we have a simplified structure
       // that will be fleshed out in the Trip Hub
@@ -56,8 +67,8 @@ export default function Home() {
         createdAt: new Date(),
         updatedAt: new Date(),
         interests: {
-          destination: destination.trim(),
-          destinations: [destination.trim()],
+          destination: destinations[0], // Primary destination for backwards compat
+          destinations: destinations,   // Full array of destinations
         },
         constraints: {
           dates: {
@@ -199,12 +210,13 @@ export default function Home() {
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="e.g. Paris, Hawaii, Japan"
+                  placeholder="e.g. Thailand, Vietnam, Japan"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   className="pl-9"
                   autoFocus
                 />
+                <p className="text-xs text-muted-foreground mt-1">Separate multiple destinations with commas</p>
               </div>
             </div>
 

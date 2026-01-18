@@ -1994,8 +1994,20 @@ export default function TripPage() {
     // Status helpers
     const hasDates = startDate && endDate;
     const hasPreferences = budgetLevel || pace || tripTypes.length > 0;
+
+    // Parse dates without timezone shift (YYYY-MM-DD format)
+    const formatDateLocal = (dateStr: string, includeYear = false) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        ...(includeYear && { year: 'numeric' })
+      });
+    };
+
     const dateDisplay = hasDates
-      ? `${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      ? `${formatDateLocal(startDate)} - ${formatDateLocal(endDate, true)}`
       : 'Dates not set';
 
     const toggleSection = (section: string) => {
@@ -2348,7 +2360,7 @@ export default function TripPage() {
               </div>
             </TripHubSection>
 
-            {/* Cities Section - using SteppedCuration */}
+            {/* Cities Section - using SwipeablePlanningView picking phase */}
             <TripHubSection
               icon={<MapPin className="w-5 h-5" />}
               title="Cities"
@@ -2358,16 +2370,16 @@ export default function TripPage() {
               expanded={expandedSection === 'cities'}
               onToggle={() => toggleSection('cities')}
             >
-              <SteppedCuration
-                destinations={destinations}
-                tripStyles={tripStyles}
-                onTripStylesChange={setTripStyles}
-                selectedCities={selectedCities}
-                onCitiesChange={setSelectedCities}
-                selectedHotels={selectedHotels}
-                onHotelsChange={setSelectedHotels}
-                selectedActivities={selectedActivities}
-                onActivitiesChange={setSelectedActivities}
+              <SwipeablePlanningView
+                tripDna={tripDna}
+                tripId={tripId}
+                itinerary={itinerary}
+                items={planningItems}
+                onItemsChange={setPlanningItems}
+                duration={duration}
+                startDate={startDate}
+                endDate={endDate}
+                controlledPhase="picking"
               />
             </TripHubSection>
 
