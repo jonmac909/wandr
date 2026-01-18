@@ -1,5 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
-
 export interface CityHighlight {
   name: string;
   description: string;
@@ -37,69 +35,15 @@ export interface CityInfo {
   idealFor?: string[];
 }
 
-// Cache for generated city info to avoid repeated API calls
-const cityInfoCache = new Map<string, CityInfo>();
-
-// Generate city info using Claude AI
-export async function generateCityInfo(cityName: string, country?: string): Promise<CityInfo> {
-  // Check cache first
-  const cacheKey = `${cityName}-${country || ''}`;
-  if (cityInfoCache.has(cacheKey)) {
-    return cityInfoCache.get(cacheKey)!;
+// Get city info from static data only (no API calls)
+// Previously used Anthropic API, now uses only pre-populated data
+export function getCityInfo(cityName: string, _country?: string): CityInfo {
+  // Check if we have pre-populated data for this city
+  if (POPULAR_CITY_INFO[cityName]) {
+    return POPULAR_CITY_INFO[cityName];
   }
 
-  const client = new Anthropic();
-
-  const prompt = `Generate detailed travel information for ${cityName}${country ? `, ${country}` : ''}.
-
-Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
-{
-  "bestFor": ["3-4 categories like History, Beach, Food, Nature, Nightlife, Art, Adventure, Culture, Shopping, Romance"],
-  "crowdLevel": "Low" | "Moderate" | "High" | "Very High",
-  "bestTime": "Best months to visit, e.g., 'Apr-Jun, Sep-Oct'",
-  "topSites": ["4 specific famous landmarks/attractions in this city - use actual names"],
-  "localTip": "One specific insider tip that locals would know",
-  "avgDays": "Recommended days to spend, e.g., '2-3 days'",
-  "pros": ["3 specific positive things about visiting this city"],
-  "cons": ["3 specific drawbacks or challenges"],
-  "ratings": {
-    "calm": 1-5 (1=chaotic/busy, 5=peaceful/serene),
-    "wow": 1-5 (1=ordinary, 5=jaw-dropping visuals/experiences),
-    "history": 1-5 (1=modern city, 5=ancient layers of history),
-    "friction": 1-5 (1=easy/smooth travel, 5=challenging logistics)
-  },
-  "idealFor": ["3-4 traveler types this city suits best"],
-  "highlights": {
-    "landmarks": [{"name": "Landmark Name", "description": "Brief compelling description"}],
-    "history": [{"name": "Historical Period/Event", "description": "Brief interesting fact"}],
-    "food": [{"name": "Dish or Food Experience", "description": "Why it's special"}]
-  }
-}
-
-Be specific to ${cityName}. Use real landmark names, actual best seasons, and genuine local insights. Include 3-4 items per highlights category.`;
-
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const content = response.content[0];
-    if (content.type === 'text') {
-      // Parse the JSON response
-      const cityInfo = JSON.parse(content.text) as CityInfo;
-
-      // Cache the result
-      cityInfoCache.set(cacheKey, cityInfo);
-
-      return cityInfo;
-    }
-  } catch (error) {
-    console.error('Error generating city info:', error);
-  }
-
-  // Fallback default
+  // Fallback default for cities not in our database
   return {
     bestFor: ['Exploration'],
     crowdLevel: 'Moderate',

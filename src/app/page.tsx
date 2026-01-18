@@ -12,7 +12,6 @@ import {
   ProfileSettings,
   DestinationInspiration,
 } from '@/components/dashboard';
-import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 export default function Home() {
@@ -21,7 +20,6 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
 
   if (loading) {
     return (
@@ -37,7 +35,6 @@ export default function Home() {
         activeTab="trips"
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenChat={() => setChatOpen(true)}
       />
 
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 overflow-auto">
@@ -111,11 +108,6 @@ export default function Home() {
       <ProfileSettings
         open={profileOpen}
         onOpenChange={setProfileOpen}
-      />
-
-      <GeneralChatSheet
-        open={chatOpen}
-        onOpenChange={setChatOpen}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, MessageCircle, Plane, Sparkles } from 'lucide-react';
+import { Bell, Plane, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -9,10 +9,9 @@ interface DashboardHeaderProps {
   activeTab?: 'trips';
   onOpenDrawer?: () => void;
   onOpenProfile?: () => void;
-  onOpenChat?: () => void;
 }
 
-export function DashboardHeader({ onOpenDrawer, onOpenProfile, onOpenChat }: DashboardHeaderProps) {
+export function DashboardHeader({ activeTab = 'trips', onOpenDrawer, onOpenProfile }: DashboardHeaderProps) {
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
@@ -23,28 +22,9 @@ export function DashboardHeader({ onOpenDrawer, onOpenProfile, onOpenChat }: Das
           </h1>
         </Link>
 
-        {/* Left side - Chat button (only active on trip pages) */}
+        {/* Left side spacer for balance */}
         <div className="flex items-center">
-          {onOpenChat ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenChat}
-              title="Trip Assistant"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled
-              title="Open a trip to chat with AI"
-              className="opacity-40"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </Button>
-          )}
+          {/* Empty spacer to balance the header */}
         </div>
 
         {/* Right side actions */}
@@ -55,7 +35,7 @@ export function DashboardHeader({ onOpenDrawer, onOpenProfile, onOpenChat }: Das
               variant="ghost"
               className="gap-2"
             >
-              <Sparkles className="w-4 h-4" />
+              <Compass className="w-4 h-4" />
               <span className="hidden sm:inline">Explore</span>
             </Button>
           </Link>

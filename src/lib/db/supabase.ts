@@ -58,6 +58,190 @@ function storedTripToRow(trip: StoredTrip): Omit<TripRow, 'created_at'> & { crea
   };
 }
 
+// Cached place data
+export interface CachedPlace {
+  id: string;
+  google_place_id: string;
+  name: string;
+  city: string;
+  place_type: string;
+  place_data: Record<string, unknown>;
+  image_url: string | null;
+  created_at: string;
+}
+
+// Cached city info
+export interface CachedCity {
+  id: string;
+  city_name: string;
+  country: string | null;
+  city_info: Record<string, unknown>;
+  image_url: string | null;
+  created_at: string;
+}
+
+// Place caching functions
+export const supabasePlaces = {
+  // Get cached place by Google Place ID
+  async get(googlePlaceId: string): Promise<CachedPlace | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('cached_places')
+      .select('*')
+      .eq('google_place_id', googlePlaceId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      console.error('Supabase cached_places get error:', error);
+      return null;
+    }
+
+    return data as CachedPlace;
+  },
+
+  // Get cached places for a city
+  async getByCity(city: string, placeType?: string): Promise<CachedPlace[]> {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+
+    let query = supabase
+      .from('cached_places')
+      .select('*')
+      .eq('city', city);
+
+    if (placeType) {
+      query = query.eq('place_type', placeType);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase cached_places getByCity error:', error);
+      return [];
+    }
+
+    return (data || []) as CachedPlace[];
+  },
+
+  // Save a cached place
+  async save(place: Omit<CachedPlace, 'id' | 'created_at'>): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('cached_places')
+      .upsert(place, { onConflict: 'google_place_id' });
+
+    if (error) {
+      console.error('Supabase cached_places save error:', error);
+    }
+  },
+
+  // Check if Supabase is configured
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// City info caching functions
+export const supabaseCities = {
+  // Get cached city info
+  async get(cityName: string, country?: string): Promise<CachedCity | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    let query = supabase
+      .from('cached_cities')
+      .select('*')
+      .eq('city_name', cityName);
+
+    if (country) {
+      query = query.eq('country', country);
+    }
+
+    const { data, error } = await query.single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      console.error('Supabase cached_cities get error:', error);
+      return null;
+    }
+
+    return data as CachedCity;
+  },
+
+  // Save cached city info
+  async save(city: Omit<CachedCity, 'id' | 'created_at'>): Promise<void> {
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from('cached_cities')
+      .upsert(city, { onConflict: 'city_name,country' });
+
+    if (error) {
+      console.error('Supabase cached_cities save error:', error);
+    }
+  },
+
+  // Check if Supabase is configured
+  isConfigured(): boolean {
+    return getSupabase() !== null;
+  },
+};
+
+// Image storage functions
+export const supabaseStorage = {
+  // Upload an image to Supabase storage
+  async uploadImage(bucket: string, path: string, imageBuffer: ArrayBuffer, contentType: string = 'image/jpeg'): Promise<string | null> {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, imageBuffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Supabase storage upload error:', error);
+      return null;
+    }
+
+    // Get public URL
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  // Check if an image exists
+  async exists(bucket: string, path: string): Promise<boolean> {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .list(path.split('/').slice(0, -1).join('/'), {
+        search: path.split('/').pop(),
+      });
+
+    if (error) return false;
+    return data && data.length > 0;
+  },
+
+  // Get public URL for an image
+  getPublicUrl(bucket: string, path: string): string | null {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  },
+};
+
 export const supabaseTrips = {
   // Get all trips from Supabase
   async getAll(): Promise<StoredTrip[]> {

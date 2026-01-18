@@ -26,7 +26,6 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { tripDb } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
-import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningNav, type PlanningSection } from '@/components/planning/PlanningNav';
 import { SwipeablePlanningView, type PlanningPhase } from '@/components/planning/SwipeablePlanningView';
@@ -217,7 +216,6 @@ function PlanPageContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Edit mode - check URL param first, then localStorage for active planning session
@@ -837,7 +835,6 @@ function PlanPageContent() {
       <DashboardHeader
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenChat={() => setChatOpen(true)}
       />
 
       <main className="max-w-2xl mx-auto px-4 py-6">
@@ -1431,11 +1428,6 @@ function PlanPageContent() {
       <ProfileSettings
         open={profileOpen}
         onOpenChange={setProfileOpen}
-      />
-
-      <GeneralChatSheet
-        open={chatOpen}
-        onOpenChange={setChatOpen}
       />
     </div>
   );

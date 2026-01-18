@@ -28,8 +28,6 @@ import Link from 'next/link';
 import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
-import { ChatSheet } from '@/components/chat/ChatSheet';
-import { GeneralChatSheet } from '@/components/chat/GeneralChatSheet';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningCuration } from '@/components/planning/PlanningCuration';
 import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningView';
@@ -235,7 +233,6 @@ export default function TripPage() {
   const [contentFilter, setContentFilter] = useState<string>('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [editingOverviewIndex, setEditingOverviewIndex] = useState<number | null>(null);
   const [editedLocation, setEditedLocation] = useState('');
   const [expandedOverviewIndex, setExpandedOverviewIndex] = useState<number | null>(null);
@@ -1441,7 +1438,6 @@ export default function TripPage() {
         <DashboardHeader
           onOpenDrawer={() => setDrawerOpen(true)}
           onOpenProfile={() => setProfileOpen(true)}
-          onOpenChat={() => setChatOpen(true)}
         />
 
         <main className="max-w-2xl mx-auto px-4 py-6">
@@ -1706,7 +1702,6 @@ export default function TripPage() {
         {/* Overlays */}
         <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} onRefresh={refreshTrips} />
         <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
-        <GeneralChatSheet open={chatOpen} onOpenChange={setChatOpen} />
       </div>
     );
   }
@@ -1758,7 +1753,6 @@ export default function TripPage() {
         activeTab="trips"
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenChat={() => setChatOpen(true)}
       />
 
       {/* Planning / Trip View Toggle */}
@@ -3438,22 +3432,6 @@ export default function TripPage() {
         open={profileOpen}
         onOpenChange={setProfileOpen}
       />
-
-      {/* Chat Sheet */}
-      {itinerary && (
-        <ChatSheet
-          open={chatOpen}
-          onOpenChange={setChatOpen}
-          tripId={tripId}
-          itinerary={itinerary}
-          onItineraryUpdate={(updated) => {
-            setItinerary(updated);
-            localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(updated));
-            tripDb.updateItinerary(tripId, updated);
-          }}
-          onOpenSettings={() => setProfileOpen(true)}
-        />
-      )}
 
     </div>
   );

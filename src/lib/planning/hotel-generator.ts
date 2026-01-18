@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { z } from 'zod';
-import { withTimeout } from '@/lib/async';
+import { supabasePlaces } from '@/lib/db/supabase';
+
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export interface HotelInfo {
   id: string;
@@ -34,209 +34,222 @@ export interface HotelPreferences {
   nearbyActivities?: string[]; // Activities user has favorited in this city
 }
 
-// Cache for generated hotels
-const hotelCache = new Map<string, HotelInfo[]>();
-
-// Unsplash hotel image keywords by type
-const HOTEL_IMAGE_KEYWORDS: Record<string, string> = {
-  'hotel': 'hotel+room+luxury',
-  'hostel': 'hostel+dormitory+backpacker',
-  'resort': 'resort+pool+tropical',
-  'boutique': 'boutique+hotel+design',
-  'guesthouse': 'guesthouse+cozy+room',
-  'villa': 'villa+private+pool',
-};
-
-const HotelSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(['hotel', 'hostel', 'resort', 'boutique', 'guesthouse', 'villa']),
-  priceRange: z.enum(['$', '$$', '$$$', '$$$$']),
-  pricePerNight: z.string().min(1),
-  rating: z.number().optional().default(4.2),
-  reviews: z.number().optional().default(0),
-  neighborhood: z.string().optional().default(''),
-  description: z.string().optional().default(''),
-  amenities: z.array(z.string()).optional().default([]),
-  idealFor: z.array(z.string()).optional().default([]),
-  highlights: z.array(z.string()).optional().default([]),
-  walkingDistance: z.array(z.string()).optional().default([]),
-  matchScore: z.number().optional(),
-  matchReasons: z.array(z.string()).optional(),
-});
-
-const HotelsSchema = z.array(HotelSchema);
+interface GooglePlaceResult {
+  id: string;
+  displayName?: { text: string };
+  formattedAddress?: string;
+  rating?: number;
+  userRatingCount?: number;
+  editorialSummary?: { text: string };
+  googleMapsUri?: string;
+  photos?: Array<{ name: string }>;
+  priceLevel?: string;
+  types?: string[];
+}
 
 // Generate hotel ID from name
 function generateHotelId(name: string, city: string): string {
   return `${city.toLowerCase().replace(/\s+/g, '-')}-${name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
 }
 
-// Get hotel image - uses Pexels fallback (actual images fetched client-side)
-function getHotelImage(hotelName: string, type: string, index: number = 0): string {
-  // Return a placeholder that will be replaced by Pexels API call client-side
-  // For now, use a generic Pexels hotel image as fallback
-  const fallbacks: Record<string, string> = {
-    'luxury': 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=600',
-    'boutique': 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600',
-    'budget': 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600',
-    'resort': 'https://images.pexels.com/photos/338504/pexels-photo-338504.jpeg?auto=compress&cs=tinysrgb&w=600',
-    'hostel': 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600',
-  };
-  return fallbacks[type] || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=600';
+// Get price range from Google price level
+function getPriceRange(priceLevel: string | undefined): '$' | '$$' | '$$$' | '$$$$' {
+  switch (priceLevel) {
+    case 'PRICE_LEVEL_FREE':
+    case 'PRICE_LEVEL_INEXPENSIVE':
+      return '$';
+    case 'PRICE_LEVEL_MODERATE':
+      return '$$';
+    case 'PRICE_LEVEL_EXPENSIVE':
+      return '$$$';
+    case 'PRICE_LEVEL_VERY_EXPENSIVE':
+      return '$$$$';
+    default:
+      return '$$';
+  }
 }
 
-// Generate hotels for a city using AI
+// Get price per night string from price level
+function getPricePerNight(priceLevel: string | undefined): string {
+  switch (priceLevel) {
+    case 'PRICE_LEVEL_FREE':
+    case 'PRICE_LEVEL_INEXPENSIVE':
+      return '$20-50';
+    case 'PRICE_LEVEL_MODERATE':
+      return '$80-150';
+    case 'PRICE_LEVEL_EXPENSIVE':
+      return '$150-300';
+    case 'PRICE_LEVEL_VERY_EXPENSIVE':
+      return '$300+';
+    default:
+      return '$80-150';
+  }
+}
+
+// Determine hotel type from Google place types
+function getHotelType(types: string[] | undefined): HotelInfo['type'] {
+  if (!types) return 'hotel';
+
+  if (types.includes('resort_hotel')) return 'resort';
+  if (types.includes('guest_house') || types.includes('bed_and_breakfast')) return 'guesthouse';
+  if (types.some(t => t.includes('hostel'))) return 'hostel';
+
+  return 'hotel';
+}
+
+// Get ideal for based on hotel type and price
+function getIdealFor(type: HotelInfo['type'], priceRange: string): string[] {
+  if (type === 'hostel' || priceRange === '$') {
+    return ['backpackers', 'solo travelers', 'budget travelers'];
+  }
+  if (priceRange === '$$$$') {
+    return ['couples', 'luxury seekers', 'business travelers'];
+  }
+  if (type === 'resort') {
+    return ['couples', 'families', 'relaxation seekers'];
+  }
+  return ['travelers', 'couples', 'families'];
+}
+
+// Generate hotels for a city using Google Places API
 export async function generateHotels(
   city: string,
   country?: string,
   preferences?: HotelPreferences
 ): Promise<HotelInfo[]> {
-  // Check cache first (only if no preferences, or same preferences)
-  const cacheKey = `${city}-${country || ''}-${JSON.stringify(preferences || {})}`;
-  if (hotelCache.has(cacheKey)) {
-    return hotelCache.get(cacheKey)!;
-  }
+  const searchCity = country ? `${city}, ${country}` : city;
 
-  const client = new Anthropic();
-
-  // Build preference context for AI
-  let preferenceContext = '';
-  if (preferences) {
-    const parts = [];
-    if (preferences.partyType) {
-      parts.push(`Traveling as: ${preferences.partyType}`);
-    }
-    if (preferences.accommodationStyle) {
-      parts.push(`Preferred style: ${preferences.accommodationStyle}`);
-    }
-    if (preferences.accommodationPriority) {
-      parts.push(`Top priority: ${preferences.accommodationPriority}`);
-    }
-    if (preferences.budgetPerNight) {
-      parts.push(`Budget: $${preferences.budgetPerNight.min}-${preferences.budgetPerNight.max}/night`);
-    }
-    if (preferences.interests && preferences.interests.length > 0) {
-      parts.push(`Interests: ${preferences.interests.join(', ')}`);
-    }
-    if (preferences.nearbyActivities && preferences.nearbyActivities.length > 0) {
-      parts.push(`\nFavorited activities to stay near:\n- ${preferences.nearbyActivities.join('\n- ')}`);
-    }
-    if (parts.length > 0) {
-      preferenceContext = `\n\nUSER PREFERENCES:\n${parts.join('\n')}\n\nPrioritize hotels that match these preferences. Hotels near the favorited activities should rank higher.`;
+  // Check Supabase cache first
+  if (supabasePlaces.isConfigured()) {
+    const cached = await supabasePlaces.getByCity(city, 'hotel');
+    if (cached.length >= 4) {
+      console.log(`[HotelGenerator] Using ${cached.length} cached hotels for ${city}`);
+      return cached.map(c => transformToHotelInfo(c.place_data as unknown as GooglePlaceResult, city, country));
     }
   }
 
-  // Determine hotel mix based on accommodation style
-  let hotelMix = `Include a MIX of:
-- 2 luxury/high-end hotels ($$$$)
-- 2 boutique/mid-range hotels ($$$)
-- 2 budget-friendly hotels ($$)
-- 2 hostels or guesthouses ($)`;
+  if (!GOOGLE_API_KEY) {
+    console.error('Google Maps API key not configured');
+    return generateFallbackHotels(city, country);
+  }
 
+  // Build search query based on preferences
+  let textQuery = `best hotels in ${searchCity}`;
   if (preferences?.accommodationStyle === 'luxury') {
-    hotelMix = `Focus on luxury options:
-- 4 luxury/high-end hotels ($$$$)
-- 2 boutique hotels ($$$)
-- 2 upscale options ($$$ or $$$$)`;
+    textQuery = `luxury hotels and resorts in ${searchCity}`;
   } else if (preferences?.accommodationStyle === 'budget') {
-    hotelMix = `Focus on budget-friendly options:
-- 4 hostels or budget guesthouses ($)
-- 2 budget hotels ($$)
-- 2 mid-range options for comparison ($$ or $$$)`;
+    textQuery = `budget hotels and hostels in ${searchCity}`;
   } else if (preferences?.accommodationStyle === 'boutique') {
-    hotelMix = `Focus on boutique and unique stays:
-- 4 boutique hotels ($$ to $$$)
-- 2 unique guesthouses or B&Bs
-- 2 design hotels with character`;
+    textQuery = `boutique hotels in ${searchCity}`;
   }
-
-  const prompt = `Generate 8 real hotel recommendations for ${city}${country ? `, ${country}` : ''}.${preferenceContext}
-
-${hotelMix}
-
-Return ONLY a valid JSON array (no markdown, no explanation) with this structure:
-[
-  {
-    "name": "Real hotel name (use actual hotel names that exist in ${city})",
-    "type": "hotel" | "hostel" | "resort" | "boutique" | "guesthouse" | "villa",
-    "priceRange": "$" | "$$" | "$$$" | "$$$$",
-    "pricePerNight": "Price range in USD, e.g., '$80-120' or '$300+'",
-    "rating": 4.5,
-    "reviews": 1234,
-    "neighborhood": "Area/district name",
-    "description": "2-3 sentence description of what makes this place special",
-    "amenities": ["Pool", "Free WiFi", "Restaurant", "Spa", etc.],
-    "idealFor": ["couples", "families", "solo", "backpackers", "business"],
-    "highlights": ["3 key selling points"],
-    "walkingDistance": ["2-3 nearby attractions"],
-    "matchScore": 85,
-    "matchReasons": ["Near your favorited temples", "Great for couples", "Within budget"]
-  }
-]
-
-Use REAL hotels that actually exist in ${city}. Be specific with neighborhoods and nearby landmarks.
-${preferences?.nearbyActivities ? `\nIMPORTANT: Recommend hotels in neighborhoods CLOSE TO these activities: ${preferences.nearbyActivities.join(', ')}` : ''}`;
 
   try {
-    const response = await withTimeout(client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    }), 60000, 'Anthropic request timed out');
-
-    const content = response.content[0];
-    if (content.type === 'text') {
-      const parsed = HotelsSchema.safeParse(JSON.parse(content.text));
-      if (!parsed.success) {
-        console.error('Invalid hotel schema from AI', parsed.error.flatten());
-        return generateFallbackHotels(city, country);
+    const response = await fetch(
+      'https://places.googleapis.com/v1/places:searchText',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_API_KEY,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.editorialSummary,places.googleMapsUri,places.photos,places.priceLevel,places.types',
+        },
+        body: JSON.stringify({
+          textQuery,
+          maxResultCount: 10,
+          rankPreference: 'RELEVANCE',
+        }),
       }
+    );
 
-      const hotels = parsed.data;
-
-      // Transform to full HotelInfo with IDs and images
-      const hotelInfos: HotelInfo[] = hotels.map((hotel) => ({
-        id: generateHotelId(hotel.name, city),
-        name: hotel.name,
-        city,
-        country: country || '',
-        imageUrl: getHotelImage(hotel.name, hotel.type, 0),
-        images: [
-          getHotelImage(hotel.name, hotel.type, 1),
-          getHotelImage(hotel.name, hotel.type, 2),
-          getHotelImage(hotel.name, hotel.type, 3),
-        ],
-        priceRange: hotel.priceRange,
-        pricePerNight: hotel.pricePerNight,
-        rating: hotel.rating ?? 4.2,
-        reviews: hotel.reviews ?? 0,
-        type: hotel.type,
-        amenities: hotel.amenities ?? [],
-        neighborhood: hotel.neighborhood || '',
-        description: hotel.description || '',
-        idealFor: hotel.idealFor ?? [],
-        highlights: hotel.highlights ?? [],
-        walkingDistance: hotel.walkingDistance ?? [],
-        matchScore: hotel.matchScore,
-        matchReasons: hotel.matchReasons,
-      }));
-
-      // Cache the result
-      hotelCache.set(cacheKey, hotelInfos);
-
-      return hotelInfos;
+    if (!response.ok) {
+      console.error('Google Places API error:', await response.text());
+      return generateFallbackHotels(city, country);
     }
-  } catch (error) {
-    console.error('Error generating hotels:', error);
-  }
 
-  // Fallback: return generic recommendations
-  return generateFallbackHotels(city, country);
+    const data = await response.json();
+    const places: GooglePlaceResult[] = data.places || [];
+
+    if (places.length === 0) {
+      return generateFallbackHotels(city, country);
+    }
+
+    // Cache results in Supabase
+    if (supabasePlaces.isConfigured()) {
+      for (const place of places) {
+        await supabasePlaces.save({
+          google_place_id: place.id,
+          name: place.displayName?.text || 'Unknown Hotel',
+          city,
+          place_type: 'hotel',
+          place_data: place as unknown as Record<string, unknown>,
+          image_url: place.photos?.[0]?.name
+            ? `/api/places/photo?ref=${encodeURIComponent(place.photos[0].name)}`
+            : null,
+        });
+      }
+    }
+
+    // Transform Google Places results to HotelInfo
+    return places.map(place => transformToHotelInfo(place, city, country));
+  } catch (error) {
+    console.error('Error fetching hotels:', error);
+    return generateFallbackHotels(city, country);
+  }
 }
 
-// Fallback hotels if AI fails
+// Transform Google Place result to HotelInfo
+function transformToHotelInfo(
+  place: GooglePlaceResult,
+  city: string,
+  country?: string
+): HotelInfo {
+  const priceRange = getPriceRange(place.priceLevel);
+  const type = getHotelType(place.types);
+  const name = place.displayName?.text || 'Unknown Hotel';
+
+  // Extract neighborhood from address
+  const addressParts = place.formattedAddress?.split(',') || [];
+  const neighborhood = addressParts[1]?.trim() || addressParts[0]?.trim() || city;
+
+  // Generate photo URLs using our proxy
+  const imageUrl = place.photos?.[0]?.name
+    ? `/api/places/photo?ref=${encodeURIComponent(place.photos[0].name)}`
+    : `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80`;
+
+  const images = (place.photos || []).slice(1, 4).map(photo =>
+    `/api/places/photo?ref=${encodeURIComponent(photo.name)}`
+  );
+
+  return {
+    id: generateHotelId(name, city),
+    name,
+    city,
+    country: country || '',
+    imageUrl,
+    images,
+    priceRange,
+    pricePerNight: getPricePerNight(place.priceLevel),
+    rating: place.rating || 4.0,
+    reviews: place.userRatingCount || 100,
+    type,
+    amenities: ['Free WiFi', 'Air Conditioning', '24-hour Front Desk'],
+    neighborhood,
+    description: place.editorialSummary?.text || `A highly rated ${type} in ${city}.`,
+    idealFor: getIdealFor(type, priceRange),
+    highlights: [
+      `${place.rating ? place.rating.toFixed(1) : '4.0'} star rating`,
+      `Located in ${neighborhood}`,
+      'Highly reviewed by travelers',
+    ],
+    walkingDistance: ['City attractions nearby'],
+    matchScore: 80 + Math.floor(Math.random() * 20),
+    matchReasons: ['Highly rated', 'Great location'],
+  };
+}
+
+// Fallback hotels if API fails
 function generateFallbackHotels(city: string, country?: string): HotelInfo[] {
-  const types: Array<{ type: HotelInfo['type']; priceRange: HotelInfo['priceRange']; pricePerNight: string }> = [
+  const types: Array<{ type: HotelInfo['type']; priceRange: '$' | '$$' | '$$$' | '$$$$'; pricePerNight: string }> = [
     { type: 'hotel', priceRange: '$$$$', pricePerNight: '$300+' },
     { type: 'boutique', priceRange: '$$$', pricePerNight: '$150-250' },
     { type: 'hotel', priceRange: '$$', pricePerNight: '$80-150' },
@@ -248,10 +261,10 @@ function generateFallbackHotels(city: string, country?: string): HotelInfo[] {
     name: `${city} ${t.type.charAt(0).toUpperCase() + t.type.slice(1)} ${idx + 1}`,
     city,
     country: country || '',
-    imageUrl: getHotelImage(`${city}-${idx}`, t.type, 0),
+    imageUrl: `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80&sig=${idx}`,
     images: [
-      getHotelImage(`${city}-${idx}`, t.type, 1),
-      getHotelImage(`${city}-${idx}`, t.type, 2),
+      `https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80&sig=${idx}-1`,
+      `https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80&sig=${idx}-2`,
     ],
     priceRange: t.priceRange,
     pricePerNight: t.pricePerNight,
@@ -269,11 +282,7 @@ function generateFallbackHotels(city: string, country?: string): HotelInfo[] {
 
 // Get hotels for display (checks cache, then generates)
 export function getCachedHotels(city: string): HotelInfo[] | null {
-  const cacheKey = `${city}-`;
-  for (const [key, value] of hotelCache.entries()) {
-    if (key.startsWith(cacheKey)) {
-      return value;
-    }
-  }
+  // This function is no longer needed as we use Supabase caching
+  // Keeping for backwards compatibility
   return null;
 }
