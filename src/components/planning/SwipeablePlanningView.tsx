@@ -87,6 +87,61 @@ const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
 
 // Dynamically import AutoItineraryView
 const AutoItineraryView = dynamic(() => import('./AutoItineraryView'), { ssr: false });
+
+// City coordinates for map embedding
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  'Bangkok': { lat: 13.7563, lng: 100.5018 },
+  'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
+  'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
+  'Phuket': { lat: 7.8804, lng: 98.3923 },
+  'Krabi': { lat: 8.0863, lng: 98.9063 },
+  'Koh Samui': { lat: 9.5120, lng: 100.0134 },
+  'Koh Phi Phi': { lat: 7.7407, lng: 98.7784 },
+  'Koh Lanta': { lat: 7.6500, lng: 99.0333 },
+  'Koh Tao': { lat: 10.0956, lng: 99.8405 },
+  'Koh Phangan': { lat: 9.7500, lng: 100.0333 },
+  'Ayutthaya': { lat: 14.3692, lng: 100.5877 },
+  'Sukhothai': { lat: 17.0100, lng: 99.8200 },
+  'Pai': { lat: 19.3622, lng: 98.4403 },
+  'Hua Hin': { lat: 12.5683, lng: 99.9575 },
+  'Kanchanaburi': { lat: 14.0041, lng: 99.5483 },
+  'Tokyo': { lat: 35.6762, lng: 139.6503 },
+  'Kyoto': { lat: 35.0116, lng: 135.7681 },
+  'Osaka': { lat: 34.6937, lng: 135.5023 },
+  'Hanoi': { lat: 21.0285, lng: 105.8542 },
+  'Ho Chi Minh City': { lat: 10.8231, lng: 106.6297 },
+  'Hoi An': { lat: 15.8801, lng: 108.3380 },
+  'Singapore': { lat: 1.3521, lng: 103.8198 },
+  'Bali': { lat: -8.3405, lng: 115.0920 },
+  'Ubud': { lat: -8.5069, lng: 115.2625 },
+};
+
+// Simple map embed component for city modal
+const CityMapEmbed = ({ cityName }: { cityName: string }) => {
+  const coords = CITY_COORDS[cityName] || { lat: 13.7563, lng: 100.5018 }; // Default to Bangkok
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.05}%2C${coords.lat - 0.03}%2C${coords.lng + 0.05}%2C${coords.lat + 0.03}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`;
+  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=14/${coords.lat}/${coords.lng}`;
+
+  return (
+    <div className="h-full flex flex-col">
+      <iframe
+        src={mapUrl}
+        className="w-full flex-1 min-h-[300px] border-0"
+        loading="lazy"
+        title={`Map of ${cityName}`}
+      />
+      <a
+        href={fullMapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-center py-2 text-xs text-primary hover:underline"
+      >
+        View larger map →
+      </a>
+    </div>
+  );
+};
+
 import type { HotelInfo } from '@/lib/planning/hotel-generator';
 import { getTransportOptions, estimateTransportOptions, getRome2RioUrl, get12GoUrl, TRANSPORT_ICONS, type TransportOption } from '@/lib/planning/transport-options';
 
@@ -1274,7 +1329,7 @@ export function SwipeablePlanningView({
   const [cityDetailItem, setCityDetailItem] = useState<PlanningItem | null>(null);
   const [cityImageIndex, setCityImageIndex] = useState(0);
   const [highlightTab, setHighlightTab] = useState<string>(''); // Active accordion category for city highlights (empty = all closed)
-  const [modalMainTab, setModalMainTab] = useState<'overview' | 'explore'>('overview'); // Main modal tab
+  const [modalMainTab, setModalMainTab] = useState<'overview' | 'explore' | 'map'>('overview'); // Main modal tab
   const [showCityDetails, setShowCityDetails] = useState(false); // Collapsible Explore section
   const [showWhyLove, setShowWhyLove] = useState(false); // Expanded "Why you'll love it"
   const [showWatchOut, setShowWatchOut] = useState(false); // Expanded "Watch out for"
@@ -4355,6 +4410,16 @@ export function SwipeablePlanningView({
                   >
                     Explore
                   </button>
+                  <button
+                    onClick={() => setModalMainTab('map')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      modalMainTab === 'map'
+                        ? 'text-primary border-b-2 border-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Map
+                  </button>
                 </div>
 
                 {/* Tab Content Area */}
@@ -4522,6 +4587,13 @@ export function SwipeablePlanningView({
                           No detailed highlights available for this city yet.
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Map Tab */}
+                  {modalMainTab === 'map' && (
+                    <div className="h-full">
+                      <CityMapEmbed cityName={cityDetailItem.name} />
                     </div>
                   )}
                 </div>
