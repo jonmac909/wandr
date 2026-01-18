@@ -63,12 +63,12 @@ export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps)
     );
   }
 
-  // Multi-destination - 2x2 grid
+  // Multi-destination - 4x1 horizontal strip
   return (
     <div className="mb-6">
-      <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden aspect-[16/9]">
-        {displayDestinations.map((dest, idx) => (
-          <div key={dest} className="relative bg-muted">
+      <div className="flex gap-1 rounded-xl overflow-hidden">
+        {displayDestinations.map((dest) => (
+          <div key={dest} className="relative flex-1 aspect-[3/4] bg-muted">
             {imageUrls[dest] ? (
               <img
                 src={imageUrls[dest]}
@@ -78,8 +78,8 @@ export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps)
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse" />
             )}
-            <div className="absolute inset-0 bg-black/30" />
-            <div className="absolute bottom-2 left-2 text-white text-xs font-medium drop-shadow-md">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-3 text-white text-sm font-semibold drop-shadow-lg">
               {dest}
             </div>
           </div>

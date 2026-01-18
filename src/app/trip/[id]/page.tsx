@@ -2371,7 +2371,7 @@ export default function TripPage() {
               />
             </TripHubSection>
 
-            {/* Route Section */}
+            {/* Route Section - using SwipeablePlanningView */}
             <TripHubSection
               icon={<Map className="w-5 h-5" />}
               title="Route"
@@ -2381,158 +2381,62 @@ export default function TripPage() {
               expanded={expandedSection === 'route'}
               onToggle={() => toggleSection('route')}
             >
-              <div className="space-y-4">
-                {routeOrder.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Select cities first to plan your route
-                  </p>
-                ) : (
-                  <>
-                    {/* Route list with reorder buttons */}
-                    <div className="space-y-2">
-                      {routeOrder.map((city, index) => (
-                        <div
-                          key={city}
-                          className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-                        >
-                          {/* Order number */}
-                          <div className="w-6 h-6 rounded-full bg-primary text-white text-sm font-medium flex items-center justify-center">
-                            {index + 1}
-                          </div>
-
-                          {/* City name */}
-                          <div className="flex-1 font-medium">{city}</div>
-
-                          {/* Reorder buttons */}
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => moveRouteCity(city, 'up')}
-                              disabled={index === 0}
-                              className="p-1 rounded hover:bg-muted disabled:opacity-30"
-                            >
-                              <ChevronDown className="w-4 h-4 rotate-180" />
-                            </button>
-                            <button
-                              onClick={() => moveRouteCity(city, 'down')}
-                              disabled={index === routeOrder.length - 1}
-                              className="p-1 rounded hover:bg-muted disabled:opacity-30"
-                            >
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Route summary */}
-                    <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                      <div className="flex items-center gap-2">
-                        <Map className="w-4 h-4" />
-                        <span>Your route: {routeOrder.join(' → ')}</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Save/Cancel Buttons */}
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Reset to saved values
-                      const dna = tripDna as any;
-                      const cities = dna.interests?.selectedCities || [];
-                      setRouteOrder(dna.interests?.routeOrder || cities);
-                      setExpandedSection(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveRoute}
-                    disabled={isSavingRoute || routeOrder.length === 0}
-                  >
-                    {isSavingRoute ? 'Saving...' : 'Save'}
-                  </Button>
-                </div>
-              </div>
+              {selectedCities.length === 0 && routeOrder.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">
+                  Select cities first to plan your route
+                </p>
+              ) : (
+                <SwipeablePlanningView
+                  tripDna={tripDna}
+                  tripId={tripId}
+                  itinerary={itinerary}
+                  items={planningItems}
+                  onItemsChange={setPlanningItems}
+                  duration={duration}
+                  startDate={startDate}
+                  endDate={endDate}
+                  isTripLocked={false}
+                  controlledPhase="route-planning"
+                />
+              )}
             </TripHubSection>
 
-            {/* Itinerary Section */}
+            {/* Itinerary Section - using SwipeablePlanningView */}
             <TripHubSection
               icon={<CalendarDays className="w-5 h-5" />}
               title="Itinerary"
-              status="Not started"
+              status={hasDates ? `${duration} days` : 'Not started'}
               buttonText="Set"
               onButtonClick={() => toggleSection('itinerary')}
               expanded={expandedSection === 'itinerary'}
               onToggle={() => toggleSection('itinerary')}
             >
-              <div className="space-y-4">
-                {/* Itinerary generation info */}
-                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <div className="font-medium text-sm">Generate your itinerary</div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Based on your preferences, dates, and selected cities, we&apos;ll create a personalized day-by-day itinerary for your trip.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Requirements checklist */}
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      {hasDates ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className={hasDates ? '' : 'text-muted-foreground'}>
-                        Dates set
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {selectedCities.length > 0 || routeOrder.length > 0 ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className={selectedCities.length > 0 || routeOrder.length > 0 ? '' : 'text-muted-foreground'}>
-                        Cities selected
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Generate button */}
-                <Button
-                  className="w-full"
-                  onClick={handleGenerateItinerary}
-                  disabled={isGeneratingItinerary || !hasDates}
-                >
-                  {isGeneratingItinerary ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Itinerary
-                    </>
-                  )}
-                </Button>
-
-                {!hasDates && (
-                  <p className="text-xs text-center text-muted-foreground">
+              {!hasDates ? (
+                <div className="py-4 text-center">
+                  <p className="text-sm text-muted-foreground">
                     Please set your travel dates first
                   </p>
-                )}
-              </div>
+                </div>
+              ) : (selectedCities.length === 0 && routeOrder.length === 0) ? (
+                <div className="py-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Select cities first to generate your itinerary
+                  </p>
+                </div>
+              ) : (
+                <SwipeablePlanningView
+                  tripDna={tripDna}
+                  tripId={tripId}
+                  itinerary={itinerary}
+                  items={planningItems}
+                  onItemsChange={setPlanningItems}
+                  duration={duration}
+                  startDate={startDate}
+                  endDate={endDate}
+                  isTripLocked={false}
+                  controlledPhase="auto-itinerary"
+                />
+              )}
             </TripHubSection>
 
             {/* Saved Collections Section */}
