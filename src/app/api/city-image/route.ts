@@ -28,14 +28,14 @@ async function searchGooglePlaces(city: string, country?: string): Promise<strin
     const searchData = await searchResponse.json();
 
     if (searchData.status !== 'OK' || !searchData.results?.length) {
-      console.log(`[city-image] Initial search for ${city} returned status: ${searchData.status}, trying fallback...`);
+      console.log(`[city-image] Initial search for ${city} returned status: ${searchData.status}, error: ${searchData.error_message || 'none'}, trying fallback...`);
       // Try without type restriction for smaller cities
       const fallbackResponse = await fetch(
         `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' city')}&key=${GOOGLE_API_KEY}`
       );
       const fallbackData = await fallbackResponse.json();
       if (fallbackData.status !== 'OK' || !fallbackData.results?.length) {
-        console.log(`[city-image] Fallback search for ${city} also failed: ${fallbackData.status}`);
+        console.log(`[city-image] Fallback search for ${city} also failed: ${fallbackData.status}, error: ${fallbackData.error_message || 'none'}`);
         return null;
       }
       searchData.results = fallbackData.results;
@@ -123,12 +123,33 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 4. No image found
+  // 4. No image found - include debug info
   console.error(`[city-image] Failed to get image for ${city}. API key configured: ${!!GOOGLE_API_KEY}`);
+
+  // Try to get the actual error from Google Places for debugging
+  let debugInfo: Record<string, unknown> = {};
+  if (searchParams.get('debug') === 'true' && GOOGLE_API_KEY) {
+    try {
+      const query = country ? `${city}, ${country}` : city;
+      const debugResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=locality&key=${GOOGLE_API_KEY}`
+      );
+      const debugData = await debugResponse.json();
+      debugInfo = {
+        googleStatus: debugData.status,
+        googleError: debugData.error_message,
+        resultsCount: debugData.results?.length || 0,
+        hasPhotos: debugData.results?.[0]?.photos?.length > 0,
+      };
+    } catch (e) {
+      debugInfo = { debugError: String(e) };
+    }
+  }
 
   return NextResponse.json({
     error: 'Could not find image for city',
     city,
-    apiKeyConfigured: !!GOOGLE_API_KEY
+    apiKeyConfigured: !!GOOGLE_API_KEY,
+    ...(searchParams.get('debug') === 'true' ? { debug: debugInfo } : {})
   }, { status: 404 });
 }
