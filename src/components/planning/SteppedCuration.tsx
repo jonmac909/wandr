@@ -38,7 +38,7 @@ interface Listing {
 }
 
 interface SteppedCurationProps {
-  destination: string;
+  destinations: string[];  // Changed to array for multi-destination support
   tripStyles: string[];
   onTripStylesChange: (styles: string[]) => void;
   selectedCities: string[];
@@ -48,6 +48,19 @@ interface SteppedCurationProps {
   selectedActivities: string[];
   onActivitiesChange: (activities: string[]) => void;
 }
+
+// Country flag emojis
+const COUNTRY_FLAGS: Record<string, string> = {
+  'japan': '🇯🇵',
+  'italy': '🇮🇹',
+  'france': '🇫🇷',
+  'spain': '🇪🇸',
+  'thailand': '🇹🇭',
+  'switzerland': '🇨🇭',
+  'vietnam': '🇻🇳',
+  'hawaii': '🇺🇸',
+  'usa': '🇺🇸',
+};
 
 // Available trip styles
 const AVAILABLE_TRIP_STYLES = [
@@ -127,6 +140,28 @@ const DESTINATION_CITIES: Record<string, { name: string; description: string; ta
     { name: 'Chiang Rai', description: 'Northern gem with the White Temple and Golden Triangle.', tags: ['Temples', 'Art', 'Culture'] },
     { name: 'Sukhothai', description: 'Historic park with ancient Buddhist temples from Thailand\'s first kingdom.', tags: ['History', 'UNESCO', 'Temples'] },
   ],
+  'vietnam': [
+    { name: 'Hanoi', description: 'Ancient capital with French colonial architecture, vibrant Old Quarter, and legendary street food.', tags: ['Capital', 'Culture', 'Food'] },
+    { name: 'Ho Chi Minh City', description: 'Dynamic southern metropolis with war history museums, rooftop bars, and buzzing markets.', tags: ['Urban', 'History', 'Nightlife'] },
+    { name: 'Hoi An', description: 'UNESCO ancient town with lantern-lit streets, tailor shops, and beautiful beaches nearby.', tags: ['UNESCO', 'Culture', 'Beach'] },
+    { name: 'Da Nang', description: 'Modern coastal city with stunning beaches, Ba Na Hills, and the Golden Bridge.', tags: ['Beach', 'Modern', 'Adventure'] },
+    { name: 'Ha Long Bay', description: 'UNESCO World Heritage site with thousands of limestone karsts rising from emerald waters.', tags: ['UNESCO', 'Nature', 'Cruise'] },
+    { name: 'Sapa', description: 'Mountain town with terraced rice paddies, ethnic minority villages, and trekking.', tags: ['Mountain', 'Trekking', 'Culture'] },
+    { name: 'Hue', description: 'Imperial city with ancient citadel, royal tombs, and traditional cuisine.', tags: ['History', 'UNESCO', 'Culture'] },
+    { name: 'Nha Trang', description: 'Beach resort city with islands, diving, and vibrant nightlife.', tags: ['Beach', 'Diving', 'Nightlife'] },
+    { name: 'Phu Quoc', description: 'Tropical island paradise with pristine beaches, seafood, and sunsets.', tags: ['Island', 'Beach', 'Relaxation'] },
+    { name: 'Ninh Binh', description: 'Stunning karst landscape with boat rides through caves and ancient temples.', tags: ['Nature', 'UNESCO', 'Scenic'] },
+  ],
+  'hawaii': [
+    { name: 'Honolulu', description: 'Capital city on Oahu with Waikiki Beach, Diamond Head, and Pearl Harbor.', tags: ['Capital', 'Beach', 'History'] },
+    { name: 'Maui', description: 'The Valley Isle with Road to Hana, Haleakala sunrise, and world-class beaches.', tags: ['Beach', 'Nature', 'Adventure'] },
+    { name: 'Kauai', description: 'The Garden Isle with Na Pali Coast, Waimea Canyon, and lush rainforests.', tags: ['Nature', 'Hiking', 'Scenic'] },
+    { name: 'Big Island', description: 'Hawaii Island with active volcanoes, black sand beaches, and diverse landscapes.', tags: ['Volcano', 'Nature', 'Adventure'] },
+    { name: 'North Shore Oahu', description: 'Legendary surfing destination with laid-back vibes and shrimp trucks.', tags: ['Surfing', 'Beach', 'Food'] },
+    { name: 'Lahaina', description: 'Historic whaling town on Maui with art galleries and oceanfront dining.', tags: ['Historic', 'Art', 'Food'] },
+    { name: 'Kona', description: 'Sunny west coast of Big Island with coffee farms, snorkeling, and manta rays.', tags: ['Coffee', 'Beach', 'Snorkeling'] },
+    { name: 'Hanalei', description: 'Charming town on Kauai\'s north shore with stunning bay and mountains.', tags: ['Beach', 'Scenic', 'Relaxation'] },
+  ],
   'switzerland': [
     { name: 'Zurich', description: 'Largest city with beautiful old town, lake views, and world-class shopping.', tags: ['Urban', 'Lake', 'Culture'] },
     { name: 'Lucerne', description: 'Picturesque city with covered bridges, mountain backdrops, and lake cruises.', tags: ['Scenic', 'Lake', 'Historic'] },
@@ -141,27 +176,39 @@ const DESTINATION_CITIES: Record<string, { name: string; description: string; ta
   ],
 };
 
-// Generate cities for destination
-function generateCities(destination: string): Listing[] {
-  const destLower = destination.toLowerCase();
+// Generate cities for multiple destinations
+function generateCitiesForDestinations(destinations: string[]): { destination: string; cities: Listing[] }[] {
+  const results: { destination: string; cities: Listing[] }[] = [];
 
-  // Find matching destination
-  let cities = DESTINATION_CITIES['japan']; // Default
-  for (const [key, value] of Object.entries(DESTINATION_CITIES)) {
-    if (destLower.includes(key)) {
-      cities = value;
-      break;
+  for (const dest of destinations) {
+    const destLower = dest.toLowerCase();
+    let matchedKey = '';
+    let cities: { name: string; description: string; tags: string[] }[] = [];
+
+    for (const [key, value] of Object.entries(DESTINATION_CITIES)) {
+      if (destLower.includes(key) || key.includes(destLower)) {
+        matchedKey = key;
+        cities = value;
+        break;
+      }
+    }
+
+    if (cities.length > 0) {
+      results.push({
+        destination: dest,
+        cities: cities.map((city, index) => ({
+          id: `${matchedKey}-city-${index + 1}`,
+          name: city.name,
+          description: city.description,
+          imageUrl: getCityImage(city.name),
+          category: 'cities',
+          tags: city.tags,
+        })),
+      });
     }
   }
 
-  return cities.map((city, index) => ({
-    id: `city-${index + 1}`,
-    name: city.name,
-    description: city.description,
-    imageUrl: getCityImage(city.name),
-    category: 'cities',
-    tags: city.tags,
-  }));
+  return results;
 }
 
 // Generate hotels based on selected cities
@@ -357,7 +404,7 @@ const STEP_CONFIG: { key: Step; label: string; icon: typeof Building2 }[] = [
 ];
 
 export function SteppedCuration({
-  destination,
+  destinations,
   tripStyles,
   onTripStylesChange,
   selectedCities,
@@ -370,13 +417,22 @@ export function SteppedCuration({
   const [currentStep, setCurrentStep] = useState<Step>('cities');
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
-  const cities = generateCities(destination);
-  const hotels = generateHotels(destination);
+  // Generate cities for all destinations
+  const destinationCities = generateCitiesForDestinations(destinations);
+
+  // Get all cities or filtered by country
+  const allCities = destinationCities.flatMap(dc => dc.cities);
+  const filteredCities = selectedCountry
+    ? destinationCities.find(dc => dc.destination.toLowerCase().includes(selectedCountry.toLowerCase()))?.cities || []
+    : allCities;
+
+  const hotels = generateHotels(destinations[0] || '');
 
   // Get the actual city names from selected city IDs
   const selectedCityNames = selectedCities.map(cityId => {
-    const city = cities.find(c => c.id === cityId);
+    const city = allCities.find(c => c.id === cityId);
     return city?.name || '';
   }).filter(name => name !== '');
 
@@ -410,7 +466,7 @@ export function SteppedCuration({
   const getListingsForStep = () => {
     switch (currentStep) {
       case 'cities':
-        return cities;
+        return filteredCities;
       case 'hotels':
         return hotels;
       case 'activities':
@@ -553,6 +609,42 @@ export function SteppedCuration({
           );
         })}
       </div>
+
+      {/* Country Filter Tabs (only for cities step with multiple destinations) */}
+      {currentStep === 'cities' && destinationCities.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedCountry(null)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              selectedCountry === null
+                ? 'bg-primary text-white'
+                : 'bg-muted hover:bg-muted/80'
+            }`}
+          >
+            All
+          </button>
+          {destinationCities.map(({ destination }) => {
+            const destLower = destination.toLowerCase();
+            const flag = Object.entries(COUNTRY_FLAGS).find(([key]) =>
+              destLower.includes(key) || key.includes(destLower)
+            )?.[1] || '🌍';
+
+            return (
+              <button
+                key={destination}
+                onClick={() => setSelectedCountry(destination)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  selectedCountry === destination
+                    ? 'bg-primary text-white'
+                    : 'bg-muted hover:bg-muted/80'
+                }`}
+              >
+                {flag} {destination}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Current Step Content */}
       <div className="space-y-3">
