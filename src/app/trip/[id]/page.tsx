@@ -27,7 +27,8 @@ import {
   Lock, Unlock, Heart
 } from 'lucide-react';
 import Link from 'next/link';
-import { tripDb, documentDb, StoredDocument } from '@/lib/db/indexed-db';
+import { tripDb, documentDb, savedPlacesDb, StoredDocument } from '@/lib/db/indexed-db';
+import type { SavedPlace } from '@/types/saved-place';
 import { DashboardHeader, TripDrawer, ProfileSettings, MonthCalendar } from '@/components/dashboard';
 import { TripRouteMap } from '@/components/trip/TripRouteMap';
 import { TripHubSection } from '@/components/trip/TripHubSection';
@@ -387,6 +388,10 @@ export default function TripPage() {
   // Trip Hub - Itinerary state
   const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
 
+  // Trip Hub - Saved Collections state
+  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+  const [savedExpanded, setSavedExpanded] = useState(false);
+
   // Get all trips for the drawer
   const { trips, refresh: refreshTrips } = useDashboardData();
 
@@ -590,6 +595,34 @@ export default function TripPage() {
       });
     }
   }, [tripDna]);
+
+  // Load saved places for this trip's destinations
+  useEffect(() => {
+    const loadSavedPlaces = async () => {
+      if (!tripDna) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const destination = dna.interests?.destination || dna.meta?.title || '';
+      const destinations = dna.interests?.destinations || [destination];
+      const cities = selectedCities.length > 0 ? selectedCities : destinations;
+
+      try {
+        const allSaved = await savedPlacesDb.getAll();
+        // Filter saved places by trip cities
+        const tripSaved = allSaved.filter(place =>
+          cities.some((city: string) =>
+            place.city.toLowerCase().includes(city.toLowerCase()) ||
+            city.toLowerCase().includes(place.city.toLowerCase())
+          )
+        );
+        setSavedPlaces(tripSaved);
+      } catch (error) {
+        console.error('Failed to load saved places:', error);
+      }
+    };
+
+    loadSavedPlaces();
+  }, [tripDna, selectedCities]);
 
   // Save budget to itinerary when it changes
   const handleSaveBudget = async (newBudget: number) => {
@@ -2552,6 +2585,99 @@ export default function TripPage() {
                 )}
               </div>
             </TripHubSection>
+
+            {/* Saved Collections Section */}
+            <div className="mt-6">
+              <button
+                onClick={() => setSavedExpanded(!savedExpanded)}
+                className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Heart className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Saved for This Trip</span>
+                  {savedPlaces.length > 0 && (
+                    <span className="text-sm text-muted-foreground">({savedPlaces.length})</span>
+                  )}
+                </div>
+                <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${savedExpanded ? 'rotate-180' : ''}`} />
+              </button>
+
+              {savedExpanded && (
+                <div className="mt-3 p-4 bg-muted/20 rounded-xl">
+                  {savedPlaces.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Heart className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No saved places yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Save places from Explore to see them here
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => router.push('/explore')}
+                      >
+                        <Compass className="w-4 h-4 mr-2" />
+                        Explore Places
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Group by type */}
+                      {(['attraction', 'restaurant', 'cafe', 'activity', 'nightlife'] as const).map(type => {
+                        const placesOfType = savedPlaces.filter(p => p.type === type);
+                        if (placesOfType.length === 0) return null;
+
+                        const typeLabels: Record<string, string> = {
+                          attraction: 'Attractions',
+                          restaurant: 'Restaurants',
+                          cafe: 'Cafes',
+                          activity: 'Activities',
+                          nightlife: 'Nightlife',
+                        };
+
+                        return (
+                          <div key={type}>
+                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                              {typeLabels[type]} ({placesOfType.length})
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              {placesOfType.slice(0, 4).map(place => (
+                                <div
+                                  key={place.id}
+                                  className="flex items-center gap-2 p-2 bg-background rounded-lg"
+                                >
+                                  {place.imageUrl ? (
+                                    <img
+                                      src={place.imageUrl}
+                                      alt={place.name}
+                                      className="w-10 h-10 rounded object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{place.name}</div>
+                                    <div className="text-xs text-muted-foreground truncate">{place.city}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {placesOfType.length > 4 && (
+                              <button className="text-xs text-primary mt-2 hover:underline">
+                                +{placesOfType.length - 4} more
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </main>
 
