@@ -78,6 +78,7 @@ async function fetchPlacesForCity(city: string, type: string, limit: number = 20
 
     const data: PlaceSearchResult = await response.json();
     const places = data.places || [];
+    console.log(`[GenerateItinerary] Got ${places.length} ${type}s for ${city} from Google Places API`);
 
     // Cache results
     if (supabasePlaces.isConfigured()) {
@@ -268,8 +269,14 @@ export async function POST(request: NextRequest) {
     ]);
 
     if (attractions.length === 0 && restaurants.length === 0) {
+      // Return more info for debugging
       return NextResponse.json(
-        { error: 'Could not find places for this city' },
+        {
+          error: 'Could not find places for this city',
+          city: searchCity,
+          apiKeyConfigured: !!GOOGLE_API_KEY,
+          apiKeyLength: GOOGLE_API_KEY?.length || 0,
+        },
         { status: 404 }
       );
     }
