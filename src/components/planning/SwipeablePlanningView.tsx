@@ -88,60 +88,6 @@ const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
 // Dynamically import AutoItineraryView
 const AutoItineraryView = dynamic(() => import('./AutoItineraryView'), { ssr: false });
 
-// City coordinates for map embedding
-const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-  'Bangkok': { lat: 13.7563, lng: 100.5018 },
-  'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
-  'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
-  'Phuket': { lat: 7.8804, lng: 98.3923 },
-  'Krabi': { lat: 8.0863, lng: 98.9063 },
-  'Koh Samui': { lat: 9.5120, lng: 100.0134 },
-  'Koh Phi Phi': { lat: 7.7407, lng: 98.7784 },
-  'Koh Lanta': { lat: 7.6500, lng: 99.0333 },
-  'Koh Tao': { lat: 10.0956, lng: 99.8405 },
-  'Koh Phangan': { lat: 9.7500, lng: 100.0333 },
-  'Ayutthaya': { lat: 14.3692, lng: 100.5877 },
-  'Sukhothai': { lat: 17.0100, lng: 99.8200 },
-  'Pai': { lat: 19.3622, lng: 98.4403 },
-  'Hua Hin': { lat: 12.5683, lng: 99.9575 },
-  'Kanchanaburi': { lat: 14.0041, lng: 99.5483 },
-  'Tokyo': { lat: 35.6762, lng: 139.6503 },
-  'Kyoto': { lat: 35.0116, lng: 135.7681 },
-  'Osaka': { lat: 34.6937, lng: 135.5023 },
-  'Hanoi': { lat: 21.0285, lng: 105.8542 },
-  'Ho Chi Minh City': { lat: 10.8231, lng: 106.6297 },
-  'Hoi An': { lat: 15.8801, lng: 108.3380 },
-  'Singapore': { lat: 1.3521, lng: 103.8198 },
-  'Bali': { lat: -8.3405, lng: 115.0920 },
-  'Ubud': { lat: -8.5069, lng: 115.2625 },
-};
-
-// Simple map embed component for city modal
-const CityMapEmbed = ({ cityName }: { cityName: string }) => {
-  const coords = CITY_COORDS[cityName] || { lat: 13.7563, lng: 100.5018 }; // Default to Bangkok
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.05}%2C${coords.lat - 0.03}%2C${coords.lng + 0.05}%2C${coords.lat + 0.03}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`;
-  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${coords.lat}&mlon=${coords.lng}#map=14/${coords.lat}/${coords.lng}`;
-
-  return (
-    <div className="h-full flex flex-col">
-      <iframe
-        src={mapUrl}
-        className="w-full flex-1 min-h-[300px] border-0"
-        loading="lazy"
-        title={`Map of ${cityName}`}
-      />
-      <a
-        href={fullMapUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-center py-2 text-xs text-primary hover:underline"
-      >
-        View larger map →
-      </a>
-    </div>
-  );
-};
-
 import type { HotelInfo } from '@/lib/planning/hotel-generator';
 import { getTransportOptions, estimateTransportOptions, getRome2RioUrl, get12GoUrl, TRANSPORT_ICONS, type TransportOption } from '@/lib/planning/transport-options';
 
@@ -353,6 +299,36 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'Athens': [38.0, 23.7], 'Santorini': [36.4, 25.4], 'Mykonos': [37.4, 25.3],
   // Turkey
   'Istanbul': [41.0, 29.0], 'Cappadocia': [38.6, 34.8], 'Antalya': [36.9, 30.7],
+  // Additional Thai islands
+  'Koh Phi Phi': [7.74, 98.78], 'Koh Lanta': [7.65, 99.03], 'Koh Tao': [10.1, 99.84],
+  'Pai': [19.36, 98.44], 'Hua Hin': [12.57, 99.96], 'Kanchanaburi': [14.0, 99.55],
+};
+
+// Simple map embed component for city modal
+const CityMapEmbed = ({ cityName }: { cityName: string }) => {
+  const coords = CITY_COORDS[cityName] || [13.8, 100.5]; // Default to Bangkok
+  const [lat, lng] = coords;
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.05}%2C${lat - 0.03}%2C${lng + 0.05}%2C${lat + 0.03}&layer=mapnik&marker=${lat}%2C${lng}`;
+  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=14/${lat}/${lng}`;
+
+  return (
+    <div className="h-full flex flex-col">
+      <iframe
+        src={mapUrl}
+        className="w-full flex-1 min-h-[300px] border-0"
+        loading="lazy"
+        title={`Map of ${cityName}`}
+      />
+      <a
+        href={fullMapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-center py-2 text-xs text-primary hover:underline"
+      >
+        View larger map →
+      </a>
+    </div>
+  );
 };
 
 // City to Country mapping - used to group cities by destination
@@ -1725,41 +1701,7 @@ export function SwipeablePlanningView({
       // - Pacific: Kelowna → Tokyo → Chiang Mai → Phuket → Da Nang → Osaka → Hawaii
       // - Europe: Barcelona → Valencia → Granada → Seville → Lagos → Lisbon → Porto
 
-      // City coordinates for geographic routing [lat, lng]
-      const CITY_COORDS: Record<string, [number, number]> = {
-        // Japan
-        'Tokyo': [35.7, 139.7], 'Hakone': [35.2, 139.0], 'Kyoto': [35.0, 135.8],
-        'Nara': [34.7, 135.8], 'Osaka': [34.7, 135.5], 'Hiroshima': [34.4, 132.5], 'Fukuoka': [33.6, 130.4],
-        // Thailand
-        'Chiang Rai': [19.9, 99.8], 'Chiang Mai': [18.8, 99.0], 'Sukhothai': [17.0, 99.8],
-        'Ayutthaya': [14.4, 100.6], 'Bangkok': [13.8, 100.5], 'Koh Samui': [9.5, 100.0],
-        'Koh Phangan': [9.7, 100.1], 'Phuket': [7.9, 98.4], 'Krabi': [8.1, 98.9],
-        // Vietnam
-        'Hanoi': [21.0, 105.8], 'Ha Long Bay': [20.9, 107.0], 'Ninh Binh': [20.3, 105.9],
-        'Hue': [16.5, 107.6], 'Da Nang': [16.1, 108.2], 'Hoi An': [15.9, 108.3],
-        'Nha Trang': [12.2, 109.2], 'Ho Chi Minh City': [10.8, 106.6],
-        // Hawaii
-        'Honolulu': [21.3, -157.8], 'Maui': [20.8, -156.3], 'Kauai': [22.1, -159.5],
-        // Spain
-        'Barcelona': [41.4, 2.2], 'Valencia': [39.5, -0.4], 'Madrid': [40.4, -3.7],
-        'Granada': [37.2, -3.6], 'Seville': [37.4, -6.0], 'Malaga': [36.7, -4.4],
-        'Cordoba': [37.9, -4.8], 'Toledo': [39.9, -4.0], 'San Sebastian': [43.3, -2.0],
-        'Bilbao': [43.3, -2.9],
-        // Portugal
-        'Lisbon': [38.7, -9.1], 'Porto': [41.2, -8.6], 'Lagos': [37.1, -8.7],
-        'Faro': [37.0, -7.9], 'Sintra': [38.8, -9.4], 'Cascais': [38.7, -9.4],
-        // France
-        'Paris': [48.9, 2.4], 'Nice': [43.7, 7.3], 'Lyon': [45.8, 4.8], 'Marseille': [43.3, 5.4],
-        // Italy
-        'Rome': [41.9, 12.5], 'Florence': [43.8, 11.3], 'Venice': [45.4, 12.3],
-        'Milan': [45.5, 9.2], 'Naples': [40.9, 14.3], 'Amalfi': [40.6, 14.6],
-        // Greece
-        'Athens': [38.0, 23.7], 'Santorini': [36.4, 25.4], 'Mykonos': [37.4, 25.3],
-        // Turkey
-        'Istanbul': [41.0, 29.0], 'Cappadocia': [38.6, 34.8], 'Antalya': [36.9, 30.7],
-      };
-
-      // Calculate distance between two cities (km)
+      // Calculate distance between two cities (km) - uses module-level CITY_COORDS
       const calcDist = (city1: string, city2: string): number => {
         const c1 = CITY_COORDS[city1];
         const c2 = CITY_COORDS[city2];
