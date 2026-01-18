@@ -12,6 +12,7 @@ import {
   Plane,
   Globe,
   CheckSquare,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
 import { BucketList, DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { getDestinationImage } from '@/lib/dashboard/image-utils';
-import type { StoredTrip } from '@/lib/db/indexed-db';
+import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
 
 export default function MyTripsPage() {
   const router = useRouter();
@@ -129,7 +130,7 @@ export default function MyTripsPage() {
             <h2 className="text-sm font-semibold mb-3 text-muted-foreground">Upcoming</h2>
             <div className="space-y-3">
               {upcomingTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
+                <TripCard key={trip.id} trip={trip} onDelete={refresh} />
               ))}
             </div>
           </div>
@@ -141,7 +142,7 @@ export default function MyTripsPage() {
             <h2 className="text-sm font-semibold mb-3 text-muted-foreground">Past</h2>
             <div className="space-y-3">
               {pastTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
+                <TripCard key={trip.id} trip={trip} onDelete={refresh} />
               ))}
             </div>
           </div>
@@ -196,7 +197,9 @@ export default function MyTripsPage() {
   );
 }
 
-function TripCard({ trip }: { trip: StoredTrip }) {
+function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const title = trip.itinerary?.meta?.title ||
     trip.tripDna?.interests?.destination ||
     'Untitled Trip';
@@ -213,6 +216,23 @@ function TripCard({ trip }: { trip: StoredTrip }) {
   const startDate = trip.itinerary?.meta?.startDate;
   const endDate = trip.itinerary?.meta?.endDate;
   const totalDays = trip.itinerary?.meta?.totalDays;
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Delete "${title}"?`)) return;
+
+    setIsDeleting(true);
+    try {
+      await tripDb.delete(trip.id);
+      onDelete();
+    } catch (error) {
+      console.error('Failed to delete trip:', error);
+      alert('Failed to delete trip');
+    }
+    setIsDeleting(false);
+  };
 
   return (
     <Link href={`/trip/${trip.id}`}>
@@ -265,10 +285,15 @@ function TripCard({ trip }: { trip: StoredTrip }) {
               )}
             </div>
 
-            {/* Arrow */}
-            <div className="flex items-center pr-3">
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </div>
+            {/* Delete button */}
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex items-center px-3 hover:bg-red-50 transition-colors group"
+              title="Delete trip"
+            >
+              <Trash2 className={`w-4 h-4 text-muted-foreground group-hover:text-red-500 ${isDeleting ? 'animate-pulse' : ''}`} />
+            </button>
           </div>
         </CardContent>
       </Card>
