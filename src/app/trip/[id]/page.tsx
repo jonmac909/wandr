@@ -2355,14 +2355,14 @@ export default function TripPage() {
               onToggle={() => toggleSection('cities')}
             >
               <div className="space-y-4">
-                {/* City Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* City Grid - matching SteppedCuration style */}
+                <div className="grid grid-cols-2 gap-3">
                   {getCitiesForDestination(destinations[0] || destination).map((city) => (
                     <button
                       key={city}
                       onClick={() => toggleCity(city)}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden group ${
-                        selectedCities.includes(city) ? 'ring-2 ring-primary ring-offset-2' : ''
+                      className={`group relative aspect-square rounded-xl overflow-hidden shadow-sm transition-all duration-300 text-left ${
+                        selectedCities.includes(city) ? 'ring-2 ring-primary ring-offset-2' : 'hover:shadow-lg'
                       }`}
                     >
                       {/* Background Image */}
@@ -2370,27 +2370,29 @@ export default function TripPage() {
                         <img
                           src={cityImages[city]}
                           alt={city}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-600 to-slate-800" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-600 to-slate-800 animate-pulse" />
                       )}
 
-                      {/* Overlay */}
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                      {/* Selection indicator */}
-                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                      {/* Selection Toggle */}
+                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full transition-all z-10 flex items-center justify-center ${
                         selectedCities.includes(city)
                           ? 'bg-primary text-white'
-                          : 'bg-white/80 text-gray-400'
+                          : 'bg-white/80 text-gray-400 hover:bg-white'
                       }`}>
-                        {selectedCities.includes(city) && <Check className="w-4 h-4" />}
+                        <Check className={`w-4 h-4 ${selectedCities.includes(city) ? '' : 'opacity-0'}`} />
                       </div>
 
-                      {/* City name */}
-                      <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-                        <div className="font-medium text-sm drop-shadow-md">{city}</div>
+                      {/* Content */}
+                      <div className="absolute inset-0 p-3 flex flex-col justify-end text-white">
+                        <h4 className="font-bold text-sm leading-tight drop-shadow-md line-clamp-2">
+                          {city}
+                        </h4>
                       </div>
                     </button>
                   ))}
