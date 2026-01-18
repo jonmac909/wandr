@@ -375,6 +375,18 @@ export default function TripPage() {
   const [editSpecialRequests, setEditSpecialRequests] = useState('');
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
+  // Trip Hub - Cities state
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [cityImages, setCityImages] = useState<Record<string, string>>({});
+  const [isSavingCities, setIsSavingCities] = useState(false);
+
+  // Trip Hub - Route state
+  const [routeOrder, setRouteOrder] = useState<string[]>([]);
+  const [isSavingRoute, setIsSavingRoute] = useState(false);
+
+  // Trip Hub - Itinerary state
+  const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
+
   // Get all trips for the drawer
   const { trips, refresh: refreshTrips } = useDashboardData();
 
@@ -552,6 +564,30 @@ export default function TripPage() {
 
       const specialRequests = dna.preferences?.specialRequests || '';
       setEditSpecialRequests(specialRequests);
+
+      // Initialize cities
+      const destination = dna.interests?.destination || dna.meta?.title || 'Your Trip';
+      const destinations = dna.interests?.destinations || [destination];
+      const cities = dna.interests?.selectedCities || [];
+      setSelectedCities(cities);
+      // Initialize route order from selected cities or destinations
+      setRouteOrder(cities.length > 0 ? cities : destinations);
+
+      // Fetch city images
+      const allCities = getCitiesForDestination(destinations[0] || destination);
+      allCities.forEach(async (city) => {
+        try {
+          const res = await fetch(`/api/city-image?city=${encodeURIComponent(city)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.imageUrl) {
+              setCityImages(prev => ({ ...prev, [city]: data.imageUrl }));
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch image for ${city}:`, error);
+        }
+      });
     }
   }, [tripDna]);
 
@@ -1707,6 +1743,187 @@ export default function TripPage() {
     );
   };
 
+  // Toggle city selection
+  const toggleCity = (city: string) => {
+    setSelectedCities(prev => {
+      const newCities = prev.includes(city)
+        ? prev.filter(c => c !== city)
+        : [...prev, city];
+      // Also update route order when cities change
+      if (!prev.includes(city)) {
+        setRouteOrder(current => [...current, city]);
+      } else {
+        setRouteOrder(current => current.filter(c => c !== city));
+      }
+      return newCities;
+    });
+  };
+
+  // Save cities to tripDna
+  const handleSaveCities = async () => {
+    if (!tripDna) return;
+    setIsSavingCities(true);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const updatedTripDna = {
+        ...dna,
+        interests: {
+          ...dna.interests,
+          selectedCities: selectedCities,
+        },
+      };
+
+      setTripDna(updatedTripDna);
+      await tripDb.updateTripDna(tripId, updatedTripDna);
+      setExpandedSection(null);
+    } catch (error) {
+      console.error('Failed to save cities:', error);
+    } finally {
+      setIsSavingCities(false);
+    }
+  };
+
+  // Move city up in route order
+  const moveRouteCity = (city: string, direction: 'up' | 'down') => {
+    setRouteOrder(prev => {
+      const index = prev.indexOf(city);
+      if (index === -1) return prev;
+      if (direction === 'up' && index === 0) return prev;
+      if (direction === 'down' && index === prev.length - 1) return prev;
+
+      const newOrder = [...prev];
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
+      return newOrder;
+    });
+  };
+
+  // Save route to tripDna
+  const handleSaveRoute = async () => {
+    if (!tripDna) return;
+    setIsSavingRoute(true);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const updatedTripDna = {
+        ...dna,
+        interests: {
+          ...dna.interests,
+          routeOrder: routeOrder,
+        },
+      };
+
+      setTripDna(updatedTripDna);
+      await tripDb.updateTripDna(tripId, updatedTripDna);
+      setExpandedSection(null);
+    } catch (error) {
+      console.error('Failed to save route:', error);
+    } finally {
+      setIsSavingRoute(false);
+    }
+  };
+
+  // Generate itinerary
+  const handleGenerateItinerary = async () => {
+    if (!tripDna) return;
+    setIsGeneratingItinerary(true);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const startDateStr = dna.constraints?.dates?.startDate || dna.constraints?.startDate;
+      const endDateStr = dna.constraints?.dates?.endDate || dna.constraints?.endDate;
+      const cities = selectedCities.length > 0 ? selectedCities : routeOrder;
+
+      // Calculate number of days
+      let numDays = durationDays;
+      if (startDateStr && endDateStr) {
+        const start = new Date(startDateStr);
+        const end = new Date(endDateStr);
+        numDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      }
+
+      // Distribute days among cities
+      const daysPerCity = Math.max(1, Math.floor(numDays / Math.max(1, cities.length)));
+
+      // Create bases for each city
+      const bases = cities.map((city, idx) => ({
+        id: `base-${idx + 1}`,
+        name: city,
+        city: city,
+        country: '',
+        checkIn: '',
+        checkOut: '',
+        nights: daysPerCity,
+      }));
+
+      // Create day plans
+      const days = [];
+      let currentDate = startDateStr ? new Date(startDateStr) : new Date();
+
+      for (let i = 0; i < numDays; i++) {
+        const cityIndex = Math.min(Math.floor(i / daysPerCity), cities.length - 1);
+        const baseId = `base-${cityIndex + 1}`;
+
+        days.push({
+          id: `day-${i + 1}`,
+          dayNumber: i + 1,
+          date: currentDate.toISOString().split('T')[0],
+          baseId: baseId,
+          theme: `Exploring ${cities[cityIndex] || 'destination'}`,
+          blocks: [],
+        });
+
+        currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      // Create itinerary with flexible structure using type assertion
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newItinerary: any = {
+        id: tripId,
+        tripDnaId: tripId,
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        meta: {
+          title: dna.meta?.title || `Trip to ${cities[0] || 'Your destination'}`,
+          destination: cities[0] || 'destination',
+          destinations: cities,
+          startDate: startDateStr || new Date().toISOString().split('T')[0],
+          endDate: endDateStr || currentDate.toISOString().split('T')[0],
+          totalDays: numDays,
+          estimatedBudget: {
+            accommodation: 0,
+            activities: 0,
+            food: 0,
+            transport: 0,
+            misc: 0,
+            total: 0,
+            perDay: 0,
+            currency: 'USD',
+          },
+        },
+        route: {
+          bases: bases,
+          movements: [],
+        },
+        days,
+        packingList: [],
+      };
+
+      setItinerary(newItinerary);
+      localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(newItinerary));
+      await tripDb.updateItinerary(tripId, newItinerary);
+    } catch (error) {
+      console.error('Failed to generate itinerary:', error);
+    } finally {
+      setIsGeneratingItinerary(false);
+    }
+  };
+
   // If no itinerary yet, show Trip Hub with collapsible sections
   if (!itinerary) {
     // Use type assertion for flexible tripDna structure from different sources
@@ -2087,14 +2304,88 @@ export default function TripPage() {
             <TripHubSection
               icon={<MapPin className="w-5 h-5" />}
               title="Cities"
-              status={`Exploring ${destinations.join(', ')}`}
-              buttonText="Edit"
+              status={selectedCities.length > 0 ? `${selectedCities.length} cities selected` : `Exploring ${destinations.join(', ')}`}
+              buttonText={selectedCities.length > 0 ? 'Edit' : 'Set'}
               onButtonClick={() => toggleSection('cities')}
               expanded={expandedSection === 'cities'}
               onToggle={() => toggleSection('cities')}
             >
-              <div className="text-sm text-muted-foreground">
-                City picker will go here
+              <div className="space-y-4">
+                {/* City Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {getCitiesForDestination(destinations[0] || destination).map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => toggleCity(city)}
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden group ${
+                        selectedCities.includes(city) ? 'ring-2 ring-primary ring-offset-2' : ''
+                      }`}
+                    >
+                      {/* Background Image */}
+                      {cityImages[city] ? (
+                        <img
+                          src={cityImages[city]}
+                          alt={city}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-600 to-slate-800" />
+                      )}
+
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+
+                      {/* Selection indicator */}
+                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                        selectedCities.includes(city)
+                          ? 'bg-primary text-white'
+                          : 'bg-white/80 text-gray-400'
+                      }`}>
+                        {selectedCities.includes(city) && <Check className="w-4 h-4" />}
+                      </div>
+
+                      {/* City name */}
+                      <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                        <div className="font-medium text-sm drop-shadow-md">{city}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selected cities summary */}
+                {selectedCities.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    <span className="text-sm text-muted-foreground">Selected:</span>
+                    {selectedCities.map((city) => (
+                      <span key={city} className="text-sm font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {city}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Save/Cancel Buttons */}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Reset to saved values
+                      const dna = tripDna as any;
+                      setSelectedCities(dna.interests?.selectedCities || []);
+                      setExpandedSection(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveCities}
+                    disabled={isSavingCities}
+                  >
+                    {isSavingCities ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
               </div>
             </TripHubSection>
 
@@ -2102,14 +2393,88 @@ export default function TripPage() {
             <TripHubSection
               icon={<Map className="w-5 h-5" />}
               title="Route"
-              status="Route not set"
-              buttonText="Set"
+              status={routeOrder.length > 0 ? routeOrder.join(' → ') : 'Route not set'}
+              buttonText={routeOrder.length > 0 ? 'Edit' : 'Set'}
               onButtonClick={() => toggleSection('route')}
               expanded={expandedSection === 'route'}
               onToggle={() => toggleSection('route')}
             >
-              <div className="text-sm text-muted-foreground">
-                Route planner will go here
+              <div className="space-y-4">
+                {routeOrder.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Select cities first to plan your route
+                  </p>
+                ) : (
+                  <>
+                    {/* Route list with reorder buttons */}
+                    <div className="space-y-2">
+                      {routeOrder.map((city, index) => (
+                        <div
+                          key={city}
+                          className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                        >
+                          {/* Order number */}
+                          <div className="w-6 h-6 rounded-full bg-primary text-white text-sm font-medium flex items-center justify-center">
+                            {index + 1}
+                          </div>
+
+                          {/* City name */}
+                          <div className="flex-1 font-medium">{city}</div>
+
+                          {/* Reorder buttons */}
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => moveRouteCity(city, 'up')}
+                              disabled={index === 0}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                            >
+                              <ChevronDown className="w-4 h-4 rotate-180" />
+                            </button>
+                            <button
+                              onClick={() => moveRouteCity(city, 'down')}
+                              disabled={index === routeOrder.length - 1}
+                              className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Route summary */}
+                    <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <Map className="w-4 h-4" />
+                        <span>Your route: {routeOrder.join(' → ')}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Save/Cancel Buttons */}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Reset to saved values
+                      const dna = tripDna as any;
+                      const cities = dna.interests?.selectedCities || [];
+                      setRouteOrder(dna.interests?.routeOrder || cities);
+                      setExpandedSection(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveRoute}
+                    disabled={isSavingRoute || routeOrder.length === 0}
+                  >
+                    {isSavingRoute ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
               </div>
             </TripHubSection>
 
@@ -2123,8 +2488,68 @@ export default function TripPage() {
               expanded={expandedSection === 'itinerary'}
               onToggle={() => toggleSection('itinerary')}
             >
-              <div className="text-sm text-muted-foreground">
-                Itinerary builder will go here
+              <div className="space-y-4">
+                {/* Itinerary generation info */}
+                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Generate your itinerary</div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Based on your preferences, dates, and selected cities, we&apos;ll create a personalized day-by-day itinerary for your trip.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Requirements checklist */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      {hasDates ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className={hasDates ? '' : 'text-muted-foreground'}>
+                        Dates set
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedCities.length > 0 || routeOrder.length > 0 ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className={selectedCities.length > 0 || routeOrder.length > 0 ? '' : 'text-muted-foreground'}>
+                        Cities selected
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Generate button */}
+                <Button
+                  className="w-full"
+                  onClick={handleGenerateItinerary}
+                  disabled={isGeneratingItinerary || !hasDates}
+                >
+                  {isGeneratingItinerary ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Itinerary
+                    </>
+                  )}
+                </Button>
+
+                {!hasDates && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    Please set your travel dates first
+                  </p>
+                )}
               </div>
             </TripHubSection>
           </div>
