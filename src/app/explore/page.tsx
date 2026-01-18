@@ -1,519 +1,683 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Globe, MapPin, Clock, Lightbulb, Camera, Mountain, Utensils, Heart, ChevronRight, Search, Bookmark, Map, Coffee, Landmark, Star, TrendingUp } from 'lucide-react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Search, Heart, MapPin, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { TripDrawer } from '@/components/dashboard/TripDrawer';
+import { ProfileSettings } from '@/components/dashboard/ProfileSettings';
+import { AddPlaceSheet } from '@/components/explore/AddPlaceSheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { savedPlacesDb, tripDb, preferencesDb, type TravelInterest } from '@/lib/db/indexed-db';
+import { getCountryInfoForCity } from '@/lib/geo/city-country';
+import type { SavedPlace, BrowsePlace, PlaceCategory } from '@/types/saved-place';
+import type { StoredTrip } from '@/lib/db/indexed-db';
+import dynamic from 'next/dynamic';
 
-export default function ExploreTab() {
-    const router = useRouter();
-    const [selectedDestination, setSelectedDestination] = useState('thailand');
-    const [savedItems, setSavedItems] = useState(new Set());
-    const [searchQuery, setSearchQuery] = useState('');
-    const [expandedSections, setExpandedSections] = useState({
-        geography: false,
-        history: false
+const ExploreMap = dynamic(() => import('@/components/explore/ExploreMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+    </div>
+  ),
+});
+
+const CATEGORIES: { label: string; value: PlaceCategory; icon: string }[] = [
+  { label: 'All', value: 'all', icon: '✨' },
+  { label: 'Things to do', value: 'attraction', icon: '🎯' },
+  { label: 'Food', value: 'restaurant', icon: '🍜' },
+  { label: 'Cafes', value: 'cafe', icon: '☕' },
+  { label: 'Nightlife', value: 'nightlife', icon: '🌙' },
+];
+
+const INTERESTS: { value: TravelInterest; label: string; icon: string }[] = [
+  { value: 'food', label: 'Food', icon: '🍜' },
+  { value: 'history', label: 'History', icon: '🏛️' },
+  { value: 'art', label: 'Art', icon: '🎨' },
+  { value: 'nature', label: 'Nature', icon: '🌿' },
+  { value: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { value: 'adventure', label: 'Adventure', icon: '🧗' },
+  { value: 'shopping', label: 'Shopping', icon: '🛍️' },
+  { value: 'local-culture', label: 'Local', icon: '🎭' },
+];
+
+function ExploreContent() {
+  const searchParams = useSearchParams();
+  const initialCity = searchParams.get('city') || '';
+
+  const [activeTab, setActiveTab] = useState<'browse' | 'saved'>('browse');
+  const [searchCity, setSearchCity] = useState(initialCity);
+  const [selectedCategory, setSelectedCategory] = useState<PlaceCategory>('all');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false);
+
+  // Data states
+  const [browsePlaces, setBrowsePlaces] = useState<BrowsePlace[]>([]);
+  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+  const [trips, setTrips] = useState<StoredTrip[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedInterests, setSelectedInterests] = useState<TravelInterest[]>([]);
+
+  // Load data on mount
+  useEffect(() => {
+    loadSavedPlaces();
+    loadTrips();
+    loadUserInterests();
+  }, []);
+
+  const loadUserInterests = async () => {
+    const prefs = await preferencesDb.get();
+    if (prefs.travelInterests && prefs.travelInterests.length > 0) {
+      setSelectedInterests(prefs.travelInterests);
+    }
+  };
+
+  const toggleInterest = (interest: TravelInterest) => {
+    setSelectedInterests(prev =>
+      prev.includes(interest)
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
+
+  const loadSavedPlaces = async () => {
+    const places = await savedPlacesDb.getAll();
+    setSavedPlaces(places);
+    const ids = new Set(places.map(p => `${p.name.toLowerCase()}-${p.city.toLowerCase()}`));
+    setSavedIds(ids);
+  };
+
+  const loadTrips = async () => {
+    const allTrips = await tripDb.getAll();
+    // Filter to trips that are in planning (draft or generated, not completed/archived)
+    const planningTrips = allTrips.filter(t => t.status === 'draft' || t.status === 'generated' || t.status === 'active');
+    setTrips(planningTrips);
+  };
+
+  // Group saved places by country, then by city
+  const groupedSavedPlaces = useMemo(() => {
+    const groups: Record<string, { flag: string; name: string; cities: Record<string, SavedPlace[]> }> = {};
+
+    savedPlaces.forEach(place => {
+      const countryInfo = getCountryInfoForCity(place.city);
+      const countryCode = countryInfo?.code || 'XX';
+      const countryName = countryInfo?.name || 'Other';
+      const flag = countryInfo?.flag || '🌍';
+
+      if (!groups[countryCode]) {
+        groups[countryCode] = { flag, name: countryName, cities: {} };
+      }
+
+      const cityKey = place.city.toLowerCase();
+      if (!groups[countryCode].cities[cityKey]) {
+        groups[countryCode].cities[cityKey] = [];
+      }
+      groups[countryCode].cities[cityKey].push(place);
     });
 
-    const destinations: Record<string, any> = {
-        thailand: {
-            name: 'Thailand',
-            description: 'Thailand is a Southeast Asian country. It\'s known for tropical beaches, opulent royal palaces, ancient ruins and ornate temples displaying figures of Buddha. In Bangkok, the capital, an ultramodern cityscape rises next to quiet canalside communities and the iconic temples of Wat Arun, Wat Pho and the Emerald Buddha Temple (Wat Phra Kaew). Nearby beach resorts include bustling Pattaya and fashionable Hua Hin.',
-            mapImage: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600&h=400&fit=crop',
-            activities: [
-                { id: 1, name: 'Visit Grand Palace', type: 'activity', location: 'Bangkok', icon: Landmark, desc: 'Explore Thailand\'s most famous landmark with stunning architecture', rating: 4.8 },
-                { id: 2, name: 'Phi Phi Islands Tour', type: 'activity', location: 'Phuket', icon: Mountain, desc: 'Stunning limestone cliffs and crystal clear waters', rating: 4.9 },
-                { id: 3, name: 'Thai Cooking Class', type: 'activity', location: 'Chiang Mai', icon: Utensils, desc: 'Learn to make authentic Pad Thai and Green Curry', rating: 4.7 },
-                { id: 4, name: 'Floating Markets', type: 'activity', location: 'Bangkok', icon: Camera, desc: 'Traditional market experience on the water', rating: 4.6 },
-                { id: 5, name: 'Elephant Sanctuary', type: 'activity', location: 'Chiang Mai', icon: Heart, desc: 'Ethical elephant interaction and feeding', rating: 4.9 },
-                { id: 6, name: 'Railay Beach Climbing', type: 'activity', location: 'Krabi', icon: Mountain, desc: 'World-class rock climbing on limestone cliffs', rating: 4.8 }
-            ],
-            restaurants: [
-                { id: 7, name: 'Jay Fai', type: 'restaurant', location: 'Bangkok', icon: Utensils, desc: 'Michelin-starred crab omelet and drunken noodles', cuisine: 'Thai', price: '$$$', rating: 4.7 },
-                { id: 8, name: 'Gaggan Anand', type: 'restaurant', location: 'Bangkok', icon: Utensils, desc: 'Progressive Indian cuisine with molecular gastronomy', cuisine: 'Indian', price: '$$$$', rating: 4.9 },
-                { id: 9, name: 'Somtum Der', type: 'restaurant', location: 'Bangkok', icon: Utensils, desc: 'Authentic Isaan cuisine and papaya salad', cuisine: 'Thai', price: '$$', rating: 4.6 },
-                { id: 10, name: 'Thip Samai', type: 'restaurant', location: 'Bangkok', icon: Utensils, desc: 'Best Pad Thai in Bangkok since 1966', cuisine: 'Thai', price: '$', rating: 4.5 },
-                { id: 11, name: 'Supanniga Eating Room', type: 'restaurant', location: 'Bangkok', icon: Utensils, desc: 'Traditional Thai dishes with river views', cuisine: 'Thai', price: '$$', rating: 4.7 }
-            ],
-            cities: [
-                { id: 12, name: 'Bangkok', type: 'city', icon: MapPin, desc: 'Vibrant capital with 400+ temples and legendary street food scene', highlights: '500+ temples, street food paradise', population: '10.5M' },
-                { id: 13, name: 'Chiang Mai', type: 'city', icon: MapPin, desc: 'Cultural hub in the mountains with night markets and ancient temples', highlights: 'Old City, night bazaars', population: '1.2M' },
-                { id: 14, name: 'Phuket', type: 'city', icon: MapPin, desc: 'Beach paradise and gateway to the Andaman islands', highlights: 'Beaches, diving, nightlife', population: '600K' },
-                { id: 15, name: 'Ayutthaya', type: 'city', icon: MapPin, desc: 'Ancient capital with UNESCO World Heritage ruins', highlights: 'Historical temples', population: '800K' }
-            ],
-            cityImages: [
-                { name: 'Bangkok', image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=300&fit=crop', famousFor: 'Famous for its ornate shrines, vibrant street life, and legendary street food scene with over 400 temples' },
-                { name: 'Chiang Mai', image: 'https://images.unsplash.com/photo-1598973281627-8753faa8a621?w=400&h=300&fit=crop', famousFor: 'Known for ancient temples within the old city walls, night bazaars, and elephant sanctuaries in the mountains' },
-                { name: 'Phuket', image: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=400&h=300&fit=crop', famousFor: 'Thailand\'s largest island, renowned for pristine beaches, world-class diving spots, and vibrant nightlife' },
-                { name: 'Ayutthaya', image: 'https://images.unsplash.com/photo-1563492065526-9c0c2f1a7c64?w=400&h=300&fit=crop', famousFor: 'UNESCO World Heritage site with magnificent temple ruins from the ancient Siamese kingdom (1350-1767)' }
-            ],
-            tips: [
-                'Learn basic phrases: "Sawasdee" (hello), "Khop khun" (thank you)',
-                'Dress modestly when visiting temples - cover shoulders and knees',
-                'Always carry small bills - street vendors often don\'t have change',
-                'Remove shoes before entering homes and temples',
-                'Book trains and buses in advance during peak season (Nov-Feb)'
-            ],
-            geography: {
-                location: 'Southeast Asia, Gulf of Thailand and Andaman Sea',
-                climate: 'Tropical with three seasons: hot, rainy, and cool',
-                terrain: 'Central plains, northeastern plateau, mountainous north, southern peninsula',
-                mapImage: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=500&fit=crop',
-                fullDescription: 'Thailand is located in the heart of Southeast Asia, bordered by Myanmar to the west and north, Laos to the north and east, Cambodia to the southeast, and Malaysia to the south. The country covers approximately 513,120 square kilometers and features diverse geography. The central region is dominated by the fertile Chao Phraya River valley, Thailand\'s agricultural heartland. The northeastern Isan plateau is characterized by rolling hills and the Mekong River border. Northern Thailand is mountainous with peaks reaching over 2,500 meters, while the southern peninsula features tropical beaches along both the Gulf of Thailand and Andaman Sea coastlines.'
-            },
-            history: 'Thailand has never been colonized, maintaining independence throughout history. The current Chakri dynasty was established in 1782, and Thailand transitioned to constitutional monarchy in 1932.',
-            fullHistory: [
-                {
-                    period: 'Ancient Kingdoms (6th-13th centuries)',
-                    description: 'Early civilizations like Dvaravati laid the foundation for Thai culture and Buddhism.'
-                },
-                {
-                    period: 'Sukhothai Kingdom (1238-1438)',
-                    description: 'First true Thai kingdom. Created Thai script and established Buddhism as central to identity.'
-                },
-                {
-                    period: 'Ayutthaya Kingdom (1351-1767)',
-                    description: 'Golden age of Thai power and culture. Extensive trade with Europe and Asia until destroyed by Burma.'
-                },
-                {
-                    period: 'Chakri Dynasty (1782-present)',
-                    description: 'Current royal dynasty founded by King Rama I. Established Bangkok as capital and modernized Thailand.'
-                },
-                {
-                    period: 'Colonial Era (19th century)',
-                    description: 'Only Southeast Asian country never colonized. Kings skillfully negotiated with European powers.'
-                },
-                {
-                    period: 'Constitutional Monarchy (1932-present)',
-                    description: 'Bloodless revolution transformed government. Periods of democracy mixed with military rule continue today.'
-                }
-            ]
-        },
-        japan: {
-            name: 'Japan',
-            description: 'Japan is an island nation in East Asia where ancient tradition meets futuristic innovation. From the neon-lit streets of Tokyo to the serene temples of Kyoto, Japan offers a unique blend of ultramodern cities and traditional culture.',
-            mapImage: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop',
-            activities: [
-                { id: 16, name: 'Climb Mount Fuji', type: 'activity', location: 'Fuji', icon: Mountain, desc: 'Summit Japan\'s sacred peak (July-Sept only)', rating: 4.8 },
-                { id: 17, name: 'Fushimi Inari Shrine', type: 'activity', location: 'Kyoto', icon: Landmark, desc: 'Walk through 10,000 vermillion torii gates', rating: 4.9 },
-                { id: 18, name: 'TeamLab Borderless', type: 'activity', location: 'Tokyo', icon: Camera, desc: 'Immersive digital art museum experience', rating: 4.7 },
-                { id: 19, name: 'Onsen Experience', type: 'activity', location: 'Hakone', icon: Heart, desc: 'Traditional hot spring bathing with Mount Fuji views', rating: 4.9 }
-            ],
-            restaurants: [
-                { id: 20, name: 'Sukiyabashi Jiro', type: 'restaurant', location: 'Tokyo', icon: Utensils, desc: '3 Michelin stars, legendary sushi experience', cuisine: 'Sushi', price: '$$$$', rating: 4.9 },
-                { id: 21, name: 'Ichiran Ramen', type: 'restaurant', location: 'Tokyo', icon: Utensils, desc: 'Solo dining ramen booths, perfect tonkotsu', cuisine: 'Ramen', price: '$', rating: 4.6 },
-                { id: 22, name: 'Narisawa', type: 'restaurant', location: 'Tokyo', icon: Utensils, desc: '2 Michelin stars, innovative Japanese cuisine', cuisine: 'Japanese', price: '$$$$', rating: 4.8 }
-            ],
-            cities: [
-                { id: 23, name: 'Tokyo', type: 'city', icon: MapPin, desc: 'Electric metropolis mixing tradition and cutting-edge technology', highlights: 'Shibuya, Shinjuku, Asakusa', population: '14M' },
-                { id: 24, name: 'Kyoto', type: 'city', icon: MapPin, desc: 'Ancient capital with 2,000 temples and traditional geisha culture', highlights: '2,000 temples, cultural heritage', population: '1.5M' },
-                { id: 25, name: 'Osaka', type: 'city', icon: MapPin, desc: 'Food capital known for takoyaki, okonomiyaki, and vibrant nightlife', highlights: 'Street food, Dotonbori', population: '2.7M' }
-            ],
-            cityImages: [
-                { name: 'Tokyo', image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop', famousFor: 'Famous for cutting-edge technology, Shibuya crossing, ancient temples, and Michelin-starred dining' },
-                { name: 'Kyoto', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=300&fit=crop', famousFor: 'Known for 2,000 temples and shrines, traditional geisha districts, and stunning bamboo forests' },
-                { name: 'Osaka', image: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&h=300&fit=crop', famousFor: 'Japan\'s kitchen with amazing street food, Osaka Castle, and the vibrant Dotonbori entertainment district' }
-            ],
-            tips: [
-                'Get a JR Pass for unlimited train travel (must buy before arriving)',
-                'Carry cash - many places don\'t accept cards',
-                'Bow when greeting - it\'s a sign of respect',
-                'Don\'t tip - it can be considered rude',
-                'Follow onsen etiquette - wash thoroughly before entering the bath'
-            ],
-            geography: {
-                location: 'East Asia, Pacific Ocean, 4 main islands',
-                climate: 'Four distinct seasons with humid summers',
-                terrain: '73% mountainous with volcanic peaks',
-                mapImage: 'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=800&h=500&fit=crop',
-                fullDescription: 'Japan is an archipelago of 6,852 islands in the Pacific Ocean, with the four main islands being Honshu, Hokkaido, Kyushu, and Shikoku. The country stretches over 3,000 kilometers from northeast to southwest. About 73% of Japan is mountainous, with the Japanese Alps running through the center of Honshu. Mount Fuji (3,776m) is the highest peak and an active volcano. The country sits on the Pacific Ring of Fire, experiencing frequent earthquakes and volcanic activity. Japan has limited arable land, with most cities concentrated in coastal plains. The climate varies from humid continental in the north to humid subtropical in the south, with four distinct seasons throughout most of the country.'
-            },
-            history: 'Japan has a rich history from ancient samurai warriors to post-WWII economic miracle. The Meiji Restoration (1868) modernized the nation while preserving cultural identity.',
-            fullHistory: [
-                {
-                    period: 'Ancient Japan (14,000 BCE - 300 CE)',
-                    description: 'Jomon pottery culture and Yayoi rice farming laid foundations. Imperial lineage established.'
-                },
-                {
-                    period: 'Feudal Era (1185-1603)',
-                    description: 'Samurai warrior class rose to power. Period of civil wars and cultural development.'
-                },
-                {
-                    period: 'Edo Period (1603-1868)',
-                    description: '250 years of peace and isolation. Japanese culture flourished under Tokugawa shogunate.'
-                },
-                {
-                    period: 'Meiji Restoration (1868-1912)',
-                    description: 'Rapid modernization from feudal to industrial nation. Japan became a world power.'
-                },
-                {
-                    period: 'World War II (1941-1945)',
-                    description: 'Imperial expansion ended in devastating defeat and atomic bombings of Hiroshima and Nagasaki.'
-                },
-                {
-                    period: 'Post-War to Present (1945-now)',
-                    description: 'Economic miracle made Japan world\'s 2nd largest economy. Today faces aging population challenges.'
-                }
-            ]
-        }
-    };
+    return groups;
+  }, [savedPlaces]);
 
-    const toggleSection = (section: 'geography' | 'history') => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [section]: !prev[section]
-        }));
-    };
+  // Match saved places to trips
+  const tripsWithSavedPlaces = useMemo(() => {
+    return trips.map(trip => {
+      const destinations = trip.tripDna?.interests?.destinations || [];
+      const matchingPlaces: SavedPlace[] = [];
 
-    const dest = destinations[selectedDestination];
-
-    // Filter content based on search query
-    const filteredContent = useMemo(() => {
-        if (!searchQuery.trim()) {
-            return {
-                activities: dest.activities,
-                restaurants: dest.restaurants,
-                cities: dest.cities,
-                cityImages: dest.cityImages,
-            };
-        }
-
-        const query = searchQuery.toLowerCase();
-        return {
-            activities: dest.activities.filter((item: { name: string; desc: string; location: string }) =>
-                item.name.toLowerCase().includes(query) ||
-                item.desc.toLowerCase().includes(query) ||
-                item.location.toLowerCase().includes(query)
-            ),
-            restaurants: dest.restaurants.filter((item: { name: string; desc: string; location: string; cuisine: string }) =>
-                item.name.toLowerCase().includes(query) ||
-                item.desc.toLowerCase().includes(query) ||
-                item.location.toLowerCase().includes(query) ||
-                item.cuisine.toLowerCase().includes(query)
-            ),
-            cities: dest.cities.filter((item: { name: string; desc: string; highlights: string }) =>
-                item.name.toLowerCase().includes(query) ||
-                item.desc.toLowerCase().includes(query) ||
-                item.highlights.toLowerCase().includes(query)
-            ),
-            cityImages: dest.cityImages.filter((item: { name: string; famousFor: string }) =>
-                item.name.toLowerCase().includes(query) ||
-                item.famousFor.toLowerCase().includes(query)
-            ),
-        };
-    }, [dest, searchQuery]);
-
-    const toggleSave = (id: number) => {
-        setSavedItems(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(id)) {
-                newSet.delete(id);
-            } else {
-                newSet.add(id);
+      destinations.forEach(dest => {
+        const destLower = dest.toLowerCase();
+        savedPlaces.forEach(place => {
+          const cityLower = place.city.toLowerCase();
+          // Check if place city matches or is contained in destination
+          if (cityLower.includes(destLower) || destLower.includes(cityLower)) {
+            if (!matchingPlaces.find(p => p.id === place.id)) {
+              matchingPlaces.push(place);
             }
-            return newSet;
+          }
         });
-    };
+      });
 
-    const SaveButton = ({ id }: { id: number }) => {
-        const isSaved = savedItems.has(id);
+      return { trip, places: matchingPlaces };
+    }).filter(t => t.places.length > 0);
+  }, [trips, savedPlaces]);
 
-        return (
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSave(id);
-                }}
-                className={`p-2 rounded-lg transition-all hover:scale-110 ${isSaved
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-            >
-                <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-            </button>
-        );
-    };
+  // Search for places
+  const handleSearch = async () => {
+    if (!searchCity.trim()) return;
 
-    return (
-        <div className="min-h-screen bg-white">
-            {/* Header */}
-            <div className="border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => router.back()}
-                            className="text-slate-700 hover:text-slate-900"
-                        >
-                            <ChevronRight className="w-6 h-6 rotate-180" />
-                        </button>
-                        <h1 className="text-2xl font-bold text-slate-900">Explore</h1>
-                        <div className="flex-1 max-w-md ml-auto">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder={`Search in ${dest.name}...`}
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    setIsLoading(true);
+    setHasSearched(true);
+    setSearchError(null);
 
-            <div className="max-w-6xl mx-auto px-4 py-6">
-                {/* Destination Tabs */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                    {Object.keys(destinations).map(key => (
-                        <button
-                            key={key}
-                            onClick={() => setSelectedDestination(key)}
-                            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-all ${selectedDestination === key
-                                    ? 'bg-slate-900 text-white'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                        >
-                            {destinations[key].name}
-                        </button>
-                    ))}
-                </div>
+    try {
+      const response = await fetch('/api/explore/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: searchCity,
+          category: selectedCategory === 'all' ? undefined : selectedCategory,
+          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+        }),
+      });
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Column */}
-                    <div>
-                        {/* Destination Header */}
-                        <h2 className="text-4xl font-bold text-slate-900 mb-4">{dest.name}</h2>
-                        <p className="text-slate-600 leading-relaxed mb-6">{dest.description}</p>
+      const data = await response.json();
 
-                        {/* Geography Quick Facts */}
-                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl overflow-hidden mb-6">
-                            <button
-                                onClick={() => toggleSection('geography')}
-                                className="w-full p-4 flex items-center justify-between hover:bg-emerald-100 transition-colors"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Globe className="w-5 h-5 text-emerald-600" />
-                                    <h3 className="font-bold text-slate-900">Geography</h3>
-                                </div>
-                                <ChevronRight className={`w-5 h-5 text-emerald-600 transition-transform ${expandedSections.geography ? 'rotate-90' : ''}`} />
-                            </button>
+      if (!response.ok) {
+        setSearchError(data.error || 'Failed to fetch recommendations');
+        setBrowsePlaces([]);
+        return;
+      }
 
-                            <div className="px-4 pb-4">
-                                <div className="space-y-2 text-sm mb-3">
-                                    <p className="text-slate-700"><span className="font-semibold">Location:</span> {dest.geography.location}</p>
-                                    <p className="text-slate-700"><span className="font-semibold">Climate:</span> {dest.geography.climate}</p>
-                                    <p className="text-slate-700"><span className="font-semibold">Terrain:</span> {dest.geography.terrain}</p>
-                                </div>
+      const placesWithSaved = (data.places || []).map((p: BrowsePlace) => ({
+        ...p,
+        isSaved: savedIds.has(`${p.name.toLowerCase()}-${p.city.toLowerCase()}`),
+      }));
+      setBrowsePlaces(placesWithSaved);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      setSearchError(error instanceof Error ? error.message : 'Network error');
+      setBrowsePlaces([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-                                {expandedSections.geography && (
-                                    <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="rounded-lg overflow-hidden border border-emerald-200">
-                                            <img
-                                                src={dest.geography.mapImage}
-                                                alt={`${dest.name} geography`}
-                                                className="w-full h-64 object-cover"
-                                            />
-                                        </div>
-                                        <p className="text-sm text-slate-700 leading-relaxed">
-                                            {dest.geography.fullDescription}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+  // Toggle save/unsave
+  const handleToggleSave = async (place: BrowsePlace) => {
+    const key = `${place.name.toLowerCase()}-${place.city.toLowerCase()}`;
 
-                        {/* History & Culture */}
-                        <div className="bg-amber-50 border border-amber-100 rounded-xl overflow-hidden mb-6">
-                            <button
-                                onClick={() => toggleSection('history')}
-                                className="w-full p-4 flex items-center justify-between hover:bg-amber-100 transition-colors"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-amber-600" />
-                                    <h3 className="font-bold text-slate-900">History & Culture</h3>
-                                </div>
-                                <ChevronRight className={`w-5 h-5 text-amber-600 transition-transform ${expandedSections.history ? 'rotate-90' : ''}`} />
-                            </button>
+    if (savedIds.has(key)) {
+      await savedPlacesDb.deleteByNameAndCity(place.name, place.city);
+      setSavedIds(prev => { const next = new Set(prev); next.delete(key); return next; });
+      setBrowsePlaces(prev => prev.map(p => p.id === place.id ? { ...p, isSaved: false } : p));
+    } else {
+      await savedPlacesDb.save({
+        name: place.name,
+        type: place.type,
+        city: place.city,
+        neighborhood: place.neighborhood,
+        address: place.address,
+        coordinates: place.coordinates,
+        description: place.description,
+        imageUrl: place.imageUrl,
+        rating: place.rating,
+        reviewCount: place.reviewCount,
+        priceRange: place.priceRange,
+        tags: place.tags,
+        source: 'browse',
+      });
+      setSavedIds(prev => new Set(prev).add(key));
+      setBrowsePlaces(prev => prev.map(p => p.id === place.id ? { ...p, isSaved: true } : p));
+    }
+    await loadSavedPlaces();
+  };
 
-                            <div className="px-4 pb-4">
-                                <p className="text-sm text-slate-700">{dest.history}</p>
+  // Delete from saved
+  const handleDeleteSaved = async (place: SavedPlace) => {
+    await savedPlacesDb.delete(place.id);
+    await loadSavedPlaces();
+    const key = `${place.name.toLowerCase()}-${place.city.toLowerCase()}`;
+    setBrowsePlaces(prev => prev.map(p => {
+      const pKey = `${p.name.toLowerCase()}-${p.city.toLowerCase()}`;
+      return pKey === key ? { ...p, isSaved: false } : p;
+    }));
+  };
 
-                                {expandedSections.history && (
-                                    <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        {dest.fullHistory.map((era: any, i: number) => (
-                                            <div key={i} className="border-l-4 border-amber-400 pl-4 py-2">
-                                                <h4 className="font-bold text-slate-900 text-sm mb-1">{era.period}</h4>
-                                                <p className="text-sm text-slate-700 leading-relaxed">{era.description}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
-                        {/* Explore Cities */}
-                        <div className="mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold text-slate-900">Explore cities</h3>
-                                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">See all</button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {filteredContent.cityImages.map((city: any, i: number) => (
-                                    <div key={i} className="group cursor-pointer">
-                                        <div className="relative rounded-xl overflow-hidden mb-2 shadow-md">
-                                            <img src={city.image} alt={city.name} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                                                <h4 className="font-bold text-white text-lg mb-1">{city.name}</h4>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-slate-600 leading-relaxed">{city.famousFor}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+  // Filter saved places by category
+  const filteredSavedPlaces = selectedCategory === 'all'
+    ? savedPlaces
+    : savedPlaces.filter(p => p.type === selectedCategory);
 
-                        {/* Essential Tips */}
-                        <div className="bg-purple-50 border border-purple-100 rounded-xl p-5">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Lightbulb className="w-5 h-5 text-purple-600" />
-                                <h3 className="text-lg font-bold text-slate-900">Essential Tips</h3>
-                            </div>
-                            <div className="space-y-2.5">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {dest.tips.map((tip: any, i: number) => (
-                                    <div key={i} className="flex items-start gap-2.5">
-                                        <div className="w-5 h-5 bg-purple-600 text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5">
-                                            {i + 1}
-                                        </div>
-                                        <p className="text-sm text-slate-700 leading-relaxed">{tip}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+  const mapPlaces = activeTab === 'browse' ? browsePlaces : filteredSavedPlaces;
 
-                    {/* Right Column - Map & Browse */}
-                    <div className="lg:sticky lg:top-24 lg:self-start">
-                        {/* Map */}
-                        <div className="rounded-xl overflow-hidden mb-6 shadow-lg border border-slate-200">
-                            <div className="relative">
-                                <img src={dest.mapImage} alt={`${dest.name} map`} className="w-full h-64 object-cover" />
-                                <div className="absolute top-3 right-3 flex gap-2">
-                                    <button className="p-2 bg-white rounded-lg shadow-md hover:bg-slate-50">
-                                        <Map className="w-5 h-5 text-slate-700" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <DashboardHeader
+        onOpenDrawer={() => setIsDrawerOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+      />
 
-                        {/* Browse Sections */}
-                        <div className="space-y-5">
-                            {/* Cities */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                    <MapPin className="w-5 h-5 text-slate-700" />
-                                    Cities to explore
-                                </h3>
-                                <div className="space-y-2.5">
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {filteredContent.cities.map((city: any) => (
-                                        <div key={city.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{city.name}</h4>
-                                                    <p className="text-sm text-slate-600 mb-2 leading-relaxed">{city.desc}</p>
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded">{city.population}</span>
-                                                        <span className="text-slate-500">{city.highlights}</span>
-                                                    </div>
-                                                </div>
-                                                <SaveButton id={city.id} />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Activities */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                    <Camera className="w-5 h-5 text-slate-700" />
-                                    Top activities & attractions
-                                </h3>
-                                <div className="space-y-2.5">
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {filteredContent.activities.map((activity: any) => (
-                                        <div key={activity.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex gap-3 flex-1">
-                                                    <div className="p-2.5 bg-blue-50 rounded-lg self-start group-hover:bg-blue-100 transition-colors">
-                                                        <activity.icon className="w-5 h-5 text-blue-600" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <h4 className="font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{activity.name}</h4>
-                                                        <p className="text-sm text-slate-600 mb-2 leading-relaxed">{activity.desc}</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-slate-500">{activity.location}</span>
-                                                            <span className="text-xs text-slate-400">•</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                                                                <span className="text-xs font-semibold text-slate-700">{activity.rating}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <SaveButton id={activity.id} />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Restaurants */}
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                    <Utensils className="w-5 h-5 text-slate-700" />
-                                    Must-try restaurants
-                                </h3>
-                                <div className="space-y-2.5">
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {filteredContent.restaurants.map((restaurant: any) => (
-                                        <div key={restaurant.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex gap-3 flex-1">
-                                                    <div className="p-2.5 bg-orange-50 rounded-lg self-start group-hover:bg-orange-100 transition-colors">
-                                                        <Utensils className="w-5 h-5 text-orange-600" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <h4 className="font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{restaurant.name}</h4>
-                                                        <p className="text-sm text-slate-600 mb-2 leading-relaxed">{restaurant.desc}</p>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="text-xs text-slate-500">{restaurant.location}</span>
-                                                            <span className="text-xs text-slate-400">•</span>
-                                                            <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{restaurant.cuisine}</span>
-                                                            <span className="text-xs text-slate-500">{restaurant.price}</span>
-                                                            <span className="text-xs text-slate-400">•</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                                                                <span className="text-xs font-semibold text-slate-700">{restaurant.rating}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <SaveButton id={restaurant.id} />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div className="flex flex-col md:flex-row h-[calc(100vh-56px)]">
+        {/* Map */}
+        <div className="w-full md:w-1/2 h-[35vh] md:h-full">
+          <ExploreMap places={mapPlaces} onPlaceClick={(p) => console.log('Clicked:', p.name)} />
         </div>
+
+        {/* List */}
+        <div className="w-full md:w-1/2 h-[65vh] md:h-full flex flex-col overflow-hidden bg-white">
+          {/* Header */}
+          <div className="p-3 border-b space-y-2">
+            {/* Tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('browse')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  activeTab === 'browse' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Browse
+              </button>
+              <button
+                onClick={() => setActiveTab('saved')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+                  activeTab === 'saved' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Heart className="w-3 h-3" />
+                Saved ({savedPlaces.length})
+              </button>
+            </div>
+
+            {/* Search (Browse tab only) */}
+            {activeTab === 'browse' && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search city..."
+                    value={searchCity}
+                    onChange={(e) => setSearchCity(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-8 h-9"
+                  />
+                </div>
+                <Button onClick={handleSearch} disabled={isLoading} size="sm">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go'}
+                </Button>
+              </div>
+            )}
+
+            {/* Category filters */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    selectedCategory === cat.value
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.icon} {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Interest filters (Browse tab only) */}
+            {activeTab === 'browse' && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                <span className="text-xs text-gray-400 self-center pr-1">Interests:</span>
+                {INTERESTS.map((interest) => (
+                  <button
+                    key={interest.value}
+                    onClick={() => toggleInterest(interest.value)}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                      selectedInterests.includes(interest.value)
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-transparent'
+                    }`}
+                  >
+                    {interest.icon} {interest.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === 'browse' ? (
+              <BrowseTab
+                places={browsePlaces}
+                selectedCategory={selectedCategory}
+                isLoading={isLoading}
+                hasSearched={hasSearched}
+                searchCity={searchCity}
+                searchError={searchError}
+                onToggleSave={handleToggleSave}
+              />
+            ) : (
+              <SavedTab
+                tripsWithPlaces={tripsWithSavedPlaces}
+                groupedPlaces={groupedSavedPlaces}
+                selectedCategory={selectedCategory}
+                expandedGroups={expandedGroups}
+                onToggleGroup={toggleGroup}
+                onDelete={handleDeleteSaved}
+              />
+            )}
+          </div>
+
+          {/* Add button (Saved tab) */}
+          {activeTab === 'saved' && (
+            <div className="p-3 border-t">
+              <Button className="w-full gap-2" variant="outline" size="sm" onClick={() => setIsAddPlaceOpen(true)}>
+                <Plus className="w-4 h-4" />
+                Add a place
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <TripDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} trips={trips} onRefresh={loadTrips} />
+      <ProfileSettings open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      <AddPlaceSheet open={isAddPlaceOpen} onOpenChange={setIsAddPlaceOpen} onPlaceAdded={loadSavedPlaces} />
+    </div>
+  );
+}
+
+// Browse tab - compact list
+function BrowseTab({
+  places,
+  selectedCategory,
+  isLoading,
+  hasSearched,
+  searchCity,
+  searchError,
+  onToggleSave,
+}: {
+  places: BrowsePlace[];
+  selectedCategory: PlaceCategory;
+  isLoading: boolean;
+  hasSearched: boolean;
+  searchCity: string;
+  searchError: string | null;
+  onToggleSave: (place: BrowsePlace) => void;
+}) {
+  const filtered = selectedCategory === 'all' ? places : places.filter(p => p.type === selectedCategory);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-sm text-gray-500">Finding recommendations...</span>
+      </div>
     );
+  }
+
+  if (filtered.length > 0) {
+    return (
+      <div className="divide-y">
+        {filtered.map((place) => (
+          <CompactPlaceRow
+            key={place.id}
+            name={place.name}
+            type={place.type}
+            rating={place.rating}
+            neighborhood={place.neighborhood}
+            priceRange={place.priceRange}
+            imageUrl={place.imageUrl}
+            isSaved={place.isSaved || false}
+            onToggleSave={() => onToggleSave(place)}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (hasSearched) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>No places found for &quot;{searchCity}&quot;</p>
+        {searchError && (
+          <p className="text-xs mt-2 text-red-500 max-w-xs mx-auto">{searchError}</p>
+        )}
+        <p className="text-xs mt-1">Try a different city</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12 text-gray-500">
+      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+      <p>Search a city to discover places</p>
+      <p className="text-xs mt-1">Try Tokyo, Paris, Bangkok...</p>
+    </div>
+  );
+}
+
+// Saved tab with groupings
+function SavedTab({
+  tripsWithPlaces,
+  groupedPlaces,
+  selectedCategory,
+  expandedGroups,
+  onToggleGroup,
+  onDelete,
+}: {
+  tripsWithPlaces: { trip: StoredTrip; places: SavedPlace[] }[];
+  groupedPlaces: Record<string, { flag: string; name: string; cities: Record<string, SavedPlace[]> }>;
+  selectedCategory: PlaceCategory;
+  expandedGroups: Set<string>;
+  onToggleGroup: (id: string) => void;
+  onDelete: (place: SavedPlace) => void;
+}) {
+  const filterPlaces = (places: SavedPlace[]) =>
+    selectedCategory === 'all' ? places : places.filter(p => p.type === selectedCategory);
+
+  const hasTrips = tripsWithPlaces.length > 0;
+  const hasCountries = Object.keys(groupedPlaces).length > 0;
+
+  if (!hasTrips && !hasCountries) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <Heart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>No saved places yet</p>
+        <p className="text-xs mt-1">Browse and save places you want to visit</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y">
+      {/* Trips You're Planning */}
+      {hasTrips && (
+        <div className="pb-2">
+          <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
+            Trips You&apos;re Planning
+          </div>
+          {tripsWithPlaces.map(({ trip, places }) => {
+            const filteredPlaces = filterPlaces(places);
+            if (filteredPlaces.length === 0) return null;
+
+            const destinations = trip.tripDna?.interests?.destinations || [];
+            const countryInfo = destinations[0] ? getCountryInfoForCity(destinations[0]) : null;
+            const isExpanded = expandedGroups.has(`trip-${trip.id}`);
+            const cityCounts = getCityCounts(filteredPlaces);
+
+            return (
+              <div key={trip.id}>
+                <button
+                  onClick={() => onToggleGroup(`trip-${trip.id}`)}
+                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{countryInfo?.flag || '🌍'}</span>
+                    <span className="font-medium text-sm">{destinations.join(' → ')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span>{cityCounts}</span>
+                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </div>
+                </button>
+                {isExpanded && (
+                  <div className="divide-y border-l-2 border-primary/20 ml-5">
+                    {filteredPlaces.map(place => (
+                      <CompactPlaceRow
+                        key={place.id}
+                        name={place.name}
+                        type={place.type}
+                        rating={place.rating}
+                        neighborhood={place.neighborhood || place.city}
+                        priceRange={place.priceRange}
+                        isSaved={true}
+                        onToggleSave={() => onDelete(place)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* All Saved */}
+      <div>
+        <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
+          All Saved
+        </div>
+        {Object.entries(groupedPlaces).map(([code, { flag, name, cities }]) => {
+          const allPlaces = Object.values(cities).flat();
+          const filteredPlaces = filterPlaces(allPlaces);
+          if (filteredPlaces.length === 0) return null;
+
+          const isExpanded = expandedGroups.has(`country-${code}`);
+          const cityCounts = getCityCounts(filteredPlaces);
+
+          return (
+            <div key={code}>
+              <button
+                onClick={() => onToggleGroup(`country-${code}`)}
+                className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{flag}</span>
+                  <span className="font-medium text-sm">{name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>{cityCounts}</span>
+                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </div>
+              </button>
+              {isExpanded && (
+                <div className="divide-y border-l-2 border-gray-200 ml-5">
+                  {filteredPlaces.map(place => (
+                    <CompactPlaceRow
+                      key={place.id}
+                      name={place.name}
+                      type={place.type}
+                      rating={place.rating}
+                      neighborhood={place.neighborhood || place.city}
+                      priceRange={place.priceRange}
+                      isSaved={true}
+                      onToggleSave={() => onDelete(place)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Helper to get city counts string like "Bangkok (2) · Chiang Mai (1)"
+function getCityCounts(places: SavedPlace[]): string {
+  const counts: Record<string, number> = {};
+  places.forEach(p => {
+    const city = p.city;
+    counts[city] = (counts[city] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([city, count]) => `${city} (${count})`)
+    .join(' · ');
+}
+
+// Compact place row (~50px height)
+function CompactPlaceRow({
+  name,
+  type,
+  rating,
+  neighborhood,
+  priceRange,
+  imageUrl,
+  isSaved,
+  onToggleSave,
+}: {
+  name: string;
+  type: string;
+  rating?: number;
+  neighborhood?: string;
+  priceRange?: string;
+  imageUrl?: string;
+  isSaved: boolean;
+  onToggleSave: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors">
+      {/* Thumbnail */}
+      {imageUrl ? (
+        <img src={imageUrl} alt={name} className="w-10 h-10 rounded object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <MapPin className="w-4 h-4 text-gray-400" />
+        </div>
+      )}
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm truncate">{name}</div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          {rating && (
+            <span className="flex items-center gap-0.5">
+              <span className="text-yellow-500">★</span>
+              {rating.toFixed(1)}
+            </span>
+          )}
+          <span className="capitalize">{type}</span>
+          {priceRange && <span>{priceRange}</span>}
+          {neighborhood && (
+            <>
+              <span>·</span>
+              <span className="truncate">{neighborhood}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Heart */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+        className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+          isSaved ? 'text-red-500 hover:bg-red-50' : 'text-gray-400 hover:bg-gray-100'
+        }`}
+      >
+        <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+      </button>
+    </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    }>
+      <ExploreContent />
+    </Suspense>
+  );
 }

@@ -2082,13 +2082,16 @@ export function SwipeablePlanningView({
         {/* Main click area - opens modal */}
         <button
           onClick={() => {
+            console.log('[ItemSquare] Click!', item.name, 'isCity:', itemIsCity);
             if (itemIsCity) {
+              console.log('[ItemSquare] Setting cityDetailItem:', item);
               setCityDetailItem(item);
             } else {
+              console.log('[ItemSquare] Setting detailItem:', item);
               setDetailItem(item);
             }
           }}
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 w-full h-full z-10"
         >
           <CityImage
             src={item.imageUrl}
@@ -4206,9 +4209,11 @@ export function SwipeablePlanningView({
       </Dialog>
 
       {/* City Detail Modal */}
+      {console.log('[CityDetailModal] cityDetailItem:', cityDetailItem?.name, 'open:', !!cityDetailItem)}
       <Dialog open={!!cityDetailItem} onOpenChange={() => { setCityDetailItem(null); setCityImageIndex(0); setHighlightTab(''); setModalMainTab('overview'); setShowCityDetails(false); setShowWhyLove(false); setShowWatchOut(false); setShowLocalTip(false); }}>
         <DialogContent className="max-w-md sm:max-w-lg p-0 gap-0 h-[95vh] max-h-[800px] overflow-hidden [&>button]:hidden">
           {cityDetailItem && (() => {
+            console.log('[CityDetailModal] Rendering modal for:', cityDetailItem.name);
             // Use enriched city info if available, or cached info, otherwise fallback to basic
             const cityInfo = enrichedCityInfo || cityInfoCache[cityDetailItem.name] || getCityInfo(cityDetailItem.name);
             const isSelected = selectedIds.has(cityDetailItem.id);
