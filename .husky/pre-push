@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "Running pre-push checks..."
+
+# Run TypeScript type checking (fast, catches most errors)
+echo "Checking types..."
+npm run typecheck
+
+if [ $? -ne 0 ]; then
+  echo "Type check failed. Please fix errors before pushing."
+  exit 1
+fi
+
+echo "Pre-push checks passed!"
