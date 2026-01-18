@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 
@@ -12,7 +13,6 @@ interface SeasonalDestination {
   destination: string;
   country: string;
   why: string;
-  imageUrl: string;
 }
 
 interface Season {
@@ -33,28 +33,24 @@ const SEASONS: Season[] = [
         destination: 'Vienna',
         country: 'Austria',
         why: 'Christmas markets, opera season, imperial palaces in snow',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'tromso-winter',
         destination: 'Tromsø',
         country: 'Norway',
         why: 'Northern lights peak, dog sledding, Arctic adventures',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'thailand-winter',
-        destination: 'Thailand',
-        country: 'Southeast Asia',
+        destination: 'Bangkok',
+        country: 'Thailand',
         why: 'Dry season, escape winter, temple tours & beaches',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'swiss-alps-winter',
-        destination: 'Swiss Alps',
+        destination: 'Zermatt',
         country: 'Switzerland',
         why: 'World-class skiing, fondue, scenic train rides',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
     ],
   },
@@ -68,28 +64,24 @@ const SEASONS: Season[] = [
         destination: 'Kyoto',
         country: 'Japan',
         why: 'Cherry blossoms peak, mild weather, before Golden Week crowds',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'amsterdam-spring',
         destination: 'Amsterdam',
         country: 'Netherlands',
         why: 'Tulip season at Keukenhof, pleasant cycling weather',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'paris-spring',
         destination: 'Paris',
         country: 'France',
         why: 'Gardens in bloom, outdoor cafés, fewer tourists than summer',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'queenstown-spring',
         destination: 'Queenstown',
         country: 'New Zealand',
         why: 'Autumn colors, wine harvest, adventure sports season',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
     ],
   },
@@ -100,31 +92,27 @@ const SEASONS: Season[] = [
     destinations: [
       {
         id: 'iceland-summer',
-        destination: 'Iceland',
-        country: 'Nordic',
+        destination: 'Reykjavik',
+        country: 'Iceland',
         why: 'Midnight sun, highland roads open, waterfalls at peak',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'dubrovnik-summer',
         destination: 'Dubrovnik',
         country: 'Croatia',
         why: 'Adriatic beaches, Game of Thrones sites, island hopping',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'alaska-summer',
-        destination: 'Alaska',
+        destination: 'Anchorage',
         country: 'USA',
         why: 'Wildlife viewing, glacier tours, 20+ hours of daylight',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
         id: 'santorini-summer',
         destination: 'Santorini',
         country: 'Greece',
         why: 'Iconic sunsets, beach clubs, perfect swimming weather',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
     ],
   },
@@ -138,28 +126,24 @@ const SEASONS: Season[] = [
         destination: 'Marrakech',
         country: 'Morocco',
         why: 'Cooler 25°C temps, shoulder season prices, perfect for souks',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
-        id: 'vermont-fall',
-        destination: 'Vermont',
+        id: 'boston-fall',
+        destination: 'Boston',
         country: 'USA',
-        why: 'Peak fall foliage, apple picking, cozy inns',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        why: 'Peak fall foliage, apple picking, historic walks',
       },
       {
         id: 'munich-fall',
         destination: 'Munich',
         country: 'Germany',
         why: 'Oktoberfest (late Sep), beer gardens, Bavarian Alps',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
       },
       {
-        id: 'patagonia-fall',
-        destination: 'Patagonia',
+        id: 'buenos-aires-fall',
+        destination: 'Buenos Aires',
         country: 'Argentina',
-        why: 'Spring wildflowers, fewer crowds, baby wildlife',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        why: 'Spring wildflowers, fewer crowds, tango season',
       },
     ],
   },
@@ -198,6 +182,27 @@ const PLACES_TO_AVOID = [
 ];
 
 export function DestinationInspiration({ trips }: DestinationInspirationProps) {
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
+  // Fetch city images from API (which uses Supabase cache + Google Places)
+  useEffect(() => {
+    const allDestinations = SEASONS.flatMap(s => s.destinations);
+
+    allDestinations.forEach(async (dest) => {
+      try {
+        const res = await fetch(`/api/city-image?city=${encodeURIComponent(dest.destination)}&country=${encodeURIComponent(dest.country)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imageUrl) {
+            setImageUrls(prev => ({ ...prev, [dest.id]: data.imageUrl }));
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to fetch image for ${dest.destination}:`, error);
+      }
+    });
+  }, []);
+
   // Filter out places already visited
   const visitedPlaces = new Set<string>();
   trips.forEach(trip => {
@@ -234,12 +239,16 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
                   href={`/plan?destination=${encodeURIComponent(dest.destination + ', ' + dest.country)}`}
                   className="group relative aspect-[4/3] rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
                 >
-                  {/* Background Image */}
-                  <img
-                    src={dest.imageUrl}
-                    alt={dest.destination}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
+                  {/* Background Image or Loading State */}
+                  {imageUrls[dest.id] ? (
+                    <img
+                      src={imageUrls[dest.id]}
+                      alt={dest.destination}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse" />
+                  )}
 
                   {/* Gradient for text */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

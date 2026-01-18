@@ -1563,111 +1563,61 @@ export default function AutoItineraryView({
               )}
             </div>
 
-            {/* Calendar View */}
+            {/* Calendar View - Single month only */}
             {(() => {
-              // Get the month to display (start with trip start month)
+              // Only show the trip start month
               const startParts = tripStartDate.split('-').map(Number);
-              const endParts = tripEndDate.split('-').map(Number);
-              const startMonth = new Date(startParts[0], startParts[1] - 1, 1);
-              const endMonth = new Date(endParts[0], endParts[1] - 1, 1);
+              const year = startParts[0];
+              const monthNum = startParts[1] - 1;
+              const monthName = new Date(year, monthNum, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-              // Build array of months to show
-              const months: Date[] = [];
-              const current = new Date(startMonth);
-              while (current <= endMonth) {
-                months.push(new Date(current));
-                current.setMonth(current.getMonth() + 1);
-              }
-
-              // Helper to get city color for a date
-              const getCityForDate = (dateStr: string): { city: string; colorIndex: number } | null => {
-                for (let i = 0; i < allocations.length; i++) {
-                  const alloc = allocations[i];
-                  if (alloc.startDate && alloc.endDate && dateStr >= alloc.startDate && dateStr <= alloc.endDate) {
-                    return { city: alloc.city, colorIndex: i };
-                  }
-                }
-                return null;
+              // Helper to check if date is in trip
+              const isDateInTrip = (dateStr: string): boolean => {
+                return dateStr >= tripStartDate && dateStr <= tripEndDate;
               };
 
-              // Calendar color classes (using Tailwind background colors)
-              const calendarColors = [
-                'bg-rose-200', 'bg-blue-200', 'bg-emerald-200', 'bg-amber-200',
-                'bg-purple-200', 'bg-cyan-200', 'bg-orange-200', 'bg-pink-200'
-              ];
+              // Get first day of month and total days
+              const firstDay = new Date(year, monthNum, 1).getDay();
+              const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+
+              // Build calendar grid
+              const cells: (number | null)[] = [];
+              // Add empty cells for days before month starts
+              for (let i = 0; i < firstDay; i++) cells.push(null);
+              // Add days
+              for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
               return (
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm">Calendar</h3>
-                  <div className="space-y-6">
-                    {months.map((month, monthIdx) => {
-                      const year = month.getFullYear();
-                      const monthNum = month.getMonth();
-                      const monthName = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                  <div>
+                    <div className="text-sm font-medium text-center mb-2">{monthName}</div>
+                    <div className="grid grid-cols-7 gap-0.5 text-xs">
+                      {/* Day headers */}
+                      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                        <div key={day} className="text-center text-muted-foreground py-1">{day}</div>
+                      ))}
+                      {/* Calendar cells */}
+                      {cells.map((day, cellIdx) => {
+                        if (day === null) {
+                          return <div key={`empty-${cellIdx}`} className="h-7" />;
+                        }
 
-                      // Get first day of month and total days
-                      const firstDay = new Date(year, monthNum, 1).getDay();
-                      const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+                        const dateStr = `${year}-${String(monthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const isInTrip = isDateInTrip(dateStr);
 
-                      // Build calendar grid
-                      const cells: (number | null)[] = [];
-                      // Add empty cells for days before month starts
-                      for (let i = 0; i < firstDay; i++) cells.push(null);
-                      // Add days
-                      for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-                      return (
-                        <div key={monthIdx}>
-                          <div className="text-sm font-medium text-center mb-2">{monthName}</div>
-                          <div className="grid grid-cols-7 gap-0.5 text-xs">
-                            {/* Day headers */}
-                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                              <div key={day} className="text-center text-muted-foreground py-1">{day}</div>
-                            ))}
-                            {/* Calendar cells */}
-                            {cells.map((day, cellIdx) => {
-                              if (day === null) {
-                                return <div key={`empty-${cellIdx}`} className="h-7" />;
-                              }
-
-                              const dateStr = `${year}-${String(monthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                              const cityInfo = getCityForDate(dateStr);
-                              const isInTrip = dateStr >= tripStartDate && dateStr <= tripEndDate;
-                              const isTransit = cityInfo?.city.includes('Transit');
-
-                              let bgClass = '';
-                              if (cityInfo && !isTransit) {
-                                bgClass = calendarColors[cityInfo.colorIndex % calendarColors.length];
-                              } else if (isTransit) {
-                                bgClass = 'bg-gray-200';
-                              }
-
-                              return (
-                                <div
-                                  key={`day-${day}`}
-                                  className={`h-7 flex items-center justify-center rounded ${bgClass} ${
-                                    isInTrip ? 'font-medium' : 'text-muted-foreground/50'
-                                  }`}
-                                  title={cityInfo ? cityInfo.city : undefined}
-                                >
-                                  {day}
-                                </div>
-                              );
-                            })}
+                        return (
+                          <div
+                            key={`day-${day}`}
+                            className={`h-7 flex items-center justify-center rounded ${
+                              isInTrip ? 'bg-primary/20 font-medium' : 'text-muted-foreground/50'
+                            }`}
+                          >
+                            {day}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex flex-wrap gap-2 pt-2 border-t">
-                    {allocations.filter(a => !a.city.includes('Transit')).map((alloc, idx) => (
-                      <div key={alloc.city} className="flex items-center gap-1 text-xs">
-                        <div className={`w-3 h-3 rounded ${calendarColors[idx % calendarColors.length]}`} />
-                        <span className="truncate max-w-[80px]">{alloc.city}</span>
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               );
@@ -1717,26 +1667,19 @@ export default function AutoItineraryView({
                           <X className="w-4 h-4" />
                         </Button>
                       ) : (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => adjustAllocation(allocIndex, -1)}
-                            disabled={alloc.nights <= 1}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-6 text-center font-semibold text-sm">{alloc.nights}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => adjustAllocation(allocIndex, 1)}
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </>
+                        <input
+                          type="number"
+                          min="1"
+                          value={alloc.nights}
+                          onChange={(e) => {
+                            const newNights = parseInt(e.target.value) || 1;
+                            if (newNights >= 1) {
+                              const diff = newNights - alloc.nights;
+                              adjustAllocation(allocIndex, diff);
+                            }
+                          }}
+                          className="w-12 h-7 text-center font-semibold text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
                       )}
                     </div>
                   </div>
