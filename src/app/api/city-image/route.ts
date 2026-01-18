@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseCities } from '@/lib/db/supabase';
 
 // In-memory cache (persists across requests in the same worker)
 const imageCache = new Map<string, string>();
@@ -14,7 +15,6 @@ async function searchGooglePlaces(city: string, country?: string): Promise<strin
   }
 
   console.log(`[city-image] Searching Google Places for: ${city}, ${country || 'no country'}`);
-
 
   const query = country ? `${city}, ${country}` : city;
 
@@ -74,28 +74,56 @@ export async function GET(request: NextRequest) {
 
   const cacheKey = `city:${city}-${country || ''}`.toLowerCase();
 
-  // 1. Check cache first
+  // 1. Check in-memory cache first (fastest)
   if (imageCache.has(cacheKey)) {
     return NextResponse.json({
       imageUrl: imageCache.get(cacheKey),
-      source: 'cache'
+      source: 'memory-cache'
     });
   }
 
-  // 2. Search Google Places API
+  // 2. Check Supabase cache
+  try {
+    const cachedCity = await supabaseCities.get(city, country || undefined);
+    if (cachedCity?.image_url) {
+      console.log(`[city-image] Found ${city} in Supabase cache`);
+      imageCache.set(cacheKey, cachedCity.image_url);
+      return NextResponse.json({
+        imageUrl: cachedCity.image_url,
+        source: 'supabase-cache'
+      });
+    }
+  } catch (error) {
+    console.error('[city-image] Supabase cache check failed:', error);
+  }
+
+  // 3. Search Google Places API
   const googleUrl = await searchGooglePlaces(city, country || undefined);
 
   if (googleUrl) {
-    console.log(`[city-image] Got image for ${city} from Google Places`);
+    console.log(`[city-image] Got image for ${city} from Google Places, caching...`);
     imageCache.set(cacheKey, googleUrl);
+
+    // Save to Supabase cache for future requests
+    try {
+      await supabaseCities.save({
+        city_name: city,
+        country: country || null,
+        city_info: {},
+        image_url: googleUrl,
+      });
+      console.log(`[city-image] Saved ${city} image to Supabase cache`);
+    } catch (error) {
+      console.error('[city-image] Failed to save to Supabase cache:', error);
+    }
+
     return NextResponse.json({
       imageUrl: googleUrl,
       source: 'google-places'
     });
   }
 
-  // 3. No fallback - return error if Google Places fails
-  // Log for debugging
+  // 4. No image found
   console.error(`[city-image] Failed to get image for ${city}. API key configured: ${!!GOOGLE_API_KEY}`);
 
   return NextResponse.json({
