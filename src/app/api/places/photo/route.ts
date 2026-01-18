@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
 
   // Fetch from Google Places API
   if (!GOOGLE_API_KEY) {
-    return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 500 });
+    console.error('[places/photo] Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_API_KEY');
+    return NextResponse.json({
+      error: 'Google Maps API key not configured',
+      hint: 'Set GOOGLE_MAPS_API_KEY in Cloudflare environment variables'
+    }, { status: 500 });
   }
 
   try {
@@ -53,8 +57,14 @@ export async function GET(request: NextRequest) {
     const photoResponse = await fetch(googlePhotoUrl);
 
     if (!photoResponse.ok) {
-      console.error('Google Places photo API error:', photoResponse.status, await photoResponse.text());
-      return NextResponse.json({ error: 'Failed to fetch photo from Google Places' }, { status: photoResponse.status });
+      const errorText = await photoResponse.text();
+      console.error(`[places/photo] Google API error: ${photoResponse.status} - ${errorText}`);
+      return NextResponse.json({
+        error: 'Failed to fetch photo from Google Places',
+        status: photoResponse.status,
+        apiKeyConfigured: !!GOOGLE_API_KEY,
+        photoRef: photoRef.substring(0, 50) + '...',
+      }, { status: photoResponse.status });
     }
 
     const imageBuffer = await photoResponse.arrayBuffer();
