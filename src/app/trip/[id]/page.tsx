@@ -16,6 +16,8 @@ import { getFlagForLocation } from '@/lib/geo/city-country';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import {
   Calendar, Package, Utensils, Map, Sparkles, Clock, Plane, Train,
   ChevronLeft, Home, Trash2, Pencil, Save, X, RefreshCw,
@@ -36,6 +38,99 @@ import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningVi
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
 import { getCityImage } from '@/lib/planning/city-images';
+
+// Trip Hub Preferences Types and Options
+type Budget = '$' | '$$' | '$$$';
+type Pace = 'relaxed' | 'balanced' | 'active';
+type TravelerType = 'solo' | 'couple' | 'friends' | 'family';
+type LodgingType = 'hotel' | 'boutique' | 'apartment' | 'resort';
+type AreaType = 'quiet' | 'central';
+type TripType =
+  | 'beach' | 'mountains' | 'gardens' | 'countryside'
+  | 'museums' | 'theater' | 'history' | 'local-traditions'
+  | 'spa' | 'lounges'
+  | 'hiking' | 'water-sports' | 'wildlife'
+  | 'street-food' | 'fine-dining' | 'food-tours'
+  | 'nightlife' | 'shopping' | 'photography';
+
+const LODGING_OPTIONS: { id: LodgingType; label: string }[] = [
+  { id: 'hotel', label: 'Hotel' },
+  { id: 'boutique', label: 'Boutique' },
+  { id: 'apartment', label: 'Apartment' },
+  { id: 'resort', label: 'Resort' },
+];
+
+const AREA_OPTIONS: { id: AreaType; label: string }[] = [
+  { id: 'quiet', label: 'Quiet' },
+  { id: 'central', label: 'Central' },
+];
+
+const TRIP_TYPE_CATEGORIES = [
+  {
+    label: 'Scenery',
+    types: [
+      { id: 'beach' as TripType, label: 'Beaches' },
+      { id: 'mountains' as TripType, label: 'Mountains' },
+      { id: 'gardens' as TripType, label: 'Gardens' },
+      { id: 'countryside' as TripType, label: 'Countryside' },
+    ],
+  },
+  {
+    label: 'Culture',
+    types: [
+      { id: 'museums' as TripType, label: 'Museums' },
+      { id: 'theater' as TripType, label: 'Theater' },
+      { id: 'history' as TripType, label: 'History' },
+      { id: 'local-traditions' as TripType, label: 'Local traditions' },
+    ],
+  },
+  {
+    label: 'Relaxation',
+    types: [
+      { id: 'spa' as TripType, label: 'Spa & wellness' },
+      { id: 'lounges' as TripType, label: 'Lounges' },
+    ],
+  },
+  {
+    label: 'Active',
+    types: [
+      { id: 'hiking' as TripType, label: 'Hiking' },
+      { id: 'water-sports' as TripType, label: 'Water sports' },
+      { id: 'wildlife' as TripType, label: 'Wildlife' },
+    ],
+  },
+  {
+    label: 'Food',
+    types: [
+      { id: 'street-food' as TripType, label: 'Street food' },
+      { id: 'fine-dining' as TripType, label: 'Fine dining' },
+      { id: 'food-tours' as TripType, label: 'Food tours' },
+    ],
+  },
+  {
+    label: 'Other',
+    types: [
+      { id: 'nightlife' as TripType, label: 'Nightlife' },
+      { id: 'shopping' as TripType, label: 'Shopping' },
+      { id: 'photography' as TripType, label: 'Photography' },
+    ],
+  },
+];
+
+const AVOIDANCE_OPTIONS = [
+  { id: 'big-cities', label: 'Big cities' },
+  { id: 'crowds', label: 'Crowds' },
+  { id: 'tourist-traps', label: 'Tourist traps' },
+  { id: 'heat', label: 'Hot weather' },
+  { id: 'cold', label: 'Cold weather' },
+  { id: 'long-drives', label: 'Long drives' },
+  { id: 'long-walks', label: 'Long walks' },
+  { id: 'early-mornings', label: 'Early mornings' },
+  { id: 'late-nights', label: 'Late nights' },
+  { id: 'spicy-food', label: 'Spicy food' },
+  { id: 'seafood', label: 'Seafood' },
+  { id: 'alcohol', label: 'Alcohol-focused' },
+];
 
 // Pexels image arrays for mock data
 const PEXELS_HOTEL_IMAGES = [
@@ -265,6 +360,21 @@ export default function TripPage() {
   const [editEndDate, setEditEndDate] = useState('');
   const [isSavingDates, setIsSavingDates] = useState(false);
 
+  // Trip Hub - Dates extended state
+  const [durationDays, setDurationDays] = useState(7);
+  const [dateFlexibility, setDateFlexibility] = useState(0);
+
+  // Trip Hub - Preferences state
+  const [editTravelerType, setEditTravelerType] = useState<TravelerType>('couple');
+  const [editBudget, setEditBudget] = useState<Budget>('$$');
+  const [editPace, setEditPace] = useState<Pace>('balanced');
+  const [editLodging, setEditLodging] = useState<LodgingType>('hotel');
+  const [editArea, setEditArea] = useState<AreaType>('central');
+  const [editTripTypes, setEditTripTypes] = useState<TripType[]>([]);
+  const [editAvoidances, setEditAvoidances] = useState<string[]>([]);
+  const [editSpecialRequests, setEditSpecialRequests] = useState('');
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+
   // Get all trips for the drawer
   const { trips, refresh: refreshTrips } = useDashboardData();
 
@@ -397,15 +507,51 @@ export default function TripPage() {
     }
   }, [itinerary, planningItems.length]);
 
-  // Initialize edit dates from tripDna for Trip Hub
+  // Initialize edit dates and preferences from tripDna for Trip Hub
   useEffect(() => {
     if (tripDna) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dna = tripDna as any;
+
+      // Initialize dates
       const start = dna.constraints?.dates?.startDate || dna.constraints?.startDate || '';
       const end = dna.constraints?.dates?.endDate || dna.constraints?.endDate || '';
       setEditStartDate(start);
       setEditEndDate(end);
+
+      // Initialize duration
+      const days = dna.constraints?.duration?.days || dna.constraints?.dates?.totalDays || 7;
+      setDurationDays(days);
+
+      // Initialize date flexibility
+      const flexibility = dna.constraints?.dateFlexibility || 0;
+      setDateFlexibility(flexibility);
+
+      // Initialize preferences
+      const travelerType = dna.travelerProfile?.partyType || dna.travelers?.type || 'couple';
+      setEditTravelerType(travelerType);
+
+      const budgetLevel = dna.constraints?.budget?.level || '$$';
+      setEditBudget(budgetLevel);
+
+      const pace = dna.vibeAndPace?.tripPace || 'balanced';
+      setEditPace(pace);
+
+      const lodging = dna.constraints?.lodging || 'hotel';
+      setEditLodging(lodging);
+
+      const area = dna.constraints?.area || 'central';
+      setEditArea(area);
+
+      const tripTypes = dna.travelerProfile?.travelIdentities || dna.interests?.tripTypes || [];
+      setEditTripTypes(tripTypes);
+
+      const avoidances = dna.preferences?.avoidances?.split(', ').filter(Boolean) ||
+                        dna.constraints?.avoidances?.split(', ').filter(Boolean) || [];
+      setEditAvoidances(avoidances);
+
+      const specialRequests = dna.preferences?.specialRequests || '';
+      setEditSpecialRequests(specialRequests);
     }
   }, [tripDna]);
 
@@ -1489,6 +1635,78 @@ export default function TripPage() {
     }
   };
 
+  // Save preferences to tripDna
+  const handleSavePreferences = async () => {
+    if (!tripDna) return;
+    setIsSavingPreferences(true);
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedDna: any = {
+        ...tripDna,
+        travelerProfile: {
+          ...(tripDna as any).travelerProfile,
+          partyType: editTravelerType,
+          travelIdentities: editTripTypes,
+        },
+        vibeAndPace: {
+          ...(tripDna as any).vibeAndPace,
+          tripPace: editPace,
+        },
+        constraints: {
+          ...(tripDna as any).constraints,
+          budget: {
+            ...((tripDna as any).constraints?.budget || {}),
+            level: editBudget,
+          },
+          lodging: editLodging,
+          area: editArea,
+        },
+        interests: {
+          ...(tripDna as any).interests,
+          tripTypes: editTripTypes,
+        },
+        preferences: {
+          ...(tripDna as any).preferences,
+          avoidances: editAvoidances.join(', '),
+          specialRequests: editSpecialRequests || undefined,
+        },
+        updatedAt: new Date(),
+      };
+
+      await tripDb.save({
+        id: tripId,
+        tripDna: updatedDna,
+        itinerary: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        syncedAt: null,
+        status: 'draft',
+      });
+
+      setTripDna(updatedDna);
+      setExpandedSection(null); // Collapse section after save
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
+  // Toggle trip type selection
+  const toggleTripType = (type: TripType) => {
+    setEditTripTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  // Toggle avoidance selection
+  const toggleAvoidance = (id: string) => {
+    setEditAvoidances(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
+
   // If no itinerary yet, show Trip Hub with collapsible sections
   if (!itinerary) {
     // Use type assertion for flexible tripDna structure from different sources
@@ -1559,40 +1777,84 @@ export default function TripPage() {
               expanded={expandedSection === 'dates'}
               onToggle={() => toggleSection('dates')}
             >
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Start Date</label>
-                    <Input
-                      type="date"
-                      value={editStartDate}
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">End Date</label>
-                    <Input
-                      type="date"
-                      value={editEndDate}
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      min={editStartDate}
-                      className="w-full"
-                    />
+              <div className="space-y-6">
+                {/* Duration Slider */}
+                <div>
+                  <div className="text-sm font-medium mb-2">How long?</div>
+                  <Slider
+                    value={[durationDays]}
+                    onValueChange={([v]) => setDurationDays(v)}
+                    min={1}
+                    max={30}
+                    step={1}
+                    className="mb-2"
+                  />
+                  <div className="text-center text-sm font-medium">
+                    {durationDays} {durationDays === 1 ? 'day' : 'days'}
                   </div>
                 </div>
 
-                {editStartDate && editEndDate && (
-                  <div className="text-sm text-muted-foreground">
-                    {(() => {
-                      const start = new Date(editStartDate);
-                      const end = new Date(editEndDate);
-                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                      return `${days} day${days !== 1 ? 's' : ''}`;
-                    })()}
+                {/* Travel Dates */}
+                <div>
+                  <div className="text-sm font-medium mb-2">Travel dates</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Start date</label>
+                      <Input
+                        type="date"
+                        value={editStartDate}
+                        onChange={(e) => setEditStartDate(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">End date</label>
+                      <Input
+                        type="date"
+                        value={editEndDate}
+                        onChange={(e) => setEditEndDate(e.target.value)}
+                        min={editStartDate}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
-                )}
+                  {editStartDate && editEndDate && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {(() => {
+                        const start = new Date(editStartDate);
+                        const end = new Date(editEndDate);
+                        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        return `${days} day${days !== 1 ? 's' : ''} selected`;
+                      })()}
+                    </div>
+                  )}
+                </div>
 
+                {/* Date Flexibility */}
+                <div>
+                  <div className="text-sm font-medium mb-2">Date flexibility</div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 0, label: 'Exact dates' },
+                      { value: 1, label: '± 1 day' },
+                      { value: 2, label: '± 2 days' },
+                      { value: 3, label: '± 3 days' },
+                      { value: 7, label: '± 1 week' },
+                    ].map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => setDateFlexibility(value)}
+                        className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                          dateFlexibility === value ? 'bg-primary text-primary-foreground border-primary' : 'border-muted hover:border-primary/30'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Save/Cancel Buttons */}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button
                     variant="outline"
@@ -1600,6 +1862,7 @@ export default function TripPage() {
                     onClick={() => {
                       setEditStartDate(startDate || '');
                       setEditEndDate(endDate || '');
+                      setDurationDays(duration);
                       setExpandedSection(null);
                     }}
                   >
@@ -1627,47 +1890,148 @@ export default function TripPage() {
               onToggle={() => toggleSection('preferences')}
             >
               <div className="space-y-6">
-                {/* Budget */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Budget</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {['$', '$$', '$$$', '$$$$'].map((level) => (
+                {/* Who's Going - Full Width */}
+                <div className="border rounded-lg p-4">
+                  <div className="font-medium mb-3">Who&apos;s going?</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(['solo', 'couple', 'friends', 'family'] as TravelerType[]).map((t) => (
                       <button
-                        key={level}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                          budgetLevel === level
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-white hover:bg-muted border-input'
+                        key={t}
+                        onClick={() => setEditTravelerType(t)}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          editTravelerType === t ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
                         }`}
-                        onClick={() => {
-                          // Would save to tripDna
-                        }}
                       >
-                        {level}
+                        <div className="text-sm font-medium">{t.charAt(0).toUpperCase() + t.slice(1)}</div>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Pace */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Pace</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {[
-                      { id: 'relaxed', label: 'Relaxed' },
-                      { id: 'balanced', label: 'Balanced' },
-                      { id: 'fast', label: 'Fast-paced' },
-                    ].map(({ id, label }) => (
+                {/* Budget & Pace - Two Columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="font-medium mb-3">Budget</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['$', '$$', '$$$'] as Budget[]).map((b) => (
+                        <button
+                          key={b}
+                          onClick={() => setEditBudget(b)}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            editBudget === b ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{b}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="font-medium mb-3">Pace</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['relaxed', 'balanced', 'active'] as Pace[]).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setEditPace(p)}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            editPace === p ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="font-medium text-xs">{p.charAt(0).toUpperCase() + p.slice(1)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lodging & Area - Two Columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="font-medium mb-3">Lodging</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {LODGING_OPTIONS.map(({ id, label }) => (
+                        <button
+                          key={id}
+                          onClick={() => setEditLodging(id)}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            editLodging === id ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="font-medium mb-3">Area</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AREA_OPTIONS.map(({ id, label }) => (
+                        <button
+                          key={id}
+                          onClick={() => setEditArea(id)}
+                          className={`p-2 rounded-lg border text-center transition-all ${
+                            editArea === id ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interests - Full Width */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-medium">Interests</div>
+                    {editTripTypes.length > 0 && (
+                      <span className="text-sm text-muted-foreground">{editTripTypes.length} selected</span>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    {TRIP_TYPE_CATEGORIES.map((category) => (
+                      <div key={category.label}>
+                        <div className="text-xs font-semibold text-muted-foreground mb-2">{category.label}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {category.types.map(({ id, label }) => (
+                            <button
+                              key={id}
+                              onClick={() => toggleTripType(id)}
+                              className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
+                                editTripTypes.includes(id)
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'border-muted hover:border-primary/30'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Things to Avoid - Full Width */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-medium">Things to avoid</div>
+                    {editAvoidances.length > 0 && (
+                      <span className="text-sm text-muted-foreground">{editAvoidances.length} selected</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {AVOIDANCE_OPTIONS.map(({ id, label }) => (
                       <button
                         key={id}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                          pace === id
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-white hover:bg-muted border-input'
+                        onClick={() => toggleAvoidance(id)}
+                        className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
+                          editAvoidances.includes(id)
+                            ? 'bg-destructive/10 text-destructive border-destructive/30'
+                            : 'border-muted hover:border-destructive/30'
                         }`}
-                        onClick={() => {
-                          // Would save to tripDna
-                        }}
                       >
                         {label}
                       </button>
@@ -1675,38 +2039,45 @@ export default function TripPage() {
                   </div>
                 </div>
 
-                {/* Things to Avoid - placeholder for now */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Things to Avoid</label>
-                  <p className="text-xs text-muted-foreground mb-2">Select any you want to skip</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {[
-                      'Big cities', 'Crowds', 'Tourist traps', 'Hot weather',
-                      'Cold weather', 'Long drives', 'Early mornings', 'Spicy food'
-                    ].map((item) => (
-                      <button
-                        key={item}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium border bg-white hover:bg-muted border-input transition-colors"
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
+                {/* Special Requests - Full Width */}
+                <div className="border rounded-lg p-4">
+                  <div className="font-medium mb-2">Special requests</div>
+                  <p className="text-sm text-muted-foreground mb-3">Anything else we should know? (optional)</p>
+                  <Textarea
+                    placeholder="e.g., celebrating anniversary, need wheelchair access, traveling with a baby..."
+                    className="min-h-[80px]"
+                    value={editSpecialRequests}
+                    onChange={(e) => setEditSpecialRequests(e.target.value)}
+                  />
                 </div>
 
+                {/* Save/Cancel Buttons */}
                 <div className="flex justify-end gap-2 pt-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setExpandedSection(null)}
+                    onClick={() => {
+                      // Reset to saved values
+                      const dna = tripDna as any;
+                      setEditTravelerType(dna.travelerProfile?.partyType || 'couple');
+                      setEditBudget(dna.constraints?.budget?.level || '$$');
+                      setEditPace(dna.vibeAndPace?.tripPace || 'balanced');
+                      setEditLodging(dna.constraints?.lodging || 'hotel');
+                      setEditArea(dna.constraints?.area || 'central');
+                      setEditTripTypes(dna.travelerProfile?.travelIdentities || []);
+                      setEditAvoidances(dna.preferences?.avoidances?.split(', ').filter(Boolean) || []);
+                      setEditSpecialRequests(dna.preferences?.specialRequests || '');
+                      setExpandedSection(null);
+                    }}
                   >
                     Cancel
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => setExpandedSection(null)}
+                    onClick={handleSavePreferences}
+                    disabled={isSavingPreferences}
                   >
-                    Save
+                    {isSavingPreferences ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
               </div>
