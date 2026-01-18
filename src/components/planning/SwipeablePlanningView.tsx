@@ -2078,29 +2078,27 @@ export function SwipeablePlanningView({
     })() : null;
 
     return (
-      <div className="relative aspect-square rounded-xl overflow-hidden group">
-        {/* Main click area - opens modal */}
-        <button
-          onClick={() => {
-            if (itemIsCity) {
-              setCityDetailItem(item);
-            } else {
-              setDetailItem(item);
-            }
-          }}
-          className="absolute inset-0 w-full h-full z-10"
-        >
-          <CityImage
-            src={item.imageUrl}
-            alt={item.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        </button>
+      <div
+        className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
+        onClick={() => {
+          if (itemIsCity) {
+            setCityDetailItem(item);
+          } else {
+            setDetailItem(item);
+          }
+        }}
+      >
+        {/* Image and gradient */}
+        <CityImage
+          src={item.imageUrl}
+          alt={item.name}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
         {/* Match label for cities (top-right) */}
         {itemIsCity && cityMatchInfo && (
-          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold pointer-events-none z-20 ${
+          <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
             cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
             cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
             cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
@@ -2114,7 +2112,7 @@ export function SwipeablePlanningView({
 
         {/* Rating (top-left) - only for non-cities */}
         {!itemIsCity && item.rating && (
-          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5 pointer-events-none z-20">
+          <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">
             <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
             <span className="text-[10px] text-white font-medium">{item.rating}</span>
           </div>
@@ -2126,7 +2124,7 @@ export function SwipeablePlanningView({
             e.stopPropagation();
             toggleSelect(item.id, item.name);
           }}
-          className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all z-20 ${
+          className={`absolute bottom-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
             isSelected
               ? 'bg-white scale-100'
               : 'bg-black/40 backdrop-blur-sm hover:bg-black/60 scale-90 group-hover:scale-100'
@@ -2136,7 +2134,7 @@ export function SwipeablePlanningView({
         </button>
 
         {/* Name */}
-        <div className="absolute bottom-0 left-0 right-10 p-2 pointer-events-none z-20">
+        <div className="absolute bottom-0 left-0 right-10 p-2">
           <p className="text-xs font-semibold text-white line-clamp-2 leading-tight">
             {item.name}
           </p>
