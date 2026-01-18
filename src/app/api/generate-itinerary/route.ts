@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabasePlaces } from '@/lib/db/supabase';
 
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+// Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 interface PlaceResult {
   id: string;
@@ -41,7 +42,7 @@ async function fetchPlacesForCity(city: string, type: string, limit: number = 20
   }
 
   if (!GOOGLE_API_KEY) {
-    console.error('Google Maps API key not configured');
+    console.error('[GenerateItinerary] Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_API_KEY');
     return [];
   }
 
@@ -70,7 +71,8 @@ async function fetchPlacesForCity(city: string, type: string, limit: number = 20
     );
 
     if (!response.ok) {
-      console.error('Google Places API error:', await response.text());
+      const errorText = await response.text();
+      console.error(`[GenerateItinerary] Google Places API error for ${city} (${type}): ${response.status} - ${errorText}`);
       return [];
     }
 
