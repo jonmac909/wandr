@@ -461,18 +461,21 @@ function PlanPageContent() {
           // Restore planning progress
           if (dna.planningProgress) {
             const progress = dna.planningProgress;
-            if (progress.currentSection) {
-              setCurrentSection(progress.currentSection as PlanningSection);
+            const section = progress.currentSection as PlanningSection | undefined;
+            if (section) {
+              setCurrentSection(section);
+              // Derive phase from section to ensure they stay in sync
+              // This fixes the bug where the saved phase was 'auto-itinerary' but section was 'cities'
+              if (section === 'cities') {
+                setPlanningPhase('picking');
+              } else if (section === 'route') {
+                setPlanningPhase('route-planning');
+              } else if (section === 'itinerary') {
+                setPlanningPhase('auto-itinerary');
+              }
             }
             if (progress.completedSections?.length > 0) {
               setCompletedSections(progress.completedSections as PlanningSection[]);
-            }
-            if (progress.planningPhase) {
-              // Migrate old 'favorites-library' phase to new 'auto-itinerary'
-              const phase = progress.planningPhase === 'favorites-library'
-                ? 'auto-itinerary'
-                : progress.planningPhase;
-              setPlanningPhase(phase as PlanningPhase);
             }
           } else {
             // Default for trips without saved progress
