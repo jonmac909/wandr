@@ -4,17 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Wandr is a travel planning PWA that helps users create, manage, and track trip itineraries. It uses AI to generate trip plans from user preferences (TripDNA) and stores data locally with optional Supabase cloud sync. Features include place discovery/saving, AI chatbot for trip modifications, and multi-destination support.
+Wandr (Trippified) is a travel planning PWA that helps users create, manage, and track trip itineraries. Users complete a questionnaire to create a "Trip DNA" (preferences), then curate cities/activities via a swipeable interface, and generate day-by-day itineraries. Data stored locally (IndexedDB) with Supabase cloud sync.
 
 ## Commands
 
 ```bash
-npm run build    # Production build (ALWAYS run before pushing)
-npm run lint     # Run ESLint
-npm test         # Run all Playwright tests
-npx playwright test tests/foo.spec.ts  # Run specific test
-npm run test:ui  # Run Playwright tests with UI
+# Development
+npm run dev              # Start Next.js dev server at localhost:3000
+
+# Quality Checks (run before pushing)
+npm run typecheck        # TypeScript type check only (fast)
+npm run check            # TypeScript + ESLint
+npm run lint             # ESLint only
+npm run build            # Full Next.js build
+
+# Cloudflare Deployment
+npm run build:cloudflare # Build for Cloudflare Workers
+npm run deploy           # Build and deploy to Cloudflare
+
+# Testing
+npm run test             # Run all Playwright tests
+npm run test:ui          # Playwright UI mode
+npx playwright test tests/homepage.spec.ts  # Run single test file
 ```
+
+**Pre-push hook**: Husky runs `npm run typecheck` before every push. Failed type checks block the push, preventing Cloudflare build failures.
 
 ## Tech Stack
 
@@ -22,17 +36,18 @@ npm run test:ui  # Run Playwright tests with UI
 - **UI:** React 19, Tailwind CSS 4, shadcn/ui (Radix primitives)
 - **State:** Zustand for questionnaire flow
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
-- **AI:** Anthropic Claude API for itinerary generation
+- **APIs:** Google Places API for activities/restaurants, Pexels for images
+- **Maps:** Leaflet, OpenStreetMap embeds
 - **Icons:** lucide-react
-- **Deployment:** Cloudflare Workers
+- **Deployment:** Cloudflare Workers via OpenNext
 
 ## Environment Variables
 
-Required in `.env.local`:
+Required in `.env.local` (and Cloudflare dashboard for production):
 ```
-ANTHROPIC_API_KEY=           # Claude API for itinerary/chat
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=  # Google Maps/Places
-NEXT_PUBLIC_SUPABASE_URL=    # Supabase project URL
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=  # Google Maps/Places (client-side)
+GOOGLE_MAPS_API_KEY=              # Google Maps/Places (server-side)
+NEXT_PUBLIC_SUPABASE_URL=         # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Supabase anonymous key
 ```
 
@@ -71,11 +86,13 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`/plan-mode`** - AI trip generation interface
 
 ### Components (`src/components/`)
-- **`dashboard/`** - Dashboard widgets (DashboardHeader, TripDrawer, DestinationInspiration, MonthCalendar, BucketList, ProfileSettings)
-- **`planning/`** - Trip planning curation (PlanningCuration with activities, hotels, neighborhoods, cafes, restaurants), ActivityMap
+- **`planning/`** - Main trip planning interface
+  - **`SwipeablePlanningView.tsx`** - Core component (~4500 lines). Multi-phase trip curation with phases: `'picking'` → `'route-planning'` → `'auto-itinerary'` → `'day-planning'`. Contains city cards, route optimization, hotel picker.
+  - **`AutoItineraryView.tsx`** - Day-by-day itinerary display/editing
+  - **`RouteMap.tsx`** - Leaflet map for route visualization
+- **`dashboard/`** - Dashboard widgets (DashboardHeader, TripDrawer, DestinationInspiration, ProfileSettings)
 - **`itinerary/`** - Trip display (DayCard, PackingListView, FoodLayerView, TripOverview)
 - **`trip/`** - Trip-specific (TripRouteMap, LeafletMap)
-- **`chat/`** - AI chatbot (ChatSheet for trips, GeneralChatSheet for general use)
 - **`explore/`** - Place discovery (AddPlaceSheet, ExploreMap)
 - **`ui/`** - shadcn/ui primitives (Button, Card, Input, Badge, etc.)
 - **`questionnaire/`** - Form step components
@@ -88,38 +105,15 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`useTrips()`** - Load all trips with `{ trips, loading, error, refresh }`
 - **`useTrip(tripId)`** - Load single trip with `{ trip, loading, error, refresh, updateTrip, deleteTrip }`
 
-### AI Chatbot (`src/lib/ai/`, `src/components/chat/`)
-Claude-powered chatbot for modifying trips via natural language:
-- **`chat-tools.ts`** - Tool definitions (get_itinerary, add_activity, search_restaurants, etc.)
-- **`tool-handlers.ts`** - Executes tool calls and returns updated itinerary
-- **`chat-prompts.ts`** - System prompt builder with trip context
-- **`/api/chat/route.ts`** - Streaming SSE endpoint for trip-specific chat
-- **`/api/chat/general/route.ts`** - Streaming SSE endpoint for general chat (no trip context)
-- **`useChat.ts`** - Hook managing messages, streaming, and multi-turn tool execution
-
-**Two chat variants:**
-- `ChatSheet` - Requires trip/itinerary context, can modify trips
-- `GeneralChatSheet` - No trip context, for general travel questions
-
-**Flight formatting rules** (in system prompt):
-- Format: `[Airline] [ORIGIN]→[DEST] [departure]-[arrival]+[days]`
-- Example: `Zipair YVR→NRT 9:50am-1:00pm+1`
-- Always set: duration (minutes), cost ({ amount, currency }), tips (["details"])
-- Use category `flight` not `transit`
-
 ### API Routes (`src/app/api/`)
-- **`/api/generate-itinerary`** - POST: AI itinerary generation from TripDNA
-- **`/api/chat`** - POST/PUT: Trip-specific chat with tool calling (streaming SSE)
-- **`/api/chat/general`** - POST: General travel questions chat (streaming SSE)
-- **`/api/explore/recommendations`** - POST: AI place recommendations for cities
-- **`/api/parse-ticket`** - POST: Parse flight/train tickets from screenshots/text
-- **`/api/place-history`** - GET: Recent place search history
-- **`/api/city-image`** - GET: City hero images
-- **`/api/city-info`** - GET: City information for planning
+- **`/api/places/activities`** - GET: Activities/restaurants via Google Places (with Supabase caching)
+- **`/api/city-info`** - GET: City metadata (best time, crowd level, highlights)
+- **`/api/city-image`** - GET: City images via Pexels API
+- **`/api/generate-itinerary`** - POST: Itinerary generation from TripDNA
+- **`/api/explore/recommendations`** - POST: Place recommendations for cities
 - **`/api/hotels`** - GET: Hotel search
 - **`/api/places/restaurants`** - GET: Restaurant search via Google Places
 - **`/api/places/details`** - GET: Place details
-- **`/api/seed`** - POST: Seed sample trip (dev only)
 
 ### Booking URLs (`src/lib/booking/urls.ts`)
 Generates booking links based on activity category:
@@ -244,11 +238,11 @@ export default function Page() {
 }
 ```
 
-### Chat API Message Validation
-The Anthropic API requires all messages to have non-empty content. The `useChat` hook filters out empty messages:
-- Before sending to API: `.filter((m) => m.content && m.content.trim().length > 0)`
-- Tool call continuations: Validates `assistantTurnContent.length > 0` before sending
-- This prevents "messages must have non-empty content" errors from the API
+### City Coordinates (CITY_COORDS)
+Module-level constant in `SwipeablePlanningView.tsx` contains `[lat, lng]` tuples for all supported cities. Used for:
+- Geographic route optimization (nearest-neighbor algorithm)
+- Map embeds in city detail modals
+- **Important**: Only ONE definition should exist. Check before adding new cities to avoid duplicate declaration errors.
 
 ## How to Debug Properly
 
