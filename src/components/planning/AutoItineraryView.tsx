@@ -448,17 +448,20 @@ export default function AutoItineraryView({
     );
   }, []);
 
+  // Track which activities we've already refreshed to avoid infinite loops
+  const refreshedActivitiesRef = useRef<Set<string>>(new Set());
+
   // Detect and refresh activities with old mock/Pexels images
   // This handles persisted data from before we switched to Google Places only
   useEffect(() => {
     const OLD_PEXELS_URL = 'pexels.com/photos/2325446';
 
-    // Check if any activities have old Pexels mock images
+    // Check if any activities have old Pexels mock images that haven't been refreshed yet
     const activitiesWithOldImages: { dayNumber: number; activityId: string; activityName: string; city: string }[] = [];
 
     days.forEach(day => {
       day.activities.forEach(activity => {
-        if (activity.imageUrl?.includes(OLD_PEXELS_URL)) {
+        if (activity.imageUrl?.includes(OLD_PEXELS_URL) && !refreshedActivitiesRef.current.has(activity.id)) {
           activitiesWithOldImages.push({
             dayNumber: day.dayNumber,
             activityId: activity.id,
@@ -473,12 +476,15 @@ export default function AutoItineraryView({
 
     debug(`[AutoItinerary] Found ${activitiesWithOldImages.length} activities with old Pexels images, fetching Google Places images...`);
 
+    // Mark these as being refreshed to avoid duplicate fetches
+    activitiesWithOldImages.forEach(item => refreshedActivitiesRef.current.add(item.activityId));
+
     // Fetch real images from Google Places for each activity
     const fetchRealImages = async () => {
       const imageUpdates: Record<string, string> = {};
 
-      // Fetch in batches to avoid overwhelming the API
-      for (const item of activitiesWithOldImages) {
+      // Fetch in parallel but limit concurrency
+      const fetchPromises = activitiesWithOldImages.map(async (item) => {
         try {
           const response = await fetch(
             `/api/site-image?site=${encodeURIComponent(item.activityName)}&city=${encodeURIComponent(item.city)}`
@@ -494,7 +500,9 @@ export default function AutoItineraryView({
         } catch (error) {
           console.error(`[AutoItinerary] Failed to fetch image for ${item.activityName}:`, error);
         }
-      }
+      });
+
+      await Promise.all(fetchPromises);
 
       // Update days with new images
       if (Object.keys(imageUpdates).length > 0) {
@@ -511,7 +519,7 @@ export default function AutoItineraryView({
     };
 
     fetchRealImages();
-  }, [days.length]); // Only run when days array changes length (initial load)
+  }, [days]); // Run whenever days change
 
   // Filtered days based on category filter
   const filteredDays = useMemo(() => {
