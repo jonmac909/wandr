@@ -38,24 +38,25 @@ export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps)
   const isMultiCountry = countries.size > 1;
   const displayDestinations = destinations.slice(0, 4);
 
-  // Single destination - large hero
+  // Single destination - large hero with title below
   if (displayDestinations.length === 1) {
     return (
-      <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-muted mb-6">
-        {imageUrls[displayDestinations[0]] ? (
-          <img
-            src={imageUrls[displayDestinations[0]]}
-            alt={displayDestinations[0]}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-          <h1 className="text-2xl font-bold drop-shadow-md">{title}</h1>
+      <div className="mb-6">
+        <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-muted">
+          {imageUrls[displayDestinations[0]] ? (
+            <img
+              src={imageUrls[displayDestinations[0]]}
+              alt={displayDestinations[0]}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 animate-pulse" />
+          )}
+        </div>
+        <div className="mt-4 text-center">
+          <h1 className="text-xl font-bold">{title}</h1>
           {subtitle && (
-            <p className="text-sm opacity-90 mt-1 drop-shadow-sm">{subtitle}</p>
+            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
         </div>
       </div>

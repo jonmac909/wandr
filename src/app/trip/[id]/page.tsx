@@ -1963,7 +1963,18 @@ export default function TripPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dna = tripDna as any;
     const destination = dna.interests?.destination || dna.meta?.title || 'Your Trip';
-    const destinations = dna.interests?.destinations || [destination];
+
+    // Parse destinations - handle comma-separated strings and arrays
+    const parseDestinations = (dest: string): string[] => {
+      if (dest.includes(',')) return dest.split(',').map(d => d.trim());
+      if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
+      return [dest];
+    };
+
+    const rawDestinations = dna.interests?.destinations;
+    const destinations = (rawDestinations && rawDestinations.length > 0)
+      ? rawDestinations
+      : parseDestinations(destination);
     const startDate = dna.constraints?.dates?.startDate || dna.constraints?.startDate;
     const endDate = dna.constraints?.dates?.endDate || dna.constraints?.endDate;
     const duration = dna.constraints?.duration?.days || dna.constraints?.dates?.totalDays || 7;
