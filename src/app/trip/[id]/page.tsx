@@ -302,6 +302,21 @@ function getCitiesForDestination(destination: string): string[] {
   return [destination];
 }
 
+// Helper function to fetch real city images from API
+async function fetchCityImage(city: string, country: string): Promise<string> {
+  try {
+    const response = await fetch(`/api/city-image?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch city image');
+    }
+    const data = await response.json();
+    return data.imageUrl;
+  } catch (error) {
+    console.error(`Failed to fetch image for ${city}:`, error);
+    return getCityImage(city, country);
+  }
+}
+
 // Pipeline category colors - all distinct warm neutral tones
 const PIPELINE_COLORS: Record<string, { bg: string; iconBg: string; text: string }> = {
   'Overview': { bg: 'bg-red-50 border-red-200', iconBg: 'bg-red-100 text-red-600', text: 'text-red-800' },
@@ -2011,7 +2026,38 @@ export default function TripPage() {
       : 'Dates not set';
 
     const toggleSection = (section: string) => {
-      setExpandedSection(prev => prev === section ? null : section);
+      const newSection = expandedSection === section ? null : section;
+      setExpandedSection(newSection);
+
+      // Load cities when cities section expands
+      if (newSection === 'cities' && planningItems.length === 0) {
+        const loadCities = async () => {
+          const mockItems: PlanningItem[] = [];
+          for (let destIdx = 0; destIdx < destinations.length; destIdx++) {
+            const dest = destinations[destIdx];
+            const cityNames = getCitiesForDestination(dest);
+            for (let idx = 0; idx < cityNames.length; idx++) {
+              const city = cityNames[idx];
+              let imageUrl: string;
+              try {
+                imageUrl = await fetchCityImage(city, dest);
+              } catch {
+                imageUrl = getCityImage(city, dest);
+              }
+              mockItems.push({
+                id: `city-${destIdx}-${idx}`,
+                name: city,
+                description: `Explore ${city}`,
+                imageUrl,
+                category: 'activities',
+                tags: ['cities', dest],
+              });
+            }
+          }
+          setPlanningItems(mockItems);
+        };
+        loadCities();
+      }
     };
 
     return (
@@ -2380,6 +2426,56 @@ export default function TripPage() {
                 startDate={startDate}
                 endDate={endDate}
                 controlledPhase="picking"
+                onSearchAI={async (query, category) => {
+                  if (category === 'cities') {
+                    const mockItems: PlanningItem[] = [];
+                    const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
+
+                    destinations.forEach((dest: string, destIdx: number) => {
+                      const cityNames = getCitiesForDestination(dest);
+                      cityNames.forEach((city, idx) => {
+                        const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
+                          city,
+                          destIdx,
+                          idx,
+                          imageUrl
+                        }));
+                        imageFetches.push(imagePromise);
+                      });
+                    });
+
+                    try {
+                      const imageResults = await Promise.all(imageFetches);
+                      imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
+                        mockItems.push({
+                          id: `city-${destIdx}-${idx}`,
+                          name: city,
+                          description: `Explore ${city}`,
+                          imageUrl,
+                          category: 'activities',
+                          tags: ['cities', destinations[destIdx]],
+                        });
+                      });
+                    } catch (error) {
+                      console.error('Failed to fetch city images:', error);
+                      destinations.forEach((dest: string, destIdx: number) => {
+                        const cityNames = getCitiesForDestination(dest);
+                        cityNames.forEach((city, idx) => {
+                          mockItems.push({
+                            id: `city-${destIdx}-${idx}`,
+                            name: city,
+                            description: `Explore ${city}`,
+                            imageUrl: getCityImage(city, dest),
+                            category: 'activities',
+                            tags: ['cities', dest],
+                          });
+                        });
+                      });
+                    }
+
+                    setPlanningItems(mockItems);
+                  }
+                }}
               />
             </TripHubSection>
 
