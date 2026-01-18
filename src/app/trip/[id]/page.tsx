@@ -259,6 +259,12 @@ export default function TripPage() {
   const scheduleContainerRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Trip Hub state (must be declared at top level, not after early returns)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
   // Get all trips for the drawer
   const { trips, refresh: refreshTrips } = useDashboardData();
 
@@ -390,6 +396,18 @@ export default function TripPage() {
       }
     }
   }, [itinerary, planningItems.length]);
+
+  // Initialize edit dates from tripDna for Trip Hub
+  useEffect(() => {
+    if (tripDna) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const start = dna.constraints?.dates?.startDate || dna.constraints?.startDate || '';
+      const end = dna.constraints?.dates?.endDate || dna.constraints?.endDate || '';
+      setEditStartDate(start);
+      setEditEndDate(end);
+    }
+  }, [tripDna]);
 
   // Save budget to itinerary when it changes
   const handleSaveBudget = async (newBudget: number) => {
@@ -1420,26 +1438,6 @@ export default function TripPage() {
       </div>
     );
   }
-
-  // Track expanded section for accordion behavior
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-
-  // Editable date state for Trip Hub
-  const [editStartDate, setEditStartDate] = useState('');
-  const [editEndDate, setEditEndDate] = useState('');
-  const [isSavingDates, setIsSavingDates] = useState(false);
-
-  // Initialize edit dates from tripDna
-  useEffect(() => {
-    if (tripDna) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dna = tripDna as any;
-      const start = dna.constraints?.dates?.startDate || dna.constraints?.startDate || '';
-      const end = dna.constraints?.dates?.endDate || dna.constraints?.endDate || '';
-      setEditStartDate(start);
-      setEditEndDate(end);
-    }
-  }, [tripDna]);
 
   // Save dates to tripDna
   const handleSaveDates = async () => {
