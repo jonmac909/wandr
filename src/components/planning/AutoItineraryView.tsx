@@ -1734,6 +1734,34 @@ export default function AutoItineraryView({
         </SheetContent>
       </Sheet>
 
+      {/* Trip Breakdown Card - Prominent CTA for allocating nights */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              Trip Breakdown
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {currentTotal === tripTotalNights
+                ? `${tripTotalNights} nights allocated across ${allocations.filter(a => !a.city.includes('Transit')).length} cities`
+                : currentTotal > tripTotalNights
+                  ? `⚠️ ${currentTotal - tripTotalNights} nights over-allocated`
+                  : `${tripTotalNights - currentTotal} of ${tripTotalNights} nights remaining`
+              }
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant={currentTotal === tripTotalNights ? "outline" : "default"}
+            onClick={() => setIsAllocationSheetOpen(true)}
+            className="shrink-0"
+          >
+            {currentTotal === tripTotalNights ? 'Edit' : 'Allocate Nights'}
+          </Button>
+        </div>
+      </div>
+
       {/* Auto-fill entire trip button */}
       <Button
         variant="default"
