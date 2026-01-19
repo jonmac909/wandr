@@ -1643,26 +1643,27 @@ export function SwipeablePlanningView({
   }, [items]);
 
   // Sync selectedCities from items when items change (for Trip Hub controlled mode)
+  // Also triggers when selectedItems changes (e.g., after persistence loads isFavorited)
   useEffect(() => {
-    if (controlledPhase && items.length > 0) {
-      // Extract favorited city names from items
-      const favoritedCityNames = items
-        .filter(item => item.isFavorited && item.tags?.includes('cities'))
-        .map(item => item.name);
-      
-      // Only update if different to avoid loops
+    // Extract favorited city names from items
+    const favoritedCityNames = items
+      .filter(item => item.isFavorited && item.tags?.includes('cities'))
+      .map(item => item.name);
+    
+    // Only update if different to avoid loops
+    if (favoritedCityNames.length > 0) {
       const currentCities = new Set(selectedCities);
       const isDifferent = favoritedCityNames.length !== selectedCities.length ||
         favoritedCityNames.some(c => !currentCities.has(c));
       
-      if (isDifferent && favoritedCityNames.length > 0) {
+      if (isDifferent) {
         setSelectedCities(favoritedCityNames);
         // Also sync selectedIds
         const favoritedIds = items.filter(item => item.isFavorited).map(item => item.id);
         setSelectedIds(new Set(favoritedIds));
       }
     }
-  }, [items, controlledPhase]); // Don't include selectedCities to avoid loops
+  }, [selectedItems]); // Trigger when favorited items change
 
   // Compute country groups for route style options
   const countryGroups = useMemo(() => {
