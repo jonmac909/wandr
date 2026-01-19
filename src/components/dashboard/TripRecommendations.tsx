@@ -89,25 +89,9 @@ const recommendations: TripRecommendation[] = [
   },
 ];
 
-// Curated Pexels images for trip recommendations
-const RECOMMENDATION_IMAGES: Record<string, string> = {
-  'porto-weekend': 'https://images.pexels.com/photos/2549018/pexels-photo-2549018.jpeg',
-  'bali-adventure': 'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg',
-  'tokyo-explorer': 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg',
-  'amalfi-escape': 'https://images.pexels.com/photos/4846097/pexels-photo-4846097.jpeg',
-  'iceland-roadtrip': 'https://images.pexels.com/photos/2113566/pexels-photo-2113566.jpeg',
-  'marrakech-souk': 'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg',
-};
-
-const FALLBACK_IMAGES = [
-  'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg',
-  'https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg',
-  'https://images.pexels.com/photos/2166553/pexels-photo-2166553.jpeg',
-];
-
-function getPexelsImage(id: string, width = 400, height = 300): string {
-  const baseUrl = RECOMMENDATION_IMAGES[id] || FALLBACK_IMAGES[id.length % FALLBACK_IMAGES.length];
-  return `${baseUrl}?auto=compress&cs=tinysrgb&w=${width}&h=${height}&fit=crop`;
+// Get placeholder image for trip recommendations
+function getRecommendationImage(id: string): string {
+  return `/api/placeholder/city/${encodeURIComponent(id)}`;
 }
 
 export function TripRecommendations() {
@@ -173,7 +157,7 @@ export function TripRecommendations() {
                 {/* Image */}
                 <div className="w-32 h-32 sm:w-40 sm:h-36 flex-shrink-0 relative overflow-hidden">
                   <img
-                    src={getPexelsImage(rec.id, 400, 300)}
+                    src={getRecommendationImage(rec.id)}
                     alt={rec.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />

@@ -27,7 +27,7 @@ interface Listing {
   id: string;
   name: string;
   description: string;
-  imageUrl: string;
+  imageUrl: string | null;
   rating?: number;
   priceLevel?: string;
   category: string;
@@ -50,7 +50,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'act-1',
         name: `${destination} Walking Tour`,
         description: 'Explore the historic streets and hidden gems with a local guide. Perfect for first-time visitors wanting to get oriented.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.8,
         priceLevel: '$$',
         category: 'activities',
@@ -60,7 +60,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'act-2',
         name: 'Food & Market Tour',
         description: 'Sample local delicacies and visit vibrant markets with a culinary expert. Tastings included.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.9,
         priceLevel: '$$$',
         category: 'activities',
@@ -70,7 +70,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'act-3',
         name: 'Sunset Viewpoint Tour',
         description: 'Watch the sunset from the best viewpoint in the city. Includes drinks and appetizers.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.7,
         priceLevel: '$',
         category: 'activities',
@@ -80,7 +80,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'act-4',
         name: 'Museum & Art Experience',
         description: 'Discover world-class art and cultural exhibits with skip-the-line access.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.6,
         priceLevel: '$$',
         category: 'activities',
@@ -92,7 +92,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hotel-1',
         name: 'Boutique Hotel Central',
         description: 'Charming boutique hotel in the heart of the city. Rooftop bar, complimentary breakfast, and walkable to major attractions.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.7,
         priceLevel: '$$$',
         category: 'hotels',
@@ -103,7 +103,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hotel-2',
         name: 'Grand Heritage Hotel',
         description: 'Luxurious historic property with modern amenities. Full-service spa, fine dining, and concierge.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.9,
         priceLevel: '$$$$',
         category: 'hotels',
@@ -114,7 +114,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hotel-3',
         name: 'Urban Hostel & Suites',
         description: 'Budget-friendly with private rooms and social vibes. Rooftop terrace, bar, and weekly events.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.4,
         priceLevel: '$',
         category: 'hotels',
@@ -127,7 +127,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hood-1',
         name: 'Old Town',
         description: 'Historic center with cobblestone streets and landmarks. Best for sightseeing and traditional restaurants.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         category: 'neighborhoods',
         tags: ['Historic', 'Touristy', 'Photogenic'],
       },
@@ -135,7 +135,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hood-2',
         name: 'Arts District',
         description: 'Trendy area with galleries, cafes, and nightlife. Best for creatives and night owls.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         category: 'neighborhoods',
         tags: ['Trendy', 'Nightlife', 'Art'],
       },
@@ -143,7 +143,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'hood-3',
         name: 'Waterfront',
         description: 'Scenic promenade with restaurants and views. Perfect for evening strolls and seafood.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         category: 'neighborhoods',
         tags: ['Scenic', 'Dining', 'Relaxed'],
       },
@@ -153,7 +153,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'cafe-1',
         name: 'Artisan Coffee House',
         description: 'Third-wave coffee and fresh pastries in a cozy setting. Known for their pour-overs and croissants.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.8,
         priceLevel: '$$',
         category: 'cafes',
@@ -164,7 +164,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'cafe-2',
         name: 'Garden Terrace Cafe',
         description: 'Beautiful outdoor seating with brunch menu. Weekend reservations recommended.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.6,
         priceLevel: '$$',
         category: 'cafes',
@@ -175,7 +175,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'cafe-3',
         name: 'Local Bakery & Cafe',
         description: 'Traditional pastries and local breakfast favorites. Where the locals go.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.7,
         priceLevel: '$',
         category: 'cafes',
@@ -188,7 +188,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'rest-1',
         name: 'Traditional Kitchen',
         description: 'Authentic local cuisine in a cozy setting. Family recipes passed down through generations.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.7,
         priceLevel: '$$',
         category: 'restaurants',
@@ -199,7 +199,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'rest-2',
         name: 'Rooftop Fine Dining',
         description: 'Upscale dining with panoramic city views. Tasting menu and sommelier recommended.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.9,
         priceLevel: '$$$$',
         category: 'restaurants',
@@ -210,7 +210,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'rest-3',
         name: 'Street Food Market',
         description: 'Diverse food stalls and casual atmosphere. Great for sampling multiple cuisines.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.5,
         priceLevel: '$',
         category: 'restaurants',
@@ -221,7 +221,7 @@ function generateListings(destination: string): Record<string, Listing[]> {
         id: 'rest-4',
         name: 'Farm-to-Table Bistro',
         description: 'Seasonal menu with locally sourced ingredients. Intimate setting, natural wines.',
-        imageUrl: 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600',
+        imageUrl: null,
         rating: 4.8,
         priceLevel: '$$$',
         category: 'restaurants',
@@ -365,7 +365,7 @@ function SquareListingCard({
     >
       {/* Background Image */}
       <img
-        src={listing.imageUrl}
+        src={listing.imageUrl || `/api/placeholder/city/${encodeURIComponent(listing.name)}`}
         alt={listing.name}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
@@ -439,7 +439,7 @@ function ListingDetailModal({
         {/* Hero Image */}
         <div className="relative h-48 w-full">
           <img
-            src={listing.imageUrl}
+            src={listing.imageUrl || `/api/placeholder/city/${encodeURIComponent(listing.name)}`}
             alt={listing.name}
             className="w-full h-full object-cover"
           />

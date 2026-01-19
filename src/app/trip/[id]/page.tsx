@@ -136,38 +136,38 @@ const AVOIDANCE_OPTIONS = [
 
 // Pexels image arrays for mock data
 const PEXELS_HOTEL_IMAGES = [
-  'https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg',
-  'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg',
-  'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg',
-  'https://images.pexels.com/photos/262048/pexels-photo-262048.jpeg',
-  'https://images.pexels.com/photos/1134176/pexels-photo-1134176.jpeg',
-  'https://images.pexels.com/photos/2507010/pexels-photo-2507010.jpeg',
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
 ];
 
 const PEXELS_RESTAURANT_IMAGES = [
-  'https://images.pexels.com/photos/67468/pexels-photo-67468.jpeg',
-  'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg',
-  'https://images.pexels.com/photos/1579739/pexels-photo-1579739.jpeg',
-  'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg',
-  'https://images.pexels.com/photos/696218/pexels-photo-696218.jpeg',
-  'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg',
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
 ];
 
 const PEXELS_ACTIVITY_IMAGES = [
-  'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg',
-  'https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg',
-  'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg',
-  'https://images.pexels.com/photos/2104152/pexels-photo-2104152.jpeg',
-  'https://images.pexels.com/photos/2440061/pexels-photo-2440061.jpeg',
-  'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg',
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
 ];
 
 const PEXELS_CAFE_IMAGES = [
-  'https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg',
-  'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg',
-  'https://images.pexels.com/photos/1813466/pexels-photo-1813466.jpeg',
-  'https://images.pexels.com/photos/2074130/pexels-photo-2074130.jpeg',
-  'https://images.pexels.com/photos/1395967/pexels-photo-1395967.jpeg',
+  null,
+  null,
+  null,
+  null,
+  null,
 ];
 
 function getMockPexelsImage(name: string, category: 'hotel' | 'restaurant' | 'activity' | 'cafe'): string {

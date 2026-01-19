@@ -457,18 +457,16 @@ export default function AutoItineraryView({
   // Track which activities we've already refreshed to avoid infinite loops
   const refreshedActivitiesRef = useRef<Set<string>>(new Set());
 
-  // Detect and refresh activities with old mock/Pexels images
-  // This handles persisted data from before we switched to Google Places only
+  // Detect and refresh activities without images
+  // Fetches from Google Places API for activities missing images
   useEffect(() => {
-    const OLD_PEXELS_URL = 'pexels.com/photos/2325446';
-
-    // Check if any activities have old Pexels mock images that haven't been refreshed yet
-    const activitiesWithOldImages: { dayNumber: number; activityId: string; activityName: string; city: string }[] = [];
+    // Check for activities without images that haven't been refreshed yet
+    const activitiesWithoutImages: { dayNumber: number; activityId: string; activityName: string; city: string }[] = [];
 
     days.forEach(day => {
       day.activities.forEach(activity => {
-        if (activity.imageUrl?.includes(OLD_PEXELS_URL) && !refreshedActivitiesRef.current.has(activity.id)) {
-          activitiesWithOldImages.push({
+        if (!activity.imageUrl && !refreshedActivitiesRef.current.has(activity.id)) {
+          activitiesWithoutImages.push({
             dayNumber: day.dayNumber,
             activityId: activity.id,
             activityName: activity.name,
@@ -478,19 +476,19 @@ export default function AutoItineraryView({
       });
     });
 
-    if (activitiesWithOldImages.length === 0) return;
+    if (activitiesWithoutImages.length === 0) return;
 
-    debug(`[AutoItinerary] Found ${activitiesWithOldImages.length} activities with old Pexels images, fetching Google Places images...`);
+    debug(`[AutoItinerary] Found ${activitiesWithoutImages.length} activities without images, fetching from Google Places...`);
 
     // Mark these as being refreshed to avoid duplicate fetches
-    activitiesWithOldImages.forEach(item => refreshedActivitiesRef.current.add(item.activityId));
+    activitiesWithoutImages.forEach(item => refreshedActivitiesRef.current.add(item.activityId));
 
     // Fetch real images from Google Places for each activity
     const fetchRealImages = async () => {
       const imageUpdates: Record<string, string> = {};
 
       // Fetch in parallel but limit concurrency
-      const fetchPromises = activitiesWithOldImages.map(async (item) => {
+      const fetchPromises = activitiesWithoutImages.map(async (item) => {
         try {
           const response = await fetch(
             `/api/site-image?site=${encodeURIComponent(item.activityName)}&city=${encodeURIComponent(item.city)}`
@@ -498,22 +496,12 @@ export default function AutoItineraryView({
 
           if (response.ok) {
             const data = await response.json();
-            if (data.imageUrl && !data.imageUrl.includes('pexels')) {
+            if (data.imageUrl) {
               imageUpdates[item.activityId] = data.imageUrl;
               debug(`[AutoItinerary] Got Google Places image for ${item.activityName}`);
-            } else {
-              // No valid image from Google Places - clear the old Pexels URL so placeholder shows
-              imageUpdates[item.activityId] = '';
-              debug(`[AutoItinerary] No Google image for ${item.activityName}, showing placeholder`);
             }
-          } else {
-            // API returned error (404 etc) - clear the old Pexels URL so placeholder shows
-            imageUpdates[item.activityId] = '';
-            debug(`[AutoItinerary] API error for ${item.activityName}, showing placeholder`);
           }
         } catch (error) {
-          // Network error - clear the old Pexels URL so placeholder shows
-          imageUpdates[item.activityId] = '';
           console.error(`[AutoItinerary] Failed to fetch image for ${item.activityName}:`, error);
         }
       });

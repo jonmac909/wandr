@@ -47,7 +47,7 @@ export interface PersistedActivity {
   name: string;
   type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit';
   description?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   suggestedTime?: string;
   duration?: number;
   openingHours?: string;

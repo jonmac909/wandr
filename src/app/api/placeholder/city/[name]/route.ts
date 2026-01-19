@@ -1,73 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Search terms for better Unsplash results
-const CITY_SEARCH_TERMS: Record<string, string> = {
-  // Turkey
-  'Istanbul': 'istanbul,mosque,bosphorus',
-  'Cappadocia': 'cappadocia,balloon,turkey',
-  'Antalya': 'antalya,beach,turkey',
-  'Bodrum': 'bodrum,aegean,coast',
-  'Ephesus': 'ephesus,ruins,ancient',
-  'Pamukkale': 'pamukkale,travertine,turkey',
-  // Spain
-  'Barcelona': 'barcelona,sagrada,gaudi',
-  'Madrid': 'madrid,spain,plaza',
-  'Seville': 'seville,spain,alcazar',
-  'Granada': 'granada,alhambra,spain',
-  'Valencia': 'valencia,spain,architecture',
-  'San Sebastian': 'san+sebastian,basque,beach',
-  // Italy
-  'Rome': 'rome,colosseum,italy',
-  'Florence': 'florence,duomo,italy',
-  'Venice': 'venice,canal,gondola',
-  'Amalfi Coast': 'amalfi,positano,coast',
-  'Milan': 'milan,duomo,italy',
-  // Switzerland
-  'Zurich': 'zurich,switzerland,lake',
-  'Lucerne': 'lucerne,switzerland,chapel',
-  'Interlaken': 'interlaken,alps,switzerland',
-  'Zermatt': 'zermatt,matterhorn,alps',
-  'Geneva': 'geneva,switzerland,lake',
-  // France
-  'Paris': 'paris,eiffel,france',
-  'Nice': 'nice,riviera,france',
-  'Lyon': 'lyon,france,city',
-  // Generic activities/categories
-  'Walking Tour': 'walking,tour,city',
-  'Food Tour': 'food,market,culinary',
-  'Museum Visit': 'museum,art,gallery',
-  'Historical Site': 'historical,monument,heritage',
-  'Local Market': 'market,bazaar,local',
-  'Sunset Viewpoint': 'sunset,viewpoint,scenic',
-  'Cooking Class': 'cooking,class,kitchen',
-  'Art Gallery': 'art,gallery,museum',
-  'Nature Hike': 'hiking,nature,trail',
-  'Boutique Hotel': 'boutique,hotel,luxury',
-  'Design Hotel': 'design,hotel,modern',
-  'Historic Inn': 'historic,inn,traditional',
-  'Modern Resort': 'resort,pool,modern',
-  'Local Bistro': 'bistro,restaurant,dining',
-  'Rooftop Bar': 'rooftop,bar,cocktail',
-  'Street Food': 'street,food,market',
-  'Fine Dining': 'fine,dining,restaurant',
-  'Artisan Coffee': 'coffee,cafe,artisan',
-  'Cozy Cafe': 'cozy,cafe,coffee',
-};
-
+// Returns an SVG placeholder gradient for cities/places
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   const { name } = await params;
   const searchName = decodeURIComponent(name);
-
-  // Redirect to Pexels fallback image (this endpoint is deprecated, use /api/city-image instead)
-  const pexelsFallback = 'https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg?auto=compress&cs=tinysrgb&w=600';
-
-  return NextResponse.redirect(pexelsFallback, {
-    status: 302,
+  
+  // Generate a consistent color based on the name
+  const hash = searchName.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  const hue = Math.abs(hash) % 360;
+  const color1 = `hsl(${hue}, 70%, 60%)`;
+  const color2 = `hsl(${(hue + 40) % 360}, 60%, 40%)`;
+  
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="600" height="400" fill="url(#grad)"/>
+    <text x="300" y="200" font-family="system-ui, sans-serif" font-size="24" fill="white" text-anchor="middle" dominant-baseline="middle" opacity="0.8">📍</text>
+  </svg>`;
+  
+  return new NextResponse(svg, {
     headers: {
-      'Cache-Control': 'public, max-age=3600',
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, max-age=31536000',
     },
   });
 }

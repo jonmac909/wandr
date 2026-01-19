@@ -21,7 +21,7 @@ export interface GeneratedActivity {
   };
   description?: string;
   history?: string;              // Rich historical/cultural context (2-3 sentences)
-  imageUrl?: string;
+  imageUrl?: string | null;
 
   // Scheduling
   suggestedTime?: string;        // "09:00"
