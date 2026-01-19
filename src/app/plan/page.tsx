@@ -184,11 +184,29 @@ import { getCitiesForDestination } from '@/lib/geo/destination-cities';
 async function fetchCitiesWithImages(destination: string): Promise<Array<{ name: string; imageUrl: string }>> {
   const cityNames = getCitiesForDestination(destination);
   
-  // Return cities with placeholder images initially - they'll be fetched dynamically by components
-  return cityNames.map(name => ({
-    name,
-    imageUrl: `/api/placeholder/city/${encodeURIComponent(name)}`,
-  }));
+  // Fetch real images from API in parallel (batch of 5 at a time)
+  const results: Array<{ name: string; imageUrl: string }> = [];
+  
+  for (let i = 0; i < cityNames.length; i += 5) {
+    const batch = cityNames.slice(i, i + 5);
+    const batchResults = await Promise.all(
+      batch.map(async (name) => {
+        try {
+          const res = await fetch(`/api/city-image?city=${encodeURIComponent(name)}&country=${encodeURIComponent(destination)}`);
+          if (res.ok) {
+            const data = await res.json();
+            return { name, imageUrl: data.imageUrl || `/api/placeholder/city/${encodeURIComponent(name)}` };
+          }
+        } catch {
+          // Silently fail
+        }
+        return { name, imageUrl: `/api/placeholder/city/${encodeURIComponent(name)}` };
+      })
+    );
+    results.push(...batchResults);
+  }
+  
+  return results;
 }
 
 export default function PlanPage() {
