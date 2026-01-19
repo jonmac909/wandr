@@ -3,7 +3,7 @@
 export interface SavedPlace {
   id: string;
   name: string;
-  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife';
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'hotel';
 
   // Location
   city: string;

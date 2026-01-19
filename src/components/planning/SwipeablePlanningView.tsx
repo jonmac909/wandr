@@ -2697,14 +2697,19 @@ export function SwipeablePlanningView({
 
       const optimizedOrder: string[] = [];
       const countryGroups: Record<string, string[]> = {};
+      const countryNameMap: Record<string, string> = {}; // lowercase -> actual name
       const processedCountries = new Set<string>();
 
-      // Group cities by country
+      // Group cities by country (case-insensitive key storage)
       citiesToOptimize.forEach(city => {
         const country = getCityCountry(city) || 'Unknown';
+        const countryLower = country.toLowerCase();
         debug(`[OptimizeRoute] City "${city}" -> Country "${country}"`);
-        if (!countryGroups[country]) countryGroups[country] = [];
-        countryGroups[country].push(city);
+        if (!countryGroups[countryLower]) {
+          countryGroups[countryLower] = [];
+          countryNameMap[countryLower] = country;
+        }
+        countryGroups[countryLower].push(city);
       });
 
       debug('[OptimizeRoute] countryGroups:', countryGroups);
@@ -2734,18 +2739,19 @@ export function SwipeablePlanningView({
         return optimized;
       };
 
-      // For each country in countryOrder, optimize the cities within
+      // For each country in countryOrder, optimize the cities within (case-insensitive)
       const orderedCountries = countryOrder.length > 0 ? countryOrder : destinations;
       debug('[OptimizeRoute] orderedCountries:', orderedCountries);
 
       orderedCountries.forEach(country => {
-        const cities = countryGroups[country] || [];
-        debug(`[OptimizeRoute] Processing "${country}" -> cities:`, cities);
+        const countryLower = country.toLowerCase();
+        const cities = countryGroups[countryLower] || [];
+        debug(`[OptimizeRoute] Processing "${country}" (${countryLower}) -> cities:`, cities);
         if (cities.length > 0) {
           const optimized = optimizeCityGroup(cities);
           debug(`[OptimizeRoute] Optimized "${country}":`, optimized);
           optimizedOrder.push(...optimized);
-          processedCountries.add(country);
+          processedCountries.add(countryLower);
         }
       });
 
@@ -2753,10 +2759,10 @@ export function SwipeablePlanningView({
       debug('[OptimizeRoute] processedCountries:', Array.from(processedCountries));
       debug('[OptimizeRoute] countryGroups keys:', Object.keys(countryGroups));
 
-      Object.keys(countryGroups).forEach(country => {
-        if (!processedCountries.has(country)) {
-          debug(`[OptimizeRoute] Unprocessed country "${country}" - adding cities:`, countryGroups[country]);
-          optimizedOrder.push(...optimizeCityGroup(countryGroups[country]));
+      Object.keys(countryGroups).forEach(countryLower => {
+        if (!processedCountries.has(countryLower)) {
+          debug(`[OptimizeRoute] Unprocessed country "${countryLower}" - adding cities:`, countryGroups[countryLower]);
+          optimizedOrder.push(...optimizeCityGroup(countryGroups[countryLower]));
         }
       });
 

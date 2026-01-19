@@ -2564,14 +2564,14 @@ export default function TripPage() {
               )}
             </TripHubSection>
 
-            {/* Saved Collections Section */}
+            {/* Saved for This Trip Section */}
             <div className="mt-6">
               <button
                 onClick={() => setSavedExpanded(!savedExpanded)}
                 className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Heart className="w-5 h-5 text-primary" />
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-emerald-500" />
                   <span className="font-medium">Saved for This Trip</span>
                   {savedPlaces.length > 0 && (
                     <span className="text-sm text-muted-foreground">({savedPlaces.length})</span>
@@ -2581,76 +2581,136 @@ export default function TripPage() {
               </button>
 
               {savedExpanded && (
-                <div className="mt-3 p-4 bg-muted/20 rounded-xl">
-                  {savedPlaces.length === 0 ? (
-                    <div className="text-center py-6">
-                      <Heart className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No saved places yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Save places from Explore to see them here
+                <div className="mt-3">
+                  {/* Collections Header */}
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <h3 className="text-sm font-medium text-muted-foreground">Collections</h3>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </div>
+
+                  {/* Collection Cards - Horizontal Scroll */}
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                    {/* Places */}
+                    {(() => {
+                      const places = savedPlaces.filter(p => p.type === 'attraction' || p.type === 'activity');
+                      return (
+                        <div className="flex-shrink-0 w-28">
+                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rose-100 to-rose-200">
+                            {places[0]?.imageUrl ? (
+                              <img src={places[0].imageUrl} alt="Places" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <MapPin className="w-8 h-8 text-rose-400" />
+                              </div>
+                            )}
+                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
+                            </button>
+                          </div>
+                          <h4 className="font-medium text-sm mt-2">Places</h4>
+                          <p className="text-xs text-muted-foreground">{places.length} saved places</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Food */}
+                    {(() => {
+                      const food = savedPlaces.filter(p => p.type === 'restaurant' || p.type === 'cafe');
+                      return (
+                        <div className="flex-shrink-0 w-28">
+                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-amber-200">
+                            {food[0]?.imageUrl ? (
+                              <img src={food[0].imageUrl} alt="Food" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <UtensilsCrossed className="w-8 h-8 text-orange-400" />
+                              </div>
+                            )}
+                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
+                            </button>
+                          </div>
+                          <h4 className="font-medium text-sm mt-2">Food</h4>
+                          <p className="text-xs text-muted-foreground">{food.length} saved items</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Activities */}
+                    {(() => {
+                      const activities = savedPlaces.filter(p => p.type === 'activity' || p.type === 'nightlife');
+                      return (
+                        <div className="flex-shrink-0 w-28">
+                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-green-200">
+                            {activities[0]?.imageUrl ? (
+                              <img src={activities[0].imageUrl} alt="Activities" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Ticket className="w-8 h-8 text-emerald-400" />
+                              </div>
+                            )}
+                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
+                            </button>
+                          </div>
+                          <h4 className="font-medium text-sm mt-2">Activities</h4>
+                          <p className="text-xs text-muted-foreground">{activities.length} saved items</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Hotels */}
+                    {(() => {
+                      const hotels = savedPlaces.filter(p => p.type === 'hotel');
+                      return (
+                        <div className="flex-shrink-0 w-28">
+                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
+                            {hotels[0]?.imageUrl ? (
+                              <img src={hotels[0].imageUrl} alt="Hotels" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Hotel className="w-8 h-8 text-blue-400" />
+                              </div>
+                            )}
+                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
+                            </button>
+                          </div>
+                          <h4 className="font-medium text-sm mt-2">Hotels</h4>
+                          <p className="text-xs text-muted-foreground">{hotels.length} saved hotels</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Notes & Links */}
+                    <div className="flex-shrink-0 w-28">
+                      <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-violet-100 to-purple-200">
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FileText className="w-8 h-8 text-violet-400" />
+                        </div>
+                        <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                          <Heart className="w-3 h-3 text-violet-500 fill-current" />
+                        </button>
+                      </div>
+                      <h4 className="font-medium text-sm mt-2">Notes & Links</h4>
+                      <p className="text-xs text-muted-foreground">0 saved notes</p>
+                    </div>
+                  </div>
+
+                  {/* Empty state CTA */}
+                  {savedPlaces.length === 0 && (
+                    <div className="text-center py-4 mt-2">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Save places from Explore to organize them here
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-3"
                         onClick={() => router.push('/explore')}
                       >
                         <Compass className="w-4 h-4 mr-2" />
                         Explore Places
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Group by type */}
-                      {(['attraction', 'restaurant', 'cafe', 'activity', 'nightlife'] as const).map(type => {
-                        const placesOfType = savedPlaces.filter(p => p.type === type);
-                        if (placesOfType.length === 0) return null;
-
-                        const typeLabels: Record<string, string> = {
-                          attraction: 'Attractions',
-                          restaurant: 'Restaurants',
-                          cafe: 'Cafes',
-                          activity: 'Activities',
-                          nightlife: 'Nightlife',
-                        };
-
-                        return (
-                          <div key={type}>
-                            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                              {typeLabels[type]} ({placesOfType.length})
-                            </h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              {placesOfType.slice(0, 4).map(place => (
-                                <div
-                                  key={place.id}
-                                  className="flex items-center gap-2 p-2 bg-background rounded-lg"
-                                >
-                                  {place.imageUrl ? (
-                                    <img
-                                      src={place.imageUrl}
-                                      alt={place.name}
-                                      className="w-10 h-10 rounded object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium truncate">{place.name}</div>
-                                    <div className="text-xs text-muted-foreground truncate">{place.city}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            {placesOfType.length > 4 && (
-                              <button className="text-xs text-primary mt-2 hover:underline">
-                                +{placesOfType.length - 4} more
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
                     </div>
                   )}
                 </div>
