@@ -38,6 +38,7 @@ import {
   Utensils,
   MoreHorizontal,
   ClipboardList,
+  Filter,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay } from '@/lib/planning/itinerary-generator';
@@ -367,6 +368,8 @@ export default function AutoItineraryView({
   const [tripTotalDays, setTripTotalDays] = useState(initialTotalDays);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   const [isAllocationSheetOpen, setIsAllocationSheetOpen] = useState(false);
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true); // Start expanded
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Computed end date
   const tripEndDate = addDays(tripStartDate, tripTotalDays - 1);
@@ -1512,42 +1515,102 @@ export default function AutoItineraryView({
           </Button>
           <h2 className="text-lg font-bold flex-1">Itinerary</h2>
 
-          {/* Dates button with badge if nights not allocated */}
-          <button
-            onClick={() => setIsAllocationSheetOpen(true)}
-            className="relative flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-          >
+          {/* Dates display */}
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
-            {currentTotal !== tripTotalNights && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                !
-              </span>
-            )}
-          </button>
+          </span>
         </div>
 
-        {/* Category filter tabs */}
-        <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'travel', label: 'Travel', icon: '✈️' },
-            { id: 'stay', label: 'Stay', icon: '🏨' },
-            { id: 'do', label: 'Do', icon: '🎯' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setCategoryFilter(tab.id as typeof categoryFilter)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                categoryFilter === tab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {tab.icon && <span>{tab.icon}</span>}
-              {tab.label}
-            </button>
-          ))}
+        {/* Trip Breakdown - Collapsible */}
+        <div className="mt-3">
+          <button
+            onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20"
+          >
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-sm">Trip Breakdown</span>
+              <span className="text-xs text-muted-foreground">
+                {currentTotal === tripTotalNights
+                  ? `${tripTotalNights} nights across ${allocations.filter(a => !a.city.includes('Transit')).length} cities`
+                  : `${tripTotalNights - currentTotal} nights remaining`
+                }
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {currentTotal !== tripTotalNights && (
+                <span className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">!</span>
+              )}
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isBreakdownExpanded ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {isBreakdownExpanded && (
+            <div className="mt-2 p-3 bg-muted/30 rounded-xl space-y-3">
+              {/* City allocations */}
+              <div className="space-y-2">
+                {allocations.map((alloc, allocIndex) => {
+                  const isTransit = alloc.city.includes('Transit');
+                  const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
+                  return (
+                    <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-background">
+                      <div className={`w-2 h-6 rounded-full ${colorClass}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{alloc.city}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {alloc.nights} {alloc.nights === 1 ? 'night' : 'nights'}
+                        </div>
+                      </div>
+                      {!isTransit && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
+                            disabled={alloc.nights <= 1}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-6 text-center text-sm font-medium">{alloc.nights}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Status and Save button */}
+              <div className="flex items-center justify-between">
+                <span className={`text-xs ${
+                  currentTotal === tripTotalNights ? 'text-green-600' : 'text-amber-600'
+                }`}>
+                  {currentTotal === tripTotalNights
+                    ? '✓ All nights allocated'
+                    : currentTotal > tripTotalNights
+                      ? `${currentTotal - tripTotalNights} nights over`
+                      : `${tripTotalNights - currentTotal} nights remaining`
+                  }
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => setIsBreakdownExpanded(false)}
+                  disabled={currentTotal !== tripTotalNights}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1784,43 +1847,55 @@ export default function AutoItineraryView({
         </SheetContent>
       </Sheet>
 
-      {/* Trip Breakdown Card - Prominent CTA for allocating nights */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              Trip Breakdown
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {currentTotal === tripTotalNights
-                ? `${tripTotalNights} nights allocated across ${allocations.filter(a => !a.city.includes('Transit')).length} cities`
-                : currentTotal > tripTotalNights
-                  ? `⚠️ ${currentTotal - tripTotalNights} nights over-allocated`
-                  : `${tripTotalNights - currentTotal} of ${tripTotalNights} nights remaining`
-              }
-            </p>
-          </div>
+      {/* Actions bar: Auto-fill and Filter */}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        {/* Auto-fill entire trip button */}
+        <Button
+          variant="default"
+          className="flex-1 bg-primary hover:bg-primary/90"
+          onClick={autoFillEntireTrip}
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Auto-fill entire trip
+        </Button>
+
+        {/* Filter dropdown */}
+        <div className="relative">
           <Button
+            variant="outline"
             size="sm"
-            variant={currentTotal === tripTotalNights ? "outline" : "default"}
-            onClick={() => setIsAllocationSheetOpen(true)}
-            className="shrink-0"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="flex items-center gap-1"
           >
-            {currentTotal === tripTotalNights ? 'Edit' : 'Allocate Nights'}
+            <Filter className="w-4 h-4" />
+            {categoryFilter === 'all' ? 'Filter' : categoryFilter === 'travel' ? 'Travel' : categoryFilter === 'stay' ? 'Stay' : 'Do'}
+            <ChevronDown className={`w-3 h-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
           </Button>
+          
+          {isFilterOpen && (
+            <div className="absolute right-0 top-full mt-1 w-36 bg-background border rounded-lg shadow-lg z-50 py-1">
+              {[
+                { id: 'all', label: 'All', icon: null },
+                { id: 'travel', label: 'Travel', icon: '✈️' },
+                { id: 'stay', label: 'Stay', icon: '🏨' },
+                { id: 'do', label: 'Do', icon: '🎯' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => { setCategoryFilter(item.id as typeof categoryFilter); setIsFilterOpen(false); }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 ${
+                    categoryFilter === item.id ? 'bg-primary/10 text-primary font-medium' : ''
+                  }`}
+                >
+                  {item.icon && <span>{item.icon}</span>}
+                  {item.label}
+                  {categoryFilter === item.id && <Check className="w-3 h-3 ml-auto" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Auto-fill entire trip button */}
-      <Button
-        variant="default"
-        className="w-full bg-primary hover:bg-primary/90"
-        onClick={autoFillEntireTrip}
-      >
-        <Sparkles className="w-4 h-4 mr-2" />
-        Auto-fill entire trip
-      </Button>
 
       {/* Loading state */}
       {isLoading && (
