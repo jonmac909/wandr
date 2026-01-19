@@ -382,13 +382,17 @@ export default function AutoItineraryView({
 
     // If parent has loaded and has saved allocations, use them
     if (initialAllocations && initialAllocations.length > 0) {
-      const savedRouteCities = initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city);
-      const citiesMatch = cities.length === savedRouteCities.length &&
-        cities.every((c, i) => c === savedRouteCities[i]);
-      if (citiesMatch) {
+      // Get unique cities from saved allocations (excluding transit)
+      const savedUniqueCities = [...new Set(initialAllocations.filter(a => !a.city.includes('Transit')).map(a => a.city))];
+      // Check if all saved cities exist in current route (order doesn't matter, route may have duplicates)
+      const allCitiesPresent = savedUniqueCities.every(savedCity => cities.includes(savedCity));
+      const routeCitiesInSaved = cities.every(city => savedUniqueCities.includes(city));
+
+      if (allCitiesPresent && routeCitiesInSaved) {
         debug('[AutoItinerary] Using saved allocations from parent');
         return initialAllocations;
       }
+      debug('[AutoItinerary] Cities mismatch - saved:', savedUniqueCities, 'current:', cities);
     }
 
     // No saved allocations or cities don't match - generate defaults
@@ -1563,69 +1567,71 @@ export default function AutoItineraryView({
               )}
             </div>
 
-            {/* Calendar View - Single month only */}
-            {(() => {
-              // Only show the trip start month
-              const startParts = tripStartDate.split('-').map(Number);
-              const year = startParts[0];
-              const monthNum = startParts[1] - 1;
-              const monthName = new Date(year, monthNum, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            {/* Calendar + Nights per City side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Calendar View - Left side */}
+              {(() => {
+                // Only show the trip start month
+                const startParts = tripStartDate.split('-').map(Number);
+                const year = startParts[0];
+                const monthNum = startParts[1] - 1;
+                const monthName = new Date(year, monthNum, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-              // Helper to check if date is in trip
-              const isDateInTrip = (dateStr: string): boolean => {
-                return dateStr >= tripStartDate && dateStr <= tripEndDate;
-              };
+                // Helper to check if date is in trip
+                const isDateInTrip = (dateStr: string): boolean => {
+                  return dateStr >= tripStartDate && dateStr <= tripEndDate;
+                };
 
-              // Get first day of month and total days
-              const firstDay = new Date(year, monthNum, 1).getDay();
-              const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+                // Get first day of month and total days
+                const firstDay = new Date(year, monthNum, 1).getDay();
+                const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
 
-              // Build calendar grid
-              const cells: (number | null)[] = [];
-              // Add empty cells for days before month starts
-              for (let i = 0; i < firstDay; i++) cells.push(null);
-              // Add days
-              for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+                // Build calendar grid
+                const cells: (number | null)[] = [];
+                // Add empty cells for days before month starts
+                for (let i = 0; i < firstDay; i++) cells.push(null);
+                // Add days
+                for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-              return (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Calendar</h3>
-                  <div>
-                    <div className="text-sm font-medium text-center mb-2">{monthName}</div>
-                    <div className="grid grid-cols-7 gap-0.5 text-xs">
-                      {/* Day headers */}
-                      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                        <div key={day} className="text-center text-muted-foreground py-1">{day}</div>
-                      ))}
-                      {/* Calendar cells */}
-                      {cells.map((day, cellIdx) => {
-                        if (day === null) {
-                          return <div key={`empty-${cellIdx}`} className="h-7" />;
-                        }
+                return (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm">Calendar</h3>
+                    <div>
+                      <div className="text-sm font-medium text-center mb-2">{monthName}</div>
+                      <div className="grid grid-cols-7 gap-0.5 text-xs">
+                        {/* Day headers */}
+                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                          <div key={day} className="text-center text-muted-foreground py-1">{day}</div>
+                        ))}
+                        {/* Calendar cells */}
+                        {cells.map((day, cellIdx) => {
+                          if (day === null) {
+                            return <div key={`empty-${cellIdx}`} className="h-7" />;
+                          }
 
-                        const dateStr = `${year}-${String(monthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        const isInTrip = isDateInTrip(dateStr);
+                          const dateStr = `${year}-${String(monthNum + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                          const isInTrip = isDateInTrip(dateStr);
 
-                        return (
-                          <div
-                            key={`day-${day}`}
-                            className={`h-7 flex items-center justify-center rounded ${
-                              isInTrip ? 'bg-primary/20 font-medium' : 'text-muted-foreground/50'
-                            }`}
-                          >
-                            {day}
-                          </div>
-                        );
-                      })}
+                          return (
+                            <div
+                              key={`day-${day}`}
+                              className={`h-7 flex items-center justify-center rounded ${
+                                isInTrip ? 'bg-primary/20 font-medium' : 'text-muted-foreground/50'
+                              }`}
+                            >
+                              {day}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
-            {/* City allocations */}
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm">Nights per City</h3>
+              {/* City allocations - Right side */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Nights per City</h3>
               {allocations.map((alloc, allocIndex) => {
                 const recommended = getRecommendedNights(alloc.city);
                 const isTransit = alloc.city.includes('Transit');
@@ -1718,6 +1724,7 @@ export default function AutoItineraryView({
                 <Plane className="w-4 h-4" />
                 Add Transit Day
               </button>
+              </div>
             </div>
 
             <Button onClick={() => setIsAllocationSheetOpen(false)} className="w-full">

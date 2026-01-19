@@ -304,33 +304,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'Pai': [19.36, 98.44], 'Hua Hin': [12.57, 99.96], 'Kanchanaburi': [14.0, 99.55],
 };
 
-// Simple map embed component for city modal
-const CityMapEmbed = ({ cityName }: { cityName: string }) => {
-  const coords = CITY_COORDS[cityName] || [13.8, 100.5]; // Default to Bangkok
-  const [lat, lng] = coords;
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.05}%2C${lat - 0.03}%2C${lng + 0.05}%2C${lat + 0.03}&layer=mapnik&marker=${lat}%2C${lng}`;
-  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=14/${lat}/${lng}`;
-
-  return (
-    <div className="h-full flex flex-col">
-      <iframe
-        src={mapUrl}
-        className="w-full flex-1 min-h-[300px] border-0"
-        loading="lazy"
-        title={`Map of ${cityName}`}
-      />
-      <a
-        href={fullMapUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-center py-2 text-xs text-primary hover:underline"
-      >
-        View larger map →
-      </a>
-    </div>
-  );
-};
-
 // City to Country mapping - used to group cities by destination
 const CITY_TO_COUNTRY: Record<string, string> = {
   // Canada (home)
@@ -365,6 +338,60 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   'Athens': 'Greece', 'Santorini': 'Greece', 'Mykonos': 'Greece',
   // Turkey
   'Istanbul': 'Turkey', 'Cappadocia': 'Turkey', 'Antalya': 'Turkey',
+};
+
+// Country bounds for zoomed-out country view with city marker
+const COUNTRY_BOUNDS: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number; zoom: number }> = {
+  'Thailand': { minLat: 5.5, maxLat: 20.5, minLng: 97.5, maxLng: 105.5, zoom: 5 },
+  'Japan': { minLat: 30.5, maxLat: 45.5, minLng: 128.5, maxLng: 145.5, zoom: 5 },
+  'Vietnam': { minLat: 8.5, maxLat: 23.5, minLng: 102.0, maxLng: 109.5, zoom: 5 },
+  'Hawaii': { minLat: 18.5, maxLat: 22.5, minLng: -160.5, maxLng: -154.5, zoom: 6 },
+  'Spain': { minLat: 35.5, maxLat: 43.8, minLng: -9.5, maxLng: 4.5, zoom: 5 },
+  'Portugal': { minLat: 36.5, maxLat: 42.0, minLng: -9.5, maxLng: -6.0, zoom: 6 },
+  'France': { minLat: 41.5, maxLat: 51.0, minLng: -5.0, maxLng: 9.5, zoom: 5 },
+  'Italy': { minLat: 36.5, maxLat: 47.0, minLng: 6.5, maxLng: 18.5, zoom: 5 },
+  'Greece': { minLat: 34.5, maxLat: 41.5, minLng: 19.5, maxLng: 29.5, zoom: 6 },
+  'Turkey': { minLat: 35.5, maxLat: 42.0, minLng: 26.0, maxLng: 44.5, zoom: 5 },
+  'Canada': { minLat: 41.5, maxLat: 55.0, minLng: -141.0, maxLng: -52.0, zoom: 3 },
+};
+
+// Simple map embed component for city modal - shows country view with city marker
+const CityMapEmbed = ({ cityName }: { cityName: string }) => {
+  const coords = CITY_COORDS[cityName] || [13.8, 100.5]; // Default to Bangkok
+  const [lat, lng] = coords;
+
+  // Get country for this city to determine zoom level
+  const country = CITY_TO_COUNTRY[cityName] || 'Thailand';
+  const bounds = COUNTRY_BOUNDS[country];
+
+  // Use country bounds if available, otherwise use wider bounds around the city
+  const bbox = bounds
+    ? `${bounds.minLng}%2C${bounds.minLat}%2C${bounds.maxLng}%2C${bounds.maxLat}`
+    : `${lng - 5}%2C${lat - 5}%2C${lng + 5}%2C${lat + 5}`;
+
+  const zoom = bounds?.zoom || 5;
+
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
+  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
+
+  return (
+    <div className="h-full flex flex-col">
+      <iframe
+        src={mapUrl}
+        className="w-full flex-1 min-h-[300px] border-0"
+        loading="lazy"
+        title={`Map of ${cityName} in ${country}`}
+      />
+      <a
+        href={fullMapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-center py-2 text-xs text-primary hover:underline"
+      >
+        View larger map →
+      </a>
+    </div>
+  );
 };
 
 // Recommended nights per city (based on typical travel patterns)
@@ -1457,7 +1484,7 @@ export function SwipeablePlanningView({
   // Track previous city to know when to clear images
   const prevCityRef = useRef<string | null>(null);
 
-  // Fetch site images from Pexels when city info is available
+  // Fetch city image when modal opens (independent of topSites)
   useEffect(() => {
     // Clear images only when switching to a different city
     if (cityDetailItem?.name !== prevCityRef.current) {
@@ -1469,38 +1496,52 @@ export function SwipeablePlanningView({
       return;
     }
 
+    const cityName = cityDetailItem.name;
+    const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
+
+    // Always fetch city image when modal opens (don't wait for topSites)
+    if (!siteImages[cityName]) {
+      fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.imageUrl) {
+            setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [cityDetailItem, destinations, siteImages]);
+
+  // Fetch site images when city info is available
+  useEffect(() => {
+    if (!cityDetailItem) {
+      return;
+    }
+
     // Use enriched city info if available, otherwise fallback to basic city info
     const cityInfo = enrichedCityInfo || getCityInfo(cityDetailItem.name);
-    
+
     if (!cityInfo?.topSites || cityInfo.topSites[0] === 'Loading...') {
       return;
     }
 
     const cityName = cityDetailItem.name;
     const sites = cityInfo.topSites.slice(0, 4);
-    
-    // Fetch city image and site images in parallel
-    const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
-    
-    // Fetch city image
-    fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
-      .then(res => res.json())
-      .then(data => {
-        setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
-      })
-      .catch(() => {});
 
     // Fetch site images with throttling to prevent resource exhaustion
     throttledFetchAll(sites, async (site) => {
+      if (siteImages[site]) return; // Skip if already loaded
       try {
         const res = await fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`);
         const data = await res.json();
-        setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+        if (data.imageUrl) {
+          setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
+        }
       } catch (error) {
         // Silently fail
       }
     });
-  }, [cityDetailItem, enrichedCityInfo, destinations]);
+  }, [cityDetailItem, enrichedCityInfo, siteImages]);
 
   // Preload city info and images whenever items change (including AI search results)
   useEffect(() => {
@@ -4041,10 +4082,13 @@ export function SwipeablePlanningView({
         </div>
       )}
 
-      {/* Continue button - shows what's next */}
+      {/* Continue/Save button */}
       {(selectedIds.size > 0 || selectedCities.length > 0) && (currentStep.id === 'cities' || stepItems.length > 0) && (
         <Button className="w-full" onClick={goToNextStep}>
-          {currentStepIndex === PLANNING_STEPS.length - 1 ? (
+          {controlledPhase !== undefined ? (
+            // In Trip Hub context, just show "Save"
+            'Save'
+          ) : currentStepIndex === PLANNING_STEPS.length - 1 ? (
             <>
               Plan Your Days
               <ChevronRight className="w-4 h-4 ml-2" />
