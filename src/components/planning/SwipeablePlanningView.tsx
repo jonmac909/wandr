@@ -1642,6 +1642,28 @@ export function SwipeablePlanningView({
     return items.filter((i) => i.isFavorited);
   }, [items]);
 
+  // Sync selectedCities from items when items change (for Trip Hub controlled mode)
+  useEffect(() => {
+    if (controlledPhase && items.length > 0) {
+      // Extract favorited city names from items
+      const favoritedCityNames = items
+        .filter(item => item.isFavorited && item.tags?.includes('cities'))
+        .map(item => item.name);
+      
+      // Only update if different to avoid loops
+      const currentCities = new Set(selectedCities);
+      const isDifferent = favoritedCityNames.length !== selectedCities.length ||
+        favoritedCityNames.some(c => !currentCities.has(c));
+      
+      if (isDifferent && favoritedCityNames.length > 0) {
+        setSelectedCities(favoritedCityNames);
+        // Also sync selectedIds
+        const favoritedIds = items.filter(item => item.isFavorited).map(item => item.id);
+        setSelectedIds(new Set(favoritedIds));
+      }
+    }
+  }, [items, controlledPhase]); // Don't include selectedCities to avoid loops
+
   // Compute country groups for route style options
   const countryGroups = useMemo(() => {
     const groups: Record<string, { city: string; country: string }[]> = {};
