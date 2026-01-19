@@ -1484,6 +1484,29 @@ export default function AutoItineraryView({
     setIsLoading(false);
   };
 
+  // Clear all activities (except transport) from entire trip
+  const clearAllActivities = () => {
+    setDays(prev => prev.map(day => ({
+      ...day,
+      activities: day.activities.filter(a => 
+        ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+      ),
+    })));
+  };
+
+  // Clear activities (except transport) from a specific day
+  const clearDayActivities = (dayNumber: number) => {
+    setDays(prev => prev.map(day => {
+      if (day.dayNumber !== dayNumber) return day;
+      return {
+        ...day,
+        activities: day.activities.filter(a => 
+          ['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type)
+        ),
+      };
+    }));
+  };
+
   // Adjust allocation for a city - NO auto-balancing, user controls each city independently
   // Set allocation to a specific number of nights (by index to support duplicate cities)
   const setAllocationNights = (allocIndex: number, nights: number) => {
@@ -1942,7 +1965,7 @@ export default function AutoItineraryView({
         </SheetContent>
       </Sheet>
 
-      {/* Actions bar: Auto-fill and Filter */}
+      {/* Actions bar: Auto-fill, Clear, and Filter */}
       <div className="flex items-center justify-between gap-2 mb-4">
         {/* Auto-fill entire trip button */}
         <Button
@@ -1951,7 +1974,17 @@ export default function AutoItineraryView({
           onClick={autoFillEntireTrip}
         >
           <Sparkles className="w-4 h-4 mr-2" />
-          Auto-fill entire trip
+          Auto-fill trip
+        </Button>
+
+        {/* Clear all activities button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={clearAllActivities}
+          className="text-muted-foreground hover:text-destructive hover:border-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
         </Button>
 
         {/* Filter dropdown */}
@@ -2223,6 +2256,7 @@ export default function AutoItineraryView({
             onActivityAttachmentAdd={handleActivityAttachmentAdd}
             onActivityReorder={(fromIdx, toIdx) => handleActivityReorder(day.dayNumber, fromIdx, toIdx)}
             onAutoFill={() => autoFillDay(day.dayNumber)}
+            onClearDay={() => clearDayActivities(day.dayNumber)}
             onAddReservation={(type) => handleAddReservation(day.dayNumber, type)}
             isLoadingDay={loadingDayNumber === day.dayNumber}
             missingTransport={needsTransport ? transitionInfo : null}
@@ -2375,6 +2409,7 @@ interface DayCardProps {
   onActivityAttachmentAdd: (activityId: string, attachment: { type: 'ticket' | 'reservation' | 'link' | 'document'; name: string; url?: string }) => void;
   onActivityReorder: (fromIndex: number, toIndex: number) => void;
   onAutoFill: () => void;
+  onClearDay: () => void;
   onAddReservation: (type: ReservationType) => void;
   isLoadingDay?: boolean; // True when this specific day is being auto-filled
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
@@ -2382,7 +2417,7 @@ interface DayCardProps {
   onAddTransport?: (mode?: string) => void;
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onAddReservation, isLoadingDay, dayRef, missingTransport, onAddTransport }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onClearDay, onAddReservation, isLoadingDay, dayRef, missingTransport, onAddTransport }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
@@ -2456,6 +2491,12 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-primary"
                     >
                       <Sparkles className="w-4 h-4" /> Auto-fill day
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onClearDay(); setShowDayMenu(false); }}
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" /> Clear day
                     </button>
                   </div>
                 )}
