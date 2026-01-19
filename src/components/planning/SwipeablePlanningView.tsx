@@ -884,6 +884,7 @@ interface SwipeablePlanningViewProps {
   controlledPhase?: PlanningPhase; // When provided, parent controls the phase
   onPhaseChange?: (phase: PlanningPhase) => void; // Callback when phase changes internally
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
+  onSave?: () => void; // Callback when Save is clicked in controlled mode
 }
 
 interface CategoryStep {
@@ -1218,6 +1219,7 @@ export function SwipeablePlanningView({
   controlledPhase,
   onPhaseChange,
   onDatesChange,
+  onSave,
 }: SwipeablePlanningViewProps) {
   // Calculate duration from itinerary or props
   const duration = propDuration || getItineraryDuration(itinerary) || 7;
@@ -1945,6 +1947,11 @@ export function SwipeablePlanningView({
         // Use unique countries from cities, or fallback to destinations
         setCountryOrder(uniqueCountries.length > 0 ? uniqueCountries : [...destinations]);
       }
+      // In controlled mode, save and notify parent instead of changing phase
+      if (controlledPhase !== undefined) {
+        onSave?.();
+        return;
+      }
       setPhase('route-planning');
       return;
     }
@@ -2003,8 +2010,9 @@ export function SwipeablePlanningView({
     if (routeOrder.length === 0 && selectedCities.length > 0) {
       setRouteOrder([...selectedCities]);
     }
-    // In controlled mode (Trip Hub), don't navigate - just save (persistence happens via useEffect)
+    // In controlled mode (Trip Hub), don't navigate - just save and notify parent
     if (controlledPhase !== undefined) {
+      onSave?.();
       return;
     }
     // Move to auto-itinerary phase (AI-generated itinerary)
@@ -3787,7 +3795,7 @@ export function SwipeablePlanningView({
 
         {/* Complete button */}
         {unassignedItems.length === 0 && selectedItems.length > 0 && (
-          <Button className="w-full">
+          <Button className="w-full" onClick={() => onSave?.()}>
             {controlledPhase !== undefined ? (
               'Save'
             ) : (

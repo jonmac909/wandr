@@ -2519,6 +2519,7 @@ export default function TripPage() {
                   endDate={endDate}
                   isTripLocked={false}
                   controlledPhase="route-planning"
+                  onSave={() => setExpandedSection(null)}
                 />
               )}
             </TripHubSection>
@@ -2558,6 +2559,7 @@ export default function TripPage() {
                   endDate={endDate}
                   isTripLocked={false}
                   controlledPhase="auto-itinerary"
+                  onSave={() => setExpandedSection(null)}
                 />
               )}
             </TripHubSection>
