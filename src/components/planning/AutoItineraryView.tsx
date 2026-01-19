@@ -1548,8 +1548,8 @@ export default function AutoItineraryView({
 
           {isBreakdownExpanded && (
             <div className="mt-2 p-3 bg-muted/30 rounded-xl space-y-3">
-              {/* City allocations */}
-              <div className="space-y-2">
+              {/* City allocations - scrollable */}
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                 {allocations.map((alloc, allocIndex) => {
                   const isTransit = alloc.city.includes('Transit');
                   const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
