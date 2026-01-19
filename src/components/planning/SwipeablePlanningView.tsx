@@ -2847,20 +2847,11 @@ export function SwipeablePlanningView({
           />
         )}
 
-        {/* Header */}
-        <div className="flex items-center gap-3">
+        {/* Back button */}
+        <div className="flex items-center gap-3 mb-2">
           <Button variant="ghost" size="sm" onClick={goToPrevStep}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Route className="w-5 h-5 text-primary" />
-              Plan Your Route
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Drag to reorder your travel path
-            </p>
-          </div>
         </div>
 
         {/* Route Map */}
@@ -3055,13 +3046,13 @@ export function SwipeablePlanningView({
                 const displayTime = recommendedRoute?.totalTime || flightInfo.time || '20-24hr';
                 const exceedsMaxStops = displayStops > (routePrefs.maxStops || 1);
 
-                const transportColor = displayStops === 0 ? 'text-green-600' : displayStops === 1 ? 'text-amber-600' : 'text-red-600';
-                const barColor = displayStops === 0 ? 'bg-green-400' : displayStops === 1 ? 'bg-amber-400' : 'bg-red-400';
+                const transportColor = 'text-gray-700';
+                const barColor = 'border-l-2 border-dotted border-gray-300';
 
                 return (
                   <div className="pl-[1.25rem]">
                     <div className="flex items-start gap-2">
-                      <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
+                      <div className={`${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
                       <div className="flex-1 py-1">
                         {/* Clickable transport summary */}
                         <button
@@ -3074,13 +3065,13 @@ export function SwipeablePlanningView({
                           </span>
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             displayStops === 0 ? 'bg-green-100 text-green-700' :
-                            displayStops === 1 ? 'bg-amber-100 text-amber-700' :
-                            'bg-red-100 text-red-700'
+                            displayStops === 1 ? 'bg-gray-100 text-gray-700' :
+                            'bg-primary text-white'
                           }`}>
                             {displayStops === 0 ? 'direct' : `${displayStops} stops`}
                           </span>
                           {exceedsMaxStops && (
-                            <span className="text-amber-500">⚠️</span>
+                            <span className="text-primary">⚠️</span>
                           )}
                           <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
@@ -3099,7 +3090,6 @@ export function SwipeablePlanningView({
                             {/* Route options */}
                             {routingOptions.length > 0 ? (
                               <div className="space-y-2">
-                                <div className="text-muted-foreground font-medium">Route Options:</div>
                                 {routingOptions.map((route) => {
                                   // Check if this route is selected (explicit selection or default to recommended)
                                   const isSelected = selectedRouteId
@@ -3142,30 +3132,37 @@ export function SwipeablePlanningView({
                                         })}
                                       </div>
 
-                                      {/* Connection cities - clickable to add as stopover */}
-                                      <div className="flex flex-wrap gap-1">
+                                    </button>
+                                  );
+                                })}
+                                
+                                {/* Add stopover buttons - prominent placement */}
+                                {routingOptions.filter(r => r.recommended || selectedRouteId === r.id).slice(0, 1).map(route => (
+                                  route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').length > 0 && (
+                                    <div key="stopovers" className="pt-2 border-t space-y-2">
+                                      <div className="text-xs font-medium text-muted-foreground">Add a stopover:</div>
+                                      <div className="flex flex-wrap gap-2">
                                         {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
                                           <button
                                             key={city}
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              // Add city as #1 stop (first position in route)
-                                              // Don't remove existing instances - user may want to visit twice
                                               setRouteOrder(prev => [city, ...prev]);
                                               setSelectedCities(prev =>
                                                 prev.includes(city) ? prev : [...prev, city]
                                               );
                                             }}
-                                            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 font-medium transition-colors"
                                           >
-                                            + Add {city} stopover
+                                            <Plus className="w-3.5 h-3.5" />
+                                            {city}
                                           </button>
                                         ))}
                                       </div>
-                                    </button>
-                                  );
-                                })}
+                                    </div>
+                                  )
+                                ))}
                               </div>
                             ) : (
                               <>
@@ -3334,15 +3331,11 @@ export function SwipeablePlanningView({
                   const isFlight = isCrossCountry || distance > 400;
                   const isTrain = !isCrossCountry && distance > 150 && distance <= 400;
 
-                  // Transport mode label and icon color
+                  // Transport mode label and icon color - consistent gray styling
                   const transportMode = bestOption?.mode || (isFlight ? 'flight' : isTrain ? 'train' : 'bus');
                   const transportTime = bestOption?.duration || flightInfo.time;
-                  const transportColor = isFlight
-                    ? (flightInfo.stops === 0 ? 'text-green-600' : flightInfo.stops === 1 ? 'text-amber-600' : 'text-red-600')
-                    : 'text-blue-600';
-                  const barColor = isFlight
-                    ? (flightInfo.stops === 0 ? 'bg-green-400' : flightInfo.stops === 1 ? 'bg-amber-400' : 'bg-red-400')
-                    : 'bg-blue-400';
+                  const transportColor = 'text-gray-700';
+                  const barColor = 'border-l-2 border-dotted border-gray-300';
 
                   return (
                     <div className="group/connector relative">
@@ -3382,7 +3375,7 @@ export function SwipeablePlanningView({
                         </div>
                       )}
                       <div className="flex items-start gap-2">
-                        <div className={`w-0.5 ${isExpanded ? 'h-auto min-h-[6rem]' : 'h-8'} ${barColor}`} />
+                        <div className={`${isExpanded ? 'h-auto min-h-[6rem]' : 'h-8'} ${barColor}`} />
                         <div className="flex-1 py-1">
                           {/* Clickable transport summary */}
                           <button
@@ -3400,11 +3393,7 @@ export function SwipeablePlanningView({
                               })()}
                             </span>
                             {bestOption?.badge && (
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                bestOption.badge === 'best' ? 'bg-green-100 text-green-700' :
-                                bestOption.badge === 'fastest' ? 'bg-blue-100 text-blue-700' :
-                                'bg-amber-100 text-amber-700'
-                              }`}>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary">
                                 {bestOption.badge.toUpperCase()}
                               </span>
                             )}
@@ -3461,11 +3450,7 @@ export function SwipeablePlanningView({
                                           <div className="font-medium text-sm capitalize flex items-center gap-2">
                                             {option.mode === 'private' ? 'Private Transfer' : option.mode}
                                             {option.badge && (
-                                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                                                option.badge === 'best' ? 'bg-green-100 text-green-700' :
-                                                option.badge === 'fastest' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-amber-100 text-amber-700'
-                                              }`}>
+                                              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-primary/20 text-primary">
                                                 {option.badge.toUpperCase()}
                                               </span>
                                             )}
