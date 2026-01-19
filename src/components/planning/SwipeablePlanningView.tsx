@@ -1644,13 +1644,22 @@ export function SwipeablePlanningView({
 
   // Sync selectedCities from selectedIds when items or selectedIds change
   // This handles cases where selectedIds is set from persistence but items don't have isFavorited
+  const selectedIdsArray = Array.from(selectedIds);
   useEffect(() => {
-    if (items.length === 0 || selectedIds.size === 0) return;
+    if (items.length === 0) return;
     
     // Extract city names that are both in items (with cities tag) and in selectedIds
     const selectedCityNames = items
       .filter(item => selectedIds.has(item.id) && item.tags?.includes('cities'))
       .map(item => item.name);
+    
+    // Debug logging
+    const cityItems = items.filter(item => item.tags?.includes('cities'));
+    debug('[SyncCities] items:', items.length, 'cityItems:', cityItems.length, 'selectedIds:', selectedIds.size, 'selectedCityNames:', selectedCityNames.length);
+    if (cityItems.length > 0) {
+      debug('[SyncCities] First city item:', cityItems[0].id, cityItems[0].name, 'tags:', cityItems[0].tags);
+      debug('[SyncCities] Is first city in selectedIds?', selectedIds.has(cityItems[0].id));
+    }
     
     // Only update if different to avoid loops
     if (selectedCityNames.length > 0) {
@@ -1659,10 +1668,11 @@ export function SwipeablePlanningView({
         selectedCityNames.some(c => !currentCities.has(c));
       
       if (isDifferent) {
+        debug('[SyncCities] Updating selectedCities to:', selectedCityNames);
         setSelectedCities(selectedCityNames);
       }
     }
-  }, [items, selectedIds.size]); // Trigger when items or selectedIds change
+  }, [items, selectedIdsArray.join(',')]); // Trigger when items or selectedIds change
 
   // Compute country groups for route style options
   const countryGroups = useMemo(() => {
