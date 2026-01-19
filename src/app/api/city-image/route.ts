@@ -7,60 +7,108 @@ const imageCache = new Map<string, string>();
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// Google Places Text Search for city images
-async function searchGooglePlaces(city: string, country?: string): Promise<string | null> {
-  if (!GOOGLE_API_KEY) {
-    console.error('[city-image] Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_API_KEY');
-    return null;
-  }
-
-  console.log(`[city-image] Searching Google Places for: ${city}, ${country || 'no country'}`);
-
-  const query = country ? `${city}, ${country}` : city;
-
+// Get photo URL from photo reference
+async function getPhotoUrl(photoRef: string): Promise<string | null> {
+  if (!GOOGLE_API_KEY) return null;
+  
+  const photoApiUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
+  
   try {
-    const searchResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=locality&key=${GOOGLE_API_KEY}`
-    );
-
-    if (!searchResponse.ok) return null;
-
-    const searchData = await searchResponse.json();
-
-    if (searchData.status !== 'OK' || !searchData.results?.length) {
-      console.log(`[city-image] Initial search for ${city} returned status: ${searchData.status}, error: ${searchData.error_message || 'none'}, trying fallback...`);
-      // Try without type restriction for smaller cities
-      const fallbackResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query + ' city')}&key=${GOOGLE_API_KEY}`
-      );
-      const fallbackData = await fallbackResponse.json();
-      if (fallbackData.status !== 'OK' || !fallbackData.results?.length) {
-        console.log(`[city-image] Fallback search for ${city} also failed: ${fallbackData.status}, error: ${fallbackData.error_message || 'none'}`);
-        return null;
-      }
-      searchData.results = fallbackData.results;
-    }
-
-    const place = searchData.results[0];
-    if (!place.photos?.length) {
-      console.log(`[city-image] No photos found for ${city} in Google Places`);
-      return null;
-    }
-
-    // Get photo reference and follow redirect to get stable URL
-    const photoRef = place.photos[0].photo_reference;
-    const photoApiUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photoRef}&key=${GOOGLE_API_KEY}`;
-
-    // Follow the redirect to get the stable lh3.googleusercontent.com URL
     const photoResponse = await fetch(photoApiUrl, { redirect: 'follow' });
     if (!photoResponse.ok) return null;
-
-    // The final URL after redirect is stable and doesn't expire
     return photoResponse.url;
-  } catch (error) {
-    console.error('[city-image] Google Places fetch error for', city, ':', error);
+  } catch {
     return null;
   }
+}
+
+// Try multiple search strategies to find city images
+async function searchGooglePlaces(city: string, country?: string): Promise<string | null> {
+  if (!GOOGLE_API_KEY) {
+    console.error('[city-image] Google Maps API key not configured');
+    return null;
+  }
+
+  console.log(`[city-image] Searching for: ${city}, ${country || 'no country'}`);
+
+  // Strategy 1: Use new Places API (Text Search)
+  try {
+    const textQuery = country 
+      ? `${city} ${country} city skyline`
+      : `${city} city skyline`;
+    
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-FieldMask': 'places.photos,places.displayName',
+      },
+      body: JSON.stringify({
+        textQuery,
+        maxResultCount: 5,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.places?.length) {
+        for (const place of data.places) {
+          if (place.photos?.length) {
+            // New API uses photo name format: places/{place_id}/photos/{photo_id}
+            const photoName = place.photos[0].name;
+            const photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&key=${GOOGLE_API_KEY}`;
+            
+            // Test if URL works
+            const testResponse = await fetch(photoUrl, { method: 'HEAD' });
+            if (testResponse.ok) {
+              console.log(`[city-image] Got image via new Places API for ${city}`);
+              return photoUrl;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.log('[city-image] New Places API failed:', error);
+  }
+
+  // Strategy 2: Legacy Text Search - search for tourist attractions
+  const searchQueries = [
+    country ? `${city} ${country}` : city,
+    `${city} tourist attraction`,
+    `${city} landmark`,
+    `${city} downtown`,
+  ];
+
+  for (const query of searchQueries) {
+    try {
+      const searchResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}`
+      );
+
+      if (!searchResponse.ok) continue;
+
+      const searchData = await searchResponse.json();
+      if (searchData.status !== 'OK' || !searchData.results?.length) continue;
+
+      // Look through results to find one with photos
+      for (const place of searchData.results.slice(0, 5)) {
+        if (place.photos?.length) {
+          const photoUrl = await getPhotoUrl(place.photos[0].photo_reference);
+          if (photoUrl) {
+            console.log(`[city-image] Got image for ${city} via legacy search: "${query}"`);
+            return photoUrl;
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`[city-image] Search failed for query "${query}":`, error);
+    }
+  }
+
+  console.log(`[city-image] No image found for ${city} after all strategies`);
+  return null;
 }
 
 export async function GET(request: NextRequest) {
