@@ -3040,14 +3040,18 @@ export function SwipeablePlanningView({
                 const recommendedRoute = getRecommendedRoute(firstCountry);
                 const flightInfo = getFlightInfo('Kelowna', firstCity);
                 const isExpanded = expandedTransport === -1; // Use -1 for home connector
+                
+                // Find selected route if any
+                const selectedRoute = routingOptions.find(r => r.id === selectedRouteId);
+                const selectedStopover = selectedRoute?.connections.find(c => c !== 'Vancouver' && c !== 'Seattle');
 
-                // Use routing data if available, otherwise fall back to flightInfo
-                const displayStops = recommendedRoute?.stops ?? flightInfo.stops ?? 2;
-                const displayTime = recommendedRoute?.totalTime || flightInfo.time || '20-24hr';
-                const exceedsMaxStops = displayStops > (routePrefs.maxStops || 1);
+                // Use selected route data, or routing data, or fall back to flightInfo
+                const displayStops = selectedRoute ? 1 : (recommendedRoute?.stops ?? flightInfo.stops ?? 2);
+                const displayTime = selectedRoute?.totalTime || recommendedRoute?.totalTime || flightInfo.time || '20-24hr';
+                const exceedsMaxStops = !selectedRoute && displayStops > (routePrefs.maxStops || 1);
 
                 const transportColor = 'text-gray-700';
-                const barColor = 'border-l-2 border-dotted border-gray-300';
+                const barColor = 'w-0.5 bg-gray-200';
 
                 return (
                   <div className="pl-[1.25rem]">
@@ -3061,13 +3065,18 @@ export function SwipeablePlanningView({
                         >
                           <Plane className="w-3.5 h-3.5" />
                           <span className="font-medium">
-                            Flight to {firstCity} · {displayTime}
+                            {selectedStopover 
+                              ? `Via ${selectedStopover} to ${firstCity} · ${displayTime}`
+                              : `Flight to ${firstCity} · ${displayTime}`
+                            }
                           </span>
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            displayStops >= 2 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {displayStops === 0 ? 'direct' : `${displayStops} stop${displayStops > 1 ? 's' : ''}`}
-                          </span>
+                          {!selectedStopover && (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              displayStops >= 2 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {displayStops === 0 ? 'direct' : `${displayStops} stop${displayStops > 1 ? 's' : ''}`}
+                            </span>
+                          )}
                           {exceedsMaxStops && (
                             <span className="text-primary">⚠️</span>
                           )}
@@ -3104,6 +3113,8 @@ export function SwipeablePlanningView({
                                           setRouteOrder(prev => prev.includes(stopoverCity) ? prev : [stopoverCity, ...prev]);
                                           setSelectedCities(prev => prev.includes(stopoverCity) ? prev : [...prev, stopoverCity]);
                                         }
+                                        // Collapse the dropdown after selection
+                                        setExpandedTransport(null);
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
@@ -3308,7 +3319,7 @@ export function SwipeablePlanningView({
                   const transportMode = bestOption?.mode || (isFlight ? 'flight' : isTrain ? 'train' : 'bus');
                   const transportTime = bestOption?.duration || flightInfo.time;
                   const transportColor = 'text-gray-700';
-                  const barColor = 'border-l-2 border-dotted border-gray-300';
+                  const barColor = 'w-0.5 bg-gray-200';
 
                   return (
                     <div className="group/connector relative">
