@@ -1272,12 +1272,20 @@ export function SwipeablePlanningView({
             setSavedGeneratedDays((saved as { generatedDays: typeof savedGeneratedDays }).generatedDays);
           }
 
-          // Only load other state if we have saved data AND no current selections
+          // Always load routeOrder and countryOrder if we have them (these should persist regardless of selectedIds)
+          if (saved.routeOrder?.length) {
+            debug('[SwipeablePlanning] Setting routeOrder from DB:', saved.routeOrder);
+            setRouteOrder(saved.routeOrder);
+          }
+          if (saved.countryOrder?.length) {
+            debug('[SwipeablePlanning] Setting countryOrder from DB:', saved.countryOrder);
+            setCountryOrder(saved.countryOrder);
+          }
+
+          // Load selectedIds/Cities if we have saved data AND no current selections
           if (saved.selectedIds.length > 0 && selectedIds.size === 0) {
             setSelectedIds(new Set(saved.selectedIds));
             setSelectedCities(saved.selectedCities);
-            if (saved.routeOrder?.length) setRouteOrder(saved.routeOrder);
-            if (saved.countryOrder?.length) setCountryOrder(saved.countryOrder);
 
             // Also update items' isFavorited status
             if (items.length > 0) {
@@ -1994,6 +2002,10 @@ export function SwipeablePlanningView({
     setSelectedCities([...citiesToUse]);
     if (routeOrder.length === 0 && selectedCities.length > 0) {
       setRouteOrder([...selectedCities]);
+    }
+    // In controlled mode (Trip Hub), don't navigate - just save (persistence happens via useEffect)
+    if (controlledPhase !== undefined) {
+      return;
     }
     // Move to auto-itinerary phase (AI-generated itinerary)
     setPhase('auto-itinerary');
@@ -2747,6 +2759,14 @@ export function SwipeablePlanningView({
 
     return (
       <div className="space-y-4">
+        {/* Backdrop to close dropdown when clicking outside */}
+        {insertAtIndex !== null && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setInsertAtIndex(null)}
+          />
+        )}
+
         {/* Progress Stepper: Cities → Route → Favorites (hide when externally controlled) */}
         {controlledPhase === undefined && (
           <ProgressStepper
@@ -3576,9 +3596,15 @@ export function SwipeablePlanningView({
                 onClick={confirmRoute}
                 disabled={!allCountriesHaveCities}
               >
-                <Check className="w-4 h-4 mr-2" />
-                Confirm Route & Find Hotels
-                <ChevronRight className="w-4 h-4 ml-2" />
+                {controlledPhase !== undefined ? (
+                  'Save'
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Confirm Route & Find Hotels
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           );
@@ -3762,8 +3788,14 @@ export function SwipeablePlanningView({
         {/* Complete button */}
         {unassignedItems.length === 0 && selectedItems.length > 0 && (
           <Button className="w-full">
-            <Check className="w-4 h-4 mr-2" />
-            Complete Planning
+            {controlledPhase !== undefined ? (
+              'Save'
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Complete Planning
+              </>
+            )}
           </Button>
         )}
       </div>
