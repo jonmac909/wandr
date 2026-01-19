@@ -3133,18 +3133,22 @@ export function SwipeablePlanningView({
                                         
                                         setSelectedRouteId(route.id);
                                         
-                                        // Add stopover city when selected
+                                        // Add/move stopover city to front when selected
                                         console.log('stopoverCity truthy check:', !!stopoverCity);
                                         if (stopoverCity) {
                                           console.log('Calling setRouteOrder with stopoverCity:', stopoverCity);
                                           setRouteOrder(prev => {
                                             console.log('setRouteOrder callback - prev:', JSON.stringify(prev));
-                                            const alreadyInRoute = prev.includes(stopoverCity);
-                                            console.log('Already in route?', alreadyInRoute);
-                                            if (alreadyInRoute) {
+                                            
+                                            // If already at position 0, do nothing
+                                            if (prev[0] === stopoverCity) {
+                                              console.log('Already at position 0, no change needed');
                                               return prev;
                                             }
-                                            const newOrder = [stopoverCity, ...prev];
+                                            
+                                            // Remove from current position if exists, then add to front
+                                            const filtered = prev.filter(city => city !== stopoverCity);
+                                            const newOrder = [stopoverCity, ...filtered];
                                             console.log('New routeOrder:', JSON.stringify(newOrder));
                                             return newOrder;
                                           });
