@@ -1805,6 +1805,7 @@ export default function AutoItineraryView({
               {/* Add Transit Day button */}
               <button
                 onClick={() => {
+                  // Create transit allocation
                   const transitAllocation: CityAllocation = {
                     city: '✈️ In Transit',
                     nights: 1,
@@ -1813,21 +1814,50 @@ export default function AutoItineraryView({
                     startDate: tripStartDate,
                     endDate: tripStartDate,
                   };
-                  setAllocations(prev => {
-                    const newAllocations = [transitAllocation, ...prev];
-                    let currentDay = 1;
-                    return newAllocations.map(a => {
-                      const startDay = currentDay;
-                      const endDay = currentDay + a.nights - 1;
-                      currentDay = endDay + 1;
-                      const start = parseLocalDate(tripStartDate);
-                      start.setDate(start.getDate() + startDay - 1);
-                      const end = parseLocalDate(tripStartDate);
-                      end.setDate(end.getDate() + endDay);
-                      const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                      return { ...a, startDay, endDay, startDate: fmt(start), endDate: fmt(end) };
-                    });
+                  
+                  // Update allocations
+                  const newAllocations = [transitAllocation, ...allocations];
+                  let currentDay = 1;
+                  const updatedAllocations = newAllocations.map(a => {
+                    const startDay = currentDay;
+                    const endDay = currentDay + a.nights - 1;
+                    currentDay = endDay + 1;
+                    const start = parseLocalDate(tripStartDate);
+                    start.setDate(start.getDate() + startDay - 1);
+                    const end = parseLocalDate(tripStartDate);
+                    end.setDate(end.getDate() + endDay);
+                    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return { ...a, startDay, endDay, startDate: fmt(start), endDate: fmt(end) };
                   });
+                  
+                  // Generate new days structure with transport
+                  const newDays = generateEmptyDays(updatedAllocations, cities, 'Kelowna');
+                  
+                  // Preserve existing activities from current days
+                  const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+                  const activitiesByCity: Record<string, GeneratedActivity[]> = {};
+                  for (const day of days) {
+                    if (!day.city.includes('Transit') && day.activities.length > 0) {
+                      if (!activitiesByCity[day.city]) activitiesByCity[day.city] = [];
+                      activitiesByCity[day.city].push(...day.activities.filter(a => !TRANSPORT_TYPES.includes(a.type)));
+                    }
+                  }
+                  
+                  // Merge: transit days get transport, city days get their activities back
+                  const placedCountByCity: Record<string, number> = {};
+                  const mergedDays = newDays.map(newDay => {
+                    if (newDay.city.includes('Transit')) return newDay; // Keep transport
+                    const cityActivities = activitiesByCity[newDay.city] || [];
+                    const daysForCity = newDays.filter(d => d.city === newDay.city).length;
+                    const perDay = Math.ceil(cityActivities.length / Math.max(daysForCity, 1));
+                    const startIdx = placedCountByCity[newDay.city] || 0;
+                    const endIdx = Math.min(startIdx + perDay, cityActivities.length);
+                    placedCountByCity[newDay.city] = endIdx;
+                    return { ...newDay, activities: [...newDay.activities, ...cityActivities.slice(startIdx, endIdx)] };
+                  });
+                  
+                  setAllocations(updatedAllocations);
+                  setDays(mergedDays);
                 }}
                 className="w-full py-2 px-3 border-2 border-dashed border-muted-foreground/30 rounded-lg text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
               >
