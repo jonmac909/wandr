@@ -43,6 +43,8 @@ npx playwright test tests/homepage.spec.ts  # Run single test file
 
 **Important:** This app uses ONLY Google Places API for external data. No AI services (Anthropic removed), no external image services (Pexels/Unsplash removed).
 
+**No mock data:** All data comes from real APIs or curated lists. No hardcoded fake hotels, restaurants, or attractions.
+
 ## Environment Variables
 
 Required in `.env.local` (and Cloudflare dashboard for production):
@@ -141,8 +143,24 @@ Images from Google Places are cached in Supabase to reduce API costs:
   - `cached_cities` - city images and metadata
   - `cached_places` - place/activity images and Google Places data
   - `api_cache` - generic cache for API responses (recommendations, etc.)
-- Cache flow: Check Supabase → If miss, fetch from Google → Store in Supabase → Return URL
-- Cache TTLs: City images (365 days), City info (7 days), Restaurants (1 day)
+
+**Cache flow** (all API endpoints follow this pattern):
+```
+1. Check in-memory cache (fastest, per-request)
+2. Check Supabase cache (persistent)
+3. If cache miss → Fetch from Google Places API
+4. Save to Supabase cache for future requests
+5. Return data
+```
+
+**Cache TTLs** (`src/lib/api/supabase-cache.ts`):
+- City images: **365 days** (images rarely change)
+- City info: **7 days**
+- Recommendations: **7 days**
+- Restaurants: **1 day** (more dynamic)
+- Place details: **7 days**
+
+**Important**: Data is fetched from Google Places API only ONCE, then cached in Supabase. Subsequent requests use cached data.
 
 ### Image System (Google Places Only)
 **NO external image services** - All images come from Google Places API:
@@ -260,6 +278,13 @@ The `getCityForDay()` function in trip page determines where user sleeps each ni
 - `getFlagForLocation(city)` returns flag emoji for any known city
 - `getCountryForCity(city)` returns ISO country code
 - Add new cities to `CITY_TO_COUNTRY` map as needed
+
+### Destination Cities (`src/lib/geo/destination-cities.ts`)
+- Curated list of popular tourist cities for 60+ countries/regions
+- Used for "Pick Your Cities" feature in trip planning
+- `getCitiesForDestination(country)` returns array of city names
+- **NOT from API** - this is intentional; Google Places doesn't have a good "cities in country" search
+- Add new destinations to `DESTINATION_CITIES` map as needed
 
 ### Content Filtering
 Trip page uses `contentFilter` state: `'overview'|'schedule'|'restaurants'|'docs'`
