@@ -2460,7 +2460,7 @@ export function SwipeablePlanningView({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <h3 className="font-semibold text-sm">{city}</h3>
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                                <span className="text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-medium">
                                   {recommendedNights} {recommendedNights === 1 ? 'night' : 'nights'}
                                 </span>
                               </div>
@@ -2473,17 +2473,17 @@ export function SwipeablePlanningView({
                                   </span>
                                 )}
                                 {cityFavs.restaurants.length > 0 && (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-medium">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-medium">
                                     <UtensilsCrossed className="w-2.5 h-2.5" /> {cityFavs.restaurants.length}
                                   </span>
                                 )}
                                 {cityFavs.cafes.length > 0 && (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-medium">
                                     <Coffee className="w-2.5 h-2.5" /> {cityFavs.cafes.length}
                                   </span>
                                 )}
                                 {cityFavs.activities.length > 0 && (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-medium">
                                     <Ticket className="w-2.5 h-2.5" /> {cityFavs.activities.length}
                                   </span>
                                 )}
@@ -2549,10 +2549,10 @@ export function SwipeablePlanningView({
             {/* Category tabs */}
             <div className="flex gap-1 border-b pb-2 flex-shrink-0">
               {[
-                { id: 'hotels' as const, icon: Hotel, label: 'Hotels', activeBg: 'bg-purple-100', activeText: 'text-purple-700', countBg: 'bg-purple-200' },
-                { id: 'restaurants' as const, icon: UtensilsCrossed, label: 'Food', activeBg: 'bg-orange-100', activeText: 'text-orange-700', countBg: 'bg-orange-200' },
-                { id: 'cafes' as const, icon: Coffee, label: 'Cafes', activeBg: 'bg-amber-100', activeText: 'text-amber-700', countBg: 'bg-amber-200' },
-                { id: 'activities' as const, icon: Ticket, label: 'Activities', activeBg: 'bg-green-100', activeText: 'text-green-700', countBg: 'bg-green-200' },
+                { id: 'hotels' as const, icon: Hotel, label: 'Hotels', activeBg: 'bg-primary/10', activeText: 'text-primary', countBg: 'bg-primary/20' },
+                { id: 'restaurants' as const, icon: UtensilsCrossed, label: 'Food', activeBg: 'bg-primary/10', activeText: 'text-primary', countBg: 'bg-primary/20' },
+                { id: 'cafes' as const, icon: Coffee, label: 'Cafes', activeBg: 'bg-primary/10', activeText: 'text-primary', countBg: 'bg-primary/20' },
+                { id: 'activities' as const, icon: Ticket, label: 'Activities', activeBg: 'bg-primary/10', activeText: 'text-primary', countBg: 'bg-primary/20' },
               ].map(tab => {
                 const count = modalCityFavs ? modalCityFavs[tab.id].length : 0;
                 const isActive = favoriteCityTab === tab.id;
@@ -2865,11 +2865,11 @@ export function SwipeablePlanningView({
 
         {/* Route efficiency warning */}
         {hasInefficiency && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
-            <div className="text-amber-600 text-sm flex-1">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-3">
+            <div className="text-gray-600 text-sm flex-1">
               Your route has some backtracking. Nearby cities are separated.
             </div>
-            <Button size="sm" variant="outline" onClick={optimizeRoute} className="text-amber-700 border-amber-300">
+            <Button size="sm" variant="outline" onClick={optimizeRoute} className="text-primary border-primary/30 hover:bg-primary/10">
               <Sparkles className="w-3 h-3 mr-1" />
               Optimize
             </Button>
@@ -2932,7 +2932,7 @@ export function SwipeablePlanningView({
               <span className="text-xs">Shortest flight routes</span>
               <button
                 onClick={() => setRoutePrefs(p => ({ ...p, shortestFlights: !p.shortestFlights }))}
-                className={`w-10 h-5 rounded-full transition-colors ${routePrefs.shortestFlights ? 'bg-green-500' : 'bg-gray-300'}`}
+                className={`w-10 h-5 rounded-full transition-colors ${routePrefs.shortestFlights ? 'bg-primary' : 'bg-gray-300'}`}
               >
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${routePrefs.shortestFlights ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
@@ -2946,7 +2946,7 @@ export function SwipeablePlanningView({
                   <button
                     key={n}
                     onClick={() => setRoutePrefs(p => ({ ...p, maxStops: n }))}
-                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxStops === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxStops === n ? 'bg-gray-800 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                   >
                     {n === 0 ? 'Direct' : n === 1 ? '1 stop' : 'Any'}
                   </button>
@@ -2962,7 +2962,7 @@ export function SwipeablePlanningView({
                   <button
                     key={n}
                     onClick={() => setRoutePrefs(p => ({ ...p, maxFlightsPerDay: n }))}
-                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightsPerDay === n ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightsPerDay === n ? 'bg-gray-800 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                   >
                     {n}
                   </button>
@@ -2997,7 +2997,7 @@ export function SwipeablePlanningView({
             const flight = getFlightData('Kelowna', city);
             return flight && flight.stops > 0;
           }) && (
-            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
               Some routes require connections - no direct flights available
             </p>
@@ -3020,16 +3020,16 @@ export function SwipeablePlanningView({
           {/* Home airport - starting point */}
           {routeOrder.length > 0 && (
             <>
-              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
                   <Plane className="w-4 h-4" />
                 </div>
-                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-primary/10 flex items-center justify-center">
                   <MapPin className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-orange-800">Kelowna (YLW)</div>
-                  <div className="text-xs text-orange-600">Your home base</div>
+                  <div className="font-semibold text-gray-800">Kelowna (YLW)</div>
+                  <div className="text-xs text-primary">Your home base</div>
                 </div>
               </div>
               {/* Flight connector to first city */}
@@ -3064,11 +3064,9 @@ export function SwipeablePlanningView({
                             Flight to {firstCity} · {displayTime}
                           </span>
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            displayStops === 0 ? 'bg-green-100 text-green-700' :
-                            displayStops === 1 ? 'bg-gray-100 text-gray-700' :
-                            'bg-primary text-white'
+                            displayStops >= 2 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
                           }`}>
-                            {displayStops === 0 ? 'direct' : `${displayStops} stops`}
+                            {displayStops === 0 ? 'direct' : `${displayStops} stop${displayStops > 1 ? 's' : ''}`}
                           </span>
                           {exceedsMaxStops && (
                             <span className="text-primary">⚠️</span>
@@ -3081,8 +3079,8 @@ export function SwipeablePlanningView({
                           <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs space-y-3">
                             {/* Warning if exceeds max stops */}
                             {exceedsMaxStops && (
-                              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
-                                <span className="text-base">⚠️</span>
+                              <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/30 rounded-lg text-primary">
+                                <AlertCircle className="w-4 h-4" />
                                 <span>Exceeds your max {routePrefs.maxStops || 1} stop preference</span>
                               </div>
                             )}
@@ -3465,11 +3463,7 @@ export function SwipeablePlanningView({
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <div className={`font-medium text-sm ${
-                                          option.badge === 'cheapest' ? 'text-green-600' :
-                                          option.priceRange.includes('$1') && !option.priceRange.includes('$10') ? 'text-green-600' :
-                                          'text-foreground'
-                                        }`}>
+                                        <div className="font-medium text-sm text-gray-700">
                                           {option.priceRange}
                                         </div>
                                         {option.frequency && (
@@ -3486,8 +3480,8 @@ export function SwipeablePlanningView({
                                   const hubs = getHubConnections(city, nextCity);
                                   if (hubs.length === 0) return null;
                                   return (
-                                    <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                                      <div className="text-xs text-blue-800 mb-2 font-medium">
+                                    <div className="p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                      <div className="text-xs text-gray-800 mb-2 font-medium">
                                         Flight routes (2 flights each):
                                       </div>
                                       <div className="space-y-1.5">
@@ -3515,7 +3509,7 @@ export function SwipeablePlanningView({
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               onClick={(e) => e.stopPropagation()}
-                                              className="text-blue-600 hover:underline"
+                                              className="text-primary hover:underline"
                                             >
                                               Search →
                                             </a>
@@ -3534,7 +3528,7 @@ export function SwipeablePlanningView({
                                       href={flightInfo.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors text-xs font-medium"
+                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs font-medium"
                                     >
                                       ✈️ Google Flights
                                     </a>
@@ -3543,7 +3537,7 @@ export function SwipeablePlanningView({
                                     href={getRome2RioUrl(city, nextCity)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-1 flex items-center justify-center gap-1 py-2 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 transition-colors text-xs font-medium"
+                                    className="flex-1 flex items-center justify-center gap-1 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs font-medium"
                                   >
                                     🗺️ Rome2Rio
                                   </a>
@@ -3552,7 +3546,7 @@ export function SwipeablePlanningView({
                                       href={get12GoUrl(city, nextCity)}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors text-xs font-medium"
+                                      className="flex-1 flex items-center justify-center gap-1 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs font-medium"
                                     >
                                       🎫 12Go Asia
                                     </a>
@@ -4040,9 +4034,9 @@ export function SwipeablePlanningView({
                     <div className="relative aspect-square">
                       <CityImage src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                       <div className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        recommendation.match === 'great' ? 'bg-green-500 text-white' :
-                        recommendation.match === 'neutral' ? 'bg-gray-400 text-white' : recommendation.match === 'consider' ? 'bg-amber-500 text-white' :
-                        'bg-blue-500 text-white'
+                        recommendation.match === 'great' ? 'bg-primary text-white' :
+                        recommendation.match === 'good' ? 'bg-gray-700 text-white' :
+                        'bg-gray-400 text-white'
                       }`}>
                         {recommendation.match === 'great' ? 'Great' : recommendation.match === 'good' ? 'Good' : recommendation.match === 'neutral' ? 'Neutral' : 'Consider'}
                       </div>
@@ -4095,10 +4089,9 @@ export function SwipeablePlanningView({
                 {/* Match label for cities */}
                 {itemIsCity && cityMatchInfo && (
                   <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                    cityMatchInfo.match === 'great' ? 'bg-green-500 text-white' :
-                    cityMatchInfo.match === 'neutral' ? 'bg-gray-400 text-white' :
-                    cityMatchInfo.match === 'consider' ? 'bg-amber-500 text-white' :
-                    'bg-blue-500 text-white'
+                    cityMatchInfo.match === 'great' ? 'bg-primary text-white' :
+                    cityMatchInfo.match === 'good' ? 'bg-gray-700 text-white' :
+                    'bg-gray-400 text-white'
                   }`}>
                     {cityMatchInfo.match === 'great' ? 'Great Choice' :
                      cityMatchInfo.match === 'good' ? 'Good Choice' :
@@ -4273,11 +4266,11 @@ export function SwipeablePlanningView({
 
                   {/* Tips */}
                   {detailItem.tips && detailItem.tips.length > 0 && (
-                    <div className="bg-amber-50 rounded-lg p-3">
-                      <div className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" /> Tips
                       </div>
-                      <ul className="text-sm text-amber-800 space-y-1">
+                      <ul className="text-sm text-gray-700 space-y-1">
                         {detailItem.tips.map((tip, i) => (
                           <li key={i}>• {tip}</li>
                         ))}
@@ -4444,9 +4437,9 @@ export function SwipeablePlanningView({
                         <p className="text-white/80 text-sm">{cityInfo.bestFor.join(' · ')}</p>
                       </div>
                       <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        recommendation.match === 'great' ? 'bg-green-500 text-white' :
-                        recommendation.match === 'neutral' ? 'bg-gray-400 text-white' : recommendation.match === 'consider' ? 'bg-amber-500 text-white' :
-                        'bg-blue-500 text-white'
+                        recommendation.match === 'great' ? 'bg-primary text-white' :
+                        recommendation.match === 'good' ? 'bg-gray-700 text-white' :
+                        'bg-gray-400 text-white'
                       }`}>
                         {recommendation.match === 'great' ? 'Great Match' :
                          recommendation.match === 'neutral' ? 'Neutral' : recommendation.match === 'consider' ? 'Consider' : 'Good Choice'}
@@ -4513,9 +4506,9 @@ export function SwipeablePlanningView({
 
                       {/* Why You'll Love It */}
                       {recommendation.reasons.length > 0 && (
-                        <div className="bg-green-50 rounded-lg p-3">
-                          <div className="text-xs font-semibold text-green-700 mb-2">Why you&apos;ll love it</div>
-                          <ul className="text-sm text-green-800 space-y-1">
+                        <div className="bg-primary/10 rounded-lg p-3">
+                          <div className="text-xs font-semibold text-primary mb-2">Why you&apos;ll love it</div>
+                          <ul className="text-sm text-gray-700 space-y-1">
                             {recommendation.reasons.map((reason, i) => (
                               <li key={i}>• {reason}</li>
                             ))}
@@ -4559,11 +4552,11 @@ export function SwipeablePlanningView({
                       </div>
 
                       {/* Local Tip */}
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-2">
+                        <Sparkles className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
                         <div>
-                          <div className="text-xs font-semibold text-amber-700 mb-0.5">Local Tip</div>
-                          <p className="text-sm text-amber-800">{cityInfo.localTip}</p>
+                          <div className="text-xs font-semibold text-gray-700 mb-0.5">Local Tip</div>
+                          <p className="text-sm text-gray-700">{cityInfo.localTip}</p>
                         </div>
                       </div>
                     </div>
