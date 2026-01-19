@@ -3107,14 +3107,19 @@ export function SwipeablePlanningView({
                                     <button
                                       key={route.id}
                                       onClick={() => {
+                                        console.log('Route clicked:', route.id, 'stopoverCity:', stopoverCity);
                                         setSelectedRouteId(route.id);
                                         // Add stopover city when selected
-                                        if (stopoverCity && !routeOrder.includes(stopoverCity)) {
-                                          console.log('Adding stopover city:', stopoverCity);
-                                          setRouteOrder([stopoverCity, ...routeOrder]);
-                                          if (!selectedCities.includes(stopoverCity)) {
-                                            setSelectedCities([...selectedCities, stopoverCity]);
-                                          }
+                                        if (stopoverCity) {
+                                          setRouteOrder(prev => {
+                                            if (prev.includes(stopoverCity)) return prev;
+                                            console.log('Adding to routeOrder:', stopoverCity);
+                                            return [stopoverCity, ...prev];
+                                          });
+                                          setSelectedCities(prev => {
+                                            if (prev.includes(stopoverCity)) return prev;
+                                            return [...prev, stopoverCity];
+                                          });
                                         }
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
