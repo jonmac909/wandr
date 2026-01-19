@@ -1335,7 +1335,13 @@ export function SwipeablePlanningView({
       debug('[SwipeablePlanning] Saving to IndexedDB, allocations:', savedAllocations, 'generatedDays:', savedGeneratedDays.length);
       saveState();
     }, 500);
-    return () => clearTimeout(timer);
+
+    // On unmount or when deps change, save immediately (don't lose pending changes)
+    return () => {
+      clearTimeout(timer);
+      // Save immediately on unmount to prevent data loss when section closes
+      saveState();
+    };
   }, [tripId, selectedIds, selectedCities, routeOrder, countryOrder, phase, currentStepIndex, persistenceLoaded, savedAllocations, savedGeneratedDays]);
 
   const [activeDestinationFilter, setActiveDestinationFilter] = useState<string>('');
@@ -2289,6 +2295,7 @@ export function SwipeablePlanningView({
           setSavedGeneratedDays(newDays);
         }}
         parentLoadComplete={persistenceLoaded}
+        onSave={onSave}
       />
     );
   }

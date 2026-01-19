@@ -126,6 +126,7 @@ interface AutoItineraryViewProps {
   initialGeneratedDays?: GeneratedDay[]; // Persisted generated days from parent
   onGeneratedDaysChange?: (days: GeneratedDay[]) => void; // Callback to sync days to parent
   parentLoadComplete?: boolean; // Signal that parent has finished loading from IndexedDB
+  onSave?: () => void; // Callback when Save is clicked (to close section in Trip Hub)
 }
 
 // City to airport code mapping
@@ -344,6 +345,7 @@ export default function AutoItineraryView({
   initialGeneratedDays,
   onGeneratedDaysChange,
   parentLoadComplete = false,
+  onSave,
 }: AutoItineraryViewProps) {
   // Get initial total days and start date
   // Priority: explicit props > tripDna > fallback
@@ -1727,7 +1729,10 @@ export default function AutoItineraryView({
               </div>
             </div>
 
-            <Button onClick={() => setIsAllocationSheetOpen(false)} className="w-full">
+            <Button onClick={() => {
+              setIsAllocationSheetOpen(false);
+              onSave?.(); // Also close the section in Trip Hub
+            }} className="w-full">
               Done
             </Button>
           </div>
