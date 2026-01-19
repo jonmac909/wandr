@@ -441,7 +441,34 @@ export default function AutoItineraryView({
     // No saved allocations or cities don't match - generate defaults
     // Use initialTotalDays - 1 because nights = days - 1 (you leave on last day)
     debug('[AutoItinerary] Generating default allocations');
-    return allocateDays(cities, initialTotalDays - 1, tripDna, initialStartDate);
+    
+    // Generate city allocations
+    const cityAllocations = allocateDays(cities, initialTotalDays - 2, tripDna, initialStartDate); // -2 to leave room for transit
+    
+    // Auto-add transit day at the beginning for the initial flight
+    if (cities.length > 0) {
+      const transitAllocation: CityAllocation = {
+        city: '✈️ In Transit',
+        nights: 1,
+        startDay: 1,
+        endDay: 1,
+        startDate: initialStartDate,
+        endDate: initialStartDate,
+      };
+      
+      // Recalculate days for city allocations (shift by 1)
+      let currentDay = 2;
+      const adjustedAllocations = cityAllocations.map(a => {
+        const startDay = currentDay;
+        const endDay = currentDay + a.nights - 1;
+        currentDay = endDay + 1;
+        return { ...a, startDay, endDay };
+      });
+      
+      return [transitAllocation, ...adjustedAllocations];
+    }
+    
+    return cityAllocations;
   });
 
   // Track if we loaded from saved data (to prevent regenerating on cities change)
