@@ -403,7 +403,10 @@ export default function AutoItineraryView({
   const [tripTotalDays, setTripTotalDays] = useState(initialTotalDays);
   const [isDateEditorOpen, setIsDateEditorOpen] = useState(false);
   const [isAllocationSheetOpen, setIsAllocationSheetOpen] = useState(false);
-  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true); // Start expanded
+  // Start collapsed if allocations already saved, expanded only for new trips
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(() => {
+    return !(initialAllocations && initialAllocations.length > 0);
+  });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Computed end date
