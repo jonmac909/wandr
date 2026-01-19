@@ -3081,7 +3081,7 @@ export function SwipeablePlanningView({
                             {exceedsMaxStops && (
                               <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/30 rounded-lg text-primary">
                                 <AlertCircle className="w-4 h-4" />
-                                <span>Exceeds your max {routePrefs.maxStops || 1} stop preference</span>
+                                <span>Exceeds your max {routePrefs.maxStops || 1} stop preference. Choose a stopover</span>
                               </div>
                             )}
 
@@ -3089,17 +3089,21 @@ export function SwipeablePlanningView({
                             {routingOptions.length > 0 ? (
                               <div className="space-y-2">
                                 {routingOptions.map((route) => {
-                                  // Check if this route is selected (explicit selection or default to recommended)
-                                  const isSelected = selectedRouteId
-                                    ? selectedRouteId === route.id
-                                    : route.recommended;
+                                  // Only selected if user explicitly clicked
+                                  const isSelected = selectedRouteId === route.id;
+                                  // Get the main stopover city (not Vancouver/Seattle)
+                                  const stopoverCity = route.connections.find(c => c !== 'Vancouver' && c !== 'Seattle');
 
                                   return (
                                     <button
                                       key={route.id}
                                       onClick={() => {
-                                        // Just select this route option - user clicks the badge to add stopovers
                                         setSelectedRouteId(route.id);
+                                        // Add stopover city when selected
+                                        if (stopoverCity) {
+                                          setRouteOrder(prev => prev.includes(stopoverCity) ? prev : [stopoverCity, ...prev]);
+                                          setSelectedCities(prev => prev.includes(stopoverCity) ? prev : [...prev, stopoverCity]);
+                                        }
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
@@ -3110,13 +3114,13 @@ export function SwipeablePlanningView({
                                       <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium flex items-center gap-1">
                                           {route.recommended && <span className="text-primary">★</span>}
-                                          {route.label}
+                                          {route.label} {stopoverCity && 'Stopover'}
                                         </span>
                                         <span className="text-muted-foreground">{route.totalTime}</span>
                                       </div>
 
                                       {/* Segment breakdown - use actual firstCity as final destination */}
-                                      <div className="text-[10px] text-muted-foreground mb-2">
+                                      <div className="text-[10px] text-muted-foreground">
                                         {route.segments.map((seg, i) => {
                                           // Replace the final segment's destination with the actual first city
                                           const isLastSegment = i === route.segments.length - 1;
@@ -3129,38 +3133,9 @@ export function SwipeablePlanningView({
                                           );
                                         })}
                                       </div>
-
                                     </button>
                                   );
                                 })}
-                                
-                                {/* Add stopover buttons - prominent placement */}
-                                {routingOptions.filter(r => r.recommended || selectedRouteId === r.id).slice(0, 1).map(route => (
-                                  route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').length > 0 && (
-                                    <div key="stopovers" className="pt-2 border-t space-y-2">
-                                      <div className="text-xs font-medium text-muted-foreground">Add a stopover:</div>
-                                      <div className="flex flex-wrap gap-2">
-                                        {route.connections.filter(c => c !== 'Vancouver' && c !== 'Seattle').map((city) => (
-                                          <button
-                                            key={city}
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setRouteOrder(prev => [city, ...prev]);
-                                              setSelectedCities(prev =>
-                                                prev.includes(city) ? prev : [...prev, city]
-                                              );
-                                            }}
-                                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 font-medium transition-colors"
-                                          >
-                                            <Plus className="w-3.5 h-3.5" />
-                                            {city}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )
-                                ))}
                               </div>
                             ) : (
                               <>
@@ -3187,7 +3162,7 @@ export function SwipeablePlanningView({
                               href={flightInfo.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-1 mt-2 py-2 bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                              className="flex items-center justify-center gap-1 mt-2 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                             >
                               Search flights on Google
                               <ArrowRight className="w-3 h-3" />
