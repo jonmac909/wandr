@@ -3133,10 +3133,14 @@ export function SwipeablePlanningView({
                                         
                                         setSelectedRouteId(route.id);
                                         
-                                        // Add stopover city to front (allow duplicates for stopovers)
-                                        if (stopoverCity && routeOrder[0] !== stopoverCity) {
-                                          console.log('Adding stopover to front:', stopoverCity);
-                                          setRouteOrder(prev => [stopoverCity, ...prev]);
+                                        // Add stopover city at position 1 (allow duplicates for stopovers)
+                                        if (stopoverCity) {
+                                          console.log('Adding stopover at position 1:', stopoverCity);
+                                          setRouteOrder(prev => {
+                                            // Skip if already at position 1
+                                            if (prev[1] === stopoverCity) return prev;
+                                            return [prev[0], stopoverCity, ...prev.slice(1)];
+                                          });
                                           setSelectedCities(prev => {
                                             if (prev.includes(stopoverCity)) return prev;
                                             return [...prev, stopoverCity];
