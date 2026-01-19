@@ -2451,22 +2451,22 @@ export default function TripPage() {
               </button>
 
               {savedExpanded && (
-                <div className="mt-3">
+                <div className="mt-3 px-4">
                   {/* Collection Cards - Horizontal Scroll */}
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {/* Places */}
                     {(() => {
                       const places = savedPlaces.filter(p => p.type === 'attraction' || p.type === 'activity');
+                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rose-100 to-rose-200">
-                            {places[0]?.imageUrl ? (
-                              <img src={places[0].imageUrl} alt="Places" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <MapPin className="w-8 h-8 text-rose-400" />
-                              </div>
-                            )}
+                          <div className="aspect-square rounded-xl overflow-hidden">
+                            <img 
+                              src={places[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' landmarks')}`} 
+                              alt="Places" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = `/api/placeholder/city/places`; }}
+                            />
                           </div>
                           <h4 className="font-medium text-sm mt-2">Places</h4>
                           <p className="text-xs text-muted-foreground">{places.length} saved places</p>
@@ -2477,16 +2477,16 @@ export default function TripPage() {
                     {/* Food */}
                     {(() => {
                       const food = savedPlaces.filter(p => p.type === 'restaurant' || p.type === 'cafe');
+                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-amber-200">
-                            {food[0]?.imageUrl ? (
-                              <img src={food[0].imageUrl} alt="Food" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <UtensilsCrossed className="w-8 h-8 text-orange-400" />
-                              </div>
-                            )}
+                          <div className="aspect-square rounded-xl overflow-hidden">
+                            <img 
+                              src={food[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' food cuisine')}`} 
+                              alt="Food" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = `/api/placeholder/city/food`; }}
+                            />
                           </div>
                           <h4 className="font-medium text-sm mt-2">Food</h4>
                           <p className="text-xs text-muted-foreground">{food.length} saved items</p>
@@ -2497,16 +2497,16 @@ export default function TripPage() {
                     {/* Activities */}
                     {(() => {
                       const activities = savedPlaces.filter(p => p.type === 'activity' || p.type === 'nightlife');
+                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-green-200">
-                            {activities[0]?.imageUrl ? (
-                              <img src={activities[0].imageUrl} alt="Activities" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Ticket className="w-8 h-8 text-emerald-400" />
-                              </div>
-                            )}
+                          <div className="aspect-square rounded-xl overflow-hidden">
+                            <img 
+                              src={activities[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' activities tours')}`} 
+                              alt="Activities" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = `/api/placeholder/city/activities`; }}
+                            />
                           </div>
                           <h4 className="font-medium text-sm mt-2">Activities</h4>
                           <p className="text-xs text-muted-foreground">{activities.length} saved items</p>
@@ -2517,16 +2517,16 @@ export default function TripPage() {
                     {/* Hotels */}
                     {(() => {
                       const hotels = savedPlaces.filter(p => p.type === 'hotel');
+                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
-                            {hotels[0]?.imageUrl ? (
-                              <img src={hotels[0].imageUrl} alt="Hotels" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Hotel className="w-8 h-8 text-blue-400" />
-                              </div>
-                            )}
+                          <div className="aspect-square rounded-xl overflow-hidden">
+                            <img 
+                              src={hotels[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' hotels resort')}`} 
+                              alt="Hotels" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = `/api/placeholder/city/hotels`; }}
+                            />
                           </div>
                           <h4 className="font-medium text-sm mt-2">Hotels</h4>
                           <p className="text-xs text-muted-foreground">{hotels.length} saved hotels</p>
