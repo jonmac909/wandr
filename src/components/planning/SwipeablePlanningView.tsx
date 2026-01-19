@@ -3051,12 +3051,11 @@ export function SwipeablePlanningView({
                 const exceedsMaxStops = !selectedRoute && displayStops > (routePrefs.maxStops || 1);
 
                 const transportColor = 'text-gray-700';
-                const barColor = 'w-0.5 bg-gray-200';
 
                 return (
-                  <div className="pl-[1.25rem]">
+                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4">
                     <div className="flex items-start gap-2">
-                      <div className={`${isExpanded ? 'h-auto min-h-[4rem]' : 'h-8'} ${barColor}`} />
+                      <div className="-ml-[1.15rem]" />
                       <div className="flex-1 py-1">
                         {/* Clickable transport summary */}
                         <button
@@ -3325,10 +3324,9 @@ export function SwipeablePlanningView({
                   const transportMode = bestOption?.mode || (isFlight ? 'flight' : isTrain ? 'train' : 'bus');
                   const transportTime = bestOption?.duration || flightInfo.time;
                   const transportColor = 'text-gray-700';
-                  const barColor = 'w-0.5 bg-gray-200';
 
                   return (
-                    <div className="group/connector relative">
+                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4">
                       {/* Insert city button - centered, shows on hover */}
                       <div className="absolute -top-1 left-0 right-0 flex justify-center z-10">
                         <button
@@ -3338,7 +3336,7 @@ export function SwipeablePlanningView({
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
-                      <div className="pl-[1.25rem]">
+                      <div>
                       {/* Insert dropdown */}
                       {insertAtIndex === index + 1 && (
                         <div className="absolute left-1/2 -translate-x-1/2 top-6 z-50 bg-background border rounded-lg shadow-lg p-2 min-w-[200px]">
@@ -3365,7 +3363,6 @@ export function SwipeablePlanningView({
                         </div>
                       )}
                       <div className="flex items-start gap-2">
-                        <div className={`${isExpanded ? 'h-auto min-h-[6rem]' : 'h-8'} ${barColor}`} />
                         <div className="flex-1 py-1">
                           {/* Clickable transport summary */}
                           <button
