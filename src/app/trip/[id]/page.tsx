@@ -399,6 +399,8 @@ export default function TripPage() {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [cityImages, setCityImages] = useState<Record<string, string>>({});
   const [isSavingCities, setIsSavingCities] = useState(false);
+  // Track which city images have been fetched to prevent duplicate requests
+  const fetchedCityImagesRef = useRef<Set<string>>(new Set());
 
   // Trip Hub - Route state
   const [routeOrder, setRouteOrder] = useState<string[]>([]);
@@ -597,21 +599,30 @@ export default function TripPage() {
       // Initialize route order from selected cities or destinations
       setRouteOrder(cities.length > 0 ? cities : destinations);
 
-      // Fetch city images
+      // Fetch city images with throttling (2 at a time to prevent resource exhaustion)
       const allCities = getCitiesForDestination(destinations[0] || destination);
-      allCities.forEach(async (city) => {
-        try {
-          const res = await fetch(`/api/city-image?city=${encodeURIComponent(city)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.imageUrl) {
-              setCityImages(prev => ({ ...prev, [city]: data.imageUrl }));
+      const fetchCityImages = async () => {
+        for (let i = 0; i < allCities.length; i += 2) {
+          const batch = allCities.slice(i, i + 2);
+          await Promise.all(batch.map(async (city) => {
+            // Skip if already fetched
+            if (fetchedCityImagesRef.current.has(city)) return;
+            fetchedCityImagesRef.current.add(city);
+            try {
+              const res = await fetch(`/api/city-image?city=${encodeURIComponent(city)}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.imageUrl) {
+                  setCityImages(prev => ({ ...prev, [city]: data.imageUrl }));
+                }
+              }
+            } catch (error) {
+              console.error(`Failed to fetch image for ${city}:`, error);
             }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch image for ${city}:`, error);
+          }));
         }
-      });
+      };
+      fetchCityImages();
     }
   }, [tripDna]);
 

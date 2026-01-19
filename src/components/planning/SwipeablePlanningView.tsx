@@ -1499,6 +1499,8 @@ export function SwipeablePlanningView({
 
   // Track previous city to know when to clear images
   const prevCityRef = useRef<string | null>(null);
+  // Track which city images have been fetched in modal
+  const fetchedModalCityRef = useRef<Set<string>>(new Set());
 
   // Fetch city image when modal opens (independent of topSites)
   useEffect(() => {
@@ -1515,8 +1517,9 @@ export function SwipeablePlanningView({
     const cityName = cityDetailItem.name;
     const country = cityDetailItem.tags?.find(t => destinations.includes(t)) || destinations[0];
 
-    // Always fetch city image when modal opens (don't wait for topSites)
-    if (!siteImages[cityName]) {
+    // Always fetch city image when modal opens (use ref to prevent duplicate requests)
+    if (!fetchedModalCityRef.current.has(cityName)) {
+      fetchedModalCityRef.current.add(cityName);
       fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`)
         .then(res => res.json())
         .then(data => {
@@ -1526,7 +1529,7 @@ export function SwipeablePlanningView({
         })
         .catch(() => {});
     }
-  }, [cityDetailItem, destinations, siteImages]);
+  }, [cityDetailItem, destinations]); // Removed siteImages from deps
 
   // Fetch site images when city info is available
   useEffect(() => {
@@ -1546,18 +1549,25 @@ export function SwipeablePlanningView({
 
     // Fetch site images with throttling to prevent resource exhaustion
     throttledFetchAll(sites, async (site) => {
-      if (siteImages[site]) return; // Skip if already loaded
-      try {
-        const res = await fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`);
-        const data = await res.json();
-        if (data.imageUrl) {
-          setSiteImages(prev => ({ ...prev, [site]: data.imageUrl }));
-        }
-      } catch (error) {
-        // Silently fail
-      }
+      // Use functional update to check current state without deps
+      setSiteImages(prev => {
+        if (prev[site]) return prev; // Skip if already loaded
+        // Fetch in next tick to avoid state update during render
+        fetch(`/api/site-image?site=${encodeURIComponent(site)}&city=${encodeURIComponent(cityName)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.imageUrl) {
+              setSiteImages(p => ({ ...p, [site]: data.imageUrl }));
+            }
+          })
+          .catch(() => {});
+        return prev;
+      });
     });
-  }, [cityDetailItem, enrichedCityInfo, siteImages]);
+  }, [cityDetailItem, enrichedCityInfo]); // Removed siteImages from deps
+
+  // Track which cities have been fetched to prevent duplicate requests
+  const fetchedCitiesRef = useRef<Set<string>>(new Set());
 
   // Preload city info and images whenever items change (including AI search results)
   useEffect(() => {
@@ -1568,19 +1578,20 @@ export function SwipeablePlanningView({
     const fetchCityData = async () => {
       await throttledFetchAll(cityItems, async (item) => {
         const cityName = item.name;
-        // Skip if already cached
-        if (cityInfoCache[cityName]) return;
-        
+        // Skip if already fetched (use ref to avoid stale closure)
+        if (fetchedCitiesRef.current.has(cityName)) return;
+        fetchedCitiesRef.current.add(cityName);
+
         const country = item.tags?.find(t => destinations.includes(t)) || destinations[0];
         const basicInfo = getCityInfo(cityName);
-        
+
         // If not in hardcoded list, fetch from API
         if (!basicInfo.highlights || !basicInfo.ratings) {
           try {
             const res = await fetch(`/api/city-info?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`);
             const data = await res.json();
             setCityInfoCache(prev => ({ ...prev, [cityName]: data }));
-            
+
             // Also fetch images for the sites (throttled)
             const sites = (data.topSites?.slice(0, 4) || []).filter((s: string) => s && s !== 'Loading...');
             await throttledFetchAll(sites, async (site: string) => {
@@ -1599,21 +1610,19 @@ export function SwipeablePlanningView({
           setCityInfoCache(prev => ({ ...prev, [cityName]: basicInfo }));
         }
 
-        // Fetch city image if not already loaded
-        if (!siteImages[cityName]) {
-          try {
-            const res = await fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`);
-            const data = await res.json();
-            setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
-          } catch (error) {
-            // Silently fail
-          }
+        // Fetch city image
+        try {
+          const res = await fetch(`/api/city-image?city=${encodeURIComponent(cityName)}&country=${encodeURIComponent(country || '')}`);
+          const data = await res.json();
+          setSiteImages(prev => ({ ...prev, [cityName]: data.imageUrl }));
+        } catch (error) {
+          // Silently fail
         }
       }, 2); // Limit to 2 concurrent cities at a time
     };
 
     fetchCityData();
-  }, [items, destinations, cityInfoCache, siteImages]);
+  }, [items, destinations]); // Removed cityInfoCache and siteImages from deps to prevent infinite loop
 
   // Get selected/favorited items
   const selectedItems = useMemo(() => {
