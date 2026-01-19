@@ -3069,7 +3069,7 @@ export function SwipeablePlanningView({
                 const transportColor = 'text-gray-700';
 
                 return (
-                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
+                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 -my-1 py-3">
                     <div className="flex items-start gap-2">
                       <div className="flex-1">
                         {/* Clickable transport summary */}
@@ -3353,7 +3353,7 @@ export function SwipeablePlanningView({
                   const transportColor = 'text-gray-700';
 
                   return (
-                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
+                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 -my-1 py-3">
                       {/* Insert city button - centered, shows on hover */}
                       <div className="absolute top-0 left-0 right-0 flex justify-center z-10">
                         <button
