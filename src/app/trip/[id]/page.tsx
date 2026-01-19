@@ -430,14 +430,19 @@ export default function TripPage() {
   useEffect(() => {
     if (!tripDna) return;
     
-    const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dna = tripDna as any;
+    // Try to get a specific city/destination for better image results
+    const selectedCities = dna.interests?.selectedCities || [];
+    const destinations = dna.interests?.destinations || [];
+    const destination = selectedCities[0] || destinations[0] || dna.interests?.destination || 'Thailand';
     
     async function fetchCollectionImages() {
       const searches = [
-        { key: 'places', query: `${destination} landmarks` },
-        { key: 'food', query: `${destination} food cuisine` },
-        { key: 'activities', query: `${destination} activities tours` },
-        { key: 'hotels', query: `${destination} hotels resort` },
+        { key: 'places', query: `${destination} tourist attraction` },
+        { key: 'food', query: `${destination} street food restaurant` },
+        { key: 'activities', query: `${destination} activities things to do` },
+        { key: 'hotels', query: `${destination} luxury hotel pool` },
       ];
       
       const results: Record<string, string | null> = {};
