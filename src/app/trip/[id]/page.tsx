@@ -2434,15 +2434,15 @@ export default function TripPage() {
               )}
             </TripHubSection>
 
-            {/* Saved for This Trip Section */}
+            {/* Saved Collections Section */}
             <div className="mt-6">
               <button
                 onClick={() => setSavedExpanded(!savedExpanded)}
                 className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-emerald-500" />
-                  <span className="font-medium">Saved for This Trip</span>
+                  <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                  <span className="font-medium">Saved Collections</span>
                   {savedPlaces.length > 0 && (
                     <span className="text-sm text-muted-foreground">({savedPlaces.length})</span>
                   )}
@@ -2452,12 +2452,6 @@ export default function TripPage() {
 
               {savedExpanded && (
                 <div className="mt-3">
-                  {/* Collections Header */}
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">Collections</h3>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  </div>
-
                   {/* Collection Cards - Horizontal Scroll */}
                   <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
                     {/* Places */}
@@ -2465,17 +2459,14 @@ export default function TripPage() {
                       const places = savedPlaces.filter(p => p.type === 'attraction' || p.type === 'activity');
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rose-100 to-rose-200">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rose-100 to-rose-200">
                             {places[0]?.imageUrl ? (
-                              <img src={places[0].imageUrl || `/api/placeholder/city/places`} alt="Places" className="w-full h-full object-cover" />
+                              <img src={places[0].imageUrl} alt="Places" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <MapPin className="w-8 h-8 text-rose-400" />
                               </div>
                             )}
-                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
-                            </button>
                           </div>
                           <h4 className="font-medium text-sm mt-2">Places</h4>
                           <p className="text-xs text-muted-foreground">{places.length} saved places</p>
@@ -2488,17 +2479,14 @@ export default function TripPage() {
                       const food = savedPlaces.filter(p => p.type === 'restaurant' || p.type === 'cafe');
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-amber-200">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-amber-200">
                             {food[0]?.imageUrl ? (
-                              <img src={food[0].imageUrl || `/api/placeholder/city/food`} alt="Food" className="w-full h-full object-cover" />
+                              <img src={food[0].imageUrl} alt="Food" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <UtensilsCrossed className="w-8 h-8 text-orange-400" />
                               </div>
                             )}
-                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
-                            </button>
                           </div>
                           <h4 className="font-medium text-sm mt-2">Food</h4>
                           <p className="text-xs text-muted-foreground">{food.length} saved items</p>
@@ -2511,17 +2499,14 @@ export default function TripPage() {
                       const activities = savedPlaces.filter(p => p.type === 'activity' || p.type === 'nightlife');
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-green-200">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-green-200">
                             {activities[0]?.imageUrl ? (
-                              <img src={activities[0].imageUrl || `/api/placeholder/city/activities`} alt="Activities" className="w-full h-full object-cover" />
+                              <img src={activities[0].imageUrl} alt="Activities" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Ticket className="w-8 h-8 text-emerald-400" />
                               </div>
                             )}
-                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
-                            </button>
                           </div>
                           <h4 className="font-medium text-sm mt-2">Activities</h4>
                           <p className="text-xs text-muted-foreground">{activities.length} saved items</p>
@@ -2534,17 +2519,14 @@ export default function TripPage() {
                       const hotels = savedPlaces.filter(p => p.type === 'hotel');
                       return (
                         <div className="flex-shrink-0 w-28">
-                          <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
                             {hotels[0]?.imageUrl ? (
-                              <img src={hotels[0].imageUrl || `/api/placeholder/city/hotels`} alt="Hotels" className="w-full h-full object-cover" />
+                              <img src={hotels[0].imageUrl} alt="Hotels" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Hotel className="w-8 h-8 text-blue-400" />
                               </div>
                             )}
-                            <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                              <Heart className="w-3 h-3 text-rose-500 fill-current" />
-                            </button>
                           </div>
                           <h4 className="font-medium text-sm mt-2">Hotels</h4>
                           <p className="text-xs text-muted-foreground">{hotels.length} saved hotels</p>
@@ -2554,13 +2536,10 @@ export default function TripPage() {
 
                     {/* Notes & Links */}
                     <div className="flex-shrink-0 w-28">
-                      <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-violet-100 to-purple-200">
+                      <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-violet-100 to-purple-200">
                         <div className="w-full h-full flex items-center justify-center">
                           <FileText className="w-8 h-8 text-violet-400" />
                         </div>
-                        <button className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                          <Heart className="w-3 h-3 text-violet-500 fill-current" />
-                        </button>
                       </div>
                       <h4 className="font-medium text-sm mt-2">Notes & Links</h4>
                       <p className="text-xs text-muted-foreground">0 saved notes</p>
