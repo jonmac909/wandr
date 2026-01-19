@@ -1507,7 +1507,7 @@ export default function AutoItineraryView({
   return (
     <div className="pb-20">
       {/* Compact Sticky Header */}
-      <div className="sticky top-0 z-40 bg-background border-b py-2 -mx-4 px-4 mb-4">
+      <div className="sticky top-0 z-40 bg-background border-b py-2 -mx-4 px-4">
         {/* Header row: Back, Title, Date button */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onBack}>
@@ -1521,97 +1521,97 @@ export default function AutoItineraryView({
             {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
           </span>
         </div>
+      </div>
 
-        {/* Trip Breakdown - Collapsible */}
-        <div className="mt-3">
-          <button
-            onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
-            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-sm">Trip Breakdown</span>
-              <span className="text-xs text-muted-foreground">
+      {/* Trip Breakdown - Collapsible (not sticky) */}
+      <div className="mt-3 mb-4">
+        <button
+          onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
+          className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20"
+        >
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">Trip Breakdown</span>
+            <span className="text-xs text-muted-foreground">
+              {currentTotal === tripTotalNights
+                ? `${tripTotalNights} nights across ${allocations.filter(a => !a.city.includes('Transit')).length} cities`
+                : `${tripTotalNights - currentTotal} nights remaining`
+              }
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {currentTotal !== tripTotalNights && (
+              <span className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">!</span>
+            )}
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isBreakdownExpanded ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+
+        {isBreakdownExpanded && (
+          <div className="mt-2 p-3 bg-muted/30 rounded-xl space-y-3">
+            {/* City allocations - scrollable */}
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {allocations.map((alloc, allocIndex) => {
+                const isTransit = alloc.city.includes('Transit');
+                const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
+                return (
+                  <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-background">
+                    <div className={`w-2 h-6 rounded-full ${colorClass}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{alloc.city}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {alloc.nights} {alloc.nights === 1 ? 'night' : 'nights'}
+                      </div>
+                    </div>
+                    {!isTransit && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
+                          disabled={alloc.nights <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-6 text-center text-sm font-medium">{alloc.nights}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Status and Save button */}
+            <div className="flex items-center justify-between">
+              <span className={`text-xs ${
+                currentTotal === tripTotalNights ? 'text-green-600' : 'text-amber-600'
+              }`}>
                 {currentTotal === tripTotalNights
-                  ? `${tripTotalNights} nights across ${allocations.filter(a => !a.city.includes('Transit')).length} cities`
-                  : `${tripTotalNights - currentTotal} nights remaining`
+                  ? '✓ All nights allocated'
+                  : currentTotal > tripTotalNights
+                    ? `${currentTotal - tripTotalNights} nights over`
+                    : `${tripTotalNights - currentTotal} nights remaining`
                 }
               </span>
+              <Button
+                size="sm"
+                onClick={() => setIsBreakdownExpanded(false)}
+                disabled={currentTotal !== tripTotalNights}
+              >
+                Save
+              </Button>
             </div>
-            <div className="flex items-center gap-2">
-              {currentTotal !== tripTotalNights && (
-                <span className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">!</span>
-              )}
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isBreakdownExpanded ? 'rotate-180' : ''}`} />
-            </div>
-          </button>
-
-          {isBreakdownExpanded && (
-            <div className="mt-2 p-3 bg-muted/30 rounded-xl space-y-3">
-              {/* City allocations - scrollable */}
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                {allocations.map((alloc, allocIndex) => {
-                  const isTransit = alloc.city.includes('Transit');
-                  const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
-                  return (
-                    <div key={`${alloc.city}-${allocIndex}`} className="flex items-center gap-3 p-2 rounded-lg bg-background">
-                      <div className={`w-2 h-6 rounded-full ${colorClass}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{alloc.city}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {alloc.nights} {alloc.nights === 1 ? 'night' : 'nights'}
-                        </div>
-                      </div>
-                      {!isTransit && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, -1); }}
-                            disabled={alloc.nights <= 1}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-6 text-center text-sm font-medium">{alloc.nights}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => { e.stopPropagation(); adjustAllocation(allocIndex, 1); }}
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Status and Save button */}
-              <div className="flex items-center justify-between">
-                <span className={`text-xs ${
-                  currentTotal === tripTotalNights ? 'text-green-600' : 'text-amber-600'
-                }`}>
-                  {currentTotal === tripTotalNights
-                    ? '✓ All nights allocated'
-                    : currentTotal > tripTotalNights
-                      ? `${currentTotal - tripTotalNights} nights over`
-                      : `${tripTotalNights - currentTotal} nights remaining`
-                  }
-                </span>
-                <Button
-                  size="sm"
-                  onClick={() => setIsBreakdownExpanded(false)}
-                  disabled={currentTotal !== tripTotalNights}
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Allocation Sheet (Bottom Sheet) */}
