@@ -3034,11 +3034,18 @@ export function SwipeablePlanningView({
               </div>
               {/* Flight connector to first city */}
               {(() => {
-                const firstCity = routeOrder[0];
-                const firstCountry = getCityCountry(firstCity) || '';
-                const routingOptions = getRoutingOptions(firstCountry);
-                const recommendedRoute = getRecommendedRoute(firstCountry);
-                const flightInfo = getFlightInfo('Kelowna', firstCity);
+                // Common stopover hubs that shouldn't be treated as final destinations
+                const STOPOVER_HUBS = ['Tokyo', 'Hong Kong', 'Singapore', 'Taipei', 'Seoul', 'Dubai', 'Doha'];
+                
+                // Find the actual destination (first city that's NOT a stopover hub)
+                const destinationCity = routeOrder.find(city => !STOPOVER_HUBS.includes(city)) || routeOrder[0];
+                const firstCity = routeOrder[0]; // The immediate next stop (might be stopover)
+                const destinationCountry = getCityCountry(destinationCity) || '';
+                
+                // Get routing options based on DESTINATION country, not first stop
+                const routingOptions = getRoutingOptions(destinationCountry);
+                const recommendedRoute = getRecommendedRoute(destinationCountry);
+                const flightInfo = getFlightInfo('Kelowna', destinationCity);
                 const isExpanded = expandedTransport === -1; // Use -1 for home connector
                 
                 // Find selected route if any
@@ -3064,8 +3071,10 @@ export function SwipeablePlanningView({
                           <Plane className="w-3.5 h-3.5" />
                           <span className="font-medium">
                             {selectedStopover 
-                              ? `Via ${selectedStopover} to ${firstCity} · ${displayTime}`
-                              : `Flight to ${firstCity} · ${displayTime}`
+                              ? `Via ${selectedStopover} to ${destinationCity} · ${displayTime}`
+                              : firstCity !== destinationCity
+                                ? `Via ${firstCity} to ${destinationCity} · ${displayTime}`
+                                : `Flight to ${destinationCity} · ${displayTime}`
                             }
                           </span>
                           {!selectedStopover && (
