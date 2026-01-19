@@ -113,12 +113,31 @@ function getActivityWarnings(activity: GeneratedActivity, dateStr: string): stri
   return null;
 }
 
+// Route segment from route planning
+interface RouteSegment {
+  from: string;
+  to: string;
+  time: string;
+}
+
+// Selected route data from route planning
+interface SelectedRouteData {
+  id: string;
+  label: string;
+  connections: string[];
+  totalTime: string;
+  stops: number;
+  segments: RouteSegment[];
+  recommended?: boolean;
+}
+
 interface AutoItineraryViewProps {
   cities: string[];
   tripDna: TripDNA;
   duration?: number; // Total trip days
   startDate?: string; // Explicit start date prop (avoids remount issues)
   endDate?: string; // Explicit end date prop (avoids remount issues)
+  selectedRoute?: SelectedRouteData | null; // Selected flight route from route planning
   onBack: () => void;
   getCityCountry?: (city: string) => string | undefined;
   onDatesChange?: (startDate: string, totalDays: number) => void; // Callback to sync dates back to parent
@@ -156,7 +175,7 @@ const FLIGHT_TIMES: Record<string, string> = {
 
 // Generate EMPTY days (no activities) - like Wanderlog
 // BUT auto-adds transport on transit days (flight, bus, train, etc. based on route)
-function generateEmptyDays(allocations: CityAllocation[], cities?: string[], homeBase?: string): GeneratedDay[] {
+function generateEmptyDays(allocations: CityAllocation[], cities?: string[], homeBase?: string, selectedRoute?: SelectedRouteData | null): GeneratedDay[] {
   const days: GeneratedDay[] = [];
   let dayNumber = 1;
   const home = homeBase || 'Kelowna';
@@ -222,14 +241,29 @@ function generateEmptyDays(allocations: CityAllocation[], cities?: string[], hom
         const routePrice = bestOption?.priceRange;
 
         if (transportMode === 'flight') {
-          const fromCode = getAirportCode(fromCity);
-          const toCode = getAirportCode(toCity);
-          const flightTime = routeDurationStr || FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
-          activityName = `${fromCode}→${toCode} (${flightTime})`;
-          activityType = 'flight';
-          duration = routeDuration || 180;
-          tags = ['flight', 'transit', 'needs-booking'];
-          description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Need to book · ${fromCity} to ${toCity}`;
+          // Use selected route data if this is the initial flight from home
+          if (fromCity === home && selectedRoute && selectedRoute.segments.length > 0) {
+            // Build flight description from route segments
+            const segmentDescriptions = selectedRoute.segments.map(seg => {
+              const segFromCode = getAirportCode(seg.from);
+              const segToCode = getAirportCode(seg.to);
+              return `${segFromCode}→${segToCode} (${seg.time})`;
+            });
+            activityName = segmentDescriptions.join(' · ');
+            activityType = 'flight';
+            duration = 180 * selectedRoute.segments.length; // Rough estimate
+            tags = ['flight', 'transit', 'needs-booking'];
+            description = `${selectedRoute.label} · ${selectedRoute.totalTime} total · ${selectedRoute.stops} stop${selectedRoute.stops > 1 ? 's' : ''}`;
+          } else {
+            const fromCode = getAirportCode(fromCity);
+            const toCode = getAirportCode(toCity);
+            const flightTime = routeDurationStr || FLIGHT_TIMES[toCity] || FLIGHT_TIMES[fromCity] || '~3-5hr';
+            activityName = `${fromCode}→${toCode} (${flightTime})`;
+            activityType = 'flight';
+            duration = routeDuration || 180;
+            tags = ['flight', 'transit', 'needs-booking'];
+            description = routeOperator ? `${routeOperator} · ${fromCity} to ${toCity}` : `Need to book · ${fromCity} to ${toCity}`;
+          }
         } else if (transportMode === 'bus') {
           activityName = `Bus: ${fromCity} → ${toCity}`;
           if (routeDurationStr) activityName += ` (${routeDurationStr})`;
@@ -338,6 +372,7 @@ export default function AutoItineraryView({
   duration: propDuration,
   startDate: propStartDate,
   endDate: propEndDate,
+  selectedRoute,
   onBack,
   getCityCountry,
   onDatesChange,
@@ -829,11 +864,11 @@ export default function AutoItineraryView({
     // Generate empty days immediately (no API call needed)
     // Pass cities so flights can be auto-added for transit days
     const timer = setTimeout(() => {
-      setDays(generateEmptyDays(allocations, cities, 'Kelowna'));
+      setDays(generateEmptyDays(allocations, cities, 'Kelowna', selectedRoute));
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [allocations, hasLoadedInitialDays, cities]);
+  }, [allocations, hasLoadedInitialDays, cities, selectedRoute]);
 
   // Keep days and activities in sync with allocations
   // When allocations change (city order), activities stay with their original city
@@ -855,7 +890,7 @@ export default function AutoItineraryView({
     // If days array is empty, generate fresh
     if (days.length === 0) {
       debug('[AutoItinerary] No days, generating fresh with transport');
-      setDays(generateEmptyDays(allocations, cities, 'Kelowna'));
+      setDays(generateEmptyDays(allocations, cities, 'Kelowna', selectedRoute));
       return;
     }
 
@@ -864,7 +899,7 @@ export default function AutoItineraryView({
       debug('[AutoItinerary] Day count changed from', days.length, 'to', totalDaysNeeded);
       
       // Generate the new structure with transport
-      const newDays = generateEmptyDays(allocations, cities, 'Kelowna');
+      const newDays = generateEmptyDays(allocations, cities, 'Kelowna', selectedRoute);
       
       // Preserve existing non-transport activities by city
       const activitiesByCity: Record<string, GeneratedActivity[]> = {};
@@ -1365,7 +1400,7 @@ export default function AutoItineraryView({
     setDays(prev => {
       let daysToProcess = prev;
       if (prev.length === 0) {
-        daysToProcess = generateEmptyDays(allocations, cities, 'Kelowna');
+        daysToProcess = generateEmptyDays(allocations, cities, 'Kelowna', selectedRoute);
       }
 
       return daysToProcess.map((day) => {
@@ -1831,7 +1866,7 @@ export default function AutoItineraryView({
                   });
                   
                   // Generate new days structure with transport
-                  const newDays = generateEmptyDays(updatedAllocations, cities, 'Kelowna');
+                  const newDays = generateEmptyDays(updatedAllocations, cities, 'Kelowna', selectedRoute);
                   
                   // Preserve existing activities from current days
                   const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];

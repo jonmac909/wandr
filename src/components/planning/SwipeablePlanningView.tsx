@@ -2318,6 +2318,11 @@ export function SwipeablePlanningView({
     }
 
     const citiesToUse = routeOrder.length > 0 ? routeOrder : selectedCities;
+    
+    // Get the selected route details if any
+    const destinationCountry = getCityCountry(citiesToUse.find(c => !['Tokyo', 'Hong Kong', 'Singapore', 'Taipei', 'Seoul', 'Dubai', 'Doha'].includes(c)) || citiesToUse[0]) || '';
+    const routingOptions = getRoutingOptions(destinationCountry);
+    const selectedRouteData = selectedRouteId ? routingOptions.find(r => r.id === selectedRouteId) : null;
 
     return (
       <AutoItineraryView
@@ -2326,6 +2331,7 @@ export function SwipeablePlanningView({
         duration={duration}
         startDate={propStartDate}
         endDate={propEndDate}
+        selectedRoute={selectedRouteData}
         onBack={() => setPhase('route-planning')}
         getCityCountry={getCityCountry}
         onDatesChange={onDatesChange}
