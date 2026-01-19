@@ -252,6 +252,55 @@ const ROUTE_TRANSPORT: Record<string, Record<string, TransportOption[]>> = {
       { mode: 'flight', duration: '8hr', durationMinutes: 480, priceRange: '$500-900', currency: 'USD', badge: 'best', operator: 'Hawaiian, JAL', frequency: 'Daily', notes: 'Nonstop flights available' },
     ],
   },
+  // International flights from Canada (Kelowna)
+  'Kelowna': {
+    // Japan (via Vancouver)
+    'Tokyo': [
+      { mode: 'flight', duration: '12-14hr', durationMinutes: 780, priceRange: '$800-1500', currency: 'USD', badge: 'best', operator: 'Air Canada, ANA, JAL', notes: '1 stop via Vancouver' },
+    ],
+    'Osaka': [
+      { mode: 'flight', duration: '13-15hr', durationMinutes: 840, priceRange: '$850-1600', currency: 'USD', badge: 'best', operator: 'Air Canada, ANA', notes: '1 stop via Vancouver' },
+    ],
+    'Kyoto': [
+      { mode: 'flight', duration: '13-15hr', durationMinutes: 840, priceRange: '$850-1600', currency: 'USD', badge: 'best', operator: 'Air Canada, ANA', notes: '1 stop via Vancouver, fly to Osaka/KIX' },
+    ],
+    // Thailand (via Vancouver + hub)
+    'Bangkok': [
+      { mode: 'flight', duration: '18-22hr', durationMinutes: 1200, priceRange: '$900-1800', currency: 'USD', badge: 'best', operator: 'Air Canada, Thai Airways', notes: '2 stops via Vancouver + hub' },
+    ],
+    'Chiang Mai': [
+      { mode: 'flight', duration: '20-24hr', durationMinutes: 1320, priceRange: '$950-1900', currency: 'USD', badge: 'best', operator: 'Air Canada, Thai Airways', notes: '2 stops via Vancouver + Bangkok' },
+    ],
+    'Chiang Rai': [
+      { mode: 'flight', duration: '22-26hr', durationMinutes: 1440, priceRange: '$1000-2000', currency: 'USD', badge: 'best', operator: 'Air Canada, Thai Airways', notes: '2 stops via Vancouver + Bangkok' },
+    ],
+    'Phuket': [
+      { mode: 'flight', duration: '20-24hr', durationMinutes: 1320, priceRange: '$950-1900', currency: 'USD', badge: 'best', operator: 'Air Canada, Thai Airways', notes: '2 stops via Vancouver + Bangkok' },
+    ],
+    'Krabi': [
+      { mode: 'flight', duration: '22-26hr', durationMinutes: 1440, priceRange: '$1000-2000', currency: 'USD', badge: 'best', operator: 'Air Canada, Thai Airways', notes: '2 stops via Vancouver + Bangkok' },
+    ],
+    // Vietnam
+    'Ho Chi Minh City': [
+      { mode: 'flight', duration: '18-22hr', durationMinutes: 1200, priceRange: '$900-1700', currency: 'USD', badge: 'best', operator: 'Air Canada, Vietnam Airlines', notes: '2 stops via Vancouver + hub' },
+    ],
+    'Hanoi': [
+      { mode: 'flight', duration: '18-22hr', durationMinutes: 1200, priceRange: '$900-1700', currency: 'USD', badge: 'best', operator: 'Air Canada, Vietnam Airlines', notes: '2 stops via Vancouver + hub' },
+    ],
+    'Da Nang': [
+      { mode: 'flight', duration: '20-24hr', durationMinutes: 1320, priceRange: '$950-1800', currency: 'USD', badge: 'best', operator: 'Air Canada, Vietnam Airlines', notes: '2 stops' },
+    ],
+    // Hawaii
+    'Honolulu': [
+      { mode: 'flight', duration: '8-10hr', durationMinutes: 540, priceRange: '$400-900', currency: 'USD', badge: 'best', operator: 'WestJet, Air Canada', notes: '1 stop via Vancouver or Seattle' },
+    ],
+    'Maui': [
+      { mode: 'flight', duration: '9-11hr', durationMinutes: 600, priceRange: '$450-950', currency: 'USD', badge: 'best', operator: 'WestJet, Air Canada', notes: '1 stop via Vancouver' },
+    ],
+    'Kauai': [
+      { mode: 'flight', duration: '10-12hr', durationMinutes: 660, priceRange: '$500-1000', currency: 'USD', badge: 'best', operator: 'Air Canada, Hawaiian', notes: '2 stops' },
+    ],
+  },
 };
 
 // Get transport options between two cities

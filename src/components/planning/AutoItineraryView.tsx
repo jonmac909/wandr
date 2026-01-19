@@ -835,7 +835,7 @@ export default function AutoItineraryView({
   // Keep days and activities in sync with allocations
   // When allocations change (city order), activities stay with their original city
   useEffect(() => {
-    if (days.length === 0 || allocations.length === 0) return;
+    if (allocations.length === 0) return;
 
     // Build a map of dayNumber -> city from NEW allocations
     const newDayToCityMap: Record<number, string> = {};
@@ -845,6 +845,15 @@ export default function AutoItineraryView({
         newDayToCityMap[dayNum] = alloc.city;
         dayNum++;
       }
+    }
+
+    const totalDaysNeeded = dayNum - 1;
+
+    // If days array is empty OR day count changed, regenerate with transport
+    if (days.length === 0 || days.length !== totalDaysNeeded) {
+      debug('[AutoItinerary] Day count changed, regenerating days with transport');
+      setDays(generateEmptyDays(allocations, cities, 'Kelowna'));
+      return;
     }
 
     // Check if any day's city doesn't match the allocation
