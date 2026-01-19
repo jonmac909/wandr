@@ -3025,7 +3025,7 @@ export function SwipeablePlanningView({
         </Button>
 
         {/* Route visualization */}
-        <div className="space-y-2">
+        <div>
           {/* Home airport - starting point */}
           {routeOrder.length > 0 && (
             <>
@@ -3069,8 +3069,8 @@ export function SwipeablePlanningView({
                 const transportColor = 'text-gray-700';
 
                 return (
-                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 -mt-1 -mb-1">
-                    <div className="flex items-start gap-2 py-3">
+                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
+                    <div className="flex items-start gap-2">
                       <div className="flex-1">
                         {/* Clickable transport summary */}
                         <button
@@ -3366,9 +3366,9 @@ export function SwipeablePlanningView({
                   const transportColor = 'text-gray-700';
 
                   return (
-                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 -mt-1 -mb-1">
+                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
                       {/* Insert city button - centered, shows on hover */}
-                      <div className="absolute top-1 left-0 right-0 flex justify-center z-10">
+                      <div className="absolute top-0 left-0 right-0 flex justify-center z-10">
                         <button
                           onClick={() => setInsertAtIndex(insertAtIndex === index + 1 ? null : index + 1)}
                           className="w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover/connector:opacity-100 transition-all text-muted-foreground"
@@ -3402,7 +3402,7 @@ export function SwipeablePlanningView({
                           </div>
                         </div>
                       )}
-                      <div className="flex items-start gap-2 py-3">
+                      <div className="flex items-start gap-2">
                         <div className="flex-1">
                           {/* Clickable transport summary */}
                           <button
