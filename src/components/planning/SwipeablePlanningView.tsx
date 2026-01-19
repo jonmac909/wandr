@@ -2876,123 +2876,133 @@ export function SwipeablePlanningView({
           </div>
         )}
 
-        {/* Route Preferences */}
-        <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Settings className="w-4 h-4 text-slate-600" />
-            Route Options
-          </h3>
-          <div className="space-y-3">
-            {/* Country order - drag and drop */}
-            {countryOrder.length > 1 && (
-              <div className="pb-3 border-b">
-                <div className="text-xs text-muted-foreground mb-2">Country order (drag to reorder)</div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {countryOrder.map((country, idx) => (
-                    <div key={country} className="flex items-center gap-1">
-                      <div
-                        draggable
-                        onDragStart={() => setDraggedCountryIndex(idx)}
-                        onDragEnd={() => {
-                          // Reorder cities based on the new country order
-                          if (draggedCountryIndex !== null) {
-                            reorderByCountryOrder(countryOrder);
-                          }
-                          setDraggedCountryIndex(null);
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
-                            const newOrder = [...countryOrder];
-                            const [dragged] = newOrder.splice(draggedCountryIndex, 1);
-                            newOrder.splice(idx, 0, dragged);
-                            setCountryOrder(newOrder);
-                            setDraggedCountryIndex(idx);
-                          }
-                        }}
-                        className={`px-3 py-1.5 bg-white rounded-lg font-medium text-xs border cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition-all ${
-                          draggedCountryIndex === idx ? 'opacity-50 scale-95 border-primary' : 'hover:border-primary hover:bg-primary/5'
-                        }`}
-                      >
-                        <GripVertical className="w-3 h-3 text-muted-foreground" />
-                        {country}
-                        {idx === 0 && <span className="text-[10px] text-primary">(1st)</span>}
-                      </div>
-                      {idx < countryOrder.length - 1 && (
-                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </div>
+        {/* Country Order */}
+        {countryOrder.length > 1 && (
+          <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200">
+            <div className="text-xs text-muted-foreground mb-2">Country order (drag to reorder)</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {countryOrder.map((country, idx) => (
+                <div key={country} className="flex items-center gap-1">
+                  <div
+                    draggable
+                    onDragStart={() => setDraggedCountryIndex(idx)}
+                    onDragEnd={() => {
+                      if (draggedCountryIndex !== null) {
+                        reorderByCountryOrder(countryOrder);
+                      }
+                      setDraggedCountryIndex(null);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draggedCountryIndex !== null && draggedCountryIndex !== idx) {
+                        const newOrder = [...countryOrder];
+                        const [dragged] = newOrder.splice(draggedCountryIndex, 1);
+                        newOrder.splice(idx, 0, dragged);
+                        setCountryOrder(newOrder);
+                        setDraggedCountryIndex(idx);
+                      }
+                    }}
+                    className={`px-3 py-1.5 bg-white rounded-lg font-medium text-xs border cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition-all ${
+                      draggedCountryIndex === idx ? 'opacity-50 scale-95 border-primary' : 'hover:border-primary hover:bg-primary/5'
+                    }`}
+                  >
+                    <GripVertical className="w-3 h-3 text-muted-foreground" />
+                    {country}
+                    {idx === 0 && <span className="text-[10px] text-primary">(1st)</span>}
+                  </div>
+                  {idx < countryOrder.length - 1 && (
+                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Route Options Dropdown */}
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setExpandedTransport(expandedTransport === -99 ? null : -99)}
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100 transition-colors"
+          >
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <Settings className="w-4 h-4 text-slate-600" />
+              Route Options
+            </span>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expandedTransport === -99 ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {expandedTransport === -99 && (
+            <div className="p-4 space-y-3 bg-white border-t border-slate-200">
+              {/* Shortest flights toggle */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-xs">Shortest flight routes</span>
+                <button
+                  onClick={() => setRoutePrefs(p => ({ ...p, shortestFlights: !p.shortestFlights }))}
+                  className={`w-10 h-5 rounded-full transition-colors ${routePrefs.shortestFlights ? 'bg-primary' : 'bg-gray-300'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${routePrefs.shortestFlights ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </label>
+
+              {/* Max stops */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs">Max stops per flight</span>
+                <div className="flex gap-1">
+                  {[0, 1, 2].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setRoutePrefs(p => ({ ...p, maxStops: n }))}
+                      className={`px-2 py-1 text-xs rounded ${routePrefs.maxStops === n ? 'bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    >
+                      {n === 0 ? 'Direct' : n === 1 ? '1 stop' : 'Any'}
+                    </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Shortest flights toggle */}
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs">Shortest flight routes</span>
-              <button
-                onClick={() => setRoutePrefs(p => ({ ...p, shortestFlights: !p.shortestFlights }))}
-                className={`w-10 h-5 rounded-full transition-colors ${routePrefs.shortestFlights ? 'bg-primary' : 'bg-gray-300'}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${routePrefs.shortestFlights ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
-            </label>
-
-            {/* Max stops */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs">Max stops per flight</span>
-              <div className="flex gap-1">
-                {[0, 1, 2].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setRoutePrefs(p => ({ ...p, maxStops: n }))}
-                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxStops === n ? 'bg-gray-800 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                  >
-                    {n === 0 ? 'Direct' : n === 1 ? '1 stop' : 'Any'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Max flights per day */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs">Max flights per day</span>
-              <div className="flex gap-1">
-                {[1, 2, 3].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setRoutePrefs(p => ({ ...p, maxFlightsPerDay: n }))}
-                    className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightsPerDay === n ? 'bg-gray-800 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Max flight duration - slider */}
-            <div className="space-y-1">
+              {/* Max flights per day */}
               <div className="flex items-center justify-between">
-                <span className="text-xs">Max flight duration</span>
-                <span className="text-xs font-medium">{routePrefs.maxFlightHours}hr</span>
+                <span className="text-xs">Max flights per day</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setRoutePrefs(p => ({ ...p, maxFlightsPerDay: n }))}
+                      className={`px-2 py-1 text-xs rounded ${routePrefs.maxFlightsPerDay === n ? 'bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <input
-                type="range"
-                min="4"
-                max="24"
-                step="1"
-                value={routePrefs.maxFlightHours}
-                onChange={(e) => setRoutePrefs(p => ({ ...p, maxFlightHours: parseInt(e.target.value) }))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>4hr</span>
-                <span>24hr</span>
+
+              {/* Max flight duration - slider */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs">Max flight duration</span>
+                  <span className="text-xs font-medium">{routePrefs.maxFlightHours}hr</span>
+                </div>
+                <input
+                  type="range"
+                  min="4"
+                  max="24"
+                  step="1"
+                  value={routePrefs.maxFlightHours}
+                  onChange={(e) => setRoutePrefs(p => ({ ...p, maxFlightHours: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-500"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>4hr</span>
+                  <span>24hr</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Warning if preferences conflict */}
+        {/* Route Preferences - Warning */}
+        <div>
           {routePrefs.maxStops === 0 && routeOrder.some(city => {
             const flight = getFlightData('Kelowna', city);
             return flight && flight.stops > 0;
@@ -3004,12 +3014,11 @@ export function SwipeablePlanningView({
           )}
         </div>
 
-        {/* Optimize Route Button - after options */}
+        {/* Optimize Route Button - coral */}
         <Button
-          variant="outline"
           size="sm"
           onClick={optimizeRoute}
-          className="w-full"
+          className="w-full bg-primary hover:bg-primary/90 text-white"
         >
           <Zap className="w-3.5 h-3.5 mr-1.5" />
           Optimize Route
