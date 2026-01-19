@@ -1830,6 +1830,28 @@ export default function TripPage() {
     }
   };
 
+  // Handle trip title change
+  const handleTitleChange = async (newTitle: string) => {
+    if (!tripDna) return;
+    
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dna = tripDna as any;
+      const updatedDna = {
+        ...dna,
+        meta: {
+          ...(dna.meta || {}),
+          title: newTitle,
+        },
+      };
+      
+      setTripDna(updatedDna);
+      await tripDb.updateTripDna(tripId, updatedDna);
+    } catch (error) {
+      console.error('Failed to save trip title:', error);
+    }
+  };
+
   // Generate itinerary
   const handleGenerateItinerary = async () => {
     if (!tripDna) return;
@@ -2041,6 +2063,7 @@ export default function TripPage() {
             destinations={destinations}
             title={title}
             subtitle={subtitle}
+            onTitleChange={handleTitleChange}
           />
 
           {/* 5 Collapsible Sections */}

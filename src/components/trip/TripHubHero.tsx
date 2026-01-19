@@ -1,16 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCountryForCity } from '@/lib/geo/city-country';
+import { Pencil } from 'lucide-react';
 
 interface TripHubHeroProps {
   destinations: string[];
   title: string;
   subtitle?: string;
+  onTitleChange?: (newTitle: string) => void;
 }
 
-export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps) {
+export function TripHubHero({ destinations, title, subtitle, onTitleChange }: TripHubHeroProps) {
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    if (editTitle.trim() && editTitle !== title) {
+      onTitleChange?.(editTitle.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditTitle(title);
+      setIsEditing(false);
+    }
+  };
 
   // Fetch hero images for destinations
   useEffect(() => {
@@ -54,7 +82,25 @@ export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps)
           )}
         </div>
         <div className="mt-4 text-center">
-          <h1 className="text-xl font-bold">{title}</h1>
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={handleKeyDown}
+              className="text-xl font-bold text-center w-full bg-transparent border-b-2 border-primary outline-none"
+            />
+          ) : (
+            <h1 
+              className="text-xl font-bold cursor-pointer hover:text-primary/80 inline-flex items-center gap-2 group"
+              onClick={() => { setEditTitle(title); setIsEditing(true); }}
+            >
+              {title}
+              <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+            </h1>
+          )}
           {subtitle && (
             <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           )}
@@ -86,7 +132,25 @@ export function TripHubHero({ destinations, title, subtitle }: TripHubHeroProps)
         ))}
       </div>
       <div className="mt-4 text-center">
-        <h1 className="text-xl font-bold">{title}</h1>
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            className="text-xl font-bold text-center w-full bg-transparent border-b-2 border-primary outline-none"
+          />
+        ) : (
+          <h1 
+            className="text-xl font-bold cursor-pointer hover:text-primary/80 inline-flex items-center gap-2 group"
+            onClick={() => { setEditTitle(title); setIsEditing(true); }}
+          >
+            {title}
+            <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+          </h1>
+        )}
         {subtitle && (
           <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         )}
