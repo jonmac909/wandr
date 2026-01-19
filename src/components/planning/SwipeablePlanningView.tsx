@@ -315,10 +315,12 @@ const CITY_TO_COUNTRY: Record<string, string> = {
   'Bangkok': 'Thailand', 'Chiang Mai': 'Thailand', 'Chiang Rai': 'Thailand',
   'Phuket': 'Thailand', 'Krabi': 'Thailand', 'Koh Samui': 'Thailand',
   'Koh Phangan': 'Thailand', 'Sukhothai': 'Thailand', 'Ayutthaya': 'Thailand',
+  'Kanchanaburi': 'Thailand', 'Pai': 'Thailand', 'Hua Hin': 'Thailand',
+  'Koh Chang': 'Thailand', 'Koh Phi Phi': 'Thailand', 'Koh Lanta': 'Thailand', 'Koh Tao': 'Thailand',
   // Vietnam
   'Hanoi': 'Vietnam', 'Ho Chi Minh City': 'Vietnam', 'Da Nang': 'Vietnam',
   'Hoi An': 'Vietnam', 'Hue': 'Vietnam', 'Nha Trang': 'Vietnam',
-  'Ha Long Bay': 'Vietnam', 'Ninh Binh': 'Vietnam',
+  'Ha Long Bay': 'Vietnam', 'Ninh Binh': 'Vietnam', 'Sapa': 'Vietnam',
   // Hawaii
   'Honolulu': 'Hawaii', 'Maui': 'Hawaii', 'Kauai': 'Hawaii',
   'Big Island': 'Hawaii', 'Waikiki': 'Hawaii', 'Oahu': 'Hawaii',
@@ -3963,10 +3965,10 @@ export function SwipeablePlanningView({
               >
                 {dest}
                 {countrySelectedCount > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                     activeDestinationFilter === dest
-                      ? 'bg-white/20'
-                      : 'bg-primary/20 text-primary'
+                      ? 'bg-white text-primary'
+                      : 'bg-pink-500 text-white'
                   }`}>
                     {countrySelectedCount}
                   </span>
