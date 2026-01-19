@@ -57,7 +57,7 @@ export interface PlanningItem {
   id: string;
   name: string;
   description: string;
-  imageUrl: string;
+  imageUrl: string | null;
   category: 'activities' | 'restaurants' | 'cafes' | 'hotels' | 'flights' | 'transit';
   rating?: number;
   priceInfo?: string;
@@ -489,7 +489,7 @@ export function PlanningTripToggle({
                     <div className="flex gap-3 p-3">
                       <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                         <img
-                          src={item.imageUrl}
+                          src={item.imageUrl || `/api/placeholder/city/${encodeURIComponent(item.name)}`}
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
@@ -548,7 +548,7 @@ function PlanningItemCard({
           {/* Image */}
           <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
             <img
-              src={item.imageUrl}
+              src={item.imageUrl || `/api/placeholder/city/${encodeURIComponent(item.name)}`}
               alt={item.name}
               className="w-full h-full object-cover"
             />
@@ -645,7 +645,7 @@ function TripTimelineCard({
         <div className="flex gap-3">
           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={item.imageUrl}
+              src={item.imageUrl || `/api/placeholder/city/${encodeURIComponent(item.name)}`}
               alt={item.name}
               className="w-full h-full object-cover"
             />

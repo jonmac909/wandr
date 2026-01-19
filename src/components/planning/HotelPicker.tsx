@@ -136,7 +136,7 @@ export default function HotelPicker({ city, country, onSelectHotel, favoriteHote
               {/* Image */}
               <div className="aspect-[4/3] relative">
                 <img
-                  src={hotel.imageUrl}
+                  src={hotel.imageUrl || `/api/placeholder/city/${encodeURIComponent(hotel.name)}`}
                   alt={hotel.name}
                   className="w-full h-full object-cover"
                 />
@@ -186,7 +186,7 @@ export default function HotelPicker({ city, country, onSelectHotel, favoriteHote
               {/* Image carousel */}
               <div className="relative aspect-[16/10] bg-muted flex-shrink-0">
                 <img
-                  src={imageIndex === 0 ? selectedHotel.imageUrl : selectedHotel.images[imageIndex - 1]}
+                  src={(imageIndex === 0 ? selectedHotel.imageUrl : selectedHotel.images[imageIndex - 1]) || `/api/placeholder/city/${encodeURIComponent(selectedHotel.name)}`}
                   alt={selectedHotel.name}
                   className="w-full h-full object-cover"
                 />

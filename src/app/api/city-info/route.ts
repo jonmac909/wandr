@@ -16,6 +16,5 @@ export async function GET(request: NextRequest) {
   }
 
   // Return fallback data for cities not in our database
-  // No more Anthropic API calls - just use static/cached data
   return NextResponse.json(getCityInfo(city));
 }

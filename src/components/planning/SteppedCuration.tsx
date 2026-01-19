@@ -744,7 +744,7 @@ function SelectableCard({
     >
       {/* Background Image */}
       <img
-        src={listing.imageUrl}
+        src={listing.imageUrl || `/api/placeholder/city/${encodeURIComponent(listing.name)}`}
         alt={listing.name}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
@@ -816,7 +816,7 @@ function ListingDetailModal({
         {/* Hero Image */}
         <div className="relative h-48 w-full">
           <img
-            src={listing.imageUrl}
+            src={listing.imageUrl || `/api/placeholder/city/${encodeURIComponent(listing.name)}`}
             alt={listing.name}
             className="w-full h-full object-cover"
           />

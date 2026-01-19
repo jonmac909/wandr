@@ -281,7 +281,7 @@ export default function SavedPage() {
                       <div className="relative aspect-[4/3]">
                         {collection.imageUrl ? (
                           <img
-                            src={collection.imageUrl}
+                            src={collection.imageUrl || `/api/placeholder/city/${encodeURIComponent(collection.name || "place")}`}
                             alt={collection.name}
                             className="w-full h-full object-cover"
                           />
@@ -319,7 +319,7 @@ export default function SavedPage() {
                         <div className="relative aspect-[4/3]">
                           {place.imageUrl ? (
                             <img
-                              src={place.imageUrl}
+                              src={place.imageUrl || `/api/placeholder/city/${encodeURIComponent(place.name || "place")}`}
                               alt={place.name}
                               className="w-full h-full object-cover"
                             />

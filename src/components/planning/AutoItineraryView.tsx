@@ -1935,7 +1935,7 @@ export default function AutoItineraryView({
                             </div>
                             {activity.imageUrl && (
                               <img
-                                src={activity.imageUrl}
+                                src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
                                 alt=""
                                 className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                               />
@@ -2504,7 +2504,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       <div className="relative w-full h-48 rounded-xl overflow-hidden">
                         {activity.imageUrl ? (
                           <img
-                            src={activity.imageUrl}
+                            src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
                             alt={activity.name}
                             className="w-full h-full object-cover"
                           />
@@ -2811,7 +2811,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                           <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                             {activity.imageUrl ? (
                               <img
-                                src={activity.imageUrl}
+                                src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
                                 alt={activity.name}
                                 className="w-full h-full object-cover"
                               />
@@ -2985,7 +2985,7 @@ function ActivityCard({ activity, index, onTap, onDelete, showTravelTime = true 
           {/* Small image on right */}
           <div className="w-28 h-24 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={activity.imageUrl}
+              src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
               alt={activity.name}
               className="w-full h-full object-cover"
             />
@@ -3207,7 +3207,7 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
                     ))}
                   </div>
                 </div>
-                <img src={activity.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="w-16 h-16 rounded-lg object-cover" />
               </div>
 
               {/* Rich description / history section */}
@@ -3402,11 +3402,11 @@ function ActivityDetailDrawer({ activity, index, totalCount, onClose, onPrev, on
           {activeTab === 'photos' && (
             <div className="p-4">
               <div className="grid grid-cols-2 gap-2">
-                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover col-span-2" />
-                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
-                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
-                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
-                <img src={activity.imageUrl} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="rounded-lg aspect-square object-cover col-span-2" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="rounded-lg aspect-square object-cover" />
+                <img src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`} alt="" className="rounded-lg aspect-square object-cover" />
               </div>
               <p className="text-xs text-center text-muted-foreground mt-3">
                 Photos from Google Places

@@ -7,7 +7,7 @@ export interface HotelInfo {
   name: string;
   city: string;
   country: string;
-  imageUrl: string;
+  imageUrl: string | null;
   images: string[]; // Additional photos
   priceRange: '$' | '$$' | '$$$' | '$$$$';
   pricePerNight: string; // e.g., "$150-250"
@@ -214,7 +214,7 @@ function transformToHotelInfo(
   // Generate photo URLs using our proxy
   const imageUrl = place.photos?.[0]?.name
     ? `/api/places/photo?ref=${encodeURIComponent(place.photos[0].name)}`
-    : `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80`;
+    : null;
 
   const images = (place.photos || []).slice(1, 4).map(photo =>
     `/api/places/photo?ref=${encodeURIComponent(photo.name)}`
@@ -261,11 +261,8 @@ function generateFallbackHotels(city: string, country?: string): HotelInfo[] {
     name: `${city} ${t.type.charAt(0).toUpperCase() + t.type.slice(1)} ${idx + 1}`,
     city,
     country: country || '',
-    imageUrl: `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80&sig=${idx}`,
-    images: [
-      `https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80&sig=${idx}-1`,
-      `https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80&sig=${idx}-2`,
-    ],
+    imageUrl: null,
+    images: [],
     priceRange: t.priceRange,
     pricePerNight: t.pricePerNight,
     rating: 4.0 + Math.random() * 0.9,

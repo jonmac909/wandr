@@ -36,7 +36,6 @@ export interface CityInfo {
 }
 
 // Get city info from static data only (no API calls)
-// Previously used Anthropic API, now uses only pre-populated data
 export function getCityInfo(cityName: string, _country?: string): CityInfo {
   // Check if we have pre-populated data for this city
   if (POPULAR_CITY_INFO[cityName]) {

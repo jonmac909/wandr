@@ -358,7 +358,7 @@ function ActivityTimelineCard({
           {/* Image */}
           <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={activity.imageUrl}
+              src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
               alt={activity.name}
               className="w-full h-full object-cover"
             />
@@ -451,7 +451,7 @@ function ActivityPickerCard({
           {/* Image */}
           <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={activity.imageUrl}
+              src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
               alt={activity.name}
               className="w-full h-full object-cover"
             />

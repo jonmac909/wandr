@@ -2608,7 +2608,7 @@ export default function TripPage() {
                         <div className="flex-shrink-0 w-28">
                           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-rose-100 to-rose-200">
                             {places[0]?.imageUrl ? (
-                              <img src={places[0].imageUrl} alt="Places" className="w-full h-full object-cover" />
+                              <img src={places[0].imageUrl || `/api/placeholder/city/places`} alt="Places" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <MapPin className="w-8 h-8 text-rose-400" />
@@ -2631,7 +2631,7 @@ export default function TripPage() {
                         <div className="flex-shrink-0 w-28">
                           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-amber-200">
                             {food[0]?.imageUrl ? (
-                              <img src={food[0].imageUrl} alt="Food" className="w-full h-full object-cover" />
+                              <img src={food[0].imageUrl || `/api/placeholder/city/food`} alt="Food" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <UtensilsCrossed className="w-8 h-8 text-orange-400" />
@@ -2654,7 +2654,7 @@ export default function TripPage() {
                         <div className="flex-shrink-0 w-28">
                           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-green-200">
                             {activities[0]?.imageUrl ? (
-                              <img src={activities[0].imageUrl} alt="Activities" className="w-full h-full object-cover" />
+                              <img src={activities[0].imageUrl || `/api/placeholder/city/activities`} alt="Activities" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Ticket className="w-8 h-8 text-emerald-400" />
@@ -2677,7 +2677,7 @@ export default function TripPage() {
                         <div className="flex-shrink-0 w-28">
                           <div className="relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
                             {hotels[0]?.imageUrl ? (
-                              <img src={hotels[0].imageUrl} alt="Hotels" className="w-full h-full object-cover" />
+                              <img src={hotels[0].imageUrl || `/api/placeholder/city/hotels`} alt="Hotels" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Hotel className="w-8 h-8 text-blue-400" />
