@@ -1498,10 +1498,10 @@ export default function AutoItineraryView({
   // Get recommended nights for a city
   const getRecommendedNights = (city: string) => RECOMMENDED_NIGHTS[city] || DEFAULT_NIGHTS;
 
-  // City colors for timeline bar
+  // City colors for timeline bar - coral shades only
   const cityColors = [
-    'bg-rose-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500',
-    'bg-purple-500', 'bg-cyan-500', 'bg-orange-500', 'bg-pink-500'
+    'bg-primary', 'bg-primary/80', 'bg-primary/60', 'bg-primary/40',
+    'bg-rose-400', 'bg-rose-300', 'bg-red-400', 'bg-red-300'
   ];
 
   return (
@@ -1549,8 +1549,8 @@ export default function AutoItineraryView({
 
         {isBreakdownExpanded && (
           <div className="mt-2 p-3 bg-muted/30 rounded-xl space-y-3">
-            {/* City allocations - scrollable */}
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+            {/* City allocations */}
+            <div className="space-y-2">
               {allocations.map((alloc, allocIndex) => {
                 const isTransit = alloc.city.includes('Transit');
                 const colorClass = isTransit ? 'bg-gray-400' : cityColors[allocIndex % cityColors.length];
