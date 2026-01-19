@@ -3116,26 +3116,37 @@ export function SwipeablePlanningView({
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         e.preventDefault();
-                                        console.log('Route clicked:', route.id, 'stopoverCity:', stopoverCity, 'current routeOrder:', routeOrder);
+                                        console.log('=== ROUTE CLICK START ===');
+                                        console.log('route.id:', route.id);
+                                        console.log('route.connections:', route.connections);
+                                        console.log('stopoverCity:', stopoverCity);
+                                        console.log('current routeOrder:', JSON.stringify(routeOrder));
+                                        
                                         setSelectedRouteId(route.id);
+                                        
                                         // Add stopover city when selected
+                                        console.log('stopoverCity truthy check:', !!stopoverCity);
                                         if (stopoverCity) {
-                                          // Force add even if seemingly already there (state might be stale)
+                                          console.log('Calling setRouteOrder with stopoverCity:', stopoverCity);
                                           setRouteOrder(prev => {
-                                            console.log('setRouteOrder called, prev:', prev, 'adding:', stopoverCity);
-                                            if (prev.includes(stopoverCity)) {
-                                              console.log('City already in route, not adding');
+                                            console.log('setRouteOrder callback - prev:', JSON.stringify(prev));
+                                            const alreadyInRoute = prev.includes(stopoverCity);
+                                            console.log('Already in route?', alreadyInRoute);
+                                            if (alreadyInRoute) {
                                               return prev;
                                             }
                                             const newOrder = [stopoverCity, ...prev];
-                                            console.log('New routeOrder:', newOrder);
+                                            console.log('New routeOrder:', JSON.stringify(newOrder));
                                             return newOrder;
                                           });
                                           setSelectedCities(prev => {
                                             if (prev.includes(stopoverCity)) return prev;
                                             return [...prev, stopoverCity];
                                           });
+                                        } else {
+                                          console.log('stopoverCity is falsy, not adding');
                                         }
+                                        console.log('=== ROUTE CLICK END ===');
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
