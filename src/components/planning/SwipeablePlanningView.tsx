@@ -4007,7 +4007,7 @@ export function SwipeablePlanningView({
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                     activeDestinationFilter === dest
                       ? 'bg-white text-primary'
-                      : 'bg-pink-500 text-white'
+                      : 'bg-red-500 text-white'
                   }`}>
                     {countrySelectedCount}
                   </span>

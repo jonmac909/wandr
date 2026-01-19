@@ -177,24 +177,18 @@ async function fetchCityImage(city: string, country: string): Promise<string> {
   }
 }
 
-// Helper to fetch cities for a destination from Google Places API
-async function fetchCitiesForDestination(destination: string): Promise<Array<{ name: string; imageUrl: string }>> {
-  try {
-    const response = await fetch('/api/explore/recommendations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ city: destination, category: 'attractions' }),
-    });
-    if (!response.ok) return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
-    const data = await response.json();
-    const cities = (data.places || []).slice(0, 15).map((p: { name: string; imageUrl?: string }) => ({
-      name: p.name,
-      imageUrl: p.imageUrl || `/api/placeholder/city/${encodeURIComponent(p.name)}`,
-    }));
-    return cities.length > 0 ? cities : [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
-  } catch {
-    return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
-  }
+// Import curated city list for destinations
+import { getCitiesForDestination } from '@/lib/geo/destination-cities';
+
+// Helper to get cities with images for a destination
+async function fetchCitiesWithImages(destination: string): Promise<Array<{ name: string; imageUrl: string }>> {
+  const cityNames = getCitiesForDestination(destination);
+  
+  // Return cities with placeholder images initially - they'll be fetched dynamically by components
+  return cityNames.map(name => ({
+    name,
+    imageUrl: `/api/placeholder/city/${encodeURIComponent(name)}`,
+  }));
 }
 
 export default function PlanPage() {
@@ -728,7 +722,7 @@ function PlanPageContent() {
       // Generate city items for planning with real images from Google Places API
       const newItems: PlanningItem[] = [];
       for (const dest of destinations) {
-        const cities = await fetchCitiesForDestination(dest);
+        const cities = await fetchCitiesWithImages(dest);
         cities.forEach((city, idx) => {
           newItems.push({
             id: `city-${dest}-${idx}`,
@@ -1330,7 +1324,7 @@ function PlanPageContent() {
               if (category === 'cities') {
                 const newItems: PlanningItem[] = [];
                 for (const dest of destinations) {
-                  const cities = await fetchCitiesForDestination(dest);
+                  const cities = await fetchCitiesWithImages(dest);
                   cities.forEach((city, idx) => {
                     newItems.push({
                       id: `city-${dest}-${idx}`,
