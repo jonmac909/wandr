@@ -36,10 +36,12 @@ npx playwright test tests/homepage.spec.ts  # Run single test file
 - **UI:** React 19, Tailwind CSS 4, shadcn/ui (Radix primitives)
 - **State:** Zustand for questionnaire flow
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
-- **APIs:** Google Places API for activities/restaurants/images (cached in Supabase)
+- **APIs:** Google Places API only (no Anthropic, no Wikipedia, no Pexels/Unsplash)
 - **Maps:** Leaflet, OpenStreetMap embeds
 - **Icons:** lucide-react
 - **Deployment:** Cloudflare Workers via OpenNext
+
+**Important:** This app uses ONLY Google Places API for external data. No AI services (Anthropic removed), no external image services (Pexels/Unsplash removed).
 
 ## Environment Variables
 
@@ -106,16 +108,23 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`useTrip(tripId)`** - Load single trip with `{ trip, loading, error, refresh, updateTrip, deleteTrip }`
 
 ### API Routes (`src/app/api/`)
-- **`/api/places/activities`** - GET: Activities/restaurants via Google Places (with Supabase caching)
-- **`/api/places/photo`** - GET: Place photos via Google Places (with Supabase storage caching)
-- **`/api/city-info`** - GET: City metadata (best time, crowd level, highlights)
-- **`/api/city-image`** - GET: City images via Google Places (with Supabase caching)
-- **`/api/site-image`** - GET: Site/attraction images via Google Places (with Supabase caching)
-- **`/api/generate-itinerary`** - POST: Itinerary generation from Google Places data
-- **`/api/explore/recommendations`** - POST: Place recommendations for cities
-- **`/api/hotels`** - GET: Hotel search
-- **`/api/places/restaurants`** - GET: Restaurant search via Google Places
+
+**Active Endpoints (Google Places powered):**
+- **`/api/city-image`** - GET: City images via Google Places (multiple search strategies, Supabase caching)
+- **`/api/site-image`** - GET: Site/attraction images via Google Places (Supabase caching)
+- **`/api/places/activities`** - GET: Activities via Google Places (Supabase caching)
+- **`/api/places/restaurants`** - GET: Restaurants via Google Places (Supabase caching)
+- **`/api/places/photo`** - GET: Place photos via Google Places
 - **`/api/places/details`** - GET: Place details
+- **`/api/city-info`** - GET: City metadata (static data, no external API)
+- **`/api/generate-itinerary`** - POST: Itinerary generation from Google Places data
+- **`/api/explore/recommendations`** - POST: Place recommendations via Google Places
+- **`/api/hotels`** - GET: Hotel search
+- **`/api/placeholder/city/[name]`** - GET: SVG gradient placeholder (fallback only)
+
+**Disabled Endpoints (AI features removed):**
+- **`/api/parse-ticket`** - Returns 503 (was Anthropic-powered OCR)
+- **`/api/place-history`** - Returns 503 (was Anthropic-powered history generation)
 
 ### Google Places API Key Pattern
 All Google Places API routes use this pattern for environment variable lookup:
@@ -131,7 +140,34 @@ Images from Google Places are cached in Supabase to reduce API costs:
 - **Database tables**:
   - `cached_cities` - city images and metadata
   - `cached_places` - place/activity images and Google Places data
+  - `api_cache` - generic cache for API responses (recommendations, etc.)
 - Cache flow: Check Supabase → If miss, fetch from Google → Store in Supabase → Return URL
+- Cache TTLs: City images (365 days), City info (7 days), Restaurants (1 day)
+
+### Image System (Google Places Only)
+**NO external image services** - All images come from Google Places API:
+- ❌ No Pexels, Unsplash, Picsum URLs anywhere in codebase
+- ✅ All images use Google Places API with Supabase caching
+
+**Image search strategies** (in order):
+1. **New Places API** (`places.googleapis.com/v1/places:searchText`) - primary
+2. **Legacy Text Search** with multiple queries:
+   - `{city} {country}`
+   - `{city} tourist attraction`
+   - `{city} landmark`
+   - `{city} downtown`
+3. **Placeholder SVG** - only as last resort fallback
+
+**Image interfaces allow null:**
+```typescript
+interface HotelInfo { imageUrl: string | null; }
+interface PlanningItem { imageUrl: string | null; }
+interface GeneratedActivity { imageUrl?: string | null; }
+```
+
+**Components handle null images:**
+- Use `CityImage` component (handles null gracefully with gradient placeholder)
+- Or inline fallback: `src={imageUrl || \`/api/placeholder/city/\${name}\`}`
 
 ### Booking URLs (`src/lib/booking/urls.ts`)
 Generates booking links based on activity category:
@@ -163,7 +199,7 @@ Trip page overview shows countries/cities count:
 - **NEVER use `npm run dev`** - Do not start the dev server. It hogs resources (CPU/RAM) and blocks builds. User tests on live site only.
 - **NEVER use `npm run deploy`** - The local `@opennextjs/cloudflare build` hangs. Don't waste time on it.
 - **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
-- **Live testing site: https://trippified.jon-c95.workers.dev/** - User tests here, NOT localhost
+- **Live testing site: https://trippified.com/** - User tests here, NOT localhost
 - **To deploy: just `git push`** - GitHub Actions auto-deploys to Cloudflare Workers. That's it.
 - **Build issues with Playwright**: `tsconfig.json` excludes `playwright.config.ts` and `tests/` to prevent build errors
 - **Kill resource hogs** - If things are slow, check for background processes with `ps aux | grep -E "node|npm"`. Kill any `npm run dev` or `next dev` processes immediately with `pkill -f "npm run dev" && pkill -f "next dev"`. Always tell the user if something is hogging resources.
@@ -181,7 +217,13 @@ GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `ma
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 
-**Playwright tests**: Run against deployed site to verify. Tests check homepage and explore features.
+**Playwright tests**: Run against deployed site to verify.
+- `tests/homepage.spec.ts` - Homepage loading and navigation
+- `tests/explore-api.spec.ts` - Recommendations API tests
+- `tests/core-api.spec.ts` - City image, site image, places APIs
+- `tests/itinerary.spec.ts` - Planning and itinerary flows
+
+Run tests: `npx playwright test` or `npm run test`
 
 ## Key Patterns
 
