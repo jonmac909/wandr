@@ -3053,10 +3053,9 @@ export function SwipeablePlanningView({
                 const transportColor = 'text-gray-700';
 
                 return (
-                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4">
+                  <div className="ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
                     <div className="flex items-start gap-2">
-                      <div className="-ml-[1.15rem]" />
-                      <div className="flex-1 py-1">
+                      <div className="flex-1">
                         {/* Clickable transport summary */}
                         <button
                           onClick={() => setExpandedTransport(isExpanded ? null : -1)}
@@ -3326,9 +3325,9 @@ export function SwipeablePlanningView({
                   const transportColor = 'text-gray-700';
 
                   return (
-                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4">
+                    <div className="group/connector relative ml-[0.45rem] border-l-2 border-dotted border-gray-300 pl-4 py-2">
                       {/* Insert city button - centered, shows on hover */}
-                      <div className="absolute -top-1 left-0 right-0 flex justify-center z-10">
+                      <div className="absolute -top-3 left-0 right-0 flex justify-center z-10">
                         <button
                           onClick={() => setInsertAtIndex(insertAtIndex === index + 1 ? null : index + 1)}
                           className="w-6 h-6 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center opacity-0 group-hover/connector:opacity-100 transition-all text-muted-foreground"
@@ -3363,7 +3362,7 @@ export function SwipeablePlanningView({
                         </div>
                       )}
                       <div className="flex items-start gap-2">
-                        <div className="flex-1 py-1">
+                        <div className="flex-1">
                           {/* Clickable transport summary */}
                           <button
                             onClick={() => setExpandedTransport(isExpanded ? null : index)}
