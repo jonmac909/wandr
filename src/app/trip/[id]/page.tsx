@@ -2270,16 +2270,16 @@ export default function TripPage() {
                       <span className="text-sm text-muted-foreground">{editTripTypes.length} selected</span>
                     )}
                   </div>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                     {TRIP_TYPE_CATEGORIES.map((category) => (
                       <div key={category.label}>
-                        <div className="text-xs font-semibold text-muted-foreground mb-2">{category.label}</div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="text-xs font-semibold text-muted-foreground mb-1.5">{category.label}</div>
+                        <div className="flex flex-wrap gap-1.5">
                           {category.types.map(({ id, label }) => (
                             <button
                               key={id}
                               onClick={() => toggleTripType(id)}
-                              className={`px-3 py-1.5 text-xs rounded-full border transition-all ${
+                              className={`px-2.5 py-1 text-xs rounded-full border transition-all ${
                                 editTripTypes.includes(id)
                                   ? 'bg-primary text-primary-foreground border-primary'
                                   : 'border-muted hover:border-primary/30'
