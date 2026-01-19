@@ -207,12 +207,11 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
 
   // Fetch city images from API (which uses Supabase cache + Google Places)
   useEffect(() => {
-    // Fetch seasonal destination images using landmark for establishing shots
+    // Fetch seasonal destination images using city name and country
     const allDestinations = SEASONS.flatMap(s => s.destinations);
     allDestinations.forEach(async (dest) => {
       try {
-        // Use landmark for better establishing shots
-        const res = await fetch(`/api/city-image?city=${encodeURIComponent(dest.landmark)}`);
+        const res = await fetch(`/api/city-image?city=${encodeURIComponent(dest.destination)}&country=${encodeURIComponent(dest.country)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.imageUrl) {
@@ -227,7 +226,7 @@ export function DestinationInspiration({ trips }: DestinationInspirationProps) {
     // Fetch images for places to avoid
     PLACES_TO_AVOID.forEach(async (place) => {
       try {
-        const res = await fetch(`/api/city-image?city=${encodeURIComponent(place.landmark)}`);
+        const res = await fetch(`/api/city-image?city=${encodeURIComponent(place.destination)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.imageUrl) {

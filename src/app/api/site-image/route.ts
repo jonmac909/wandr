@@ -128,13 +128,13 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 4. No image found
-  console.error(`[site-image] Failed to get image for ${site}. API key configured: ${!!GOOGLE_API_KEY}`);
+  // 4. No image found - return placeholder instead of 404
+  console.log(`[site-image] No Google image for ${site}, returning placeholder`);
+
+  const placeholderUrl = `/api/placeholder/city/${encodeURIComponent(site)}`;
 
   return NextResponse.json({
-    error: 'Could not find image for site',
-    site,
-    city,
-    apiKeyConfigured: !!GOOGLE_API_KEY
-  }, { status: 404 });
+    imageUrl: placeholderUrl,
+    source: 'placeholder'
+  });
 }
