@@ -849,10 +849,58 @@ export default function AutoItineraryView({
 
     const totalDaysNeeded = dayNum - 1;
 
-    // If days array is empty OR day count changed, regenerate with transport
-    if (days.length === 0 || days.length !== totalDaysNeeded) {
-      debug('[AutoItinerary] Day count changed, regenerating days with transport');
+    // If days array is empty, generate fresh
+    if (days.length === 0) {
+      debug('[AutoItinerary] No days, generating fresh with transport');
       setDays(generateEmptyDays(allocations, cities, 'Kelowna'));
+      return;
+    }
+
+    // If day count changed, smart merge: preserve activities, add/remove days as needed
+    if (days.length !== totalDaysNeeded) {
+      debug('[AutoItinerary] Day count changed from', days.length, 'to', totalDaysNeeded);
+      
+      // Generate the new structure with transport
+      const newDays = generateEmptyDays(allocations, cities, 'Kelowna');
+      
+      // Preserve existing non-transport activities by city
+      const activitiesByCity: Record<string, GeneratedActivity[]> = {};
+      const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'drive', 'transit'];
+      
+      for (const day of days) {
+        if (!day.city.includes('Transit') && day.activities.length > 0) {
+          if (!activitiesByCity[day.city]) {
+            activitiesByCity[day.city] = [];
+          }
+          const nonTransport = day.activities.filter(a => !TRANSPORT_TYPES.includes(a.type));
+          activitiesByCity[day.city].push(...nonTransport);
+        }
+      }
+      
+      // Merge: keep transport from new days, add preserved activities
+      const placedCountByCity: Record<string, number> = {};
+      const mergedDays = newDays.map(newDay => {
+        if (newDay.city.includes('Transit')) {
+          // Transit day - keep as is (has transport activity)
+          return newDay;
+        }
+        
+        // Non-transit day - merge preserved activities
+        const cityActivities = activitiesByCity[newDay.city] || [];
+        const daysForCity = newDays.filter(d => d.city === newDay.city).length;
+        const activitiesPerDay = Math.ceil(cityActivities.length / Math.max(daysForCity, 1));
+        const startIdx = placedCountByCity[newDay.city] || 0;
+        const endIdx = Math.min(startIdx + activitiesPerDay, cityActivities.length);
+        const dayActivities = cityActivities.slice(startIdx, endIdx);
+        placedCountByCity[newDay.city] = endIdx;
+        
+        return {
+          ...newDay,
+          activities: [...newDay.activities, ...dayActivities],
+        };
+      });
+      
+      setDays(mergedDays);
       return;
     }
 
