@@ -308,6 +308,12 @@ export default function TripPage() {
   // Trip Hub - Saved Collections state
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
   const [savedExpanded, setSavedExpanded] = useState(false);
+  const [collectionImages, setCollectionImages] = useState<{
+    places: string | null;
+    food: string | null;
+    activities: string | null;
+    hotels: string | null;
+  }>({ places: null, food: null, activities: null, hotels: null });
 
   // Get all trips for the drawer
   const { trips, refresh: refreshTrips } = useDashboardData();
@@ -419,6 +425,45 @@ export default function TripPage() {
 
     loadTrip();
   }, [tripId]);
+
+  // Fetch collection images when trip loads
+  useEffect(() => {
+    if (!tripDna) return;
+    
+    const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
+    
+    async function fetchCollectionImages() {
+      const searches = [
+        { key: 'places', query: `${destination} landmarks` },
+        { key: 'food', query: `${destination} food cuisine` },
+        { key: 'activities', query: `${destination} activities tours` },
+        { key: 'hotels', query: `${destination} hotels resort` },
+      ];
+      
+      const results: Record<string, string | null> = {};
+      
+      await Promise.all(searches.map(async ({ key, query }) => {
+        try {
+          const res = await fetch(`/api/site-image?site=${encodeURIComponent(query)}`);
+          if (res.ok) {
+            const data = await res.json();
+            results[key] = data.imageUrl || null;
+          }
+        } catch {
+          results[key] = null;
+        }
+      }));
+      
+      setCollectionImages({
+        places: results.places || null,
+        food: results.food || null,
+        activities: results.activities || null,
+        hotels: results.hotels || null,
+      });
+    }
+    
+    fetchCollectionImages();
+  }, [tripDna]);
 
   // Set view mode based on whether trip has a generated itinerary
   useEffect(() => {
@@ -2457,12 +2502,11 @@ export default function TripPage() {
                     {/* Places */}
                     {(() => {
                       const places = savedPlaces.filter(p => p.type === 'attraction' || p.type === 'activity');
-                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
                           <div className="aspect-square rounded-xl overflow-hidden">
                             <img 
-                              src={places[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' landmarks')}`} 
+                              src={places[0]?.imageUrl || collectionImages.places || `/api/placeholder/city/places`} 
                               alt="Places" 
                               className="w-full h-full object-cover"
                               onError={(e) => { e.currentTarget.src = `/api/placeholder/city/places`; }}
@@ -2477,12 +2521,11 @@ export default function TripPage() {
                     {/* Food */}
                     {(() => {
                       const food = savedPlaces.filter(p => p.type === 'restaurant' || p.type === 'cafe');
-                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
                           <div className="aspect-square rounded-xl overflow-hidden">
                             <img 
-                              src={food[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' food cuisine')}`} 
+                              src={food[0]?.imageUrl || collectionImages.food || `/api/placeholder/city/food`} 
                               alt="Food" 
                               className="w-full h-full object-cover"
                               onError={(e) => { e.currentTarget.src = `/api/placeholder/city/food`; }}
@@ -2497,12 +2540,11 @@ export default function TripPage() {
                     {/* Activities */}
                     {(() => {
                       const activities = savedPlaces.filter(p => p.type === 'activity' || p.type === 'nightlife');
-                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
                           <div className="aspect-square rounded-xl overflow-hidden">
                             <img 
-                              src={activities[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' activities tours')}`} 
+                              src={activities[0]?.imageUrl || collectionImages.activities || `/api/placeholder/city/activities`} 
                               alt="Activities" 
                               className="w-full h-full object-cover"
                               onError={(e) => { e.currentTarget.src = `/api/placeholder/city/activities`; }}
@@ -2517,12 +2559,11 @@ export default function TripPage() {
                     {/* Hotels */}
                     {(() => {
                       const hotels = savedPlaces.filter(p => p.type === 'hotel');
-                      const destination = tripDna?.interests?.destination || tripDna?.interests?.destinations?.[0] || 'travel';
                       return (
                         <div className="flex-shrink-0 w-28">
                           <div className="aspect-square rounded-xl overflow-hidden">
                             <img 
-                              src={hotels[0]?.imageUrl || `/api/site-image?site=${encodeURIComponent(destination + ' hotels resort')}`} 
+                              src={hotels[0]?.imageUrl || collectionImages.hotels || `/api/placeholder/city/hotels`} 
                               alt="Hotels" 
                               className="w-full h-full object-cover"
                               onError={(e) => { e.currentTarget.src = `/api/placeholder/city/hotels`; }}
