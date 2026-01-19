@@ -1385,16 +1385,27 @@ export function SwipeablePlanningView({
         onItemsChange(existingItems);
       }
 
-      // Pre-populate selected IDs and cities
+      // Pre-populate selected IDs and cities from favorited items
       const ids = new Set<string>();
+      const favoritedCities: string[] = [];
       existingItems.forEach(item => {
-        if (item.isFavorited) ids.add(item.id);
+        if (item.isFavorited) {
+          ids.add(item.id);
+          // If it's a city item, add to selectedCities
+          if (item.tags?.includes('cities')) {
+            favoritedCities.push(item.name);
+          }
+        }
       });
       setSelectedIds(ids);
-
-      // Extract cities from itinerary
-      const cities = extractCitiesFromItinerary(itinerary);
-      setSelectedCities(cities);
+      
+      // Use favorited cities if any, otherwise extract from itinerary
+      if (favoritedCities.length > 0) {
+        setSelectedCities(favoritedCities);
+      } else {
+        const cities = extractCitiesFromItinerary(itinerary);
+        setSelectedCities(cities);
+      }
 
       setInitialized(true);
     }
@@ -2097,12 +2108,17 @@ export function SwipeablePlanningView({
 
   // Get country for a city - use CITY_TO_COUNTRY mapping first, then fall back to tags
   const getCityCountry = (cityName: string): string | undefined => {
-    // First check the static mapping
+    // First check the static mapping with exact name
     if (CITY_TO_COUNTRY[cityName]) {
       return CITY_TO_COUNTRY[cityName];
     }
+    // Try with just the city part (before comma) for names like "Bangkok, Thailand"
+    const cityOnly = cityName.split(',')[0].trim();
+    if (cityOnly !== cityName && CITY_TO_COUNTRY[cityOnly]) {
+      return CITY_TO_COUNTRY[cityOnly];
+    }
     // Fall back to tags
-    const cityItem = items.find(i => i.name === cityName);
+    const cityItem = items.find(i => i.name === cityName || i.name === cityOnly);
     return cityItem?.tags?.find(t => destinations.includes(t));
   };
 
