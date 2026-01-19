@@ -2029,6 +2029,16 @@ export default function TripPage() {
       const newSection = expandedSection === section ? null : section;
       setExpandedSection(newSection);
 
+      // Scroll to section when expanding
+      if (newSection) {
+        setTimeout(() => {
+          const element = document.getElementById(`section-${newSection}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+
       // Load cities when cities section expands
       if (newSection === 'cities' && planningItems.length === 0) {
         const loadCities = async () => {
@@ -2092,10 +2102,11 @@ export default function TripPage() {
           <div className="space-y-3">
             {/* Dates Section */}
             <TripHubSection
+              id="section-dates"
               icon={<Calendar className="w-5 h-5" />}
               title="Dates"
               status={dateDisplay}
-              buttonText={hasDates ? 'Edit' : 'Set'}
+              buttonText="Edit"
               onButtonClick={() => toggleSection('dates')}
               expanded={expandedSection === 'dates'}
               onToggle={() => toggleSection('dates')}
@@ -2204,10 +2215,11 @@ export default function TripPage() {
 
             {/* Preferences Section */}
             <TripHubSection
+              id="section-preferences"
               icon={<Heart className="w-5 h-5" />}
               title="Preferences"
               status={hasPreferences ? `${budgetLevel || ''} ${pace ? `• ${pace}` : ''}`.trim() : 'Not set'}
-              buttonText={hasPreferences ? 'Edit' : 'Set'}
+              buttonText="Edit"
               onButtonClick={() => toggleSection('preferences')}
               expanded={expandedSection === 'preferences'}
               onToggle={() => toggleSection('preferences')}
@@ -2408,10 +2420,11 @@ export default function TripPage() {
 
             {/* Cities Section - using SwipeablePlanningView picking phase */}
             <TripHubSection
+              id="section-cities"
               icon={<MapPin className="w-5 h-5" />}
               title="Cities"
               status={selectedCities.length > 0 ? `${selectedCities.length} cities selected` : `Exploring ${destinations.join(', ')}`}
-              buttonText={selectedCities.length > 0 ? 'Edit' : 'Set'}
+              buttonText="Edit"
               onButtonClick={() => toggleSection('cities')}
               expanded={expandedSection === 'cities'}
               onToggle={() => toggleSection('cities')}
@@ -2481,10 +2494,11 @@ export default function TripPage() {
 
             {/* Route Section - using SwipeablePlanningView */}
             <TripHubSection
+              id="section-route"
               icon={<Map className="w-5 h-5" />}
               title="Route"
               status={routeOrder.length > 0 ? routeOrder.join(' → ') : 'Route not set'}
-              buttonText={routeOrder.length > 0 ? 'Edit' : 'Set'}
+              buttonText="Edit"
               onButtonClick={() => toggleSection('route')}
               expanded={expandedSection === 'route'}
               onToggle={() => toggleSection('route')}
@@ -2511,10 +2525,11 @@ export default function TripPage() {
 
             {/* Itinerary Section - using SwipeablePlanningView */}
             <TripHubSection
+              id="section-itinerary"
               icon={<CalendarDays className="w-5 h-5" />}
               title="Itinerary"
               status={hasDates ? `${duration} days` : 'Not started'}
-              buttonText="Set"
+              buttonText="Edit"
               onButtonClick={() => toggleSection('itinerary')}
               expanded={expandedSection === 'itinerary'}
               onToggle={() => toggleSection('itinerary')}

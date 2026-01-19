@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface TripHubSectionProps {
+  id?: string;
   icon: ReactNode;
   title: string;
   status: string;
@@ -18,6 +19,7 @@ interface TripHubSectionProps {
 }
 
 export function TripHubSection({
+  id,
   icon,
   title,
   status,
@@ -28,7 +30,7 @@ export function TripHubSection({
   children,
 }: TripHubSectionProps) {
   return (
-    <Card className={cn(
+    <Card id={id} className={cn(
       "transition-all duration-200",
       expanded && "ring-1 ring-primary/20"
     )}>
@@ -54,8 +56,7 @@ export function TripHubSection({
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
-              variant={expanded ? "default" : "outline"}
-              className="h-8 px-4"
+              className="h-8 px-4 bg-orange-500 hover:bg-orange-600 text-white border-0"
               onClick={(e) => {
                 e.stopPropagation();
                 onButtonClick();

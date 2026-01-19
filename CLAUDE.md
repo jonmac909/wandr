@@ -36,7 +36,7 @@ npx playwright test tests/homepage.spec.ts  # Run single test file
 - **UI:** React 19, Tailwind CSS 4, shadcn/ui (Radix primitives)
 - **State:** Zustand for questionnaire flow
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
-- **APIs:** Google Places API for activities/restaurants, Pexels for images
+- **APIs:** Google Places API for activities/restaurants/images (cached in Supabase)
 - **Maps:** Leaflet, OpenStreetMap embeds
 - **Icons:** lucide-react
 - **Deployment:** Cloudflare Workers via OpenNext
@@ -107,13 +107,31 @@ TimeBlock { activity: Activity, priority, isLocked }
 
 ### API Routes (`src/app/api/`)
 - **`/api/places/activities`** - GET: Activities/restaurants via Google Places (with Supabase caching)
+- **`/api/places/photo`** - GET: Place photos via Google Places (with Supabase storage caching)
 - **`/api/city-info`** - GET: City metadata (best time, crowd level, highlights)
-- **`/api/city-image`** - GET: City images via Pexels API
-- **`/api/generate-itinerary`** - POST: Itinerary generation from TripDNA
+- **`/api/city-image`** - GET: City images via Google Places (with Supabase caching)
+- **`/api/site-image`** - GET: Site/attraction images via Google Places (with Supabase caching)
+- **`/api/generate-itinerary`** - POST: Itinerary generation from Google Places data
 - **`/api/explore/recommendations`** - POST: Place recommendations for cities
 - **`/api/hotels`** - GET: Hotel search
 - **`/api/places/restaurants`** - GET: Restaurant search via Google Places
 - **`/api/places/details`** - GET: Place details
+
+### Google Places API Key Pattern
+All Google Places API routes use this pattern for environment variable lookup:
+```typescript
+// Server-side env var first, fallback to NEXT_PUBLIC_ for backwards compatibility
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+```
+**Important**: On Cloudflare, set `GOOGLE_MAPS_API_KEY` (not the NEXT_PUBLIC_ version) in the dashboard.
+
+### Supabase Image Caching
+Images from Google Places are cached in Supabase to reduce API costs:
+- **Storage bucket**: `place-images` - stores actual image files
+- **Database tables**:
+  - `cached_cities` - city images and metadata
+  - `cached_places` - place/activity images and Google Places data
+- Cache flow: Check Supabase → If miss, fetch from Google → Store in Supabase → Return URL
 
 ### Booking URLs (`src/lib/booking/urls.ts`)
 Generates booking links based on activity category:
@@ -157,11 +175,13 @@ GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `ma
 **Required GitHub secrets** (Settings → Secrets → Actions):
 - `CLOUDFLARE_API_TOKEN` - Get from Cloudflare dashboard → API Tokens
 - `CLOUDFLARE_ACCOUNT_ID` - Get from Cloudflare dashboard → Overview sidebar
-- `ANTHROPIC_API_KEY` - Claude API key for chatbot (also set directly in Cloudflare via `wrangler secret put`)
 
-**Playwright tests**: Run against deployed site to verify. Tests check homepage, chat API, and explore features.
+**Cloudflare environment variables** (Dashboard → Workers → Settings → Variables):
+- `GOOGLE_MAPS_API_KEY` - Google Places API key (server-side)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 
-**Cloudflare secrets**: Managed via `wrangler secret put ANTHROPIC_API_KEY`. Use this for immediate updates without redeployment.
+**Playwright tests**: Run against deployed site to verify. Tests check homepage and explore features.
 
 ## Key Patterns
 
