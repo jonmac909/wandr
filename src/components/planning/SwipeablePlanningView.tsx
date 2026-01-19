@@ -3109,12 +3109,13 @@ export function SwipeablePlanningView({
                                       onClick={() => {
                                         setSelectedRouteId(route.id);
                                         // Add stopover city when selected
-                                        if (stopoverCity) {
-                                          setRouteOrder(prev => prev.includes(stopoverCity) ? prev : [stopoverCity, ...prev]);
-                                          setSelectedCities(prev => prev.includes(stopoverCity) ? prev : [...prev, stopoverCity]);
+                                        if (stopoverCity && !routeOrder.includes(stopoverCity)) {
+                                          console.log('Adding stopover city:', stopoverCity);
+                                          setRouteOrder([stopoverCity, ...routeOrder]);
+                                          if (!selectedCities.includes(stopoverCity)) {
+                                            setSelectedCities([...selectedCities, stopoverCity]);
+                                          }
                                         }
-                                        // Collapse the dropdown after selection
-                                        setExpandedTransport(null);
                                       }}
                                       className={`w-full text-left p-2 rounded-lg border transition-all ${
                                         isSelected
