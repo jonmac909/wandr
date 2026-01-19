@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, Plane, Hotel, Camera, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { tripDb } from '@/lib/db/indexed-db';
-import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import { cn } from '@/lib/utils';
 
 interface FeaturedTripCardProps {
@@ -121,7 +120,22 @@ function getFlagAndCountry(location: string): { country: string; flag: string } 
 
 export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) {
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [fetchedImageUrl, setFetchedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get destination for image fetch (must be before any early returns)
+  const destination = trip?.itinerary?.meta?.destination ||
+    trip?.itinerary?.route?.bases?.[0]?.location?.split(',')[0] || '';
+  const photoQuery = destination.split(',')[0]?.trim() || '';
+
+  // Fetch image from API
+  useEffect(() => {
+    if (!photoQuery || customImage || trip?.itinerary?.meta?.coverImage) return;
+    fetch(`/api/city-image?city=${encodeURIComponent(photoQuery)}`)
+      .then(res => res.json())
+      .then(data => { if (data.imageUrl) setFetchedImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [photoQuery, customImage, trip?.itinerary?.meta?.coverImage]);
 
   // Calculate trip stats
   const stats = useMemo(() => {
@@ -192,11 +206,7 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
 
   const { itinerary } = trip;
   const title = itinerary.meta?.title || 'Untitled Trip';
-  const destination = itinerary.meta?.destination ||
-    itinerary.route?.bases?.[0]?.location?.split(',')[0] || '';
-  const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const defaultImageUrl = getDestinationImage(photoQuery, 600, 400);
-  const imageUrl = customImage || trip.itinerary?.meta?.coverImage || defaultImageUrl;
+  const imageUrl = customImage || trip.itinerary?.meta?.coverImage || fetchedImageUrl;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -256,11 +266,17 @@ export function FeaturedTripCard({ trip, onTripUpdate }: FeaturedTripCardProps) 
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md">
         {/* Hero image with gradient overlay - rounded square */}
         <div className="relative aspect-square max-h-48 overflow-hidden rounded-xl m-3 mb-0">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-xl"
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-xl"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center rounded-xl">
+              <span className="text-4xl">✈️</span>
+            </div>
+          )}
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-xl" />
 

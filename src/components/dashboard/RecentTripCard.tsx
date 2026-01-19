@@ -1,10 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, ChevronRight } from 'lucide-react';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { cn } from '@/lib/utils';
-import { getDestinationImage } from '@/lib/dashboard/image-utils';
 
 interface RecentTripCardProps {
   trip: StoredTrip;
@@ -12,6 +12,8 @@ interface RecentTripCardProps {
 }
 
 export function RecentTripCard({ trip, className }: RecentTripCardProps) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const title = trip.itinerary?.meta?.title || trip.tripDna?.interests?.destination || 'Untitled Trip';
   const destination = trip.itinerary?.meta?.destination ||
     trip.itinerary?.route?.bases?.[0]?.location ||
@@ -24,7 +26,14 @@ export function RecentTripCard({ trip, className }: RecentTripCardProps) {
 
   // Use destination for thumbnail
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const imageUrl = getDestinationImage(photoQuery, 128, 128);
+
+  useEffect(() => {
+    if (!photoQuery) return;
+    fetch(`/api/city-image?city=${encodeURIComponent(photoQuery)}`)
+      .then(res => res.json())
+      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [photoQuery]);
 
   return (
     <Link href={`/trip/${trip.id}`}>
@@ -36,11 +45,17 @@ export function RecentTripCard({ trip, className }: RecentTripCardProps) {
       >
         {/* Thumbnail */}
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
+              <span className="text-2xl">✈️</span>
+            </div>
+          )}
         </div>
 
         {/* Info */}

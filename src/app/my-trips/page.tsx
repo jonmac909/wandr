@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useTripStats } from '@/hooks/useTripStats';
 import { BucketList, DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
-import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
 
 export default function MyTripsPage() {
@@ -199,6 +198,7 @@ export default function MyTripsPage() {
 
 function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const title = trip.itinerary?.meta?.title ||
     trip.tripDna?.interests?.destination ||
@@ -211,7 +211,14 @@ function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }
 
   const isDraft = trip.status === 'draft' || !trip.itinerary;
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const imageUrl = getDestinationImage(photoQuery, 200, 200);
+
+  useEffect(() => {
+    if (!photoQuery) return;
+    fetch(`/api/city-image?city=${encodeURIComponent(photoQuery)}`)
+      .then(res => res.json())
+      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [photoQuery]);
 
   const startDate = trip.itinerary?.meta?.startDate;
   const endDate = trip.itinerary?.meta?.endDate;
@@ -241,11 +248,17 @@ function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }
           <div className="flex items-stretch">
             {/* Image */}
             <div className="w-24 h-24 flex-shrink-0 bg-muted">
-              <img
-                src={imageUrl}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
+                  <span className="text-2xl">✈️</span>
+                </div>
+              )}
             </div>
 
             {/* Info */}

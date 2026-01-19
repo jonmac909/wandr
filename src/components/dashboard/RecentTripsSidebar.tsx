@@ -1,11 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StoredTrip } from '@/lib/db/indexed-db';
 import { RecentTripCard } from './RecentTripCard';
-import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import { parseIsoDate } from '@/lib/dates';
 
 interface RecentTripsSidebarProps {
@@ -106,16 +106,25 @@ export function RecentTripsSidebar({ trips, excludeTripId, maxTrips = 5 }: Recen
 }
 
 function FeaturedUpcomingTrip({ trip }: { trip: StoredTrip }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const title = trip.itinerary?.meta?.title || trip.tripDna?.interests?.destination || 'Untitled Trip';
   const destination = trip.itinerary?.meta?.destination ||
     trip.itinerary?.route?.bases?.[0]?.location ||
     trip.tripDna?.interests?.destination ||
     '';
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const imageUrl = getDestinationImage(photoQuery, 160, 160);
   const dates = trip.itinerary?.meta?.startDate
     ? formatDateRange(trip.itinerary.meta.startDate, trip.itinerary.meta.endDate)
     : '';
+
+  useEffect(() => {
+    if (!photoQuery) return;
+    fetch(`/api/city-image?city=${encodeURIComponent(photoQuery)}`)
+      .then(res => res.json())
+      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [photoQuery]);
 
   return (
     <Link href={`/trip/${trip.id}`} className="block group">
@@ -123,11 +132,17 @@ function FeaturedUpcomingTrip({ trip }: { trip: StoredTrip }) {
         <div className="flex gap-3">
           {/* Square photo on left */}
           <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-            <img
-              src={imageUrl}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
+                <span className="text-2xl">✈️</span>
+              </div>
+            )}
           </div>
 
           {/* Trip info on right */}

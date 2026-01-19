@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Calendar, ChevronRight, LayoutList, Archive, RotateCcw, MoreVertical, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
-import { getDestinationImage } from '@/lib/dashboard/image-utils';
 import { parseIsoDate } from '@/lib/dates';
 
 interface TripDrawerProps {
@@ -142,6 +141,8 @@ function DrawerTripCard({
   isArchived: boolean;
 }) {
   const router = useRouter();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const title = trip.itinerary?.meta?.title ||
     trip.tripDna?.interests?.destination ||
     'Untitled Trip';
@@ -153,18 +154,39 @@ function DrawerTripCard({
 
   const isDraft = trip.status === 'draft' || !trip.itinerary;
   const photoQuery = destination.split(',')[0]?.trim() || 'travel';
-  const imageUrl = getDestinationImage(photoQuery, 128, 128);
+
+  // Fetch real image from API
+  useEffect(() => {
+    if (!photoQuery) return;
+    
+    fetch(`/api/city-image?city=${encodeURIComponent(photoQuery)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.imageUrl) {
+          setImageUrl(data.imageUrl);
+        }
+      })
+      .catch(() => {
+        // Keep null, will show placeholder
+      });
+  }, [photoQuery]);
 
   return (
     <div className={`group flex items-center gap-3 p-3 rounded-lg border hover:border-primary/30 hover:bg-muted/30 transition-all ${isArchived ? 'opacity-70' : ''}`}>
       {/* Thumbnail - clickable */}
       <Link href={`/trip/${trip.id}`} onClick={() => onOpenChange(false)} className="flex-shrink-0">
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
+              <span className="text-2xl">✈️</span>
+            </div>
+          )}
         </div>
       </Link>
 

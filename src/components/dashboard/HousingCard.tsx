@@ -1,30 +1,43 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import type { Base } from '@/types/itinerary';
-import { getAccommodationImage } from '@/lib/dashboard/image-utils';
 
 interface HousingCardProps {
   base: Base;
 }
 
 export function HousingCard({ base }: HousingCardProps) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  
   const name = base.accommodation?.name || base.location.split(',')[0];
   const location = base.location;
-  const imageUrl = getAccommodationImage(name, 200, 120);
 
-  // Format price if available
-  const price = base.accommodation?.priceRange || null;
+  useEffect(() => {
+    const query = location.split(',')[0]?.trim();
+    if (!query) return;
+    fetch(`/api/city-image?city=${encodeURIComponent(query)}`)
+      .then(res => res.json())
+      .then(data => { if (data.imageUrl) setImageUrl(data.imageUrl); })
+      .catch(() => {});
+  }, [location]);
 
   return (
     <div className="flex items-center gap-2 group">
       {/* Tiny square thumbnail */}
       <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-muted">
-        <img
-          src={imageUrl}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center">
+            <span className="text-xs">🏨</span>
+          </div>
+        )}
       </div>
 
       {/* Details */}

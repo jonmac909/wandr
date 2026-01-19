@@ -1,72 +1,41 @@
 /**
  * Image utilities for dashboard components
- *
- * Uses Pexels for high-quality travel images
- * Hash-based selection ensures consistent but varied images per destination
+ * Uses Google Places API via /api/city-image endpoint
  */
 
-// Curated Pexels travel images for variety
-const TRAVEL_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
+/**
+ * Get a placeholder image URL for a destination
+ * Components should use async fetch to /api/city-image for real images
+ */
+export function getDestinationImage(destination: string, _width?: number, _height?: number): string {
+  // Return placeholder - components should fetch real image from API
+  return `/api/placeholder/city/${encodeURIComponent(destination)}`;
+}
 
-const HOTEL_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
+/**
+ * Get a placeholder image for accommodation
+ */
+export function getAccommodationImage(name: string, _width?: number, _height?: number): string {
+  return `/api/placeholder/city/${encodeURIComponent(name)}`;
+}
 
-// Simple hash function for consistent selection
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+/**
+ * Get a generic travel placeholder image
+ */
+export function getTravelImage(query: string, _width?: number, _height?: number): string {
+  return `/api/placeholder/city/${encodeURIComponent(query || 'travel')}`;
+}
+
+/**
+ * Async function to fetch real city image from Google Places
+ */
+export async function fetchDestinationImage(destination: string): Promise<string | null> {
+  try {
+    const response = await fetch(`/api/city-image?city=${encodeURIComponent(destination)}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.imageUrl || null;
+  } catch {
+    return null;
   }
-  return Math.abs(hash);
-}
-
-/**
- * Generate a seeded image URL based on destination
- * Same destination always gets the same image
- */
-export function getDestinationImage(destination: string, width: number, height: number): string {
-  const hash = hashString(destination.toLowerCase());
-  const image = TRAVEL_IMAGES[hash % TRAVEL_IMAGES.length];
-  return `${image}?auto=compress&cs=tinysrgb&w=${width}&h=${height}&fit=crop`;
-}
-
-/**
- * Generate a hotel/accommodation image
- */
-export function getAccommodationImage(name: string, width: number, height: number): string {
-  const hash = hashString(name.toLowerCase());
-  const image = HOTEL_IMAGES[hash % HOTEL_IMAGES.length];
-  return `${image}?auto=compress&cs=tinysrgb&w=${width}&h=${height}&fit=crop`;
-}
-
-/**
- * Generate a generic travel image
- */
-export function getTravelImage(query: string, width: number, height: number): string {
-  const hash = hashString((query || 'travel').toLowerCase());
-  const image = TRAVEL_IMAGES[hash % TRAVEL_IMAGES.length];
-  return `${image}?auto=compress&cs=tinysrgb&w=${width}&h=${height}&fit=crop`;
 }
