@@ -60,7 +60,7 @@ import {
   extractCitiesFromItinerary,
   getItineraryDuration,
 } from '@/lib/planning/itinerary-to-planning';
-// City/site images now fetched dynamically from Pexels API
+// City/site images fetched from Google Places API
 import { POPULAR_CITY_INFO, type CityInfo, type CityHighlight } from '@/lib/ai/city-info-generator';
 import { planningDb } from '@/lib/db/indexed-db';
 import dynamic from 'next/dynamic';
@@ -1358,7 +1358,7 @@ export function SwipeablePlanningView({
   const [enrichedCityInfo, setEnrichedCityInfo] = useState<CityInfo | null>(null); // AI-generated city data for current modal
   const [cityInfoCache, setCityInfoCache] = useState<Record<string, CityInfo>>({}); // Preloaded city info for all cities
   const [isLoadingCityInfo, setIsLoadingCityInfo] = useState(false); // Loading state for city info
-  const [siteImages, setSiteImages] = useState<Record<string, string>>({}); // Dynamic Pexels images for sites
+  const [siteImages, setSiteImages] = useState<Record<string, string>>({}); // Dynamic images for sites
   const [gridOffset, setGridOffset] = useState(0); // For "more options" pagination
   const [favoriteCityModal, setFavoriteCityModal] = useState<string | null>(null); // City modal in favorites view
   const [favoriteCityTab, setFavoriteCityTab] = useState<'hotels' | 'restaurants' | 'cafes' | 'activities'>('hotels');
@@ -1653,14 +1653,6 @@ export function SwipeablePlanningView({
       .filter(item => selectedIds.has(item.id) && item.tags?.includes('cities'))
       .map(item => item.name);
     
-    // Debug logging
-    const cityItems = items.filter(item => item.tags?.includes('cities'));
-    debug('[SyncCities] items:', items.length, 'cityItems:', cityItems.length, 'selectedIds:', selectedIds.size, 'selectedCityNames:', selectedCityNames.length);
-    if (cityItems.length > 0) {
-      debug('[SyncCities] First city item:', cityItems[0].id, cityItems[0].name, 'tags:', cityItems[0].tags);
-      debug('[SyncCities] Is first city in selectedIds?', selectedIds.has(cityItems[0].id));
-    }
-    
     // Only update if different to avoid loops
     if (selectedCityNames.length > 0) {
       const currentCities = new Set(selectedCities);
@@ -1668,7 +1660,6 @@ export function SwipeablePlanningView({
         selectedCityNames.some(c => !currentCities.has(c));
       
       if (isDifferent) {
-        debug('[SyncCities] Updating selectedCities to:', selectedCityNames);
         setSelectedCities(selectedCityNames);
       }
     }

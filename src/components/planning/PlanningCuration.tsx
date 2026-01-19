@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import {
   Building2,
   Plus,
   X,
+  Loader2,
 } from 'lucide-react';
 
 interface Listing {
@@ -42,196 +43,82 @@ interface PlanningCurationProps {
   onAddToSchedule?: (listing: Listing) => void;
 }
 
-// Generate mock listings based on destination
-function generateListings(destination: string): Record<string, Listing[]> {
-  const listings: Record<string, Listing[]> = {
-    activities: [
-      {
-        id: 'act-1',
-        name: `${destination} Walking Tour`,
-        description: 'Explore the historic streets and hidden gems with a local guide. Perfect for first-time visitors wanting to get oriented.',
-        imageUrl: null,
-        rating: 4.8,
-        priceLevel: '$$',
-        category: 'activities',
-        tags: ['Walking', 'History', 'Culture'],
-      },
-      {
-        id: 'act-2',
-        name: 'Food & Market Tour',
-        description: 'Sample local delicacies and visit vibrant markets with a culinary expert. Tastings included.',
-        imageUrl: null,
-        rating: 4.9,
-        priceLevel: '$$$',
-        category: 'activities',
-        tags: ['Food', 'Local', 'Markets'],
-      },
-      {
-        id: 'act-3',
-        name: 'Sunset Viewpoint Tour',
-        description: 'Watch the sunset from the best viewpoint in the city. Includes drinks and appetizers.',
-        imageUrl: null,
-        rating: 4.7,
-        priceLevel: '$',
-        category: 'activities',
-        tags: ['Scenic', 'Photography', 'Romantic'],
-      },
-      {
-        id: 'act-4',
-        name: 'Museum & Art Experience',
-        description: 'Discover world-class art and cultural exhibits with skip-the-line access.',
-        imageUrl: null,
-        rating: 4.6,
-        priceLevel: '$$',
-        category: 'activities',
-        tags: ['Art', 'Museum', 'Indoor'],
-      },
-    ],
-    hotels: [
-      {
-        id: 'hotel-1',
-        name: 'Boutique Hotel Central',
-        description: 'Charming boutique hotel in the heart of the city. Rooftop bar, complimentary breakfast, and walkable to major attractions.',
-        imageUrl: null,
-        rating: 4.7,
-        priceLevel: '$$$',
-        category: 'hotels',
-        neighborhood: 'City Center',
-        tags: ['Boutique', 'Central', 'Breakfast included'],
-      },
-      {
-        id: 'hotel-2',
-        name: 'Grand Heritage Hotel',
-        description: 'Luxurious historic property with modern amenities. Full-service spa, fine dining, and concierge.',
-        imageUrl: null,
-        rating: 4.9,
-        priceLevel: '$$$$',
-        category: 'hotels',
-        neighborhood: 'Old Town',
-        tags: ['Luxury', 'Historic', 'Spa'],
-      },
-      {
-        id: 'hotel-3',
-        name: 'Urban Hostel & Suites',
-        description: 'Budget-friendly with private rooms and social vibes. Rooftop terrace, bar, and weekly events.',
-        imageUrl: null,
-        rating: 4.4,
-        priceLevel: '$',
-        category: 'hotels',
-        neighborhood: 'Arts District',
-        tags: ['Budget', 'Social', 'Rooftop'],
-      },
-    ],
-    neighborhoods: [
-      {
-        id: 'hood-1',
-        name: 'Old Town',
-        description: 'Historic center with cobblestone streets and landmarks. Best for sightseeing and traditional restaurants.',
-        imageUrl: null,
-        category: 'neighborhoods',
-        tags: ['Historic', 'Touristy', 'Photogenic'],
-      },
-      {
-        id: 'hood-2',
-        name: 'Arts District',
-        description: 'Trendy area with galleries, cafes, and nightlife. Best for creatives and night owls.',
-        imageUrl: null,
-        category: 'neighborhoods',
-        tags: ['Trendy', 'Nightlife', 'Art'],
-      },
-      {
-        id: 'hood-3',
-        name: 'Waterfront',
-        description: 'Scenic promenade with restaurants and views. Perfect for evening strolls and seafood.',
-        imageUrl: null,
-        category: 'neighborhoods',
-        tags: ['Scenic', 'Dining', 'Relaxed'],
-      },
-    ],
-    cafes: [
-      {
-        id: 'cafe-1',
-        name: 'Artisan Coffee House',
-        description: 'Third-wave coffee and fresh pastries in a cozy setting. Known for their pour-overs and croissants.',
-        imageUrl: null,
-        rating: 4.8,
-        priceLevel: '$$',
-        category: 'cafes',
-        neighborhood: 'Old Town',
-        tags: ['Specialty Coffee', 'Pastries', 'Cozy'],
-      },
-      {
-        id: 'cafe-2',
-        name: 'Garden Terrace Cafe',
-        description: 'Beautiful outdoor seating with brunch menu. Weekend reservations recommended.',
-        imageUrl: null,
-        rating: 4.6,
-        priceLevel: '$$',
-        category: 'cafes',
-        neighborhood: 'Arts District',
-        tags: ['Brunch', 'Outdoor', 'Instagram-worthy'],
-      },
-      {
-        id: 'cafe-3',
-        name: 'Local Bakery & Cafe',
-        description: 'Traditional pastries and local breakfast favorites. Where the locals go.',
-        imageUrl: null,
-        rating: 4.7,
-        priceLevel: '$',
-        category: 'cafes',
-        neighborhood: 'Residential',
-        tags: ['Local Favorite', 'Bakery', 'Authentic'],
-      },
-    ],
-    restaurants: [
-      {
-        id: 'rest-1',
-        name: 'Traditional Kitchen',
-        description: 'Authentic local cuisine in a cozy setting. Family recipes passed down through generations.',
-        imageUrl: null,
-        rating: 4.7,
-        priceLevel: '$$',
-        category: 'restaurants',
-        neighborhood: 'Old Town',
-        tags: ['Local Cuisine', 'Traditional', 'Cozy'],
-      },
-      {
-        id: 'rest-2',
-        name: 'Rooftop Fine Dining',
-        description: 'Upscale dining with panoramic city views. Tasting menu and sommelier recommended.',
-        imageUrl: null,
-        rating: 4.9,
-        priceLevel: '$$$$',
-        category: 'restaurants',
-        neighborhood: 'City Center',
-        tags: ['Fine Dining', 'Views', 'Romantic'],
-      },
-      {
-        id: 'rest-3',
-        name: 'Street Food Market',
-        description: 'Diverse food stalls and casual atmosphere. Great for sampling multiple cuisines.',
-        imageUrl: null,
-        rating: 4.5,
-        priceLevel: '$',
-        category: 'restaurants',
-        neighborhood: 'Waterfront',
-        tags: ['Street Food', 'Casual', 'Variety'],
-      },
-      {
-        id: 'rest-4',
-        name: 'Farm-to-Table Bistro',
-        description: 'Seasonal menu with locally sourced ingredients. Intimate setting, natural wines.',
-        imageUrl: null,
-        rating: 4.8,
-        priceLevel: '$$$',
-        category: 'restaurants',
-        neighborhood: 'Arts District',
-        tags: ['Farm-to-Table', 'Seasonal', 'Wine'],
-      },
-    ],
-  };
+// Fetch listings from Google Places API
+async function fetchListingsFromAPI(
+  destination: string, 
+  category: 'attractions' | 'hotels' | 'cafes' | 'restaurants'
+): Promise<Listing[]> {
+  try {
+    const response = await fetch('/api/explore/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: destination, category }),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.places || []).map((p: { id?: string; name: string; description?: string; imageUrl?: string; rating?: number }) => ({
+      id: p.id || `${category}-${p.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: p.name,
+      description: p.description || `Visit ${p.name} in ${destination}`,
+      imageUrl: p.imageUrl || null,
+      rating: p.rating,
+      category,
+      tags: [category],
+    }));
+  } catch {
+    return [];
+  }
+}
 
-  return listings;
+// DEPRECATED: Old mock data function - replaced with API calls
+function generateListings(_destination: string): Record<string, Listing[]> {
+  // Return empty - use useListings hook instead
+  return {
+    activities: [],
+    hotels: [],
+    neighborhoods: [],
+    cafes: [],
+    restaurants: [],
+  };
+}
+
+// Hook to fetch all listings for a destination
+function useListings(destination: string) {
+  const [listings, setListings] = useState<Record<string, Listing[]>>({
+    activities: [],
+    hotels: [],
+    neighborhoods: [],
+    cafes: [],
+    restaurants: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!destination) return;
+
+    const fetchAll = async () => {
+      setIsLoading(true);
+      const [activities, hotels, cafes, restaurants] = await Promise.all([
+        fetchListingsFromAPI(destination, 'attractions'),
+        fetchListingsFromAPI(destination, 'hotels'),
+        fetchListingsFromAPI(destination, 'cafes'),
+        fetchListingsFromAPI(destination, 'restaurants'),
+      ]);
+
+      setListings({
+        activities,
+        hotels,
+        neighborhoods: [],
+        cafes,
+        restaurants,
+      });
+      setIsLoading(false);
+    };
+
+    fetchAll();
+  }, [destination]);
+
+  return { listings, isLoading };
 }
 
 const CATEGORY_CONFIG = [
@@ -250,7 +137,16 @@ export function PlanningCuration({
 }: PlanningCurationProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const listings = generateListings(destination);
+  const { listings, isLoading } = useListings(destination);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading places...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

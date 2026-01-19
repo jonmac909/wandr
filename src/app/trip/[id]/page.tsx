@@ -39,7 +39,7 @@ import { SwipeablePlanningView } from '@/components/planning/SwipeablePlanningVi
 import { SteppedCuration } from '@/components/planning/SteppedCuration';
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
 import { itineraryToPlanningItems } from '@/lib/planning/itinerary-to-planning';
-import { getCityImage } from '@/lib/planning/city-images';
+
 
 // Trip Hub Preferences Types and Options
 type Budget = '$' | '$$' | '$$$';
@@ -134,52 +134,29 @@ const AVOIDANCE_OPTIONS = [
   { id: 'alcohol', label: 'Alcohol-focused' },
 ];
 
-// Pexels image arrays for mock data
-const PEXELS_HOTEL_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
-
-const PEXELS_RESTAURANT_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
-
-const PEXELS_ACTIVITY_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-];
-
-const PEXELS_CAFE_IMAGES = [
-  null,
-  null,
-  null,
-  null,
-  null,
-];
-
-function getMockPexelsImage(name: string, category: 'hotel' | 'restaurant' | 'activity' | 'cafe'): string {
-  const images = category === 'hotel' ? PEXELS_HOTEL_IMAGES :
-                 category === 'restaurant' ? PEXELS_RESTAURANT_IMAGES :
-                 category === 'cafe' ? PEXELS_CAFE_IMAGES : PEXELS_ACTIVITY_IMAGES;
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(i);
-    hash = hash & hash;
+// Helper to fetch real places from Google Places API
+async function fetchPlacesFromAPI(
+  city: string,
+  category: 'attractions' | 'restaurants' | 'cafes' | 'hotels' | 'nightlife'
+): Promise<Array<{ id: string; name: string; description: string; imageUrl: string; rating?: number; priceInfo?: string }>> {
+  try {
+    const response = await fetch('/api/explore/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city, category }),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.places || []).map((p: { id: string; name: string; description?: string; imageUrl?: string; rating?: number }) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description || `Visit ${p.name}`,
+      imageUrl: p.imageUrl || `/api/placeholder/city/${encodeURIComponent(p.name)}`,
+      rating: p.rating,
+    }));
+  } catch {
+    return [];
   }
-  return `${images[Math.abs(hash) % images.length]}?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop`;
 }
 
 import {
@@ -189,131 +166,39 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Helper to get popular cities for a destination - extended lists with 15+ cities
-function getCitiesForDestination(destination: string): string[] {
-  const cityMap: Record<string, string[]> = {
-    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye', 'Kas', 'Trabzon', 'Bursa', 'Konya', 'Dalyan', 'Oludeniz', 'Marmaris', 'Alanya', 'Side'],
-    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo', 'Cordoba', 'Ibiza', 'Ronda', 'Salamanca', 'Girona', 'Segovia', 'Cadiz', 'Marbella', 'Palma de Mallorca'],
-    'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna', 'Verona', 'Lake Como', 'Siena', 'Ravenna', 'Pisa', 'Sorrento'],
-    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes', 'Avignon', 'Annecy', 'Colmar', 'Saint-Tropez', 'Chamonix', 'Carcassonne'],
-    'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka', 'Takayama', 'Nagoya', 'Kamakura', 'Naoshima', 'Kobe', 'Miyajima'],
-    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi', 'Koh Lanta', 'Koh Tao', 'Hua Hin', 'Koh Chang', 'Sukhothai', 'Kanchanaburi'],
-    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Lagos', 'Nazaré', 'Óbidos', 'Azores', 'Braga', 'Aveiro', 'Tavira'],
-    'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki', 'Naxos', 'Paros', 'Zakynthos', 'Hydra', 'Milos', 'Nafplio'],
-    'Switzerland': ['Zurich', 'Lucerne', 'Interlaken', 'Zermatt', 'Geneva', 'Bern', 'Basel', 'Lausanne', 'St. Moritz', 'Gstaad', 'Grindelwald', 'Lugano', 'Montreux', 'Verbier', 'Davos', 'Lauterbrunnen', 'Wengen', 'Appenzell'],
-    'Germany': ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne', 'Dresden', 'Heidelberg', 'Rothenburg', 'Nuremberg', 'Bamberg', 'Freiburg', 'Stuttgart', 'Düsseldorf', 'Leipzig', 'Würzburg'],
-    'UK': ['London', 'Edinburgh', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol', 'Canterbury', 'Stratford-upon-Avon', 'Windsor', 'Cornwall', 'Lake District'],
-    'England': ['London', 'Bath', 'Oxford', 'Cambridge', 'York', 'Liverpool', 'Manchester', 'Brighton', 'Bristol', 'Canterbury', 'Stratford-upon-Avon', 'Windsor', 'Cornwall', 'Lake District', 'Cotswolds'],
-    'Scotland': ['Edinburgh', 'Glasgow', 'Isle of Skye', 'Inverness', 'St Andrews', 'Aberdeen', 'Stirling', 'Loch Ness', 'Highlands', 'Glencoe', 'Fort William', 'Oban', 'Isle of Mull', 'Orkney Islands', 'Dundee'],
-    'Netherlands': ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Delft', 'Leiden', 'Haarlem', 'Maastricht', 'Giethoorn', 'Kinderdijk', 'Keukenhof', 'Eindhoven', 'Groningen', 'Volendam', 'Zaanse Schans'],
-    'Austria': ['Vienna', 'Salzburg', 'Innsbruck', 'Hallstatt', 'Graz', 'Linz', 'Kitzbühel', 'Bad Gastein', 'Zell am See', 'Melk', 'Dürnstein', 'St. Anton', 'Krems', 'Wachau Valley', 'Lech'],
-    'Czech Republic': ['Prague', 'Český Krumlov', 'Brno', 'Karlovy Vary', 'Kutná Hora', 'Olomouc', 'Plzeň', 'Telč', 'Liberec', 'Český Ráj', 'Třebíč', 'Litomyšl', 'Kroměříž', 'Lednice', 'Mikulov'],
-    'Croatia': ['Dubrovnik', 'Split', 'Zagreb', 'Plitvice Lakes', 'Hvar', 'Rovinj', 'Zadar', 'Korčula', 'Pula', 'Trogir', 'Šibenik', 'Mljet', 'Vis', 'Rab', 'Brač'],
-    'Morocco': ['Marrakech', 'Fes', 'Chefchaouen', 'Casablanca', 'Essaouira', 'Tangier', 'Rabat', 'Sahara Desert', 'Agadir', 'Ouarzazate', 'Meknes', 'Asilah', 'Merzouga', 'Dades Valley', 'Ait Benhaddou'],
-    'Egypt': ['Cairo', 'Luxor', 'Aswan', 'Alexandria', 'Giza', 'Hurghada', 'Sharm El Sheikh', 'Abu Simbel', 'Dahab', 'Siwa Oasis', 'Valley of the Kings', 'Karnak', 'Edfu', 'Kom Ombo', 'White Desert'],
-    'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc', 'Ninh Binh', 'Dalat', 'Mui Ne', 'Can Tho', 'Phong Nha', 'Quy Nhon'],
-    'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya', 'Gili Islands', 'Labuan Bajo', 'Sulawesi', 'Sumatra', 'Flores', 'Malang'],
-    'Bali': ['Ubud', 'Seminyak', 'Canggu', 'Uluwatu', 'Sanur', 'Nusa Penida', 'Kuta', 'Amed', 'Lovina', 'Munduk', 'Sidemen', 'Jimbaran', 'Tegallalang', 'Tanah Lot', 'Nusa Dua'],
-    'Australia': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Great Barrier Reef', 'Uluru', 'Tasmania', 'Gold Coast', 'Cairns', 'Byron Bay', 'Kangaroo Island', 'Blue Mountains', 'Margaret River', 'Whitsundays'],
-    'New Zealand': ['Auckland', 'Queenstown', 'Wellington', 'Rotorua', 'Milford Sound', 'Christchurch', 'Hobbiton', 'Bay of Islands', 'Wanaka', 'Fiordland', 'Tongariro', 'Abel Tasman', 'Kaikoura', 'Franz Josef', 'Coromandel'],
-    'USA': ['New York', 'Los Angeles', 'San Francisco', 'Chicago', 'Miami', 'Las Vegas', 'Seattle', 'Boston', 'New Orleans', 'Washington DC', 'San Diego', 'Hawaii', 'Austin', 'Nashville', 'Portland'],
-    'Mexico': ['Mexico City', 'Cancun', 'Tulum', 'Oaxaca', 'Playa del Carmen', 'San Miguel de Allende', 'Guanajuato', 'Puerto Vallarta', 'Merida', 'Sayulita', 'Cozumel', 'Valladolid', 'Puebla', 'Bacalar', 'San Cristobal'],
-    'Peru': ['Lima', 'Cusco', 'Machu Picchu', 'Arequipa', 'Sacred Valley', 'Lake Titicaca', 'Nazca', 'Huacachina', 'Trujillo', 'Colca Canyon', 'Rainbow Mountain', 'Puno', 'Ica', 'Ollantaytambo', 'Paracas'],
-    'Argentina': ['Buenos Aires', 'Mendoza', 'Patagonia', 'Iguazu Falls', 'Bariloche', 'Salta', 'Ushuaia', 'Córdoba', 'El Calafate', 'El Chaltén', 'Cafayate', 'Purmamarca', 'Tigre', 'La Plata', 'San Martín de los Andes'],
-    'Brazil': ['Rio de Janeiro', 'São Paulo', 'Salvador', 'Florianópolis', 'Paraty', 'Fernando de Noronha', 'Iguaçu Falls', 'Manaus', 'Bonito', 'Jericoacoara', 'Trancoso', 'Ouro Preto', 'Ilhabela', 'Búzios', 'Lençóis Maranhenses'],
-    'Colombia': ['Bogotá', 'Medellín', 'Cartagena', 'Santa Marta', 'San Andrés', 'Tayrona', 'Villa de Leyva', 'Salento', 'Cali'],
-    'South Korea': ['Seoul', 'Busan', 'Jeju Island', 'Gyeongju', 'Incheon', 'Jeonju', 'Suwon', 'Gangneung', 'Sokcho'],
-    'China': ['Beijing', 'Shanghai', 'Hong Kong', 'Xi\'an', 'Guilin', 'Chengdu', 'Hangzhou', 'Suzhou', 'Zhangjiajie'],
-    'India': ['Delhi', 'Mumbai', 'Jaipur', 'Agra', 'Varanasi', 'Kerala', 'Goa', 'Udaipur', 'Rishikesh'],
-    'Singapore': ['Marina Bay', 'Sentosa', 'Chinatown', 'Little India', 'Orchard Road', 'Gardens by the Bay', 'Clarke Quay', 'Kampong Glam', 'Jurong'],
-    'Malaysia': ['Kuala Lumpur', 'Penang', 'Langkawi', 'Malacca', 'Cameron Highlands', 'Borneo', 'Ipoh', 'Kota Kinabalu', 'Tioman Island'],
-    'Philippines': ['Manila', 'Palawan', 'Boracay', 'Cebu', 'Siargao', 'Bohol', 'Baguio', 'Vigan', 'Coron'],
-    'Iceland': ['Reykjavik', 'Blue Lagoon', 'Golden Circle', 'Vik', 'Akureyri', 'Jokulsarlon', 'Húsavík', 'Westfjords', 'Snæfellsnes'],
-    'Norway': ['Oslo', 'Bergen', 'Tromsø', 'Lofoten Islands', 'Stavanger', 'Trondheim', 'Geirangerfjord', 'Ålesund', 'Svalbard'],
-    'Sweden': ['Stockholm', 'Gothenburg', 'Malmö', 'Uppsala', 'Lapland', 'Visby', 'Kiruna', 'Öland', 'Dalarna'],
-    'Denmark': ['Copenhagen', 'Aarhus', 'Odense', 'Skagen', 'Roskilde', 'Billund', 'Helsingør', 'Aalborg', 'Bornholm'],
-    'Finland': ['Helsinki', 'Rovaniemi', 'Lapland', 'Turku', 'Tampere', 'Oulu', 'Savonlinna', 'Porvoo', 'Levi'],
-    'Ireland': ['Dublin', 'Galway', 'Cork', 'Ring of Kerry', 'Cliffs of Moher', 'Killarney', 'Belfast', 'Dingle', 'Giant\'s Causeway'],
-    'Belgium': ['Brussels', 'Bruges', 'Ghent', 'Antwerp', 'Leuven', 'Liège', 'Mechelen', 'Dinant', 'Ypres'],
-    'Poland': ['Warsaw', 'Krakow', 'Gdańsk', 'Wrocław', 'Poznań', 'Zakopane', 'Łódź', 'Toruń', 'Auschwitz'],
-    'Hungary': ['Budapest', 'Eger', 'Pécs', 'Debrecen', 'Szeged', 'Lake Balaton', 'Szentendre', 'Győr', 'Visegrád'],
-    'Romania': ['Bucharest', 'Transylvania', 'Brașov', 'Sibiu', 'Cluj-Napoca', 'Bran Castle', 'Timișoara', 'Sighișoara', 'Maramureș'],
-    'Bulgaria': ['Sofia', 'Plovdiv', 'Veliko Tarnovo', 'Bansko', 'Varna', 'Rila Monastery', 'Nessebar', 'Koprivshtitsa', 'Sozopol'],
-    'Slovenia': ['Ljubljana', 'Lake Bled', 'Piran', 'Postojna', 'Maribor', 'Škocjan Caves', 'Soča Valley', 'Ptuj', 'Kranjska Gora'],
-    'Montenegro': ['Kotor', 'Budva', 'Perast', 'Durmitor', 'Sveti Stefan', 'Cetinje', 'Herceg Novi', 'Ulcinj', 'Podgorica'],
-    'Albania': ['Tirana', 'Berat', 'Gjirokastër', 'Saranda', 'Ksamil', 'Shkodër', 'Vlorë', 'Korçë', 'Butrint'],
-    'Malta': ['Valletta', 'Mdina', 'Gozo', 'Comino', 'Sliema', 'St. Julian\'s', 'Blue Lagoon', 'Marsaxlokk', 'Rabat'],
-    'Cyprus': ['Nicosia', 'Limassol', 'Paphos', 'Larnaca', 'Ayia Napa', 'Troodos', 'Kyrenia', 'Famagusta', 'Protaras'],
-    'Israel': ['Tel Aviv', 'Jerusalem', 'Haifa', 'Dead Sea', 'Eilat', 'Nazareth', 'Acre', 'Caesarea', 'Masada'],
-    'Jordan': ['Amman', 'Petra', 'Wadi Rum', 'Dead Sea', 'Aqaba', 'Jerash', 'Madaba', 'Dana', 'Ajloun'],
-    'UAE': ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ras Al Khaimah', 'Fujairah', 'Al Ain', 'Ajman', 'Hatta', 'Liwa'],
-    'Dubai': ['Downtown Dubai', 'Palm Jumeirah', 'Dubai Marina', 'Old Dubai', 'Jumeirah Beach', 'Dubai Creek', 'Business Bay', 'Al Barsha', 'Deira'],
-    'South Africa': ['Cape Town', 'Johannesburg', 'Kruger National Park', 'Durban', 'Garden Route', 'Stellenbosch', 'Pretoria', 'Drakensberg', 'Port Elizabeth'],
-    'Kenya': ['Nairobi', 'Masai Mara', 'Mombasa', 'Amboseli', 'Lake Nakuru', 'Diani Beach', 'Lamu', 'Tsavo', 'Mt Kenya'],
-    'Tanzania': ['Dar es Salaam', 'Serengeti', 'Zanzibar', 'Kilimanjaro', 'Ngorongoro', 'Arusha', 'Stone Town', 'Lake Manyara', 'Tarangire'],
-    'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Banff', 'Quebec City', 'Niagara Falls', 'Ottawa', 'Victoria', 'Whistler'],
-    'Hawaii': ['Honolulu', 'Maui', 'Kauai', 'Big Island', 'Waikiki', 'Oahu', 'North Shore', 'Kona', 'Hilo', 'Lahaina', 'Kaanapali', 'Wailea', 'Hana', 'Poipu', 'Princeville'],
-    'Cuba': ['Havana', 'Trinidad', 'Viñales', 'Varadero', 'Cienfuegos', 'Santiago de Cuba', 'Camagüey', 'Baracoa', 'Santa Clara'],
-    'Costa Rica': ['San José', 'Arenal', 'Manuel Antonio', 'Monteverde', 'Tamarindo', 'Puerto Viejo', 'Tortuguero', 'Guanacaste', 'La Fortuna'],
-  };
-
-  // Check if destination matches a key (case-insensitive)
-  const normalizedDest = destination.toLowerCase().trim();
-  for (const [country, cities] of Object.entries(cityMap)) {
-    if (normalizedDest === country.toLowerCase() ||
-        normalizedDest.includes(country.toLowerCase()) ||
-        country.toLowerCase().includes(normalizedDest)) {
-      return cities;
-    }
-  }
-
-  // Try partial matching for common variations
-  const partialMatches: Record<string, string> = {
-    'swiss': 'Switzerland',
-    'greek': 'Greece',
-    'italian': 'Italy',
-    'spanish': 'Spain',
-    'french': 'France',
-    'german': 'Germany',
-    'japanese': 'Japan',
-    'thai': 'Thailand',
-    'portuguese': 'Portugal',
-    'turkish': 'Turkey',
-    'dutch': 'Netherlands',
-    'british': 'UK',
-    'american': 'USA',
-    'mexican': 'Mexico',
-    'canadian': 'Canada',
-    'australian': 'Australia',
-    'korean': 'South Korea',
-    'chinese': 'China',
-    'indian': 'India',
-    'brazilian': 'Brazil',
-    'colombian': 'Colombia',
-  };
-
-  for (const [partial, country] of Object.entries(partialMatches)) {
-    if (normalizedDest.includes(partial)) {
-      return cityMap[country] || [];
-    }
-  }
-
-  // Default: return destination as a single "city" option
-  return [destination];
-}
-
 // Helper function to fetch real city images from API
 async function fetchCityImage(city: string, country: string): Promise<string> {
   try {
     const response = await fetch(`/api/city-image?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch city image');
+      return `/api/placeholder/city/${encodeURIComponent(city)}`;
     }
     const data = await response.json();
-    return data.imageUrl;
+    return data.imageUrl || `/api/placeholder/city/${encodeURIComponent(city)}`;
   } catch (error) {
     console.error(`Failed to fetch image for ${city}:`, error);
-    return getCityImage(city, country);
+    return `/api/placeholder/city/${encodeURIComponent(city)}`;
+  }
+}
+
+// Helper to fetch cities for a destination from Google Places API
+async function fetchCitiesForDestination(destination: string): Promise<Array<{ name: string; imageUrl: string }>> {
+  try {
+    const response = await fetch('/api/explore/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: destination, category: 'attractions' }),
+    });
+    if (!response.ok) return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
+    const data = await response.json();
+    // Extract unique city names from places
+    const cities = (data.places || []).slice(0, 15).map((p: { name: string; imageUrl?: string }) => ({
+      name: p.name,
+      imageUrl: p.imageUrl || `/api/placeholder/city/${encodeURIComponent(p.name)}`,
+    }));
+    return cities.length > 0 ? cities : [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
+  } catch {
+    return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
   }
 }
 
@@ -599,12 +484,12 @@ export default function TripPage() {
       // Initialize route order from selected cities or destinations
       setRouteOrder(cities.length > 0 ? cities : destinations);
 
-      // Fetch city images with throttling (2 at a time to prevent resource exhaustion)
-      const allCities = getCitiesForDestination(destinations[0] || destination);
+      // Fetch city images for selected cities
       const fetchCityImages = async () => {
-        for (let i = 0; i < allCities.length; i += 2) {
-          const batch = allCities.slice(i, i + 2);
-          await Promise.all(batch.map(async (city) => {
+        const citiesToFetch = cities.length > 0 ? cities : destinations;
+        for (let i = 0; i < citiesToFetch.length; i += 2) {
+          const batch = citiesToFetch.slice(i, i + 2);
+          await Promise.all(batch.map(async (city: string) => {
             // Skip if already fetched
             if (fetchedCityImagesRef.current.has(city)) return;
             fetchedCityImagesRef.current.add(city);
@@ -2050,32 +1935,25 @@ export default function TripPage() {
         }, 100);
       }
 
-      // Load cities when cities section expands
+      // Load cities when cities section expands - fetch from Google Places API
       if (newSection === 'cities' && planningItems.length === 0) {
         const loadCities = async () => {
-          const mockItems: PlanningItem[] = [];
+          const newItems: PlanningItem[] = [];
           for (let destIdx = 0; destIdx < destinations.length; destIdx++) {
             const dest = destinations[destIdx];
-            const cityNames = getCitiesForDestination(dest);
-            for (let idx = 0; idx < cityNames.length; idx++) {
-              const city = cityNames[idx];
-              let imageUrl: string;
-              try {
-                imageUrl = await fetchCityImage(city, dest);
-              } catch {
-                imageUrl = getCityImage(city, dest);
-              }
-              mockItems.push({
-                id: `city-${destIdx}-${idx}`,
-                name: city,
-                description: `Explore ${city}`,
-                imageUrl,
+            const cities = await fetchCitiesForDestination(dest);
+            cities.forEach((city, idx) => {
+              newItems.push({
+                id: `city-${dest}-${idx}`,
+                name: city.name,
+                description: `Explore ${city.name}`,
+                imageUrl: city.imageUrl,
                 category: 'activities',
                 tags: ['cities', dest],
               });
-            }
+            });
           }
-          setPlanningItems(mockItems);
+          setPlanningItems(newItems);
         };
         loadCities();
       }
@@ -2452,52 +2330,21 @@ export default function TripPage() {
                 controlledPhase="picking"
                 onSearchAI={async (query, category) => {
                   if (category === 'cities') {
-                    const mockItems: PlanningItem[] = [];
-                    const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
-
-                    destinations.forEach((dest: string, destIdx: number) => {
-                      const cityNames = getCitiesForDestination(dest);
-                      cityNames.forEach((city, idx) => {
-                        const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
-                          city,
-                          destIdx,
-                          idx,
-                          imageUrl
-                        }));
-                        imageFetches.push(imagePromise);
-                      });
-                    });
-
-                    try {
-                      const imageResults = await Promise.all(imageFetches);
-                      imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
-                        mockItems.push({
-                          id: `city-${destIdx}-${idx}`,
-                          name: city,
-                          description: `Explore ${city}`,
-                          imageUrl,
+                    const newItems: PlanningItem[] = [];
+                    for (const dest of destinations) {
+                      const cities = await fetchCitiesForDestination(dest);
+                      cities.forEach((city, idx) => {
+                        newItems.push({
+                          id: `city-${dest}-${idx}`,
+                          name: city.name,
+                          description: `Explore ${city.name}`,
+                          imageUrl: city.imageUrl,
                           category: 'activities',
-                          tags: ['cities', destinations[destIdx]],
-                        });
-                      });
-                    } catch (error) {
-                      console.error('Failed to fetch city images:', error);
-                      destinations.forEach((dest: string, destIdx: number) => {
-                        const cityNames = getCitiesForDestination(dest);
-                        cityNames.forEach((city, idx) => {
-                          mockItems.push({
-                            id: `city-${destIdx}-${idx}`,
-                            name: city,
-                            description: `Explore ${city}`,
-                            imageUrl: getCityImage(city, dest),
-                            category: 'activities',
-                            tags: ['cities', dest],
-                          });
+                          tags: ['cities', dest],
                         });
                       });
                     }
-
-                    setPlanningItems(mockItems);
+                    setPlanningItems(newItems);
                   }
                 }}
               />
@@ -2846,99 +2693,31 @@ export default function TripPage() {
               onItemsChange={setPlanningItems}
               duration={itinerary?.meta?.totalDays}
               isTripLocked={isTripLocked}
-              onSearchAI={(query, category) => {
-                // Generate mock items for the category
-                const mockItems: PlanningItem[] = [];
-
-                // Parse "Turkey → Spain" into ["Turkey", "Spain"]
-                const parseDestinations = (dest: string): string[] => {
-                  if (dest.includes('→')) return dest.split('→').map(d => d.trim());
-                  if (dest.includes('->')) return dest.split('->').map(d => d.trim());
-                  if (dest.includes(' - ')) return dest.split(' - ').map(d => d.trim());
-                  return [dest];
-                };
+              onSearchAI={async (query, category) => {
+                // Fetch real data from Google Places API
                 const rawDests = tripDna.interests.destinations;
                 const destinations: string[] = (rawDests && rawDests.length > 0)
                   ? rawDests
-                  : parseDestinations(tripDna.interests.destination || 'destination');
+                  : [tripDna.interests.destination || 'destination'];
 
-                if (category === 'cities') {
-                  // Generate city items for each destination
-                  destinations.forEach((dest: string, destIdx: number) => {
-                    const cityNames = getCitiesForDestination(dest);
-                    cityNames.forEach((city, idx) => {
-                      mockItems.push({
-                        id: `city-${destIdx}-${idx}`,
-                        name: city,
-                        description: `Explore the wonders of ${city}`,
-                        imageUrl: getCityImage(city, dest),
-                        category: 'activities',
-                        tags: ['cities', dest],
-                        isFavorited: false,
-                      });
-                    });
-                  });
-                } else if (category === 'experiences') {
-                  const experiences = [
-                    'Walking Tour', 'Food Tour', 'Museum Visit', 'Historical Site',
-                    'Local Market', 'Sunset Viewpoint', 'Cooking Class', 'Art Gallery',
-                    'Nature Hike'
-                  ];
-                  experiences.forEach((exp, idx) => {
-                    mockItems.push({
-                      id: `exp-${idx}`,
-                      name: exp,
-                      description: `Experience the best ${exp.toLowerCase()}`,
-                      imageUrl: getMockPexelsImage(exp, 'activity'),
-                      category: 'activities',
-                      tags: ['experiences'],
-                      rating: parseFloat((4 + Math.random()).toFixed(1)),
-                      priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
-                      isFavorited: false,
-                    });
-                  });
-                } else if (category === 'hotels') {
-                  const hotelTypes = ['Boutique Hotel', 'Design Hotel', 'Historic Inn', 'Modern Resort', 'Cozy B&B', 'Luxury Suite'];
-                  hotelTypes.forEach((hotel, idx) => {
-                    mockItems.push({
-                      id: `hotel-${idx}`,
-                      name: hotel,
-                      description: 'Beautiful accommodations',
-                      imageUrl: getMockPexelsImage(hotel, 'hotel'),
-                      category: 'hotels',
-                      tags: ['hotels'],
-                      rating: parseFloat((4 + Math.random()).toFixed(1)),
-                      priceInfo: ['$$', '$$$', '$$$$'][Math.floor(Math.random() * 3)],
-                      isFavorited: false,
-                    });
-                  });
-                } else if (category === 'restaurants') {
-                  const restaurants = ['Local Bistro', 'Rooftop Bar', 'Street Food Market', 'Fine Dining', 'Seafood Restaurant', 'Traditional Tavern', 'Fusion Kitchen', 'Wine Bar', 'Cafe & Brunch'];
-                  restaurants.forEach((resto, idx) => {
-                    mockItems.push({
-                      id: `resto-${idx}`,
-                      name: resto,
-                      description: 'Delicious local cuisine',
-                      imageUrl: getMockPexelsImage(resto, 'restaurant'),
-                      category: 'restaurants',
-                      tags: ['restaurants'],
-                      rating: parseFloat((4 + Math.random()).toFixed(1)),
-                      priceInfo: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
-                      isFavorited: false,
-                    });
-                  });
-                } else if (category === 'cafes') {
-                  const cafes = ['Artisan Coffee', 'Cozy Cafe', 'Rooftop Terrace', 'Book Cafe', 'Garden Cafe', 'Specialty Coffee'];
-                  cafes.forEach((cafe, idx) => {
-                    mockItems.push({
-                      id: `cafe-${idx}`,
-                      name: cafe,
-                      description: 'Perfect spot for coffee',
-                      imageUrl: getMockPexelsImage(cafe, 'cafe'),
-                      category: 'cafes',
-                      tags: ['cafes'],
-                      rating: parseFloat((4 + Math.random()).toFixed(1)),
-                      priceInfo: '$',
+                const newItems: PlanningItem[] = [];
+                const apiCategory = category === 'experiences' ? 'attractions' :
+                                   category === 'hotels' ? 'hotels' :
+                                   category === 'restaurants' ? 'restaurants' :
+                                   category === 'cafes' ? 'cafes' : 'attractions';
+
+                // Fetch places for each destination
+                for (const dest of destinations) {
+                  const places = await fetchPlacesFromAPI(dest, apiCategory);
+                  places.forEach((place, idx) => {
+                    newItems.push({
+                      id: place.id || `${category}-${dest}-${idx}`,
+                      name: place.name,
+                      description: place.description,
+                      imageUrl: place.imageUrl,
+                      category: category === 'hotels' ? 'hotels' : category === 'restaurants' ? 'restaurants' : category === 'cafes' ? 'cafes' : 'activities',
+                      tags: [category, dest],
+                      rating: place.rating,
                       isFavorited: false,
                     });
                   });
@@ -2946,8 +2725,8 @@ export default function TripPage() {
 
                 // Merge with existing items (don't duplicate)
                 const existingIds = new Set(planningItems.map(i => i.id));
-                const newItems = mockItems.filter(i => !existingIds.has(i.id));
-                setPlanningItems([...planningItems, ...newItems]);
+                const filteredItems = newItems.filter(i => !existingIds.has(i.id));
+                setPlanningItems([...planningItems, ...filteredItems]);
               }}
             />
           </div>

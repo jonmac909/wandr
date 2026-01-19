@@ -23,7 +23,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getCityImage } from '@/lib/planning/city-images';
+
 
 interface Listing {
   id: string;
@@ -200,7 +200,7 @@ function generateCitiesForDestinations(destinations: string[]): { destination: s
           id: `${matchedKey}-city-${index + 1}`,
           name: city.name,
           description: city.description,
-          imageUrl: getCityImage(city.name),
+          imageUrl: `/api/placeholder/city/${encodeURIComponent(city.name)}`,
           category: 'cities',
           tags: city.tags,
         })),

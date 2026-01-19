@@ -30,7 +30,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { PlanningNav, type PlanningSection } from '@/components/planning/PlanningNav';
 import { SwipeablePlanningView, type PlanningPhase } from '@/components/planning/SwipeablePlanningView';
 import type { PlanningItem } from '@/components/planning/PlanningTripToggle';
-import { getCityImage } from '@/lib/planning/city-images';
+
 import type { TripDNA } from '@/types/trip-dna';
 
 type DurationType = 'days' | 'weeks' | 'months';
@@ -162,37 +162,38 @@ const TRIP_TYPE_CATEGORIES: TripTypeCategory[] = [
   },
 ];
 
-// Helper to get popular cities for a destination
-function getCitiesForDestination(destination: string): string[] {
-  const cityMap: Record<string, string[]> = {
-    'Turkey': ['Istanbul', 'Cappadocia', 'Antalya', 'Bodrum', 'Ephesus', 'Pamukkale', 'Izmir', 'Ankara', 'Fethiye', 'Kas', 'Trabzon', 'Bursa', 'Konya', 'Dalyan', 'Oludeniz', 'Marmaris', 'Alanya', 'Side'],
-    'Spain': ['Barcelona', 'Madrid', 'Seville', 'Valencia', 'Granada', 'San Sebastian', 'Bilbao', 'Malaga', 'Toledo', 'Cordoba', 'Ibiza', 'Ronda', 'Salamanca', 'Girona', 'Segovia', 'Cadiz', 'Marbella', 'Palma de Mallorca'],
-    'Italy': ['Rome', 'Florence', 'Venice', 'Milan', 'Amalfi Coast', 'Cinque Terre', 'Naples', 'Tuscany', 'Bologna', 'Verona', 'Lake Como', 'Siena', 'Ravenna', 'Pisa', 'Sorrento'],
-    'France': ['Paris', 'Nice', 'Lyon', 'Bordeaux', 'Marseille', 'Provence', 'Strasbourg', 'Mont Saint-Michel', 'Cannes', 'Avignon', 'Annecy', 'Colmar', 'Saint-Tropez', 'Chamonix', 'Carcassonne'],
-    'Japan': ['Tokyo', 'Kyoto', 'Osaka', 'Hiroshima', 'Nara', 'Hakone', 'Kanazawa', 'Nikko', 'Fukuoka', 'Takayama', 'Nagoya', 'Kamakura', 'Naoshima', 'Kobe', 'Miyajima'],
-    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket', 'Krabi', 'Koh Samui', 'Ayutthaya', 'Pai', 'Chiang Rai', 'Koh Phi Phi', 'Koh Lanta', 'Koh Tao', 'Hua Hin', 'Koh Chang', 'Sukhothai', 'Kanchanaburi'],
-    'Portugal': ['Lisbon', 'Porto', 'Sintra', 'Algarve', 'Madeira', 'Évora', 'Coimbra', 'Cascais', 'Lagos', 'Nazaré', 'Óbidos', 'Azores', 'Braga', 'Aveiro', 'Tavira'],
-    'Greece': ['Athens', 'Santorini', 'Mykonos', 'Crete', 'Rhodes', 'Corfu', 'Meteora', 'Delphi', 'Thessaloniki', 'Naxos', 'Paros', 'Zakynthos', 'Hydra', 'Milos', 'Nafplio'],
-    'Vietnam': ['Hanoi', 'Ho Chi Minh City', 'Ha Long Bay', 'Hoi An', 'Da Nang', 'Sapa', 'Hue', 'Nha Trang', 'Phu Quoc', 'Ninh Binh', 'Dalat', 'Mui Ne', 'Can Tho', 'Phong Nha', 'Quy Nhon'],
-    'Indonesia': ['Bali', 'Jakarta', 'Yogyakarta', 'Ubud', 'Lombok', 'Komodo', 'Raja Ampat', 'Bandung', 'Surabaya', 'Gili Islands', 'Labuan Bajo', 'Sulawesi', 'Sumatra', 'Flores', 'Malang'],
-    'Hawaii': ['Honolulu', 'Waikiki', 'Maui', 'Kauai', 'Big Island', 'Hilo', 'Kona', 'Lahaina', 'North Shore', 'Pearl Harbor'],
-  };
-  return cityMap[destination] || [];
-}
-
 // Helper function to fetch real city images from API
 async function fetchCityImage(city: string, country: string): Promise<string> {
   try {
     const response = await fetch(`/api/city-image?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch city image');
+      return `/api/placeholder/city/${encodeURIComponent(city)}`;
     }
     const data = await response.json();
-    return data.imageUrl;
+    return data.imageUrl || `/api/placeholder/city/${encodeURIComponent(city)}`;
   } catch (error) {
     console.error(`Failed to fetch image for ${city}:`, error);
-    // Fallback to static function
-    return getCityImage(city, country);
+    return `/api/placeholder/city/${encodeURIComponent(city)}`;
+  }
+}
+
+// Helper to fetch cities for a destination from Google Places API
+async function fetchCitiesForDestination(destination: string): Promise<Array<{ name: string; imageUrl: string }>> {
+  try {
+    const response = await fetch('/api/explore/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city: destination, category: 'attractions' }),
+    });
+    if (!response.ok) return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
+    const data = await response.json();
+    const cities = (data.places || []).slice(0, 15).map((p: { name: string; imageUrl?: string }) => ({
+      name: p.name,
+      imageUrl: p.imageUrl || `/api/placeholder/city/${encodeURIComponent(p.name)}`,
+    }));
+    return cities.length > 0 ? cities : [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
+  } catch {
+    return [{ name: destination, imageUrl: `/api/placeholder/city/${encodeURIComponent(destination)}` }];
   }
 }
 
@@ -724,58 +725,22 @@ function PlanPageContent() {
       setCompletedSections(prev => [...new Set([...prev, 'where' as PlanningSection, 'prefs' as PlanningSection])]);
       setCurrentSection('cities');
 
-      // Generate city items for planning with real images
-      const mockItems: PlanningItem[] = [];
-
-      // Fetch images for all cities in parallel
-      const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
-
-      destinations.forEach((dest: string, destIdx: number) => {
-        const cityNames = getCitiesForDestination(dest);
-        cityNames.forEach((city, idx) => {
-          const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
-            city,
-            destIdx,
-            idx,
-            imageUrl
-          }));
-          imageFetches.push(imagePromise);
-        });
-      });
-
-      // Wait for all images to fetch
-      try {
-        const imageResults = await Promise.all(imageFetches);
-
-        imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
-          mockItems.push({
-            id: `city-${destIdx}-${idx}`,
-            name: city,
-            description: `Explore ${city}`,
-            imageUrl,  // Now using real API images!
+      // Generate city items for planning with real images from Google Places API
+      const newItems: PlanningItem[] = [];
+      for (const dest of destinations) {
+        const cities = await fetchCitiesForDestination(dest);
+        cities.forEach((city, idx) => {
+          newItems.push({
+            id: `city-${dest}-${idx}`,
+            name: city.name,
+            description: `Explore ${city.name}`,
+            imageUrl: city.imageUrl,
             category: 'activities',
-            tags: ['cities', destinations[destIdx]],
-          });
-        });
-      } catch (error) {
-        console.error('Failed to fetch city images, falling back to static:', error);
-        // Fallback: use static images
-        destinations.forEach((dest: string, destIdx: number) => {
-          const cityNames = getCitiesForDestination(dest);
-          cityNames.forEach((city, idx) => {
-            mockItems.push({
-              id: `city-${destIdx}-${idx}`,
-              name: city,
-              description: `Explore ${city}`,
-              imageUrl: getCityImage(city, dest),  // Static fallback
-              category: 'activities',
-              tags: ['cities', dest],
-            });
+            tags: ['cities', dest],
           });
         });
       }
-
-      setPlanningItems(mockItems);
+      setPlanningItems(newItems);
     } catch (error) {
       console.error('Failed to save trip:', error);
     } finally {
@@ -1363,57 +1328,21 @@ function PlanPageContent() {
             }}
             onSearchAI={async (query, category) => {
               if (category === 'cities') {
-                const mockItems: PlanningItem[] = [];
-
-                // Fetch images for all cities in parallel
-                const imageFetches: Promise<{ city: string; destIdx: number; idx: number; imageUrl: string }>[] = [];
-
-                destinations.forEach((dest: string, destIdx: number) => {
-                  const cityNames = getCitiesForDestination(dest);
-                  cityNames.forEach((city, idx) => {
-                    const imagePromise = fetchCityImage(city, dest).then(imageUrl => ({
-                      city,
-                      destIdx,
-                      idx,
-                      imageUrl
-                    }));
-                    imageFetches.push(imagePromise);
-                  });
-                });
-
-                // Wait for all images to fetch
-                try {
-                  const imageResults = await Promise.all(imageFetches);
-
-                  imageResults.forEach(({ city, destIdx, idx, imageUrl }) => {
-                    mockItems.push({
-                      id: `city-${destIdx}-${idx}`,
-                      name: city,
-                      description: `Explore ${city}`,
-                      imageUrl,  // Using real API images
+                const newItems: PlanningItem[] = [];
+                for (const dest of destinations) {
+                  const cities = await fetchCitiesForDestination(dest);
+                  cities.forEach((city, idx) => {
+                    newItems.push({
+                      id: `city-${dest}-${idx}`,
+                      name: city.name,
+                      description: `Explore ${city.name}`,
+                      imageUrl: city.imageUrl,
                       category: 'activities',
-                      tags: ['cities', destinations[destIdx]],
-                    });
-                  });
-                } catch (error) {
-                  console.error('Failed to fetch city images, falling back to static:', error);
-                  // Fallback: use static images
-                  destinations.forEach((dest: string, destIdx: number) => {
-                    const cityNames = getCitiesForDestination(dest);
-                    cityNames.forEach((city, idx) => {
-                      mockItems.push({
-                        id: `city-${destIdx}-${idx}`,
-                        name: city,
-                        description: `Explore ${city}`,
-                        imageUrl: getCityImage(city, dest),  // Static fallback
-                        category: 'activities',
-                        tags: ['cities', dest],
-                      });
+                      tags: ['cities', dest],
                     });
                   });
                 }
-
-                setPlanningItems(mockItems);
+                setPlanningItems(newItems);
               }
             }}
           />
