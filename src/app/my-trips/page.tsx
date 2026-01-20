@@ -13,6 +13,8 @@ import {
   Globe,
   CheckSquare,
   Trash2,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,13 +31,20 @@ export default function MyTripsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Split trips into upcoming and past
-  const { upcomingTrips, pastTrips } = useMemo(() => {
+  // Split trips into upcoming, past, and archived
+  const { upcomingTrips, pastTrips, archivedTrips } = useMemo(() => {
     const now = new Date();
     const upcoming: StoredTrip[] = [];
     const past: StoredTrip[] = [];
+    const archived: StoredTrip[] = [];
 
     trips.forEach((trip) => {
+      // Separate archived trips first
+      if (trip.status === 'archived') {
+        archived.push(trip);
+        return;
+      }
+
       const endDate = trip.itinerary?.meta?.endDate;
       if (endDate) {
         const tripEnd = new Date(endDate);
@@ -64,8 +73,18 @@ export default function MyTripsPage() {
       return dateB.localeCompare(dateA);
     });
 
-    return { upcomingTrips: upcoming, pastTrips: past };
+    // Sort archived by updated date (most recent first)
+    archived.sort((a, b) => {
+      const dateA = new Date(a.updatedAt).getTime();
+      const dateB = new Date(b.updatedAt).getTime();
+      return dateB - dateA;
+    });
+
+    return { upcomingTrips: upcoming, pastTrips: past, archivedTrips: archived };
   }, [trips]);
+
+  // Count active trips (non-archived)
+  const activeTripsCount = upcomingTrips.length + pastTrips.length;
 
   if (loading) {
     return (
@@ -95,7 +114,10 @@ export default function MyTripsPage() {
           </Button>
           <div>
             <h1 className="font-semibold">My Trips</h1>
-            <p className="text-xs text-muted-foreground">{trips.length} trips</p>
+            <p className="text-xs text-muted-foreground">
+              {activeTripsCount} trips
+              {archivedTrips.length > 0 && ` · ${archivedTrips.length} archived`}
+            </p>
           </div>
         </div>
         {/* Stats */}
@@ -147,8 +169,23 @@ export default function MyTripsPage() {
           </div>
         )}
 
+        {/* Archived Trips */}
+        {archivedTrips.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+              <Archive className="w-4 h-4" />
+              Archived
+            </h2>
+            <div className="space-y-3">
+              {archivedTrips.map((trip) => (
+                <TripCard key={trip.id} trip={trip} onDelete={refresh} isArchived onRestore={refresh} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
-        {trips.length === 0 && (
+        {activeTripsCount === 0 && archivedTrips.length === 0 && (
           <div className="text-center py-12">
             <div className="text-4xl mb-3">✈️</div>
             <p className="text-muted-foreground mb-4">No trips yet</p>
@@ -196,7 +233,17 @@ export default function MyTripsPage() {
   );
 }
 
-function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }) {
+function TripCard({ 
+  trip, 
+  onDelete, 
+  isArchived = false,
+  onRestore,
+}: { 
+  trip: StoredTrip; 
+  onDelete: () => void;
+  isArchived?: boolean;
+  onRestore?: () => void;
+}) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
@@ -241,6 +288,17 @@ function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }
     setIsDeleting(false);
   };
 
+  const handleRestore = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await tripDb.updateStatus(trip.id, 'completed');
+      onRestore?.();
+    } catch (error) {
+      console.error('Failed to restore trip:', error);
+    }
+  };
+
   return (
     <Link href={`/trip/${trip.id}`}>
       <Card className="hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
@@ -265,9 +323,11 @@ function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }
             <div className="flex-1 p-3 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-sm truncate">{title}</h3>
-                {isDraft && (
+                {isArchived ? (
+                  <Badge variant="secondary" className="text-xs">Archived</Badge>
+                ) : isDraft ? (
                   <Badge variant="outline" className="text-xs">Draft</Badge>
-                )}
+                ) : null}
               </div>
 
               {destination && (
@@ -298,15 +358,26 @@ function TripCard({ trip, onDelete }: { trip: StoredTrip; onDelete: () => void }
               )}
             </div>
 
-            {/* Delete button */}
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center px-3 hover:bg-red-50 transition-colors group"
-              title="Delete trip"
-            >
-              <Trash2 className={`w-4 h-4 text-muted-foreground group-hover:text-red-500 ${isDeleting ? 'animate-pulse' : ''}`} />
-            </button>
+            {/* Action buttons */}
+            <div className="flex items-center">
+              {isArchived && (
+                <button
+                  onClick={handleRestore}
+                  className="flex items-center px-2 hover:bg-green-50 transition-colors group"
+                  title="Restore trip"
+                >
+                  <RotateCcw className="w-4 h-4 text-muted-foreground group-hover:text-green-600" />
+                </button>
+              )}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex items-center px-3 hover:bg-red-50 transition-colors group"
+                title="Delete trip"
+              >
+                <Trash2 className={`w-4 h-4 text-muted-foreground group-hover:text-red-500 ${isDeleting ? 'animate-pulse' : ''}`} />
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
