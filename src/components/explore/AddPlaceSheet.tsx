@@ -5,6 +5,7 @@ import { X, Link2, PenLine, Camera, Loader2, MapPin, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { savedPlacesDb } from '@/lib/db/indexed-db';
+import { getCountryForCity, getCountryName } from '@/lib/geo/city-country';
 import type { SavedPlace } from '@/types/saved-place';
 
 interface AddPlaceSheetProps {
@@ -23,6 +24,9 @@ export function AddPlaceSheet({ open, onOpenChange, onPlaceAdded }: AddPlaceShee
 
   // URL state
   const [url, setUrl] = useState('');
+  const [urlCity, setUrlCity] = useState('');
+  const [urlType, setUrlType] = useState<SavedPlace['type']>('attraction');
+  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
 
   // Manual state
   const [manualName, setManualName] = useState('');
@@ -32,12 +36,30 @@ export function AddPlaceSheet({ open, onOpenChange, onPlaceAdded }: AddPlaceShee
 
   const resetForm = () => {
     setUrl('');
+    setUrlCity('');
+    setUrlType('attraction');
+    setDetectedCountry(null);
     setManualName('');
     setManualCity('');
     setManualType('attraction');
     setManualNotes('');
     setError(null);
     setSuccess(false);
+  };
+
+  // Auto-detect country when city changes
+  const handleUrlCityChange = (city: string) => {
+    setUrlCity(city);
+    if (city.trim()) {
+      const countryCode = getCountryForCity(city.trim());
+      if (countryCode) {
+        setDetectedCountry(getCountryName(countryCode));
+      } else {
+        setDetectedCountry(null);
+      }
+    } else {
+      setDetectedCountry(null);
+    }
   };
 
   const handleClose = () => {
@@ -50,13 +72,15 @@ export function AddPlaceSheet({ open, onOpenChange, onPlaceAdded }: AddPlaceShee
       setError('Please enter a URL');
       return;
     }
+    if (!urlCity.trim()) {
+      setError('Please enter a city to organize this in a collection');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // For now, create a basic saved place from the URL
-      // In the future, this could call an AI API to extract place info
       const urlObj = new URL(url);
       const domain = urlObj.hostname.replace('www.', '');
 
@@ -68,8 +92,8 @@ export function AddPlaceSheet({ open, onOpenChange, onPlaceAdded }: AddPlaceShee
 
       await savedPlacesDb.save({
         name: suggestedName.slice(0, 50),
-        type: 'attraction',
-        city: 'Unknown',
+        type: urlType,
+        city: urlCity.trim(),
         source: 'link',
         sourceUrl: url,
         notes: `Saved from ${domain}`,
@@ -194,9 +218,42 @@ export function AddPlaceSheet({ open, onOpenChange, onPlaceAdded }: AddPlaceShee
                 onChange={(e) => setUrl(e.target.value)}
                 className="w-full"
               />
-              <p className="text-xs text-gray-400">
-                We&apos;ll extract the place details automatically
-              </p>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">City *</label>
+                <Input
+                  placeholder="e.g., Bangkok, Tokyo"
+                  value={urlCity}
+                  onChange={(e) => handleUrlCityChange(e.target.value)}
+                />
+                {detectedCountry && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Will be added to your {detectedCountry} collection
+                  </p>
+                )}
+                {urlCity && !detectedCountry && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Will be added to &quot;All Saved&quot; (city not recognized)
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['attraction', 'restaurant', 'cafe', 'activity', 'nightlife'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setUrlType(type)}
+                      className={`px-3 py-1.5 rounded-full text-sm capitalize transition-colors ${
+                        urlType === type
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : method === 'manual' ? (
             <div className="space-y-4">

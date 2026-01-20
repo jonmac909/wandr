@@ -2,30 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, Bookmark, ChevronDown, MoreHorizontal, Clock } from 'lucide-react';
+import { Heart, Bookmark, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { savedPlacesDb } from '@/lib/db/indexed-db';
-import { getFlagForLocation } from '@/lib/geo/city-country';
+import { getCountryForCity, getCountryName, getFlagForLocation } from '@/lib/geo/city-country';
 import type { SavedPlace } from '@/types/saved-place';
 
-interface TripSavedSummary {
-  tripId: string;
-  tripTitle: string;
-  destinations: string[];
+interface CountryCollection {
+  countryCode: string;
+  countryName: string;
+  flag: string;
   cities: string[];
-  savedCount: number;
+  places: SavedPlace[];
   heroImage?: string;
-}
-
-interface FavoriteCollection {
-  name: string;
-  description: string;
-  imageUrl?: string;
-  savedCount: number;
-  timeEstimate: string;
 }
 
 export default function SavedPage() {
@@ -34,94 +26,69 @@ export default function SavedPage() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [tripSummaries, setTripSummaries] = useState<TripSavedSummary[]>([]);
-  const [allFavorites, setAllFavorites] = useState<SavedPlace[]>([]);
-  const [favoriteCollections, setFavoriteCollections] = useState<FavoriteCollection[]>([]);
+  const [countryCollections, setCountryCollections] = useState<CountryCollection[]>([]);
+  const [uncategorizedPlaces, setUncategorizedPlaces] = useState<SavedPlace[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
 
-  // Load saved places data
+  // Load saved places and group by country
   useEffect(() => {
     async function loadSavedData() {
       setLoadingSaved(true);
       try {
-        // Get all saved places
         const places = await savedPlacesDb.getAll();
-        const unassigned: SavedPlace[] = [...places];
 
-        // Build trip summaries from actual trips
-        const summaries: TripSavedSummary[] = [];
-        for (const trip of trips) {
-          const destinations = trip.tripDna?.interests?.destinations ||
-            (trip.tripDna?.interests?.destination ? [trip.tripDna.interests.destination] : []);
+        // Group places by country
+        const countryMap = new Map<string, { cities: Set<string>; places: SavedPlace[] }>();
+        const uncategorized: SavedPlace[] = [];
 
-          // Get cities from trip's selected cities or route
-          const cities = (trip.tripDna as any)?.planning?.selectedCities ||
-            (trip.tripDna as any)?.planning?.routeOrder || [];
-
-          // Count saved places that might be associated with this trip's destinations
-          const tripPlaces = unassigned.filter(p =>
-            destinations.some(d =>
-              p.city?.toLowerCase().includes(d.toLowerCase()) ||
-              d.toLowerCase().includes(p.city?.toLowerCase() || '')
-            )
-          );
-
-          if (destinations.length > 0) {
-            // Fetch hero image for first destination
-            let heroImage: string | undefined;
-            try {
-              const res = await fetch(`/api/city-image?city=${encodeURIComponent(destinations[0])}`);
-              if (res.ok) {
-                const data = await res.json();
-                heroImage = data.imageUrl;
-              }
-            } catch { /* ignore */ }
-
-            summaries.push({
-              tripId: trip.id,
-              tripTitle: `${destinations[0]} Trip`,
-              destinations,
-              cities: cities.length > 0 ? cities.slice(0, 3) : destinations.slice(0, 3),
-              savedCount: tripPlaces.length,
-              heroImage,
-            });
+        for (const place of places) {
+          const countryCode = getCountryForCity(place.city);
+          if (countryCode) {
+            if (!countryMap.has(countryCode)) {
+              countryMap.set(countryCode, { cities: new Set(), places: [] });
+            }
+            const group = countryMap.get(countryCode)!;
+            group.cities.add(place.city);
+            group.places.push(place);
+          } else {
+            uncategorized.push(place);
           }
         }
 
-        // Build favorite collections by grouping saved places by city/region
-        const cityGroups = new Map<string, SavedPlace[]>();
-        unassigned.forEach(place => {
-          const city = place.city || 'Other';
-          if (!cityGroups.has(city)) cityGroups.set(city, []);
-          cityGroups.get(city)!.push(place);
-        });
+        // Convert to collections array and fetch hero images
+        const collections: CountryCollection[] = [];
+        for (const [code, data] of countryMap) {
+          const countryName = getCountryName(code);
+          const citiesArray = Array.from(data.cities);
 
-        const collections: FavoriteCollection[] = [];
-        for (const [city, places] of cityGroups) {
-          if (places.length > 0) {
-            // Fetch image for the city
-            let imageUrl: string | undefined;
-            try {
-              const res = await fetch(`/api/city-image?city=${encodeURIComponent(city)}`);
-              if (res.ok) {
-                const data = await res.json();
-                imageUrl = data.imageUrl;
-              }
-            } catch { /* ignore */ }
+          // Fetch hero image for first city
+          let heroImage: string | undefined;
+          try {
+            const res = await fetch(`/api/city-image?city=${encodeURIComponent(citiesArray[0])}`);
+            if (res.ok) {
+              const json = await res.json();
+              heroImage = json.imageUrl;
+            }
+          } catch { /* ignore */ }
 
-            collections.push({
-              name: city,
-              description: places.map(p => p.type).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3).join(', '),
-              imageUrl,
-              savedCount: places.length,
-              timeEstimate: `${Math.ceil(places.length * 0.5)}-${places.length} hrs`,
-            });
-          }
+          // Get flag emoji
+          const flag = getFlagForLocation(citiesArray[0]);
+
+          collections.push({
+            countryCode: code,
+            countryName,
+            flag,
+            cities: citiesArray,
+            places: data.places,
+            heroImage,
+          });
         }
 
-        setTripSummaries(summaries);
-        setAllFavorites(unassigned);
-        setFavoriteCollections(collections);
+        // Sort by number of places (most saved first)
+        collections.sort((a, b) => b.places.length - a.places.length);
+
+        setCountryCollections(collections);
+        setUncategorizedPlaces(uncategorized);
       } catch (error) {
         console.error('Failed to load saved places:', error);
       } finally {
@@ -132,7 +99,7 @@ export default function SavedPage() {
     if (!loading) {
       loadSavedData();
     }
-  }, [trips, loading]);
+  }, [loading]);
 
   if (loading || loadingSaved) {
     return (
@@ -168,7 +135,7 @@ export default function SavedPage() {
         </div>
 
         {/* Empty State */}
-        {tripSummaries.length === 0 && allFavorites.length === 0 && (
+        {countryCollections.length === 0 && uncategorizedPlaces.length === 0 && (
           <Card className="bg-white">
             <CardContent className="py-16 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
@@ -185,15 +152,17 @@ export default function SavedPage() {
           </Card>
         )}
 
-        {/* Upcoming Trips */}
-        {tripSummaries.length > 0 && (
+        {/* Country Collections */}
+        {countryCollections.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Upcoming trips</h2>
+            <h2 className="text-lg font-semibold mb-4">Trip collections</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {tripSummaries.map((summary) => (
+              {countryCollections.map((collection) => (
                 <button
-                  key={summary.tripId}
-                  onClick={() => router.push(`/trip/${summary.tripId}`)}
+                  key={collection.countryCode}
+                  onClick={() => {
+                    // TODO: Navigate to country collection detail page
+                  }}
                   className="text-left w-full"
                 >
                   <Card className="bg-white hover:shadow-md transition-shadow overflow-hidden">
@@ -201,10 +170,10 @@ export default function SavedPage() {
                       <div className="flex">
                         {/* Image */}
                         <div className="w-32 h-28 flex-shrink-0 relative">
-                          {summary.heroImage ? (
+                          {collection.heroImage ? (
                             <img
-                              src={summary.heroImage}
-                              alt={summary.tripTitle}
+                              src={collection.heroImage}
+                              alt={collection.countryName}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -217,16 +186,15 @@ export default function SavedPage() {
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2 min-w-0">
                               <h3 className="font-semibold text-sm truncate">
-                                {summary.tripTitle}
+                                {collection.countryName}
                               </h3>
                               <span className="text-base flex-shrink-0">
-                                {getFlagForLocation(summary.destinations[0])}
+                                {collection.flag}
                               </span>
                             </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Menu action
                               }}
                               className="p-1 hover:bg-slate-100 rounded flex-shrink-0"
                             >
@@ -235,12 +203,13 @@ export default function SavedPage() {
                           </div>
 
                           <p className="text-xs text-muted-foreground truncate mb-2">
-                            {summary.cities.join(', ')}
+                            {collection.cities.slice(0, 3).join(', ')}
+                            {collection.cities.length > 3 && ` +${collection.cities.length - 3} more`}
                           </p>
 
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Bookmark className="w-3.5 h-3.5" />
-                            <span>{summary.savedCount} saved items</span>
+                            <span>{collection.places.length} saved items</span>
                           </div>
                         </div>
                       </div>
@@ -252,95 +221,62 @@ export default function SavedPage() {
           </section>
         )}
 
-        {/* All Favorites */}
+        {/* All Saved (uncategorized) */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">All Favorites</h2>
+            <h2 className="text-lg font-semibold">All Saved</h2>
             <button className="p-1 hover:bg-slate-200 rounded">
               <MoreHorizontal className="w-5 h-5 text-slate-400" />
             </button>
           </div>
 
-          {favoriteCollections.length === 0 && allFavorites.length === 0 ? (
+          {uncategorizedPlaces.length === 0 ? (
             <Card className="bg-white/80">
               <CardContent className="py-8 text-center">
                 <Heart className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-                <p className="text-muted-foreground text-sm">No favorites yet</p>
+                <p className="text-muted-foreground text-sm">No uncategorized saves yet</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
-                  Tap the heart on any place to save it here
+                  Items saved without a recognized city will appear here
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-              {favoriteCollections.map((collection, idx) => (
-                <div key={idx} className="flex-shrink-0 w-48">
+              {uncategorizedPlaces.map((place) => (
+                <div key={place.id} className="flex-shrink-0 w-48">
                   <Card className="bg-white overflow-hidden hover:shadow-md transition-shadow">
                     <CardContent className="p-0">
-                      {/* Image */}
                       <div className="relative aspect-[4/3]">
-                        {collection.imageUrl ? (
+                        {place.imageUrl ? (
                           <img
-                            src={collection.imageUrl || `/api/placeholder/city/${encodeURIComponent(collection.name || "place")}`}
-                            alt={collection.name}
+                            src={place.imageUrl}
+                            alt={place.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300" />
+                          <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                            <Bookmark className="w-8 h-8 text-slate-400" />
+                          </div>
                         )}
-                        {/* Heart icon */}
                         <button className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
                           <Heart className="w-4 h-4 text-red-500 fill-current" />
                         </button>
                       </div>
-
-                      {/* Content */}
                       <div className="p-3">
-                        <h3 className="font-semibold text-sm truncate">{collection.name}</h3>
+                        <h3 className="font-semibold text-sm truncate">{place.name}</h3>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {collection.description || `${collection.savedCount} saved items`}
+                          {place.city || 'Unknown location'}
                         </p>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-amber-600">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{collection.timeEstimate}</span>
-                        </div>
+                        {place.sourceUrl && (
+                          <p className="text-xs text-blue-500 truncate mt-1">
+                            {new URL(place.sourceUrl).hostname.replace('www.', '')}
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               ))}
-
-              {/* If no collections but have favorites, show them directly */}
-              {favoriteCollections.length === 0 && allFavorites.length > 0 && (
-                allFavorites.slice(0, 6).map((place) => (
-                  <div key={place.id} className="flex-shrink-0 w-48">
-                    <Card className="bg-white overflow-hidden hover:shadow-md transition-shadow">
-                      <CardContent className="p-0">
-                        <div className="relative aspect-[4/3]">
-                          {place.imageUrl ? (
-                            <img
-                              src={place.imageUrl || `/api/placeholder/city/${encodeURIComponent(place.name || "place")}`}
-                              alt={place.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300" />
-                          )}
-                          <button className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                            <Heart className="w-4 h-4 text-red-500 fill-current" />
-                          </button>
-                        </div>
-                        <div className="p-3">
-                          <h3 className="font-semibold text-sm truncate">{place.name}</h3>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {place.city}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))
-              )}
             </div>
           )}
         </section>
