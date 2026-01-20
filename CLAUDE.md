@@ -215,10 +215,10 @@ Trip page overview shows countries/cities count:
 ## Ground Rules
 
 - **NEVER use `npm run dev`** - Do not start the dev server. It hogs resources (CPU/RAM) and blocks builds. User tests on live site only.
-- **NEVER use `npm run deploy`** - The local `@opennextjs/cloudflare build` hangs. Don't waste time on it.
-- **ALWAYS run `npm run build` before pushing** - catches TypeScript/build errors
+- **ALWAYS run `npm run build` before deploying** - catches TypeScript/build errors
 - **Live testing site: https://trippified.com/** - User tests here, NOT localhost
-- **To deploy: just `git push`** - GitHub Actions auto-deploys to Cloudflare Workers. That's it.
+- **To deploy: run `npm run deploy`** - Deploys directly to Cloudflare Workers from terminal. Fast iterations.
+- **GitHub Actions is backup** - The workflow still runs on push for CI purposes, but manual deploy is preferred for quick iterations.
 - **Build issues with Playwright**: `tsconfig.json` excludes `playwright.config.ts` and `tests/` to prevent build errors
 - **Kill resource hogs** - If things are slow, check for background processes with `ps aux | grep -E "node|npm"`. Kill any `npm run dev` or `next dev` processes immediately with `pkill -f "npm run dev" && pkill -f "next dev"`. Always tell the user if something is hogging resources.
 
