@@ -2621,13 +2621,15 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             );
             if (hasOvernightFlight) return null;
             return (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Hotel className="w-4 h-4" />
-                <span>No hotel for {day.city}</span>
+              <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm">
+                <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white flex-shrink-0">
+                  <Hotel className="w-4 h-4" />
+                </div>
+                <span className="flex-1 text-purple-700">No hotel for {day.city}</span>
                 <Button 
                   size="sm" 
                   variant="ghost"
-                  className="h-7 px-2"
+                  className="h-7 px-2 text-purple-600 hover:text-purple-800"
                   onClick={() => onAddReservation('lodging')}
                 >
                   <Paperclip className="w-4 h-4" />
@@ -2635,7 +2637,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                 <Button 
                   size="sm" 
                   variant="ghost"
-                  className="h-7 text-primary"
+                  className="h-7 text-purple-600 hover:text-purple-800"
                   onClick={() => {
                     const searchQuery = encodeURIComponent(`hotels in ${day.city}`);
                     window.open(`https://www.tripadvisor.com/Search?q=${searchQuery}`, '_blank');
@@ -2645,7 +2647,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                 </Button>
                 <button
                   onClick={() => setShowHotelPrompt(false)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-purple-400 hover:text-purple-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
