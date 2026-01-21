@@ -2069,36 +2069,93 @@ export default function AutoItineraryView({
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </button>
 
-            {/* Day tabs - underline style like Wanderlog */}
-            <div className="flex-shrink-0 bg-white px-4 pt-2 border-b overflow-x-auto">
-              <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
-                {days.map((day) => {
-                  const isSelected = mapSelectedDay === day.dayNumber;
+            {/* City name header */}
+            <div className="flex-shrink-0 bg-white px-4 pt-3 pb-2">
+              <h1 className="text-xl font-bold">
+                {(() => {
+                  const selectedCity = mapSelectedCity || allocations[0]?.city;
+                  const isTransit = selectedCity?.toLowerCase().includes('transit');
+                  return isTransit ? '✈️ In Transit' : selectedCity;
+                })()}
+              </h1>
+            </div>
+
+            {/* City tabs - pill style */}
+            <div className="flex-shrink-0 bg-white px-4 py-2 overflow-x-auto">
+              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+                {allocations.map((alloc, idx) => {
+                  const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
+                  const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
+                  const cityDays = days.filter(d => d.city === alloc.city);
+                  
                   return (
                     <button
-                      key={day.dayNumber}
+                      key={`${alloc.city}-${idx}`}
                       onClick={() => {
-                        setMapSelectedDay(day.dayNumber);
+                        setMapSelectedCity(alloc.city);
+                        const firstDayInCity = cityDays[0]?.dayNumber || 1;
+                        setMapSelectedDay(firstDayInCity);
                         setMapSelectedIndex(0);
                       }}
-                      className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
+                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                         isSelected
-                          ? 'text-gray-900 border-gray-900'
-                          : 'text-gray-400 border-transparent hover:text-gray-600'
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Day {day.dayNumber}
+                      {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
                     </button>
                   );
                 })}
               </div>
             </div>
 
+            {/* Day tabs - underline style, RELATIVE numbering (Day 1, Day 2 within city) */}
+            {(() => {
+              const selectedCity = mapSelectedCity || allocations[0]?.city;
+              const cityDays = days.filter(d => d.city === selectedCity);
+              
+              if (cityDays.length === 0) return null;
+              
+              return (
+                <div className="flex-shrink-0 bg-white px-4 pt-2 border-b overflow-x-auto">
+                  <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
+                    {cityDays.map((day, dayIdx) => {
+                      const isSelected = mapSelectedDay === day.dayNumber;
+                      return (
+                        <button
+                          key={day.dayNumber}
+                          onClick={() => {
+                            setMapSelectedDay(day.dayNumber);
+                            setMapSelectedIndex(0);
+                          }}
+                          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
+                            isSelected
+                              ? 'text-gray-900 border-gray-900'
+                              : 'text-gray-400 border-transparent hover:text-gray-600'
+                          }`}
+                        >
+                          Day {dayIdx + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Day header with collapse chevron */}
-            <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Day {mapSelectedDay}</h2>
-              <ChevronDown className="w-5 h-5 text-gray-400" />
-            </div>
+            {(() => {
+              const selectedCity = mapSelectedCity || allocations[0]?.city;
+              const cityDays = days.filter(d => d.city === selectedCity);
+              const dayIdx = cityDays.findIndex(d => d.dayNumber === mapSelectedDay);
+              return (
+                <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Day {dayIdx + 1}</h2>
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                </div>
+              );
+            })()}
 
             {/* Activity list - SAME as compact/timeline view */}
             <div className="flex-1 overflow-y-auto">
