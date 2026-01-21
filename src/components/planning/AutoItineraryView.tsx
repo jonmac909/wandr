@@ -2036,9 +2036,9 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - Like Chiang Mai explore page layout */}
+      {/* Map View - Full screen overlay */}
       {!isLoading && viewMode === 'map' && (
-        <div className="h-screen flex flex-col bg-white">
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
           {/* Map section - collapses when panel expanded */}
           <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[45vh]'}`}>
             <ActivityMap
@@ -2202,26 +2202,28 @@ export default function AutoItineraryView({
                           </div>
                         </div>
 
-                        {/* Walking time connector - between cards */}
-                        {idx < mapDayActivities.length - 1 && walkingTime && (
-                          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 bg-gray-50 border-t">
-                            <Footprints className="w-3.5 h-3.5" />
-                            <span>{walkingTime} min • {displayKm} km</span>
-                            <ChevronRight className="w-3 h-3 text-gray-300" />
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const city = days.find(d => d.dayNumber === mapSelectedDay)?.city || '';
-                                const origin = encodeURIComponent(activity.name + ' ' + city);
-                                const nextActivity = mapDayActivities[idx + 1];
-                                const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + city) : '';
-                                window.open(`https://www.google.com/maps/dir/${origin}/${dest}`, '_blank');
-                              }}
-                              className="flex items-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full transition-colors"
-                            >
-                              <Navigation className="w-3 h-3" />
-                              Directions
-                            </button>
+                        {/* Walking time connector - ALWAYS show between cards like compact view */}
+                        {idx < mapDayActivities.length - 1 && (
+                          <div className="flex items-center gap-3 pl-9 py-1">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Footprints className="w-3.5 h-3.5" />
+                              <span>{walkingTime || '?'} min • {displayKm || '?'} km</span>
+                              <span className="text-gray-300">&gt;</span>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const city = days.find(d => d.dayNumber === mapSelectedDay)?.city || '';
+                                  const origin = encodeURIComponent(activity.name + ' ' + city);
+                                  const nextActivity = mapDayActivities[idx + 1];
+                                  const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + city) : '';
+                                  window.open(`https://www.google.com/maps/dir/${origin}/${dest}`, '_blank');
+                                }}
+                                className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full transition-colors"
+                              >
+                                <Navigation className="w-3 h-3" />
+                                Directions
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
