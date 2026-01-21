@@ -2069,20 +2069,9 @@ export default function AutoItineraryView({
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </button>
 
-            {/* City name header */}
-            <div className="flex-shrink-0 bg-white px-4 pt-3 pb-2">
-              <h1 className="text-xl font-bold">
-                {(() => {
-                  const selectedCity = mapSelectedCity || allocations[0]?.city;
-                  const isTransit = selectedCity?.toLowerCase().includes('transit');
-                  return isTransit ? '✈️ In Transit' : selectedCity;
-                })()}
-              </h1>
-            </div>
-
-            {/* City tabs - pill style */}
-            <div className="flex-shrink-0 bg-white px-4 py-2 overflow-x-auto">
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+            {/* City tabs - underline style */}
+            <div className="flex-shrink-0 bg-white px-4 pt-3 border-b overflow-x-auto">
+              <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                 {allocations.map((alloc, idx) => {
                   const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
                   const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
@@ -2097,10 +2086,10 @@ export default function AutoItineraryView({
                         setMapSelectedDay(firstDayInCity);
                         setMapSelectedIndex(0);
                       }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      className={`pb-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                         isSelected
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-400 border-transparent hover:text-gray-600'
                       }`}
                     >
                       {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
