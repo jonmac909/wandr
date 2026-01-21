@@ -2544,12 +2544,12 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
               {isLoadingDay ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  {viewMode !== 'compact' && 'Generating...'}
+                  Generating...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  {viewMode !== 'compact' && 'Auto-fill day'}
+                  Auto-fill day
                 </>
               )}
             </button>
@@ -2557,16 +2557,12 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
               <>
                 <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
                   <MapPin className="w-4 h-4" />
-                  {viewMode !== 'compact' && 'Optimize route'}
+                  Optimize route
                 </button>
-                {viewMode !== 'compact' && (
-                  <>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">
-                      {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
-                    </span>
-                  </>
-                )}
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">
+                  {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
+                </span>
               </>
             )}
           </div>
