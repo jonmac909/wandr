@@ -45,7 +45,9 @@ export interface PackingState {
 export interface PersistedActivity {
   id: string;
   name: string;
-  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit';
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit' | 'note';
+  isNote?: boolean;
+  noteType?: 'transport' | 'arrival' | 'arrive' | 'meal' | 'rest' | 'explore' | 'vague' | 'general';
   description?: string;
   imageUrl?: string | null;
   suggestedTime?: string;

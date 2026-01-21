@@ -160,8 +160,8 @@ export default function LeafletMap({ coords, selectedLocation, onLocationClick, 
         maxBoundsViscosity={1.0}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
+          url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=ApW52vsbKHpERF6XOM5x&language=en"
         />
 
         {/* Route lines */}

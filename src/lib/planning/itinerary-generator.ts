@@ -7,7 +7,11 @@ import { allocateDays, type CityAllocation } from '@/lib/planning/itinerary-allo
 export interface GeneratedActivity {
   id: string;
   name: string;
-  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit';
+  type: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'flight' | 'train' | 'bus' | 'drive' | 'transit' | 'note';
+
+  // Note-specific fields (for imported notes like "Early dinner", "Rest day")
+  isNote?: boolean;
+  noteType?: 'transport' | 'arrival' | 'arrive' | 'meal' | 'rest' | 'explore' | 'vague' | 'general';
 
   // Transport-specific fields (when type is flight/train/bus/drive/transit)
   transportDetails?: {
@@ -28,6 +32,12 @@ export interface GeneratedActivity {
   duration?: number;             // minutes
   openingHours?: string;         // "8AM-6PM"
   typicalDuration?: string;      // "People typically spend 1-2 hours here"
+  
+  // Structured opening hours from Google (for closed/open validation)
+  openingHoursPeriods?: Array<{
+    open: { day: number; hour: number; minute: number };
+    close?: { day: number; hour: number; minute: number };
+  }>;
 
   // Detailed hours by day (for day-by-day availability)
   hoursPerDay?: {
@@ -82,6 +92,9 @@ export interface GeneratedActivity {
   bookingRequired?: boolean;     // Whether booking is required
   reservationStatus?: 'not-started' | 'done' | 'pending' | 'cancelled';
   bookingUrl?: string;           // URL for booking
+  
+  // Travel wisdom (real tips, not made up)
+  travelTip?: string;            // e.g., "Best visited early morning to avoid crowds"
 }
 
 export interface GeneratedDay {

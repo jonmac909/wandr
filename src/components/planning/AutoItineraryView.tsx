@@ -622,6 +622,7 @@ export default function AutoItineraryView({
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
   const [mapSelectedDay, setMapSelectedDay] = useState(1); // Which day to show in map view
   const [mapSelectedCity, setMapSelectedCity] = useState<string | null>(null); // Which city tab is selected
+  const [mapPanelExpanded, setMapPanelExpanded] = useState(false); // Whether bottom panel is expanded (map collapsed)
 
   // Reservation modal state
   const [reservationModal, setReservationModal] = useState<{
@@ -2035,52 +2036,79 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - Full screen with city tabs + day tabs */}
+      {/* Map View - Full screen like Chiang Mai explore page */}
       {!isLoading && viewMode === 'map' && (
-        <>
-          {/* Full screen modal */}
-          <div className="fixed inset-0 z-50 bg-white flex flex-col">
-            {/* Header with back button */}
-            <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b">
-              <button
-                onClick={() => setViewMode('picture')}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="font-semibold">Trip Map</span>
+        <div className="fixed inset-0 z-50 h-screen flex flex-col bg-white">
+          {/* Map section - collapses when panel expanded */}
+          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[45vh]'}`}>
+            <ActivityMap
+              days={days.filter(d => d.dayNumber === mapSelectedDay)}
+              selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
+              onActivitySelect={(activity) => {
+                const idx = mapDayActivities.findIndex(a => a.id === activity.id);
+                if (idx >= 0) setMapSelectedIndex(idx);
+              }}
+            />
+
+            {/* Back button */}
+            <button
+              onClick={() => setViewMode('picture')}
+              className="absolute top-4 left-4 z-[30] px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-sm font-medium text-gray-700 shadow-sm"
+            >
+              ← Back
+            </button>
+          </div>
+
+          {/* Bottom section - scrollable content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Drag handle to expand/collapse */}
+            <button 
+              onClick={() => setMapPanelExpanded(!mapPanelExpanded)}
+              className="flex-shrink-0 w-full py-1.5 flex items-center justify-center bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-10 h-1 rounded-full bg-gray-300" />
+            </button>
+
+            {/* City name header */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-2">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold">
+                  {(() => {
+                    const selectedCity = mapSelectedCity || allocations[0]?.city;
+                    const isTransit = selectedCity?.toLowerCase().includes('transit');
+                    return isTransit ? '✈️ In Transit' : selectedCity;
+                  })()}
+                </h1>
+              </div>
             </div>
 
             {/* City tabs - scrollable horizontal */}
-            <div className="flex-shrink-0 border-b px-3 py-2 bg-gray-50">
-              <div className="overflow-x-auto">
-                <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                  {allocations.map((alloc, idx) => {
-                    const color = getCityColor(idx);
-                    const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
-                    const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
-                    const cityDays = days.filter(d => d.city === alloc.city);
-                    
-                    return (
-                      <button
-                        key={alloc.city}
-                        onClick={() => {
-                          setMapSelectedCity(alloc.city);
-                          const firstDayInCity = cityDays[0]?.dayNumber || 1;
-                          setMapSelectedDay(firstDayInCity);
-                          setMapSelectedIndex(0);
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                          isSelected
-                            ? `${color.bg} text-white`
-                            : 'bg-white text-gray-600 hover:bg-gray-100 border'
-                        }`}
-                      >
-                        {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
-                      </button>
-                    );
-                  })}
-                </div>
+            <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
+              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+                {allocations.map((alloc, idx) => {
+                  const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
+                  const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
+                  const cityDays = days.filter(d => d.city === alloc.city);
+                  
+                  return (
+                    <button
+                      key={alloc.city}
+                      onClick={() => {
+                        setMapSelectedCity(alloc.city);
+                        const firstDayInCity = cityDays[0]?.dayNumber || 1;
+                        setMapSelectedDay(firstDayInCity);
+                        setMapSelectedIndex(0);
+                      }}
+                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                        isSelected
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -2092,8 +2120,8 @@ export default function AutoItineraryView({
               if (cityDays.length === 0) return null;
               
               return (
-                <div className="flex-shrink-0 border-b px-3 py-2">
-                  <div className="flex gap-2">
+                <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
+                  <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
                     {cityDays.map((day, dayIdx) => {
                       const isSelected = mapSelectedDay === day.dayNumber;
                       return (
@@ -2103,7 +2131,7 @@ export default function AutoItineraryView({
                             setMapSelectedDay(day.dayNumber);
                             setMapSelectedIndex(0);
                           }}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                             isSelected
                               ? 'bg-primary text-white'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -2118,19 +2146,7 @@ export default function AutoItineraryView({
               );
             })()}
 
-            {/* Map - takes ~40% of remaining space */}
-            <div className="h-[40vh] flex-shrink-0 relative">
-              <ActivityMap
-                days={days.filter(d => d.dayNumber === mapSelectedDay)}
-                selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
-                onActivitySelect={(activity) => {
-                  const idx = mapDayActivities.findIndex(a => a.id === activity.id);
-                  if (idx >= 0) setMapSelectedIndex(idx);
-                }}
-              />
-            </div>
-
-            {/* Timeline itinerary below */}
+            {/* Scrollable activity list */}
             <div className="flex-1 overflow-y-auto bg-white">
               {mapDayActivities.length > 0 ? (
                 <div className="p-4 space-y-3">
@@ -2140,11 +2156,6 @@ export default function AutoItineraryView({
                       .slice(0, idx + 1)
                       .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
                       .length;
-                    const timeStr = activity.suggestedTime || `${9 + idx * 2}:00`;
-                    const hour = parseInt(timeStr.split(':')[0]);
-                    const formattedTime = hour >= 12
-                      ? `${hour === 12 ? 12 : hour - 12}:${timeStr.split(':')[1] || '00'} PM`
-                      : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
 
                     return (
                       <button
@@ -2154,33 +2165,34 @@ export default function AutoItineraryView({
                           mapSelectedIndex === idx ? 'bg-primary/5 ring-1 ring-primary' : 'hover:bg-gray-50'
                         }`}
                       >
-                        {/* Time */}
-                        <div className="w-16 text-xs text-gray-500 flex-shrink-0">
-                          {formattedTime}
-                        </div>
-
                         {/* Number badge */}
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
                           isTransport ? 'bg-blue-500' : 'bg-primary'
                         }`}>
                           {isTransport ? '—' : activityNumber}
                         </div>
 
                         {/* Image */}
-                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
                           {activity.imageUrl ? (
                             <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-gray-400" />
+                              <MapPin className="w-5 h-5 text-gray-400" />
                             </div>
                           )}
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{activity.name}</h4>
+                          <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
                           <p className="text-xs text-gray-500 truncate">{activity.neighborhood || activity.type}</p>
+                          {activity.rating && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Star className="w-3 h-3 text-amber-500 fill-current" />
+                              <span className="text-xs text-gray-600">{activity.rating.toFixed(1)}</span>
+                            </div>
+                          )}
                         </div>
                       </button>
                     );
@@ -2195,7 +2207,7 @@ export default function AutoItineraryView({
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}

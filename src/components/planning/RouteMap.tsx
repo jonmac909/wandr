@@ -247,10 +247,10 @@ export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
         maxBounds={isPacificRoute ? [[-90, -30], [90, 390]] : undefined}
         maxBoundsViscosity={isPacificRoute ? 1.0 : 0}
       >
-        {/* Clean map style */}
+        {/* Clean map style - English labels */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
+          url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=ApW52vsbKHpERF6XOM5x&language=en"
         />
 
         {/* Single orange route line connecting all cities */}

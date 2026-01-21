@@ -16,6 +16,9 @@ export interface ActivityResult {
   photoUrl?: string;
   isOpen?: boolean;
   openingHours?: string[];
+  priceLevel?: number;
+  lat?: number;
+  lng?: number;
 }
 
 interface PlaceResult {
@@ -33,6 +36,9 @@ interface PlaceResult {
   photos?: Array<{ name: string }>;
   primaryType?: string;
   types?: string[];
+  priceLevel?: string; // PRICE_LEVEL_FREE, PRICE_LEVEL_INEXPENSIVE, etc.
+  location?: { latitude: number; longitude: number };
+  businessStatus?: string; // OPERATIONAL, CLOSED_TEMPORARILY, CLOSED_PERMANENTLY
 }
 
 interface PlaceSearchResult {
@@ -78,15 +84,20 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const city = searchParams.get('city');
   const type = searchParams.get('type') || 'attraction'; // attraction, restaurant, cafe, etc.
+  const keyword = searchParams.get('keyword') || ''; // optional keyword for text search
   const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const refresh = searchParams.get('refresh') === 'true';
 
   if (!city) {
     return NextResponse.json({ error: 'City parameter is required' }, { status: 400 });
   }
 
-  // Check Supabase cache first
-  if (supabasePlaces.isConfigured()) {
-    const cachedPlaces = await supabasePlaces.getByCity(city, type);
+  // Build cache key that includes keyword
+  const cacheType = keyword ? `${type}_${keyword}` : type;
+
+  // Check Supabase cache first (unless refresh is requested)
+  if (!refresh && supabasePlaces.isConfigured()) {
+    const cachedPlaces = await supabasePlaces.getByCity(city, cacheType);
     if (cachedPlaces.length > 0) {
       console.log(`[Activities] Returning ${cachedPlaces.length} cached ${type}s for ${city}`);
       return NextResponse.json({
@@ -107,9 +118,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const includedType = type === 'attraction' ? 'tourist_attraction' : type;
-    const textQuery = type === 'restaurant'
-      ? `best restaurants in ${city}`
-      : `top ${type}s and things to do in ${city}`;
+    // Build text query - use keyword if provided for more specific searches
+    let textQuery: string;
+    if (keyword) {
+      textQuery = `${keyword} places in ${city}`;
+    } else if (type === 'restaurant') {
+      textQuery = `best restaurants in ${city}`;
+    } else {
+      textQuery = `top ${type}s and things to do in ${city}`;
+    }
 
     const searchResponse = await fetch(
       'https://places.googleapis.com/v1/places:searchText',
@@ -118,7 +135,7 @@ export async function GET(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.editorialSummary,places.currentOpeningHours,places.googleMapsUri,places.photos,places.primaryType,places.types',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.editorialSummary,places.currentOpeningHours,places.googleMapsUri,places.photos,places.primaryType,places.types,places.priceLevel,places.location,places.businessStatus',
         },
         body: JSON.stringify({
           textQuery,
@@ -136,7 +153,16 @@ export async function GET(request: NextRequest) {
     }
 
     const searchData: PlaceSearchResult = await searchResponse.json();
-    const places = searchData.places || [];
+    const allPlaces = searchData.places || [];
+    
+    // Filter out closed places (CLOSED_TEMPORARILY or CLOSED_PERMANENTLY)
+    const places = allPlaces.filter(place => {
+      if (place.businessStatus === 'CLOSED_PERMANENTLY' || place.businessStatus === 'CLOSED_TEMPORARILY') {
+        console.log(`[Activities] Filtering out closed place: ${place.displayName?.text} (${place.businessStatus})`);
+        return false;
+      }
+      return true;
+    });
 
     if (places.length === 0) {
       return NextResponse.json({ activities: [], message: 'No activities found' });
@@ -153,6 +179,19 @@ export async function GET(request: NextRequest) {
         photoUrl = `/api/places/photo?ref=${encodeURIComponent(place.photos[0].name)}`;
       }
 
+      // Convert Google's price level string to number (1-4)
+      let priceLevel: number | undefined;
+      if (place.priceLevel) {
+        const priceLevelMap: Record<string, number> = {
+          'PRICE_LEVEL_FREE': 0,
+          'PRICE_LEVEL_INEXPENSIVE': 1,
+          'PRICE_LEVEL_MODERATE': 2,
+          'PRICE_LEVEL_EXPENSIVE': 3,
+          'PRICE_LEVEL_VERY_EXPENSIVE': 4,
+        };
+        priceLevel = priceLevelMap[place.priceLevel];
+      }
+
       const activity: ActivityResult = {
         id: place.id,
         name: place.displayName?.text || 'Unknown',
@@ -165,6 +204,9 @@ export async function GET(request: NextRequest) {
         photoUrl,
         isOpen: place.currentOpeningHours?.openNow,
         openingHours: place.currentOpeningHours?.weekdayDescriptions,
+        priceLevel,
+        lat: place.location?.latitude,
+        lng: place.location?.longitude,
       };
 
       activities.push(activity);
@@ -175,7 +217,7 @@ export async function GET(request: NextRequest) {
           google_place_id: place.id,
           name: activity.name,
           city,
-          place_type: type,
+          place_type: cacheType,
           place_data: activity as unknown as Record<string, unknown>,
           image_url: photoUrl || null,
         });

@@ -1,683 +1,365 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Search, Heart, MapPin, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { TripDrawer } from '@/components/dashboard/TripDrawer';
-import { ProfileSettings } from '@/components/dashboard/ProfileSettings';
-import { AddPlaceSheet } from '@/components/explore/AddPlaceSheet';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, ChevronDown } from 'lucide-react';
+import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { Input } from '@/components/ui/input';
-import { savedPlacesDb, tripDb, preferencesDb, type TravelInterest } from '@/lib/db/indexed-db';
-import { getCountryInfoForCity } from '@/lib/geo/city-country';
-import type { SavedPlace, BrowsePlace, PlaceCategory } from '@/types/saved-place';
-import type { StoredTrip } from '@/lib/db/indexed-db';
-import dynamic from 'next/dynamic';
+import { tripDb, type StoredTrip } from '@/lib/db/indexed-db';
+import { getCountryHero } from '@/lib/explore/country-heroes';
 
-const ExploreMap = dynamic(() => import('@/components/explore/ExploreMap'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-    </div>
-  ),
-});
-
-const CATEGORIES: { label: string; value: PlaceCategory; icon: string }[] = [
-  { label: 'All', value: 'all', icon: '✨' },
-  { label: 'Things to do', value: 'attraction', icon: '🎯' },
-  { label: 'Food', value: 'restaurant', icon: '🍜' },
-  { label: 'Cafes', value: 'cafe', icon: '☕' },
-  { label: 'Nightlife', value: 'nightlife', icon: '🌙' },
-];
-
-const INTERESTS: { value: TravelInterest; label: string; icon: string }[] = [
-  { value: 'food', label: 'Food', icon: '🍜' },
-  { value: 'history', label: 'History', icon: '🏛️' },
-  { value: 'art', label: 'Art', icon: '🎨' },
-  { value: 'nature', label: 'Nature', icon: '🌿' },
-  { value: 'nightlife', label: 'Nightlife', icon: '🌙' },
-  { value: 'adventure', label: 'Adventure', icon: '🧗' },
-  { value: 'shopping', label: 'Shopping', icon: '🛍️' },
-  { value: 'local-culture', label: 'Local', icon: '🎭' },
-];
-
-function ExploreContent() {
-  const searchParams = useSearchParams();
-  const initialCity = searchParams.get('city') || '';
-
-  const [activeTab, setActiveTab] = useState<'browse' | 'saved'>('browse');
-  const [searchCity, setSearchCity] = useState(initialCity);
-  const [selectedCategory, setSelectedCategory] = useState<PlaceCategory>('all');
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false);
-
-  // Data states
-  const [browsePlaces, setBrowsePlaces] = useState<BrowsePlace[]>([]);
-  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+export default function ExploreDesignPage() {
+  const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [trips, setTrips] = useState<StoredTrip[]>([]);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedInterests, setSelectedInterests] = useState<TravelInterest[]>([]);
-
-  // Load data on mount
-  useEffect(() => {
-    loadSavedPlaces();
-    loadTrips();
-    loadUserInterests();
-  }, []);
-
-  const loadUserInterests = async () => {
-    const prefs = await preferencesDb.get();
-    if (prefs.travelInterests && prefs.travelInterests.length > 0) {
-      setSelectedInterests(prefs.travelInterests);
-    }
-  };
-
-  const toggleInterest = (interest: TravelInterest) => {
-    setSelectedInterests(prev =>
-      prev.includes(interest)
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const loadSavedPlaces = async () => {
-    const places = await savedPlacesDb.getAll();
-    setSavedPlaces(places);
-    const ids = new Set(places.map(p => `${p.name.toLowerCase()}-${p.city.toLowerCase()}`));
-    setSavedIds(ids);
-  };
-
+  const [destinationImages, setDestinationImages] = useState<Record<string, string>>({});
+  
   const loadTrips = async () => {
     const allTrips = await tripDb.getAll();
-    // Filter to trips that are in planning (draft or generated, not completed/archived)
-    const planningTrips = allTrips.filter(t => t.status === 'draft' || t.status === 'generated' || t.status === 'active');
-    setTrips(planningTrips);
+    setTrips(allTrips);
   };
-
-  // Group saved places by country, then by city
-  const groupedSavedPlaces = useMemo(() => {
-    const groups: Record<string, { flag: string; name: string; cities: Record<string, SavedPlace[]> }> = {};
-
-    savedPlaces.forEach(place => {
-      const countryInfo = getCountryInfoForCity(place.city);
-      const countryCode = countryInfo?.code || 'XX';
-      const countryName = countryInfo?.name || 'Other';
-      const flag = countryInfo?.flag || '🌍';
-
-      if (!groups[countryCode]) {
-        groups[countryCode] = { flag, name: countryName, cities: {} };
-      }
-
-      const cityKey = place.city.toLowerCase();
-      if (!groups[countryCode].cities[cityKey]) {
-        groups[countryCode].cities[cityKey] = [];
-      }
-      groups[countryCode].cities[cityKey].push(place);
-    });
-
-    return groups;
-  }, [savedPlaces]);
-
-  // Match saved places to trips
-  const tripsWithSavedPlaces = useMemo(() => {
-    return trips.map(trip => {
-      const destinations = trip.tripDna?.interests?.destinations || [];
-      const matchingPlaces: SavedPlace[] = [];
-
-      destinations.forEach(dest => {
-        const destLower = dest.toLowerCase();
-        savedPlaces.forEach(place => {
-          const cityLower = place.city.toLowerCase();
-          // Check if place city matches or is contained in destination
-          if (cityLower.includes(destLower) || destLower.includes(cityLower)) {
-            if (!matchingPlaces.find(p => p.id === place.id)) {
-              matchingPlaces.push(place);
-            }
+  
+  useEffect(() => {
+    loadTrips();
+  }, []);
+  
+  // Fetch images for all destinations using curated hero config
+  useEffect(() => {
+    const destinations = ['thailand', 'japan', 'vietnam', 'indonesia', 'maldives', 'greece', 'mexico', 'italy', 'egypt', 'peru'];
+    destinations.forEach(async (slug) => {
+      const heroConfig = getCountryHero(slug);
+      if (heroConfig) {
+        try {
+          const res = await fetch(`/api/site-image?site=${encodeURIComponent(heroConfig.searchQuery)}&city=${encodeURIComponent(heroConfig.city)}&country=${slug}`);
+          const data = await res.json();
+          if (data.imageUrl) {
+            setDestinationImages(prev => ({ ...prev, [slug]: data.imageUrl }));
           }
-        });
-      });
-
-      return { trip, places: matchingPlaces };
-    }).filter(t => t.places.length > 0);
-  }, [trips, savedPlaces]);
-
-  // Search for places
-  const handleSearch = async () => {
-    if (!searchCity.trim()) return;
-
-    setIsLoading(true);
-    setHasSearched(true);
-    setSearchError(null);
-
-    try {
-      const response = await fetch('/api/explore/recommendations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          city: searchCity,
-          category: selectedCategory === 'all' ? undefined : selectedCategory,
-          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setSearchError(data.error || 'Failed to fetch recommendations');
-        setBrowsePlaces([]);
-        return;
+        } catch {}
       }
-
-      const placesWithSaved = (data.places || []).map((p: BrowsePlace) => ({
-        ...p,
-        isSaved: savedIds.has(`${p.name.toLowerCase()}-${p.city.toLowerCase()}`),
-      }));
-      setBrowsePlaces(placesWithSaved);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      setSearchError(error instanceof Error ? error.message : 'Network error');
-      setBrowsePlaces([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Toggle save/unsave
-  const handleToggleSave = async (place: BrowsePlace) => {
-    const key = `${place.name.toLowerCase()}-${place.city.toLowerCase()}`;
-
-    if (savedIds.has(key)) {
-      await savedPlacesDb.deleteByNameAndCity(place.name, place.city);
-      setSavedIds(prev => { const next = new Set(prev); next.delete(key); return next; });
-      setBrowsePlaces(prev => prev.map(p => p.id === place.id ? { ...p, isSaved: false } : p));
-    } else {
-      await savedPlacesDb.save({
-        name: place.name,
-        type: place.type,
-        city: place.city,
-        neighborhood: place.neighborhood,
-        address: place.address,
-        coordinates: place.coordinates,
-        description: place.description,
-        imageUrl: place.imageUrl,
-        rating: place.rating,
-        reviewCount: place.reviewCount,
-        priceRange: place.priceRange,
-        tags: place.tags,
-        source: 'browse',
-      });
-      setSavedIds(prev => new Set(prev).add(key));
-      setBrowsePlaces(prev => prev.map(p => p.id === place.id ? { ...p, isSaved: true } : p));
-    }
-    await loadSavedPlaces();
-  };
-
-  // Delete from saved
-  const handleDeleteSaved = async (place: SavedPlace) => {
-    await savedPlacesDb.delete(place.id);
-    await loadSavedPlaces();
-    const key = `${place.name.toLowerCase()}-${place.city.toLowerCase()}`;
-    setBrowsePlaces(prev => prev.map(p => {
-      const pKey = `${p.name.toLowerCase()}-${p.city.toLowerCase()}`;
-      return pKey === key ? { ...p, isSaved: false } : p;
-    }));
-  };
-
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
     });
+  }, []);
+  
+  // Dropdown states
+  const [beachFilter, setBeachFilter] = useState('All');
+  const [historyFilter, setHistoryFilter] = useState('All');
+  const [foodFilter, setFoodFilter] = useState('All');
+  const [beachDropdownOpen, setBeachDropdownOpen] = useState(false);
+  const [historyDropdownOpen, setHistoryDropdownOpen] = useState(false);
+  const [foodDropdownOpen, setFoodDropdownOpen] = useState(false);
+
+  // Upcoming trips - featured destinations
+  const upcomingTrips = [
+    { name: 'Thailand', slug: 'thailand' },
+    { name: 'Japan', slug: 'japan' },
+    { name: 'Indonesia', slug: 'indonesia' },
+    { name: 'Vietnam', slug: 'vietnam' },
+  ];
+
+  // Beach vacation destinations
+  const beachDestinations = [
+    { name: 'Thailand', subtitle: 'Phuket, Krabi, Koh Samui', region: 'Asia', slug: 'thailand' },
+    { name: 'Indonesia', subtitle: 'Bali, Lombok, Gili Islands', region: 'Asia', slug: 'indonesia' },
+    { name: 'Maldives', subtitle: 'Overwater villas, crystal waters', region: 'Asia', slug: 'maldives' },
+    { name: 'Greece', subtitle: 'Santorini, Mykonos, Crete', region: 'Europe', slug: 'greece' },
+    { name: 'Mexico', subtitle: 'Cancun, Tulum, Playa del Carmen', region: 'Americas', slug: 'mexico' },
+  ];
+
+  // History & culture destinations
+  const historyDestinations = [
+    { name: 'Italy', subtitle: 'Rome, Florence, Venice', region: 'Europe', slug: 'italy' },
+    { name: 'Greece', subtitle: 'Athens, Delphi, Olympia', region: 'Europe', slug: 'greece' },
+    { name: 'Egypt', subtitle: 'Pyramids, Luxor, Valley of Kings', region: 'Africa', slug: 'egypt' },
+    { name: 'Peru', subtitle: 'Machu Picchu, Cusco, Lima', region: 'Americas', slug: 'peru' },
+    { name: 'Japan', subtitle: 'Kyoto, Nara, Hiroshima', region: 'Asia', slug: 'japan' },
+  ];
+
+  // Food destinations
+  const foodDestinations = [
+    { name: 'Japan', subtitle: 'Sushi, Ramen, Kaiseki', region: 'Asia', slug: 'japan' },
+    { name: 'Thailand', subtitle: 'Street food, Pad Thai, Tom Yum', region: 'Asia', slug: 'thailand' },
+    { name: 'Italy', subtitle: 'Pasta, Pizza, Gelato', region: 'Europe', slug: 'italy' },
+    { name: 'Vietnam', subtitle: 'Pho, Banh Mi, Fresh rolls', region: 'Asia', slug: 'vietnam' },
+    { name: 'Mexico', subtitle: 'Tacos, Mole, Street corn', region: 'Americas', slug: 'mexico' },
+  ];
+
+  const regionOptions = ['All', 'Asia', 'Europe', 'Americas', 'Africa'];
+
+  // Ready-made itineraries
+  const [itineraryFilter, setItineraryFilter] = useState('Week vacation');
+  const [itineraryDropdownOpen, setItineraryDropdownOpen] = useState(false);
+  const itineraryOptions = ['Week vacation', 'Weekend getaways', 'Road trips'];
+
+  const itineraries = {
+    'Week vacation': [
+      { name: '2 Weeks in Thailand', subtitle: 'Bangkok → Chiang Mai → Islands', flag: '🇹🇭', days: '14 days' },
+      { name: 'Japan Discovery', subtitle: 'Tokyo → Kyoto → Osaka', flag: '🇯🇵', days: '10 days' },
+      { name: 'Italy Classic', subtitle: 'Rome → Florence → Venice', flag: '🇮🇹', days: '12 days' },
+      { name: 'Vietnam Explorer', subtitle: 'Hanoi → Hoi An → Ho Chi Minh', flag: '🇻🇳', days: '14 days' },
+    ],
+    'Weekend getaways': [
+      { name: 'Paris Weekend', subtitle: 'Art, food & romance', flag: '🇫🇷', days: '3 days' },
+      { name: 'Barcelona Escape', subtitle: 'Beach, tapas & Gaudi', flag: '🇪🇸', days: '3 days' },
+      { name: 'Amsterdam Quick', subtitle: 'Canals, bikes & museums', flag: '🇳🇱', days: '2 days' },
+      { name: 'Bali Retreat', subtitle: 'Temples & beaches', flag: '🇮🇩', days: '4 days' },
+    ],
+    'Road trips': [
+      { name: 'California Coast', subtitle: 'LA → San Francisco', flag: '🇺🇸', days: '7 days' },
+      { name: 'New Zealand South', subtitle: 'Queenstown → Milford', flag: '🇳🇿', days: '10 days' },
+      { name: 'Scottish Highlands', subtitle: 'Edinburgh → Isle of Skye', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', days: '5 days' },
+      { name: 'Iceland Ring Road', subtitle: 'Full circle adventure', flag: '🇮🇸', days: '8 days' },
+    ],
   };
 
-  // Filter saved places by category
-  const filteredSavedPlaces = selectedCategory === 'all'
-    ? savedPlaces
-    : savedPlaces.filter(p => p.type === selectedCategory);
-
-  const mapPlaces = activeTab === 'browse' ? browsePlaces : filteredSavedPlaces;
+  const filterByRegion = (destinations: typeof beachDestinations, filter: string) => {
+    if (filter === 'All') return destinations;
+    return destinations.filter(d => d.region === filter);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <DashboardHeader
-        onOpenDrawer={() => setIsDrawerOpen(true)}
-        onOpenProfile={() => setIsProfileOpen(true)}
+        activeTab="explore"
+        onOpenDrawer={() => setDrawerOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <div className="flex flex-col md:flex-row h-[calc(100vh-56px)]">
-        {/* Map */}
-        <div className="w-full md:w-1/2 h-[35vh] md:h-full">
-          <ExploreMap places={mapPlaces} onPlaceClick={(p) => console.log('Clicked:', p.name)} />
-        </div>
-
-        {/* List */}
-        <div className="w-full md:w-1/2 h-[65vh] md:h-full flex flex-col overflow-hidden bg-white">
-          {/* Header */}
-          <div className="p-3 border-b space-y-2">
-            {/* Tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('browse')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  activeTab === 'browse' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Browse
-              </button>
-              <button
-                onClick={() => setActiveTab('saved')}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'saved' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Heart className="w-3 h-3" />
-                Saved ({savedPlaces.length})
-              </button>
-            </div>
-
-            {/* Search (Browse tab only) */}
-            {activeTab === 'browse' && (
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search city..."
-                    value={searchCity}
-                    onChange={(e) => setSearchCity(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="pl-8 h-9"
-                  />
-                </div>
-                <Button onClick={handleSearch} disabled={isLoading} size="sm">
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Go'}
-                </Button>
-              </div>
-            )}
-
-            {/* Category filters */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === cat.value
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat.icon} {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Interest filters (Browse tab only) */}
-            {activeTab === 'browse' && (
-              <div className="flex gap-1.5 overflow-x-auto pb-1">
-                <span className="text-xs text-gray-400 self-center pr-1">Interests:</span>
-                {INTERESTS.map((interest) => (
-                  <button
-                    key={interest.value}
-                    onClick={() => toggleInterest(interest.value)}
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                      selectedInterests.includes(interest.value)
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-transparent'
-                    }`}
-                  >
-                    {interest.icon} {interest.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === 'browse' ? (
-              <BrowseTab
-                places={browsePlaces}
-                selectedCategory={selectedCategory}
-                isLoading={isLoading}
-                hasSearched={hasSearched}
-                searchCity={searchCity}
-                searchError={searchError}
-                onToggleSave={handleToggleSave}
-              />
-            ) : (
-              <SavedTab
-                tripsWithPlaces={tripsWithSavedPlaces}
-                groupedPlaces={groupedSavedPlaces}
-                selectedCategory={selectedCategory}
-                expandedGroups={expandedGroups}
-                onToggleGroup={toggleGroup}
-                onDelete={handleDeleteSaved}
-              />
-            )}
-          </div>
-
-          {/* Add button (Saved tab) */}
-          {activeTab === 'saved' && (
-            <div className="p-3 border-t">
-              <Button className="w-full gap-2" variant="outline" size="sm" onClick={() => setIsAddPlaceOpen(true)}>
-                <Plus className="w-4 h-4" />
-                Add a place
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <TripDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} trips={trips} onRefresh={loadTrips} />
-      <ProfileSettings open={isProfileOpen} onOpenChange={setIsProfileOpen} />
-      <AddPlaceSheet open={isAddPlaceOpen} onOpenChange={setIsAddPlaceOpen} onPlaceAdded={loadSavedPlaces} />
-    </div>
-  );
-}
-
-// Browse tab - compact list
-function BrowseTab({
-  places,
-  selectedCategory,
-  isLoading,
-  hasSearched,
-  searchCity,
-  searchError,
-  onToggleSave,
-}: {
-  places: BrowsePlace[];
-  selectedCategory: PlaceCategory;
-  isLoading: boolean;
-  hasSearched: boolean;
-  searchCity: string;
-  searchError: string | null;
-  onToggleSave: (place: BrowsePlace) => void;
-}) {
-  const filtered = selectedCategory === 'all' ? places : places.filter(p => p.type === selectedCategory);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-sm text-gray-500">Finding recommendations...</span>
-      </div>
-    );
-  }
-
-  if (filtered.length > 0) {
-    return (
-      <div className="divide-y">
-        {filtered.map((place) => (
-          <CompactPlaceRow
-            key={place.id}
-            name={place.name}
-            type={place.type}
-            rating={place.rating}
-            neighborhood={place.neighborhood}
-            priceRange={place.priceRange}
-            imageUrl={place.imageUrl}
-            isSaved={place.isSaved || false}
-            onToggleSave={() => onToggleSave(place)}
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Search places to explore..."
+            className="pl-10 h-12 rounded-xl bg-gray-50 border-0"
+            readOnly
           />
-        ))}
-      </div>
-    );
-  }
-
-  if (hasSearched) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p>No places found for &quot;{searchCity}&quot;</p>
-        {searchError && (
-          <p className="text-xs mt-2 text-red-500 max-w-xs mx-auto">{searchError}</p>
-        )}
-        <p className="text-xs mt-1">Try a different city</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-center py-12 text-gray-500">
-      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-      <p>Search a city to discover places</p>
-      <p className="text-xs mt-1">Try Tokyo, Paris, Bangkok...</p>
-    </div>
-  );
-}
-
-// Saved tab with groupings
-function SavedTab({
-  tripsWithPlaces,
-  groupedPlaces,
-  selectedCategory,
-  expandedGroups,
-  onToggleGroup,
-  onDelete,
-}: {
-  tripsWithPlaces: { trip: StoredTrip; places: SavedPlace[] }[];
-  groupedPlaces: Record<string, { flag: string; name: string; cities: Record<string, SavedPlace[]> }>;
-  selectedCategory: PlaceCategory;
-  expandedGroups: Set<string>;
-  onToggleGroup: (id: string) => void;
-  onDelete: (place: SavedPlace) => void;
-}) {
-  const filterPlaces = (places: SavedPlace[]) =>
-    selectedCategory === 'all' ? places : places.filter(p => p.type === selectedCategory);
-
-  const hasTrips = tripsWithPlaces.length > 0;
-  const hasCountries = Object.keys(groupedPlaces).length > 0;
-
-  if (!hasTrips && !hasCountries) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <Heart className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p>No saved places yet</p>
-        <p className="text-xs mt-1">Browse and save places you want to visit</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="divide-y">
-      {/* Trips You're Planning */}
-      {hasTrips && (
-        <div className="pb-2">
-          <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
-            Trips You&apos;re Planning
-          </div>
-          {tripsWithPlaces.map(({ trip, places }) => {
-            const filteredPlaces = filterPlaces(places);
-            if (filteredPlaces.length === 0) return null;
-
-            const destinations = trip.tripDna?.interests?.destinations || [];
-            const countryInfo = destinations[0] ? getCountryInfoForCity(destinations[0]) : null;
-            const isExpanded = expandedGroups.has(`trip-${trip.id}`);
-            const cityCounts = getCityCounts(filteredPlaces);
-
-            return (
-              <div key={trip.id}>
-                <button
-                  onClick={() => onToggleGroup(`trip-${trip.id}`)}
-                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{countryInfo?.flag || '🌍'}</span>
-                    <span className="font-medium text-sm">{destinations.join(' → ')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>{cityCounts}</span>
-                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </div>
-                </button>
-                {isExpanded && (
-                  <div className="divide-y border-l-2 border-primary/20 ml-5">
-                    {filteredPlaces.map(place => (
-                      <CompactPlaceRow
-                        key={place.id}
-                        name={place.name}
-                        type={place.type}
-                        rating={place.rating}
-                        neighborhood={place.neighborhood || place.city}
-                        priceRange={place.priceRange}
-                        isSaved={true}
-                        onToggleSave={() => onDelete(place)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
-      )}
 
-      {/* All Saved */}
-      <div>
-        <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
-          All Saved
-        </div>
-        {Object.entries(groupedPlaces).map(([code, { flag, name, cities }]) => {
-          const allPlaces = Object.values(cities).flat();
-          const filteredPlaces = filterPlaces(allPlaces);
-          if (filteredPlaces.length === 0) return null;
-
-          const isExpanded = expandedGroups.has(`country-${code}`);
-          const cityCounts = getCityCounts(filteredPlaces);
-
-          return (
-            <div key={code}>
+        {/* Upcoming Trips */}
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Explore upcoming</h2>
+          <div className="grid grid-cols-4 gap-2">
+            {upcomingTrips.map((trip) => (
               <button
-                onClick={() => onToggleGroup(`country-${code}`)}
-                className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors"
+                key={trip.name}
+                onClick={() => router.push(`/explore/${trip.slug}`)}
+                className="relative rounded-xl overflow-hidden shadow-sm text-left"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{flag}</span>
-                  <span className="font-medium text-sm">{name}</span>
+                <div className="aspect-[3/4] bg-gradient-to-br from-teal-400 to-emerald-600">
+                  {destinationImages[trip.slug] && (
+                    <img src={destinationImages[trip.slug]} alt={trip.name} className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>{cityCounts}</span>
-                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                  <h3 className="font-semibold text-xs">{trip.name}</h3>
                 </div>
               </button>
-              {isExpanded && (
-                <div className="divide-y border-l-2 border-gray-200 ml-5">
-                  {filteredPlaces.map(place => (
-                    <CompactPlaceRow
-                      key={place.id}
-                      name={place.name}
-                      type={place.type}
-                      rating={place.rating}
-                      neighborhood={place.neighborhood || place.city}
-                      priceRange={place.priceRange}
-                      isSaved={true}
-                      onToggleSave={() => onDelete(place)}
-                    />
+            ))}
+          </div>
+        </section>
+
+        {/* Best Beach Vacations */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">🏖️ Best beach vacations</h2>
+            <div className="relative">
+              <button 
+                onClick={() => { setBeachDropdownOpen(!beachDropdownOpen); setHistoryDropdownOpen(false); setFoodDropdownOpen(false); }}
+                className="flex items-center gap-1 text-sm text-gray-600 px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50"
+              >
+                {beachFilter} <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {beachDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[100px]">
+                  {regionOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => { setBeachFilter(option); setBeachDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${beachFilter === option ? 'text-primary font-medium' : 'text-gray-700'}`}
+                    >
+                      {option}
+                    </button>
                   ))}
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {filterByRegion(beachDestinations, beachFilter).slice(0, 4).map((dest) => (
+              <button
+                key={dest.name}
+                onClick={() => router.push(`/explore/${dest.slug}`)}
+                className="relative rounded-xl overflow-hidden shadow-sm text-left"
+              >
+                <div className="aspect-[3/4] bg-gradient-to-br from-cyan-400 to-blue-500">
+                  {destinationImages[dest.slug] && (
+                    <img src={destinationImages[dest.slug]} alt={dest.name} className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                  <h3 className="font-semibold text-xs">{dest.name}</h3>
+                  <p className="text-[10px] text-white/80 line-clamp-1">{dest.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Best History & Culture */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">🏛️ Best history & culture</h2>
+            <div className="relative">
+              <button 
+                onClick={() => { setHistoryDropdownOpen(!historyDropdownOpen); setBeachDropdownOpen(false); setFoodDropdownOpen(false); }}
+                className="flex items-center gap-1 text-sm text-gray-600 px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50"
+              >
+                {historyFilter} <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {historyDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[100px]">
+                  {regionOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => { setHistoryFilter(option); setHistoryDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${historyFilter === option ? 'text-primary font-medium' : 'text-gray-700'}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {filterByRegion(historyDestinations, historyFilter).slice(0, 4).map((dest) => (
+              <button
+                key={dest.name}
+                onClick={() => router.push(`/explore/${dest.slug}`)}
+                className="relative rounded-xl overflow-hidden shadow-sm text-left"
+              >
+                <div className="aspect-[3/4] bg-gradient-to-br from-amber-400 to-orange-500">
+                  {destinationImages[dest.slug] && (
+                    <img src={destinationImages[dest.slug]} alt={dest.name} className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                  <h3 className="font-semibold text-xs">{dest.name}</h3>
+                  <p className="text-[10px] text-white/80 line-clamp-1">{dest.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Best Food Destinations */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">🍜 Best food destinations</h2>
+            <div className="relative">
+              <button 
+                onClick={() => { setFoodDropdownOpen(!foodDropdownOpen); setBeachDropdownOpen(false); setHistoryDropdownOpen(false); }}
+                className="flex items-center gap-1 text-sm text-gray-600 px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50"
+              >
+                {foodFilter} <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {foodDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[100px]">
+                  {regionOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => { setFoodFilter(option); setFoodDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${foodFilter === option ? 'text-primary font-medium' : 'text-gray-700'}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {filterByRegion(foodDestinations, foodFilter).slice(0, 4).map((dest) => (
+              <button
+                key={dest.name}
+                onClick={() => router.push(`/explore/${dest.slug}`)}
+                className="relative rounded-xl overflow-hidden shadow-sm text-left"
+              >
+                <div className="aspect-[3/4] bg-gradient-to-br from-red-400 to-pink-500">
+                  {destinationImages[dest.slug] && (
+                    <img src={destinationImages[dest.slug]} alt={dest.name} className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                  <h3 className="font-semibold text-xs">{dest.name}</h3>
+                  <p className="text-[10px] text-white/80 line-clamp-1">{dest.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Ready-made Itineraries */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">📋 Ready-made itineraries</h2>
+            <div className="relative">
+              <button 
+                onClick={() => { setItineraryDropdownOpen(!itineraryDropdownOpen); setBeachDropdownOpen(false); setHistoryDropdownOpen(false); setFoodDropdownOpen(false); }}
+                className="flex items-center gap-1 text-sm text-gray-600 px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-50"
+              >
+                {itineraryFilter} <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {itineraryDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[140px]">
+                  {itineraryOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => { setItineraryFilter(option); setItineraryDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${itineraryFilter === option ? 'text-primary font-medium' : 'text-gray-700'}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {itineraries[itineraryFilter as keyof typeof itineraries].map((itin) => (
+              <button
+                key={itin.name}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl text-left hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-2xl">{itin.flag}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm truncate">{itin.name}</h3>
+                  <p className="text-[11px] text-gray-500 truncate">{itin.subtitle}</p>
+                </div>
+                <span className="text-[10px] text-gray-400 bg-white px-2 py-0.5 rounded-full">{itin.days}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+      </main>
+
+      {/* Overlays */}
+      <TripDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        trips={trips}
+        onRefresh={loadTrips}
+      />
+      <ProfileSettings
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+      />
     </div>
-  );
-}
-
-// Helper to get city counts string like "Bangkok (2) · Chiang Mai (1)"
-function getCityCounts(places: SavedPlace[]): string {
-  const counts: Record<string, number> = {};
-  places.forEach(p => {
-    const city = p.city;
-    counts[city] = (counts[city] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .map(([city, count]) => `${city} (${count})`)
-    .join(' · ');
-}
-
-// Compact place row (~50px height)
-function CompactPlaceRow({
-  name,
-  type,
-  rating,
-  neighborhood,
-  priceRange,
-  imageUrl,
-  isSaved,
-  onToggleSave,
-}: {
-  name: string;
-  type: string;
-  rating?: number;
-  neighborhood?: string;
-  priceRange?: string;
-  imageUrl?: string;
-  isSaved: boolean;
-  onToggleSave: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors">
-      {/* Thumbnail */}
-      {imageUrl ? (
-        <img src={imageUrl} alt={name} className="w-10 h-10 rounded object-cover flex-shrink-0" />
-      ) : (
-        <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-4 h-4 text-gray-400" />
-        </div>
-      )}
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm truncate">{name}</div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          {rating && (
-            <span className="flex items-center gap-0.5">
-              <span className="text-yellow-500">★</span>
-              {rating.toFixed(1)}
-            </span>
-          )}
-          <span className="capitalize">{type}</span>
-          {priceRange && <span>{priceRange}</span>}
-          {neighborhood && (
-            <>
-              <span>·</span>
-              <span className="truncate">{neighborhood}</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Heart */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
-        className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
-          isSaved ? 'text-red-500 hover:bg-red-50' : 'text-gray-400 hover:bg-gray-100'
-        }`}
-      >
-        <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-      </button>
-    </div>
-  );
-}
-
-export default function ExplorePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-      </div>
-    }>
-      <ExploreContent />
-    </Suspense>
   );
 }
