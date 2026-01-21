@@ -2,133 +2,177 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, Bookmark, ChevronDown, ChevronUp, MoreHorizontal, MapPin, Utensils, Landmark, TreePine, Hotel, Sparkles } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Bookmark, MapPin, X, Search, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { savedPlacesDb } from '@/lib/db/indexed-db';
-import { getCountryForCity, getCountryName, getFlagForLocation } from '@/lib/geo/city-country';
+import { getCountryForCity, getCountryName } from '@/lib/geo/city-country';
 import type { SavedPlace } from '@/types/saved-place';
 
-interface CountryCollection {
-  countryCode: string;
-  countryName: string;
-  flag: string;
-  cities: string[];
-  places: SavedPlace[];
-  heroImage?: string;
+// Type icons based on place type
+const TYPE_ICONS: Record<string, string> = {
+  attraction: '📍',
+  restaurant: '🍽️',
+  cafe: '☕',
+  bar: '🍸',
+  nightlife: '🌙',
+  shopping: '🛍️',
+  hotel: '🏨',
+  activity: '🎯',
+  nature: '🌳',
+  beach: '🏖️',
+  temple: '🛕',
+  museum: '🏛️',
+  default: '📍',
+};
+
+interface CountryData {
+  name: string;
+  code: string;
+  cities: {
+    name: string;
+    places: SavedPlace[];
+    imageUrl?: string;
+  }[];
+  totalPlaces: number;
 }
 
 export default function SavedPage() {
   const router = useRouter();
-  const { trips, loading, refresh } = useDashboardData();
-
+  const { trips, loading: tripsLoading, refresh } = useDashboardData();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [countryCollections, setCountryCollections] = useState<CountryCollection[]>([]);
-  const [uncategorizedPlaces, setUncategorizedPlaces] = useState<SavedPlace[]>([]);
-  const [loadingSaved, setLoadingSaved] = useState(true);
+  const [mapExpanded, setMapExpanded] = useState(true);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [sheetPosition, setSheetPosition] = useState<'low' | 'mid' | 'full'>('mid');
+  const [searchQuery, setSearchQuery] = useState('');
   const [linkInput, setLinkInput] = useState('');
-  const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
+  
+  // Data state
+  const [countries, setCountries] = useState<CountryData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Category configuration
-  const categoryConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-    attraction: { label: 'Sites & Attractions', icon: <Landmark className="w-4 h-4" />, color: 'text-coral-500 bg-coral-50' },
-    restaurant: { label: 'Food & Dining', icon: <Utensils className="w-4 h-4" />, color: 'text-orange-500 bg-orange-50' },
-    cafe: { label: 'Cafes', icon: <Utensils className="w-4 h-4" />, color: 'text-amber-500 bg-amber-50' },
-    activity: { label: 'Activities', icon: <Sparkles className="w-4 h-4" />, color: 'text-purple-500 bg-purple-50' },
-    nightlife: { label: 'Nightlife', icon: <Sparkles className="w-4 h-4" />, color: 'text-pink-500 bg-pink-50' },
-    hotel: { label: 'Places to Stay', icon: <Hotel className="w-4 h-4" />, color: 'text-blue-500 bg-blue-50' },
-  };
+  const sheetHeights = { low: 30, mid: 60, full: 90 };
 
-  // Group places by type
-  const groupPlacesByType = (places: SavedPlace[]) => {
-    const groups: Record<string, SavedPlace[]> = {};
-    places.forEach(place => {
-      const type = place.type || 'attraction';
-      if (!groups[type]) groups[type] = [];
-      groups[type].push(place);
-    });
-    return groups;
-  };
-
-  // Load saved places and group by country
+  // Load saved places and group by country/city
   useEffect(() => {
-    async function loadSavedData() {
-      setLoadingSaved(true);
+    async function loadSavedPlaces() {
+      setLoading(true);
       try {
         const places = await savedPlacesDb.getAll();
-
-        // Group places by country
-        const countryMap = new Map<string, { cities: Set<string>; places: SavedPlace[] }>();
-        const uncategorized: SavedPlace[] = [];
-
+        
+        // Group by country then city
+        const countryMap = new Map<string, Map<string, SavedPlace[]>>();
+        
         for (const place of places) {
-          const countryCode = getCountryForCity(place.city);
-          if (countryCode) {
-            if (!countryMap.has(countryCode)) {
-              countryMap.set(countryCode, { cities: new Set(), places: [] });
-            }
-            const group = countryMap.get(countryCode)!;
-            group.cities.add(place.city);
-            group.places.push(place);
-          } else {
-            uncategorized.push(place);
+          const countryCode = getCountryForCity(place.city) || 'XX';
+          const countryName = getCountryName(countryCode);
+          
+          if (!countryMap.has(countryName)) {
+            countryMap.set(countryName, new Map());
           }
+          const cityMap = countryMap.get(countryName)!;
+          
+          if (!cityMap.has(place.city)) {
+            cityMap.set(place.city, []);
+          }
+          cityMap.get(place.city)!.push(place);
         }
-
-        // Convert to collections array and fetch hero images
-        const collections: CountryCollection[] = [];
-        for (const [code, data] of countryMap) {
-          const countryName = getCountryName(code);
-          const citiesArray = Array.from(data.cities);
-
-          // Fetch hero image for first city
-          let heroImage: string | undefined;
-          try {
-            const res = await fetch(`/api/city-image?city=${encodeURIComponent(citiesArray[0])}`);
-            if (res.ok) {
-              const json = await res.json();
-              heroImage = json.imageUrl;
+        
+        // Convert to array and fetch city images
+        const countriesData: CountryData[] = [];
+        
+        for (const [countryName, cityMap] of countryMap) {
+          const cities: CountryData['cities'] = [];
+          let totalPlaces = 0;
+          
+          for (const [cityName, cityPlaces] of cityMap) {
+            // Use first place's image as city image, or fetch one
+            let imageUrl = cityPlaces.find(p => p.imageUrl)?.imageUrl;
+            
+            if (!imageUrl) {
+              try {
+                const res = await fetch(`/api/city-image?city=${encodeURIComponent(cityName)}`);
+                if (res.ok) {
+                  const data = await res.json();
+                  imageUrl = data.imageUrl;
+                }
+              } catch { /* ignore */ }
             }
-          } catch { /* ignore */ }
-
-          // Get flag emoji
-          const flag = getFlagForLocation(citiesArray[0]);
-
-          collections.push({
-            countryCode: code,
-            countryName,
-            flag,
-            cities: citiesArray,
-            places: data.places,
-            heroImage,
+            
+            cities.push({
+              name: cityName,
+              places: cityPlaces,
+              imageUrl,
+            });
+            totalPlaces += cityPlaces.length;
+          }
+          
+          // Sort cities by place count
+          cities.sort((a, b) => b.places.length - a.places.length);
+          
+          // Expand first city by default
+          if (cities.length > 0) {
+            setExpandedCities(prev => new Set([...prev, cities[0].name]));
+          }
+          
+          countriesData.push({
+            name: countryName,
+            code: getCountryForCity(cities[0]?.name) || 'XX',
+            cities,
+            totalPlaces,
           });
         }
-
-        // Sort by number of places (most saved first)
-        collections.sort((a, b) => b.places.length - a.places.length);
-
-        setCountryCollections(collections);
-        setUncategorizedPlaces(uncategorized);
+        
+        // Sort countries by place count
+        countriesData.sort((a, b) => b.totalPlaces - a.totalPlaces);
+        setCountries(countriesData);
       } catch (error) {
         console.error('Failed to load saved places:', error);
       } finally {
-        setLoadingSaved(false);
+        setLoading(false);
       }
     }
+    
+    loadSavedPlaces();
+  }, []);
 
-    if (!loading) {
-      loadSavedData();
-    }
-  }, [loading]);
+  const totalSaved = countries.reduce((sum, c) => sum + c.totalPlaces, 0);
+  const totalCountries = countries.length;
 
-  if (loading || loadingSaved) {
+  // Filter countries by search
+  const filteredCountries = countries.filter(country =>
+    country.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    country.cities.some(city => city.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Get icon for place type
+  const getPlaceIcon = (place: SavedPlace) => {
+    const type = place.type?.toLowerCase() || 'default';
+    return TYPE_ICONS[type] || TYPE_ICONS.default;
+  };
+
+  // Handle paste link
+  const handlePasteLink = async () => {
+    if (!linkInput.trim()) return;
+    setIsLoadingLink(true);
+    // TODO: Implement link parsing
+    setTimeout(() => {
+      alert('Link import coming soon! This will extract places from Instagram/TikTok posts.');
+      setIsLoadingLink(false);
+      setLinkInput('');
+    }, 1000);
+  };
+
+  if (loading || tripsLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading your saves...</p>
         </div>
       </div>
@@ -136,23 +180,57 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white flex flex-col">
       <DashboardHeader
         activeTab="saved"
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      <main className="max-w-3xl mx-auto px-4 py-6">
-        {/* Page Title */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold">Saved</h1>
+      {/* Map Placeholder - shows first country */}
+      <div className={`relative transition-all duration-300 ${mapExpanded ? 'h-[40vh]' : 'h-[15vh]'}`}>
+        <div className="w-full h-full bg-gradient-to-b from-green-100 to-blue-50 flex items-center justify-center">
+          {countries.length > 0 ? (
+            <div className="bg-white px-3 py-1.5 rounded-full shadow-md flex items-center gap-2">
+              <span className="font-semibold">{countries[0].name}</span>
+              <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full">{countries[0].totalPlaces}</span>
+            </div>
+          ) : (
+            <div className="text-gray-400 text-sm">No saved places yet</div>
+          )}
         </div>
+        <button
+          onClick={() => setMapExpanded(!mapExpanded)}
+          className="absolute bottom-0 left-0 right-0 h-6 bg-white rounded-t-2xl flex items-center justify-center"
+        >
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        </button>
+      </div>
 
-        {/* Import from Social Media */}
-        <Card className="bg-white mb-6">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+      {/* Content */}
+      <main className="flex-1 px-4 pt-4 pb-24 overflow-y-auto">
+        {/* Header */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-2xl font-bold">My Saved</h1>
+              <p className="text-sm text-muted-foreground">{totalSaved} Saved • {totalCountries} Countries</p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search"
+                className="w-28 focus:w-40 transition-all pl-8 pr-2 py-1.5 rounded-full border border-gray-200 text-sm outline-none focus:border-primary bg-gray-50"
+              />
+            </div>
+          </div>
+          
+          {/* Paste link input */}
+          <div className="bg-gray-50 rounded-xl p-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
               <span>Paste your link</span>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2"/>
@@ -169,253 +247,211 @@ export default function SavedPage() {
                 value={linkInput}
                 onChange={(e) => setLinkInput(e.target.value)}
                 placeholder="https://www.instagram.com/p/..."
-                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-primary"
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-primary bg-white"
               />
-              <Button
-                size="sm"
-                className="rounded-lg px-4 bg-primary/20 text-primary hover:bg-primary/30"
-                disabled={!linkInput.trim()}
-                onClick={() => {
-                  alert('Link import coming soon!');
-                }}
+              <Button 
+                size="sm" 
+                className="rounded-lg px-4"
+                onClick={handlePasteLink}
+                disabled={isLoadingLink || !linkInput.trim()}
               >
-                Paste
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Empty State - only when completely empty */}
-        {countryCollections.length === 0 && uncategorizedPlaces.length === 0 && (
-          <div className="space-y-4">
-            {/* Create collection prompt */}
-            <button className="w-full p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg">✈️</span>
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Create a trip collection</p>
-                  <p className="text-xs text-muted-foreground">Organize saved places by destination</p>
-                </div>
-              </div>
-            </button>
-
-            {/* Empty state */}
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-10 h-10 mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                <Bookmark className="w-5 h-5 text-slate-400" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1">No saved places yet</h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Save places from Explore to see them here
-              </p>
-              <Button size="sm" onClick={() => router.push('/explore')} className="rounded-full text-xs h-8">
-                Explore Places
+                {isLoadingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Paste'}
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Empty State */}
+        {countries.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <Bookmark className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No saved places yet</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+              Save places from Explore to see them here
+            </p>
+            <Button onClick={() => router.push('/explore')} className="rounded-full">
+              Explore Places
+            </Button>
+          </div>
         )}
 
-        {/* Country Collections */}
-        {countryCollections.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Trip collections</h2>
-            <div className="space-y-4">
-              {countryCollections.map((collection) => {
-                const isExpanded = expandedCountry === collection.countryCode;
-                const groupedPlaces = groupPlacesByType(collection.places);
+        {/* Country Sections */}
+        {filteredCountries.map((country) => (
+          <section key={country.name} className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">{country.name}</h2>
+              <span className="text-sm text-muted-foreground">
+                {country.cities.length} Cities • {country.totalPlaces} Saved
+              </span>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              {country.cities.map((city) => (
+                <button
+                  key={city.name}
+                  onClick={() => {
+                    setSelectedCountry(country.name);
+                    setExpandedCities(new Set([city.name]));
+                  }}
+                  className="flex-shrink-0 text-left"
+                >
+                  <div className="w-32 h-32 rounded-xl overflow-hidden mb-2 bg-slate-200">
+                    {city.imageUrl ? (
+                      <img src={city.imageUrl} alt={city.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-green-200 to-emerald-300 flex items-center justify-center">
+                        <MapPin className="w-8 h-8 text-white/60" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="font-medium text-sm truncate w-32">{city.name}</p>
+                  <p className="text-xs text-muted-foreground">{city.places.length} Saved</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+      </main>
+
+      {/* Country Detail Modal */}
+      {selectedCountry && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-gradient-to-b from-green-100 to-blue-50">
+            {/* Place markers on map */}
+            {countries.find(c => c.name === selectedCountry)?.cities.slice(0, 3).map((city, idx) => (
+              city.places.slice(0, 2).map((place, pIdx) => (
+                <div 
+                  key={place.id} 
+                  className="absolute flex flex-col items-center"
+                  style={{ 
+                    top: `${15 + idx * 12 + pIdx * 8}%`, 
+                    left: `${10 + idx * 20 + pIdx * 15}%` 
+                  }}
+                >
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-sm shadow">
+                    {getPlaceIcon(place)}
+                  </div>
+                  <span className="text-[10px] mt-1 bg-white px-1.5 py-0.5 rounded shadow text-gray-700 max-w-20 truncate">
+                    {place.name}
+                  </span>
+                </div>
+              ))
+            ))}
+          </div>
+
+          <div 
+            className="absolute left-0 right-0 bottom-0 bg-white rounded-t-3xl flex flex-col shadow-2xl transition-all duration-300"
+            style={{ height: `${sheetHeights[sheetPosition]}vh` }}
+          >
+            <button 
+              className="flex justify-center pt-3 pb-2 cursor-pointer"
+              onClick={() => {
+                if (sheetPosition === 'low') setSheetPosition('mid');
+                else if (sheetPosition === 'mid') setSheetPosition('full');
+                else setSheetPosition('low');
+              }}
+            >
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </button>
+
+            <div className="flex items-center justify-between px-4 pb-3">
+              <h2 className="text-xl font-bold">{selectedCountry}</h2>
+              <button onClick={() => setSelectedCountry(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 px-4 pb-4 overflow-x-auto scrollbar-hide">
+              <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              {['All', 'Attractions', 'Food', 'Nightlife', 'Other'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap ${
+                    activeFilter === filter ? 'bg-gray-100 font-medium' : 'border text-gray-600'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto pb-24">
+              {countries.find(c => c.name === selectedCountry)?.cities.map((city) => {
+                const isExpanded = expandedCities.has(city.name);
+                const filteredPlaces = city.places.filter(place => {
+                  if (activeFilter === 'All') return true;
+                  const type = place.type?.toLowerCase() || '';
+                  if (activeFilter === 'Attractions') return ['attraction', 'temple', 'museum', 'nature'].includes(type);
+                  if (activeFilter === 'Food') return ['restaurant', 'cafe'].includes(type);
+                  if (activeFilter === 'Nightlife') return ['bar', 'nightlife'].includes(type);
+                  return !['attraction', 'temple', 'museum', 'nature', 'restaurant', 'cafe', 'bar', 'nightlife'].includes(type);
+                });
+                
+                if (filteredPlaces.length === 0 && activeFilter !== 'All') return null;
                 
                 return (
-                  <div key={collection.countryCode}>
+                  <div key={city.name}>
                     <button
-                      onClick={() => setExpandedCountry(isExpanded ? null : collection.countryCode)}
-                      className="text-left w-full"
+                      onClick={() => {
+                        const newSet = new Set(expandedCities);
+                        if (isExpanded) newSet.delete(city.name);
+                        else newSet.add(city.name);
+                        setExpandedCities(newSet);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 border-t hover:bg-gray-50"
                     >
-                      <Card className={`bg-white hover:shadow-md transition-shadow overflow-hidden ${isExpanded ? 'ring-2 ring-primary/20' : ''}`}>
-                        <CardContent className="p-0">
-                          <div className="flex">
-                            {/* Image */}
-                            <div className="w-32 h-28 flex-shrink-0 relative">
-                              {collection.heroImage ? (
-                                <img
-                                  src={collection.heroImage}
-                                  alt={collection.countryName}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300" />
-                              )}
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <h3 className="font-semibold text-sm truncate">
-                                    {collection.countryName}
-                                  </h3>
-                                  <span className="text-base flex-shrink-0">
-                                    {collection.flag}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {isExpanded ? (
-                                    <ChevronUp className="w-4 h-4 text-slate-400" />
-                                  ) : (
-                                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                                  )}
-                                </div>
-                              </div>
-
-                              <p className="text-xs text-muted-foreground truncate mb-2">
-                                {collection.cities.slice(0, 3).join(', ')}
-                                {collection.cities.length > 3 && ` +${collection.cities.length - 3} more`}
-                              </p>
-
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Bookmark className="w-3.5 h-3.5" />
-                                <span>{collection.places.length} saved items</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <span className="font-semibold">{city.name}</span>
+                      <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
 
-                    {/* Expanded Content - Category Sections */}
                     {isExpanded && (
-                      <div className="mt-3 space-y-4 pl-2">
-                        {Object.entries(groupedPlaces).map(([type, places]) => {
-                          const config = categoryConfig[type] || categoryConfig.attraction;
-                          return (
-                            <div key={type} className="bg-white rounded-xl p-4 border border-slate-100">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className={`p-1.5 rounded-lg ${config.color}`}>
-                                  {config.icon}
-                                </div>
-                                <h4 className="font-medium text-sm">{config.label}</h4>
-                                <span className="text-xs text-muted-foreground">({places.length})</span>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                {places.slice(0, 3).map((place) => (
-                                  <div
-                                    key={place.id}
-                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"
-                                  >
-                                    {/* Thumbnail */}
-                                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
-                                      {place.imageUrl ? (
-                                        <img
-                                          src={place.imageUrl}
-                                          alt={place.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                          <MapPin className="w-4 h-4 text-slate-300" />
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                      <h5 className="font-medium text-sm truncate">{place.name}</h5>
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {place.city}
-                                        {place.rating && ` · ⭐ ${place.rating}`}
-                                      </p>
-                                    </div>
-                                    
-                                    {/* Heart */}
-                                    <Heart className="w-4 h-4 text-primary fill-current flex-shrink-0" />
-                                  </div>
-                                ))}
-                                
-                                {/* See all link if more than 3 */}
-                                {places.length > 3 && (
-                                  <button className="w-full py-2 text-xs text-primary font-medium hover:bg-primary/5 rounded-lg transition-colors">
-                                    See all {places.length} places →
-                                  </button>
-                                )}
-                              </div>
+                      <div className="px-4 pb-2 space-y-2">
+                        {filteredPlaces.map((place) => (
+                          <div key={place.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                              {getPlaceIcon(place)}
                             </div>
-                          );
-                        })}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{place.name}</p>
+                              <p className="text-xs text-gray-500 line-clamp-2">
+                                {place.description || place.address || `Saved from ${place.city}`}
+                              </p>
+                            </div>
+                            {place.imageUrl && (
+                              <img 
+                                src={place.imageUrl} 
+                                alt={place.name}
+                                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                              />
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-          </section>
-        )}
 
-        {/* All Saved (uncategorized) - only show if there are uncategorized places */}
-        {uncategorizedPlaces.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">All Saved</h2>
-              <button className="p-1 hover:bg-slate-200 rounded">
-                <MoreHorizontal className="w-5 h-5 text-slate-400" />
-              </button>
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+              <Button 
+                className="rounded-full px-6 py-3 bg-gray-900 hover:bg-gray-800 shadow-lg"
+                onClick={() => {
+                  router.push(`/plan?destination=${encodeURIComponent(selectedCountry)}`);
+                }}
+              >
+                Plan Trip to {selectedCountry}
+              </Button>
             </div>
-            {(
-            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-              {uncategorizedPlaces.map((place) => (
-                <div key={place.id} className="flex-shrink-0 w-48">
-                  <Card className="bg-white overflow-hidden hover:shadow-md transition-shadow">
-                    <CardContent className="p-0">
-                      <div className="relative aspect-[4/3]">
-                        {place.imageUrl ? (
-                          <img
-                            src={place.imageUrl}
-                            alt={place.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
-                            <Bookmark className="w-8 h-8 text-slate-400" />
-                          </div>
-                        )}
-                        <button className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                          <Heart className="w-4 h-4 text-red-500 fill-current" />
-                        </button>
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm truncate">{place.name}</h3>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {place.city || 'Unknown location'}
-                        </p>
-                        {place.sourceUrl && (
-                          <p className="text-xs text-blue-500 truncate mt-1">
-                            {new URL(place.sourceUrl).hostname.replace('www.', '')}
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-            )}
-          </section>
-        )}
-      </main>
+          </div>
+        </div>
+      )}
 
-      {/* Overlays */}
-      <TripDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        trips={trips}
-        onRefresh={refresh}
-      />
-
-      <ProfileSettings
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-      />
+      <TripDrawer open={drawerOpen} onOpenChange={setDrawerOpen} trips={trips} onRefresh={refresh} />
+      <ProfileSettings open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }
