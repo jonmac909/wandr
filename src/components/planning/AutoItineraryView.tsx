@@ -2036,11 +2036,11 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - Full screen like Chiang Mai explore page */}
+      {/* Map View - with header and footer nav */}
       {!isLoading && viewMode === 'map' && (
-        <div className="fixed inset-0 z-50 h-screen flex flex-col bg-white">
+        <div className="min-h-screen flex flex-col bg-white">
           {/* Map section - collapses when panel expanded */}
-          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[45vh]'}`}>
+          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[40vh]'}`}>
             <ActivityMap
               days={days.filter(d => d.dayNumber === mapSelectedDay)}
               selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
@@ -2069,7 +2069,7 @@ export default function AutoItineraryView({
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </button>
 
-            {/* Day tabs - like Wanderlog: Overview, Day 1, Day 2, Day 3 */}
+            {/* Day tabs - actual day numbers from itinerary */}
             <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
               <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
                 {days.map((day) => {
@@ -2081,7 +2081,7 @@ export default function AutoItineraryView({
                         setMapSelectedDay(day.dayNumber);
                         setMapSelectedIndex(0);
                       }}
-                      className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
+                      className={`pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                         isSelected
                           ? 'text-gray-900 border-gray-900'
                           : 'text-gray-500 border-transparent hover:text-gray-700'
@@ -2094,9 +2094,12 @@ export default function AutoItineraryView({
               </div>
             </div>
 
-            {/* Day header with collapse */}
+            {/* Day header with city name */}
             <div className="flex-shrink-0 bg-white px-4 py-3 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Day {mapSelectedDay}</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Day {mapSelectedDay}</h2>
+                <p className="text-sm text-gray-500">{days.find(d => d.dayNumber === mapSelectedDay)?.city}</p>
+              </div>
               <ChevronDown className="w-5 h-5 text-gray-400" />
             </div>
 
