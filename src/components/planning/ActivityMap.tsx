@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { GeneratedActivity, GeneratedDay } from '@/lib/planning/itinerary-generator';
@@ -27,8 +27,10 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'ho chi minh': [10.8231, 106.6297],
   'hanoi': [21.0285, 105.8542],
   'da nang': [16.0544, 108.2022],
+  'hoi an': [15.8801, 108.3380],
   'seoul': [37.5665, 126.9780],
   'busan': [35.1796, 129.0756],
+  'hakone': [35.2324, 139.1069],
   'paris': [48.8566, 2.3522],
   'london': [51.5074, -0.1278],
   'new york': [40.7128, -74.0060],
@@ -36,6 +38,7 @@ const CITY_COORDS: Record<string, [number, number]> = {
   'barcelona': [41.3851, 2.1734],
   'amsterdam': [52.3676, 4.9041],
   'lisbon': [38.7223, -9.1393],
+  'honolulu': [21.3069, -157.8583],
   'default': [35.6762, 139.6503],
 };
 
@@ -65,26 +68,17 @@ function getActivityCoords(activity: GeneratedActivity, city: string, index: num
   ];
 }
 
-// Day colors matching the main view
-const DAY_COLORS = [
-  '#f97316', // orange
-  '#f59e0b', // amber
-  '#06b6d4', // cyan
-  '#ec4899', // pink
-  '#8b5cf6', // violet
-  '#10b981', // green
-  '#3b82f6', // blue
-  '#ef4444', // red
-];
+// Coral color for pins and route line (matching Chiang Mai explore page)
+const CORAL_COLOR = '#E8967A';
 
 export default function ActivityMap({ days, selectedActivityId, onActivitySelect }: ActivityMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Create a key from days to detect changes
   const daysKey = days.map(d => `${d.dayNumber}-${d.activities.length}`).join(',');
+  const cityFromDays = days[0]?.city || 'tokyo';
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -106,8 +100,6 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
       }))
     );
 
-    // If no activities, still show map centered on city
-    const cityFromDays = days[0]?.city || 'tokyo';
     const defaultCenter = getCityCoords(cityFromDays);
 
     // Calculate center (use default center if no activities)
@@ -118,49 +110,39 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
       ? allActivities.reduce((sum, a) => sum + a.coords[1], 0) / allActivities.length
       : defaultCenter[1];
 
-    // Initialize map
+    // Initialize map - no attribution
     const map = L.map(mapRef.current, {
       center: [avgLat, avgLng],
       zoom: allActivities.length > 0 ? 13 : 12,
       zoomControl: false,
+      attributionControl: false,
     });
 
-    // Add zoom control to bottom right
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    // Add zoom control to top right
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Add tile layer (using CartoDB Positron for clean look with better international readability)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    // Add MapTiler tiles with English labels (matching Chiang Mai explore page)
+    L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=ApW52vsbKHpERF6XOM5x&language=en', {
       maxZoom: 19,
     }).addTo(map);
 
     mapInstanceRef.current = map;
 
-    // Add markers
-    allActivities.forEach(({ activity, dayNumber, dayIdx, coords }, globalIdx) => {
-      const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
-
-      // Create custom div icon with number
+    // Add markers with coral teardrop pins (matching Chiang Mai explore page)
+    allActivities.forEach(({ activity, dayNumber, coords }, globalIdx) => {
+      const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
+      
+      // Create teardrop pin icon with number (like Google Maps)
       const icon = L.divIcon({
-        className: 'custom-marker',
+        className: 'custom-pin-marker',
         html: `
-          <div style="
-            width: 28px;
-            height: 28px;
-            background-color: ${color};
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            border: 2px solid white;
-          ">${globalIdx + 1}</div>
+          <svg width="24" height="32" viewBox="0 0 16 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 5.5 8 14 8 14s8-8.5 8-14c0-4.42-3.58-8-8-8z" fill="${isTransport ? '#3b82f6' : CORAL_COLOR}"/>
+            <text x="8" y="11" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${globalIdx + 1}</text>
+          </svg>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [24, 32],
+        iconAnchor: [12, 32],
       });
 
       const marker = L.marker(coords, { icon })
@@ -169,7 +151,6 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
           <div style="min-width: 150px;">
             <strong>${activity.name}</strong>
             <br/><span style="color: #666; font-size: 12px;">Day ${dayNumber} • ${activity.neighborhood || activity.type}</span>
-            ${activity.openingHours ? `<br/><span style="color: #888; font-size: 11px;">🕐 ${activity.openingHours}</span>` : ''}
           </div>
         `);
 
@@ -182,16 +163,14 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
       markersRef.current.push(marker);
     });
 
-    // Draw route line connecting all activities in order
+    // Draw route line connecting all activities in order (coral dashed)
     if (allActivities.length > 1) {
       const routeCoords = allActivities.map(a => a.coords);
       L.polyline(routeCoords, {
-        color: '#3b82f6', // Blue color
-        weight: 3,
-        opacity: 0.8,
-        dashArray: '8, 8', // Dashed line
-        lineCap: 'round',
-        lineJoin: 'round',
+        color: CORAL_COLOR,
+        weight: 2,
+        opacity: 0.6,
+        dashArray: '6, 6',
       }).addTo(map);
     }
 
@@ -208,74 +187,20 @@ export default function ActivityMap({ days, selectedActivityId, onActivitySelect
         markersRef.current = [];
       }
     };
-  }, [daysKey, onActivitySelect]);
-
-  // Filter markers by selected day
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    let globalIdx = 0;
-    days.forEach((day, dayIdx) => {
-      day.activities.forEach(() => {
-        const marker = markersRef.current[globalIdx];
-        if (marker) {
-          if (selectedDay === null || selectedDay === dayIdx) {
-            marker.setOpacity(1);
-          } else {
-            marker.setOpacity(0.3);
-          }
-        }
-        globalIdx++;
-      });
-    });
-  }, [selectedDay, daysKey]);
+  }, [daysKey, cityFromDays, onActivitySelect]);
 
   return (
     <div className="relative w-full h-full">
-      {/* Map container */}
+      <style jsx global>{`
+        .custom-pin-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .map-tiles-warm {
+          filter: sepia(20%) saturate(110%) hue-rotate(-5deg) brightness(1.02);
+        }
+      `}</style>
       <div ref={mapRef} className="w-full h-full" />
-
-      {/* Day filter chips */}
-      <div className="absolute top-4 left-4 right-4 flex gap-2 flex-wrap z-[1000]">
-        <button
-          onClick={() => setSelectedDay(null)}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium shadow-md transition-colors ${
-            selectedDay === null
-              ? 'bg-gray-900 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          All Days
-        </button>
-        {days.map((day, idx) => (
-          <button
-            key={day.dayNumber}
-            onClick={() => setSelectedDay(selectedDay === idx ? null : idx)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium shadow-md transition-colors ${
-              selectedDay === idx
-                ? 'text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-            style={selectedDay === idx ? { backgroundColor: DAY_COLORS[idx % DAY_COLORS.length] } : {}}
-          >
-            Day {day.dayNumber}
-          </button>
-        ))}
-      </div>
-
-      {/* Legend */}
-      <div className="absolute bottom-24 left-4 bg-white rounded-lg shadow-lg p-3 z-[1000]">
-        <div className="text-xs font-medium text-gray-500 mb-2">Activities</div>
-        {days.map((day, idx) => (
-          <div key={day.dayNumber} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: DAY_COLORS[idx % DAY_COLORS.length] }}
-            />
-            <span className="text-gray-700">Day {day.dayNumber}: {day.city}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -39,6 +39,7 @@ import {
   MoreHorizontal,
   ClipboardList,
   Filter,
+  Navigation,
 } from 'lucide-react';
 import type { TripDNA } from '@/types/trip-dna';
 import type { GeneratedActivity, GeneratedDay } from '@/lib/planning/itinerary-generator';
@@ -620,6 +621,7 @@ export default function AutoItineraryView({
   // Full-screen map state
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
   const [mapSelectedDay, setMapSelectedDay] = useState(1); // Which day to show in map view
+  const [mapSelectedCity, setMapSelectedCity] = useState<string | null>(null); // Which city tab is selected
 
   // Reservation modal state
   const [reservationModal, setReservationModal] = useState<{
@@ -2033,79 +2035,48 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - Side Drawer (slides in from right like Wanderlog) */}
-      {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length > 0 && (
+      {/* Map View - Full screen with city tabs + day tabs */}
+      {!isLoading && viewMode === 'map' && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setViewMode('picture')}
-          />
-
-          {/* Side Drawer */}
-          <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[85vw] lg:w-[80vw] max-w-6xl bg-white flex flex-col animate-in slide-in-from-right duration-300 shadow-2xl">
-            {/* Header with Exit button */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b bg-white">
+          {/* Full screen modal */}
+          <div className="fixed inset-0 z-50 bg-white flex flex-col">
+            {/* Header with back button */}
+            <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b">
               <button
                 onClick={() => setViewMode('picture')}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-gray-100 rounded-full border shadow-sm transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X className="w-4 h-4" />
-                <span className="text-sm font-medium">Exit map</span>
+                <ChevronLeft className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-3">
-                <Map className="w-5 h-5 text-primary" />
-                {(() => {
-                  const selectedDay = days.find(d => d.dayNumber === mapSelectedDay);
-                  if (selectedDay) {
-                    const [y, m, d] = selectedDay.date.split('-').map(Number);
-                    const dateObj = new Date(y, m - 1, d);
-                    const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                    return <span className="font-semibold">{formatted} - {selectedDay.city}</span>;
-                  }
-                  return <span className="font-semibold">Map View</span>;
-                })()}
-              </div>
-              <div className="w-24" /> {/* Spacer for centering */}
+              <span className="font-semibold">Trip Map</span>
             </div>
 
-            {/* Day tabs - scrollable horizontal */}
+            {/* City tabs - scrollable horizontal */}
             <div className="flex-shrink-0 border-b px-3 py-2 bg-gray-50">
               <div className="overflow-x-auto">
-                <div className="flex gap-1.5" style={{ minWidth: 'max-content' }}>
-                  {days.map((day) => {
-                    const cityIdx = allocations.findIndex(a => a.city === day.city);
-                    const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
-                    const isSelected = mapSelectedDay === day.dayNumber;
-                    const activityCount = day.activities.length;
-
-                    // Format date as "Mon 15"
-                    const [y, m, d] = day.date.split('-').map(Number);
-                    const dateObj = new Date(y, m - 1, d);
-                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                    const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
+                <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+                  {allocations.map((alloc, idx) => {
+                    const color = getCityColor(idx);
+                    const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
+                    const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
+                    const cityDays = days.filter(d => d.city === alloc.city);
+                    
                     return (
                       <button
-                        key={day.dayNumber}
+                        key={alloc.city}
                         onClick={() => {
-                          setMapSelectedDay(day.dayNumber);
+                          setMapSelectedCity(alloc.city);
+                          const firstDayInCity = cityDays[0]?.dayNumber || 1;
+                          setMapSelectedDay(firstDayInCity);
                           setMapSelectedIndex(0);
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                           isSelected
-                            ? `${color.bg} text-white shadow-sm`
+                            ? `${color.bg} text-white`
                             : 'bg-white text-gray-600 hover:bg-gray-100 border'
                         }`}
                       >
-                        {dayName} {monthDay.split(' ')[1]}
-                        {activityCount > 0 && (
-                          <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
-                            isSelected ? 'bg-white/20' : 'bg-gray-100'
-                          }`}>
-                            {activityCount}
-                          </span>
-                        )}
+                        {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
                       </button>
                     );
                   })}
@@ -2113,135 +2084,132 @@ export default function AutoItineraryView({
               </div>
             </div>
 
-            {/* Main content - map and activity list side by side on larger screens */}
-            <div className="flex-1 flex flex-col md:flex-row min-h-0">
-              {/* Map */}
-              <div className="flex-1 relative min-h-[200px] md:min-h-0">
-                <ActivityMap
-                  days={days.filter(d => d.dayNumber === mapSelectedDay)}
-                  selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
-                  onActivitySelect={(activity) => {
-                    const idx = mapDayActivities.findIndex(a => a.id === activity.id);
-                    if (idx >= 0) setMapSelectedIndex(idx);
-                  }}
-                />
-              </div>
-
-              {/* Activity sidebar - scrollable list of all activities */}
-              <div className="md:w-80 lg:w-96 flex-shrink-0 border-t md:border-t-0 md:border-l bg-white flex flex-col">
-                {mapDayActivities.length > 0 ? (
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="p-3 border-b bg-gray-50">
-                      <span className="text-sm font-medium text-gray-600">
-                        {mapDayActivities.length} {mapDayActivities.length === 1 ? 'place' : 'places'}
-                      </span>
-                    </div>
-                    <div className="divide-y">
-                      {mapDayActivities.map((activity, idx) => {
-                        // Calculate activity number excluding transport
-                        const activityNumber = mapDayActivities
-                          .slice(0, idx + 1)
-                          .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
-                          .length;
-                        const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
-
-                        return (
+            {/* Day tabs for selected city */}
+            {(() => {
+              const selectedCity = mapSelectedCity || allocations[0]?.city;
+              const cityDays = days.filter(d => d.city === selectedCity);
+              
+              if (cityDays.length === 0) return null;
+              
+              return (
+                <div className="flex-shrink-0 border-b px-3 py-2">
+                  <div className="flex gap-2">
+                    {cityDays.map((day, dayIdx) => {
+                      const isSelected = mapSelectedDay === day.dayNumber;
+                      return (
                         <button
-                          key={activity.id}
-                          onClick={() => setMapSelectedIndex(idx)}
-                          className={`w-full text-left p-3 hover:bg-gray-50 transition-colors ${
-                            mapSelectedIndex === idx ? 'bg-primary/5 border-l-2 border-primary' : ''
+                          key={day.dayNumber}
+                          onClick={() => {
+                            setMapSelectedDay(day.dayNumber);
+                            setMapSelectedIndex(0);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                                mapSelectedIndex === idx ? 'bg-primary' : isTransport ? 'bg-blue-500' : 'bg-gray-400'
-                              }`}
-                            >
-                                {isTransport ? '—' : activityNumber}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
-                              <p className="text-gray-500 text-xs truncate">
-                                {activity.neighborhood || activity.type}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                                {activity.openingHours && (
-                                  <span className="flex items-center gap-0.5">
-                                    <Clock className="w-3 h-3" />
-                                    {activity.openingHours}
-                                  </span>
-                                )}
-                                {activity.rating && (
-                                  <span className="flex items-center gap-0.5">
-                                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                                    {activity.rating.toFixed(1)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {activity.imageUrl && (
-                              <img
-                                src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
-                                alt=""
-                                className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                              />
-                            )}
-                          </div>
+                          Day {dayIdx + 1}
                         </button>
-                        );
-                      })}
-                    </div>
+                      );
+                    })}
                   </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                    <MapPin className="w-10 h-10 text-gray-300 mb-2" />
-                    <p className="text-gray-500 text-sm">No activities for this day</p>
-                    <p className="text-gray-400 text-xs mt-1">Add activities to see them on the map</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              );
+            })()}
+
+            {/* Map - takes ~40% of remaining space */}
+            <div className="h-[40vh] flex-shrink-0 relative">
+              <ActivityMap
+                days={days.filter(d => d.dayNumber === mapSelectedDay)}
+                selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
+                onActivitySelect={(activity) => {
+                  const idx = mapDayActivities.findIndex(a => a.id === activity.id);
+                  if (idx >= 0) setMapSelectedIndex(idx);
+                }}
+              />
+            </div>
+
+            {/* Timeline itinerary below */}
+            <div className="flex-1 overflow-y-auto bg-white">
+              {mapDayActivities.length > 0 ? (
+                <div className="p-4 space-y-3">
+                  {mapDayActivities.map((activity, idx) => {
+                    const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
+                    const activityNumber = mapDayActivities
+                      .slice(0, idx + 1)
+                      .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
+                      .length;
+                    const timeStr = activity.suggestedTime || `${9 + idx * 2}:00`;
+                    const hour = parseInt(timeStr.split(':')[0]);
+                    const formattedTime = hour >= 12
+                      ? `${hour === 12 ? 12 : hour - 12}:${timeStr.split(':')[1] || '00'} PM`
+                      : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
+
+                    return (
+                      <button
+                        key={activity.id}
+                        onClick={() => setMapSelectedIndex(idx)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left ${
+                          mapSelectedIndex === idx ? 'bg-primary/5 ring-1 ring-primary' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {/* Time */}
+                        <div className="w-16 text-xs text-gray-500 flex-shrink-0">
+                          {formattedTime}
+                        </div>
+
+                        {/* Number badge */}
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
+                          isTransport ? 'bg-blue-500' : 'bg-primary'
+                        }`}>
+                          {isTransport ? '—' : activityNumber}
+                        </div>
+
+                        {/* Image */}
+                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                          {activity.imageUrl ? (
+                            <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{activity.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{activity.neighborhood || activity.type}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <MapPin className="w-12 h-12 text-gray-300 mb-3" />
+                  <p className="text-gray-500">No activities for this day</p>
+                  <p className="text-xs text-gray-400 mt-1">Add activities to see them here</p>
+                </div>
+              )}
             </div>
           </div>
         </>
       )}
 
-      {/* Empty state for map view - side drawer */}
-      {!isLoading && viewMode === 'map' && allActivitiesWithMeta.length === 0 && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setViewMode('picture')}
-          />
-
-          {/* Side Drawer */}
-          <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[85vw] lg:w-[80vw] max-w-6xl bg-white flex flex-col items-center justify-center animate-in slide-in-from-right duration-300 shadow-2xl">
-            {/* Exit button */}
-            <button
-              onClick={() => setViewMode('picture')}
-              className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-gray-100 rounded-full border shadow-sm transition-colors"
-            >
-              <X className="w-4 h-4" />
-              <span className="text-sm font-medium">Exit map</span>
-            </button>
-
-            <Map className="w-16 h-16 text-gray-300 mb-4" />
-            <p className="text-gray-600 text-lg font-medium">No activities to show on map</p>
-            <p className="text-gray-400 mt-1">Auto-fill your trip to see activities</p>
-          </div>
-        </>
-      )}
-
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}
-      {!isLoading && viewMode !== 'map' && filteredDays.map((day) => {
+      {!isLoading && viewMode !== 'map' && filteredDays.map((day, idx) => {
         const cityIdx = allocations.findIndex(a => a.city === day.city);
         const color = getCityColor(cityIdx >= 0 ? cityIdx : 0);
 
         // Check if this day needs transport (is a city transition without transport)
         const transitionInfo = getTransitionInfo(day.dayNumber);
         const needsTransport = transitionInfo && !dayHasTransport(day.dayNumber);
+
+        // Check if this is the first day in this city
+        const prevDay = idx > 0 ? filteredDays[idx - 1] : null;
+        const isFirstDayInCity = !prevDay || prevDay.city !== day.city;
 
         return (
           <DayCard
@@ -2261,6 +2229,7 @@ export default function AutoItineraryView({
             isLoadingDay={loadingDayNumber === day.dayNumber}
             missingTransport={needsTransport ? transitionInfo : null}
             onAddTransport={(mode) => addTransportToDay(day.dayNumber, mode)}
+            isFirstDayInCity={isFirstDayInCity}
           />
         );
       })}
@@ -2415,9 +2384,10 @@ interface DayCardProps {
   dayRef?: (el: HTMLDivElement | null) => void; // Ref callback for scroll-to-day
   missingTransport?: { isTransition: boolean; fromCity: string; toCity: string } | null;
   onAddTransport?: (mode?: string) => void;
+  isFirstDayInCity?: boolean;
 }
 
-function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onClearDay, onAddReservation, isLoadingDay, dayRef, missingTransport, onAddTransport }: DayCardProps) {
+function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActivityTimeUpdate, onActivityCostUpdate, onActivityAttachmentAdd, onActivityReorder, onAutoFill, onClearDay, onAddReservation, isLoadingDay, dayRef, missingTransport, onAddTransport, isFirstDayInCity }: DayCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showHotelPrompt, setShowHotelPrompt] = useState(true);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
@@ -2513,7 +2483,7 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
       {isExpanded && (
         <div className="space-y-4">
           {/* Action buttons row */}
-          <div className="flex items-center gap-4 text-sm ml-8">
+          <div className={`flex items-center gap-4 text-sm ${viewMode === 'compact' ? '' : 'ml-8'}`}>
             <button
               onClick={onAutoFill}
               disabled={isLoadingDay}
@@ -2522,26 +2492,29 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
               {isLoadingDay ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Generating...
+                  {viewMode !== 'compact' && 'Generating...'}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Auto-fill day
+                  {viewMode !== 'compact' && 'Auto-fill day'}
                 </>
               )}
             </button>
             {!isEmpty && (
               <>
-                <span className="text-muted-foreground">•</span>
                 <button className="flex items-center gap-1.5 text-primary font-medium hover:underline">
                   <MapPin className="w-4 h-4" />
-                  Optimize route
+                  {viewMode !== 'compact' && 'Optimize route'}
                 </button>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">
-                  {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
-                </span>
+                {viewMode !== 'compact' && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">
+                      {Math.floor(totalMinutes / 60)}hr {totalMinutes % 60}min, {totalMiles.toFixed(1)} mi
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -2584,8 +2557,8 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
           )}
 
           {/* Hotel prompt - Wanderlog style */}
-          {/* Don't show for overnight flights (8+ hour flights or flights with +1 in name) */}
-          {showHotelPrompt && !isEmpty && (() => {
+          {/* Only show on first day in each city, not for overnight flights */}
+          {showHotelPrompt && !isEmpty && isFirstDayInCity && (() => {
             // Check if this is an overnight flight day (you sleep on the plane)
             const hasOvernightFlight = day.activities.some(a =>
               a.type === 'flight' && (
@@ -2596,16 +2569,26 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             );
             if (hasOvernightFlight) return null;
             return (
-              <div className="ml-8 bg-secondary/50 rounded-xl p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Hotel className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm">
-                    Looks like you don&apos;t have lodging for {formatDate(day.date)} yet.
-                  </p>
-                </div>
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Hotel className="w-4 h-4" />
+                <span>No hotel for {day.city}</span>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-7 px-2"
+                  onClick={() => onAddReservation('lodging')}
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-7 text-primary"
+                  onClick={() => {
+                    const searchQuery = encodeURIComponent(`hotels in ${day.city}`);
+                    window.open(`https://www.tripadvisor.com/Search?q=${searchQuery}`, '_blank');
+                  }}
+                >
                   Book hotels
                 </Button>
                 <button
@@ -2985,205 +2968,93 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
             </div>
           )}
 
-          {/* Activities - Compact View (Timeline with small thumbnails) */}
+          {/* Activities - Compact View (Wanderlog-style list) */}
           {!isEmpty && viewMode === 'compact' && (
-            <div className="relative">
-              {/* Vertical timeline line */}
-              <div className="absolute left-[52px] top-4 bottom-4 w-0.5 bg-gray-200" />
+            <div className="space-y-0">
+              {day.activities.map((activity, idx) => {
+                const walkingTime = activity.walkingTimeToNext || 0;
+                const walkingKm = (walkingTime * 0.08).toFixed(1);
+                // Calculate activity number excluding transport
+                const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
+                const activityNumber = day.activities
+                  .slice(0, idx + 1)
+                  .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
+                  .length;
 
-              <div className="space-y-0">
-                {day.activities.map((activity, idx) => {
-                  const timeStr = activity.suggestedTime || `${9 + idx * 2}:00`;
-                  const hour = parseInt(timeStr.split(':')[0]);
-                  const formattedTime = hour >= 12
-                    ? `${hour === 12 ? 12 : hour - 12}:${timeStr.split(':')[1] || '00'} PM`
-                    : `${hour}:${timeStr.split(':')[1] || '00'} AM`;
-                  const walkingTime = activity.walkingTimeToNext || (idx < day.activities.length - 1 ? Math.floor(Math.random() * 15) + 5 : 0);
-                  const warning = getActivityWarnings(activity, day.date);
-                  // Calculate activity number excluding transport
-                  const activityNumber = day.activities
-                    .slice(0, idx + 1)
-                    .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
-                    .length;
+                return (
+                  <div key={activity.id}>
+                    {/* Activity row */}
+                    <div className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                      {/* Number */}
+                      <span className="w-6 text-sm text-gray-400 flex-shrink-0">{activityNumber}.</span>
 
-                  return (
-                    <div
-                      key={activity.id}
-                      draggable
-                      onDragStart={() => setDraggedIdx(idx)}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
-                      onDragEnd={() => {
-                        if (draggedIdx !== null && dragOverIdx !== null && draggedIdx !== dragOverIdx) {
-                          onActivityReorder(draggedIdx, dragOverIdx);
-                        }
-                        setDraggedIdx(null);
-                        setDragOverIdx(null);
-                      }}
-                      className={`${draggedIdx === idx ? 'opacity-50' : ''} ${dragOverIdx === idx && draggedIdx !== idx ? 'border-t-2 border-violet-500' : ''}`}
-                    >
-                      {/* Activity row */}
-                      <div className="flex items-start gap-3">
-                        {/* Time column - tappable to edit */}
-                        <div className="w-[44px] text-right text-sm pt-3 flex-shrink-0">
-                          {editingTimeId === activity.id ? (
-                            <input
-                              type="time"
-                              defaultValue={timeStr}
-                              autoFocus
-                              onBlur={(e) => {
-                                onActivityTimeUpdate(activity.id, e.target.value);
-                                setEditingTimeId(null);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  onActivityTimeUpdate(activity.id, e.currentTarget.value);
-                                  setEditingTimeId(null);
-                                }
-                                if (e.key === 'Escape') setEditingTimeId(null);
-                              }}
-                              className="w-full text-xs bg-violet-50 border border-violet-300 rounded px-1 py-0.5 text-center"
-                            />
-                          ) : (
-                            <button
-                              onClick={() => setEditingTimeId(activity.id)}
-                              className="text-gray-500 hover:text-violet-600 hover:bg-violet-50 rounded px-1 py-0.5 transition-colors"
-                            >
-                              {formattedTime}
-                            </button>
-                          )}
-                        </div>
+                      {/* Thumbnail */}
+                      <button
+                        onClick={() => onActivityTap(activity, activityNumber)}
+                        className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0"
+                      >
+                        {activity.imageUrl ? (
+                          <img src={activity.imageUrl} alt={activity.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
+                            <MapPin className="w-5 h-5 text-violet-400" />
+                          </div>
+                        )}
+                      </button>
 
-                        {/* Timeline dot + drag handle */}
-                        <div className="relative z-10 flex-shrink-0 mt-3 group">
-                          <div className="w-4 h-4 rounded-full bg-violet-500 border-2 border-white shadow-sm cursor-grab active:cursor-grabbing" />
-                        </div>
+                      {/* Content */}
+                      <button
+                        onClick={() => onActivityTap(activity, activityNumber)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <h4 className="font-medium text-gray-900 truncate">{activity.name}</h4>
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                          {activity.type === 'restaurant' ? 'Restaurant' : 'Attractions'}
+                        </span>
+                      </button>
 
-                        {/* Activity card */}
+                      {/* Action icons */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                          onClick={() => onActivityTap(activity, activityNumber)}
-                          className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-violet-300 hover:shadow-sm transition-all text-left mb-1"
+                          onClick={() => onActivityAttachmentAdd(activity.id, { type: 'document', name: 'Attachment' })}
+                          className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
                         >
-                          {/* Thumbnail */}
-                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                            {activity.imageUrl ? (
-                              <img
-                                src={activity.imageUrl || `/api/placeholder/city/${encodeURIComponent(activity.name)}`}
-                                alt={activity.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
-                                <span className="text-xl">📍</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-semibold text-gray-900 line-clamp-1">{activity.name}</h4>
-                              {/* Rating badge */}
-                              <div className="flex items-center gap-1 bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0">
-                                <Star className="w-3 h-3 fill-current" />
-                                {(4.2 + Math.random() * 0.7).toFixed(1)}
-                              </div>
-                            </div>
-
-                            {/* Tags */}
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {(activity.tags || ['attraction']).slice(0, 2).map(tag => (
-                                <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
-                                  {tag}
-                                </span>
-                              ))}
-                              {activity.priceRange && (
-                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                                  {activity.priceRange}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Duration */}
-                            <p className="text-xs text-gray-500 mt-1.5">
-                              {activity.duration || 60} min · {activity.neighborhood || day.city}
-                            </p>
-
-                            {/* Closure warning */}
-                            {warning && (
-                              <div className="mt-1.5 inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs">
-                                <MapPin className="w-3 h-3" />
-                                <span>{warning}</span>
-                              </div>
-                            )}
-
-                            {/* Booking status badge */}
-                            {activity.bookingRequired && (
-                              <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-                                activity.reservationStatus === 'done'
-                                  ? 'bg-green-50 text-green-700 border border-green-200'
-                                  : 'bg-orange-50 text-orange-700 border border-orange-200'
-                              }`}>
-                                {activity.reservationStatus === 'done' ? (
-                                  <>
-                                    <Check className="w-3 h-3" />
-                                    <span>Booked</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <AlertCircle className="w-3 h-3" />
-                                    <span>Need to book</span>
-                                  </>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Quick action buttons */}
-                            <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 hover:text-violet-600"
-                              >
-                                <Paperclip className="w-3 h-3" />
-                                {activity.attachments?.length || 0}
-                              </button>
-                              <button
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 hover:text-violet-600"
-                              >
-                                <DollarSign className="w-3 h-3" />
-                                {activity.userCost ? `$${activity.userCost}` : '-'}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Delete button - always visible */}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onActivityDelete(activity.id); }}
-                            className="p-2 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-500 flex-shrink-0"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <Paperclip className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onActivityDelete(activity.id)}
+                          className="p-2 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-
-                      {/* Walking time connector */}
-                      {idx < day.activities.length - 1 && walkingTime > 0 && (
-                        <div className="flex items-center gap-3 py-2">
-                          <div className="w-[44px]" /> {/* Spacer for time column */}
-                          <div className="w-4 flex justify-center flex-shrink-0">
-                            <div className="w-0.5 h-full" /> {/* Timeline continues */}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                            <Footprints className="w-3 h-3" />
-                            <span>{walkingTime} min walk</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Walking time connector */}
+                    {idx < day.activities.length - 1 && (
+                      <div className="flex items-center gap-3 pl-9 py-1">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Footprints className="w-3.5 h-3.5" />
+                          <span>{walkingTime || '?'} min • {walkingKm} km</span>
+                          <span className="text-gray-300">&gt;</span>
+                          <button 
+                            onClick={() => {
+                              const dest = encodeURIComponent(activity.name + ' ' + day.city);
+                              const nextActivity = day.activities[idx + 1];
+                              const origin = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + day.city) : '';
+                              window.open(`https://www.google.com/maps/dir/${dest}/${origin}`, '_blank');
+                            }}
+                            className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full transition-colors"
+                          >
+                            <Navigation className="w-3 h-3" />
+                            Directions
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

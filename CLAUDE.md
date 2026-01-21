@@ -22,10 +22,11 @@ npm run build            # Full Next.js build
 npm run build:cloudflare # Build for Cloudflare Workers
 npm run deploy           # Build and deploy to Cloudflare
 
-# Testing
-npm run test             # Run all Playwright tests
-npm run test:ui          # Playwright UI mode
-npx playwright test tests/homepage.spec.ts  # Run single test file
+# Testing (use agent-browser CLI)
+agent-browser open https://trippified.com  # Open site
+agent-browser snapshot                      # Get accessibility tree
+agent-browser click @e2                     # Click by ref
+agent-browser close                         # Close browser
 ```
 
 **Pre-push hook**: Husky runs `npm run typecheck` before every push. Failed type checks block the push, preventing Cloudflare build failures.
@@ -36,14 +37,109 @@ npx playwright test tests/homepage.spec.ts  # Run single test file
 - **UI:** React 19, Tailwind CSS 4, shadcn/ui (Radix primitives)
 - **State:** Zustand for questionnaire flow
 - **Database:** Dexie.js (IndexedDB) with Supabase cloud sync
-- **APIs:** Google Places API only (no Anthropic, no Wikipedia, no Pexels/Unsplash)
+- **APIs:** Google Places API (places, photos, ratings) + Wikipedia API (place history/descriptions)
 - **Maps:** Leaflet, OpenStreetMap embeds
 - **Icons:** lucide-react
 - **Deployment:** Cloudflare Workers via OpenNext
 
-**Important:** This app uses ONLY Google Places API for external data. No AI services (Anthropic removed), no external image services (Pexels/Unsplash removed).
+**Important:** This app uses Google Places API + Wikipedia API for external data. No external image services (Pexels/Unsplash removed).
 
 **No mock data:** All data comes from real APIs or curated lists. No hardcoded fake hotels, restaurants, or attractions.
+
+**ANTHROPIC API GUARDRAIL:** Anthropic/Claude API may ONLY be used for the "Autofill trip with AI" button in the itinerary planner. It must NOT be used for:
+- Auto-generating descriptions
+- Parsing user input elsewhere
+- Any background/automatic calls
+- Any feature other than the explicit "Autofill trip with AI" button
+
+This is a cost control measure. The AI chat is user-initiated and clearly labeled.
+
+## API Usage Guidelines (CRITICAL)
+
+**NEVER create infinite loops or excessive API calls.** This has caused issues before with token/resource exhaustion.
+
+### Implemented Safeguards (`src/lib/api/safeguards.ts`)
+
+| Safeguard | Limit | What Happens |
+|-----------|-------|--------------|
+| **Session limit** | 200 calls total | All API calls blocked after limit |
+| **Per-endpoint limit** | 50 calls each | That endpoint blocked |
+| **Circuit breaker** | 5 consecutive failures | Endpoint blocked until reset |
+| **Throttle** | 100ms between calls | Rapid calls rejected |
+| **Timeout** | 10 seconds | Request aborted |
+
+**Use `safeFetch()` for new API calls:**
+```typescript
+import { safeFetch, canMakeApiCall } from '@/lib/api/safeguards';
+
+// Option 1: Use safeFetch wrapper
+const response = await safeFetch('osrm', url);
+if (!response) return fallbackData; // Blocked or failed
+
+// Option 2: Check manually first
+const { allowed, reason } = canMakeApiCall('google-places');
+if (!allowed) { console.warn(reason); return cache; }
+```
+
+### Rules
+1. **Cache aggressively** - Always check cache before making API calls
+2. **Batch when possible** - Don't make N separate calls when 1 batched call works
+3. **Limit concurrent calls** - Max 5-10 parallel requests, not hundreds
+4. **Fail gracefully** - If API fails, show fallback data, don't retry infinitely
+5. **useEffect dependencies** - Be careful with dependencies that cause re-fetching loops
+
+### Current APIs
+| API | Use | Cost | Endpoint |
+|-----|-----|------|----------|
+| **Google Places** | Places, photos, ratings | PAID | `/api/places/*` |
+| **Wikipedia** | Place history/descriptions | FREE | `/api/place-history` |
+| **OSRM** | Walking/driving distances | FREE | `/api/route-distance` |
+| **MapTiler** | Map tiles | FREE tier | (client-side) |
+| **REST Countries** | Currency, language, timezone, flag | FREE | `/api/country-info` |
+
+**CRITICAL - All maps MUST use English labels:**
+```typescript
+// ALWAYS include &language=en in MapTiler URLs
+url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=ApW52vsbKHpERF6XOM5x&language=en"
+```
+This applies to ALL map components: CityExploreMap, ThailandMap, LeafletMap, RouteMap, ActivityMap.
+| **Wikivoyage** | Travel tips, safety, customs | FREE | `/api/travel-tips` |
+
+**REST Countries usage:**
+```typescript
+// GET /api/country-info?country=Thailand
+{
+  name: "Thailand",
+  currencies: [{ code: "THB", symbol: "฿", name: "Thai baht" }],
+  languages: ["Thai"],
+  timezones: ["UTC+07:00"],
+  flag: "🇹🇭",
+  drivingSide: "left"
+}
+```
+
+**Wikivoyage usage:**
+```typescript
+// GET /api/travel-tips?destination=Bangkok
+// GET /api/travel-tips?destination=Bangkok&section=staysafe
+{
+  destination: "Bangkok",
+  summary: "Bangkok is Thailand's capital...",
+  sections: {
+    understand: "...",
+    getAround: "BTS Skytrain is the best way...",
+    staysafe: "Watch out for gem scams...",
+    respect: "Remove shoes before entering temples..."
+  }
+}
+```
+
+### Before Adding API Calls, Ask:
+- Is this data already cached?
+- Can I batch multiple requests into one?
+- What happens if this fails?
+- Could this trigger a loop?
+- Am I using `safeFetch()` or checking `canMakeApiCall()`?
 
 ## Environment Variables
 
@@ -124,9 +220,11 @@ TimeBlock { activity: Activity, priority, isLocked }
 - **`/api/hotels`** - GET: Hotel search
 - **`/api/placeholder/city/[name]`** - GET: SVG gradient placeholder (fallback only)
 
+**Wikipedia-powered Endpoints:**
+- **`/api/place-history`** - GET/POST: Place history/descriptions from Wikipedia API
+
 **Disabled Endpoints (AI features removed):**
 - **`/api/parse-ticket`** - Returns 503 (was Anthropic-powered OCR)
-- **`/api/place-history`** - Returns 503 (was Anthropic-powered history generation)
 
 ### Google Places API Key Pattern
 All Google Places API routes use this pattern for environment variable lookup:
@@ -206,6 +304,66 @@ Trip page overview shows countries/cities count:
 - Uses `getFlagForLocation()` for country flags
 - Groups consecutive days at same location
 
+## Import Itinerary Rules (CRITICAL)
+
+The import feature (`/api/import-itinerary`) parses user's text itinerary. Follow these rules EXACTLY:
+
+### Classification (in priority order)
+
+| Input | → | Output |
+|-------|---|--------|
+| Flight X → Y, check-in, hotel, on-plane | **SKIP** | Nothing |
+| "Arrive [City]" | **ARRIVE** | Grey note, Plane icon (lucide) |
+| "Explore/wander [Area/Nimman/etc]" | **EXPLORE** | Purple note, Search icon (lucide) |
+| Dinner, lunch, ramen, khao soi | **MEAL** | Pastel orange note, Utensils icon (lucide) |
+| "Evening stroll", "Rest up", "First taste" | **VAGUE** | Yellow note, FileText icon (lucide) |
+| "Wat Chedi Luang", "Harry Potter Studios" | **PLACE** | Google lookup → Activity card with image |
+
+### CRITICAL - NO EMOJIS
+Use lucide-react icons only: `Plane`, `Search`, `Utensils`, `FileText`
+
+### Note Card Colors
+
+| Type | Background | Border | Icon Circle |
+|------|------------|--------|-------------|
+| arrive | bg-gray-100 | border-gray-300 | bg-gray-400 |
+| explore | bg-purple-50 | border-purple-200 | bg-purple-500 |
+| meal | bg-orange-50 | border-orange-200 | bg-orange-400 |
+| vague | bg-yellow-50 | border-yellow-200 | bg-yellow-500 |
+
+### Display Rules
+- **Each note = separate card** (NOT combined by type)
+- **Vague notes at TOP of day** in yellow box, NOT in timeline with fake times
+- **Activities in timeline** with real times
+- **Notes stay in chronological order**
+
+### Day Separation (CRITICAL)
+- Day 4 activities → Day 4 ONLY
+- Day 5 activities → Day 5 ONLY
+- **NEVER merge across days**
+
+### Time Mapping
+| Text | Time |
+|------|------|
+| early morning | 07:00 |
+| morning | 09:00 |
+| late morning | 11:00 |
+| lunch | 12:00 |
+| afternoon | 14:00 |
+| late afternoon | 16:00 |
+| evening | 18:00 |
+| night | 20:00 |
+
+### Time Handling
+- `"Morning: Wat Chedi Luang"` → Strip "Morning:", time = 09:00
+- `"Evening stroll"` → DON'T strip, keep text, extract time from context
+- `"Arrive late afternoon"` → Extract time from text = 16:00
+
+### Key Files
+- `/src/app/api/import-itinerary/route.ts` - Main parsing + Google lookup
+- `/src/app/api/parse-file/route.ts` - .docx file parsing
+- `/src/components/planning/AutoItineraryView.tsx` - Import UI + note rendering
+
 ## Terminology
 
 - **Dashboard** = Home page (`/`) with hero, plan/import CTAs, destination inspiration
@@ -219,7 +377,9 @@ Trip page overview shows countries/cities count:
 - **Live testing site: https://trippified.com/** - User tests here, NOT localhost
 - **To deploy: run `npm run deploy`** - Deploys directly to Cloudflare Workers from terminal. Fast iterations.
 - **GitHub Actions is backup** - The workflow still runs on push for CI purposes, but manual deploy is preferred for quick iterations.
-- **Build issues with Playwright**: `tsconfig.json` excludes `playwright.config.ts` and `tests/` to prevent build errors
+- **Testing**: Use `agent-browser` CLI for browser automation testing
+- **BEFORE REVERTING: Always `git stash` or commit first** - NEVER run `git checkout` on files with uncommitted changes. Deployed code may not be committed. Stash or commit BEFORE reverting anything.
+- **When reverting, be surgical** - Don't `git checkout` entire files. Only undo the specific changes that broke something. Use targeted Edit tool changes instead.
 - **Kill resource hogs** - If things are slow, check for background processes with `ps aux | grep -E "node|npm"`. Kill any `npm run dev` or `next dev` processes immediately with `pkill -f "npm run dev" && pkill -f "next dev"`. Always tell the user if something is hogging resources.
 
 ## Deployment
@@ -235,13 +395,12 @@ GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `ma
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 
-**Playwright tests**: Run against deployed site to verify.
-- `tests/homepage.spec.ts` - Homepage loading and navigation
-- `tests/explore-api.spec.ts` - Recommendations API tests
-- `tests/core-api.spec.ts` - City image, site image, places APIs
-- `tests/itinerary.spec.ts` - Planning and itinerary flows
-
-Run tests: `npx playwright test` or `npm run test`
+**Browser testing**: Use `agent-browser` CLI for browser automation.
+```bash
+agent-browser open https://trippified.com
+agent-browser snapshot -i  # Interactive elements
+agent-browser close
+```
 
 ## Key Patterns
 
