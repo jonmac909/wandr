@@ -1,14 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bookmark, MapPin, X, Search, ChevronDown, Loader2, Check, Plus } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Bookmark, MapPin, X, Search, ChevronDown, Loader2, Check, Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { savedPlacesDb } from '@/lib/db/indexed-db';
 import { getCountryForCity, getCountryName } from '@/lib/geo/city-country';
+
 import type { SavedPlace } from '@/types/saved-place';
+
+// Dynamically import map component to avoid SSR issues
+const SavedPlacesMap = dynamic(() => import('@/components/saved/SavedPlacesMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gradient-to-b from-green-100 to-blue-50 flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+    </div>
+  ),
+});
 
 // Type icons based on place type
 const TYPE_ICONS: Record<string, string> = {
@@ -169,30 +181,73 @@ export default function SavedPage() {
     return TYPE_ICONS[type] || TYPE_ICONS.default;
   };
 
-  // Handle paste caption
-  const handleParseCaption = async () => {
+  // Delete a saved place
+  const handleDeletePlace = async (placeId: string) => {
+    try {
+      await savedPlacesDb.delete(placeId);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Failed to delete place:', error);
+    }
+  };
+
+  // Handle analyze video - uses Gemini for video/image analysis
+  const handleAnalyzeVideo = async () => {
     if (!captionInput.trim()) return;
     setIsLoadingParse(true);
     setParseError(null);
     
     try {
-      const response = await fetch('/api/parse-caption', {
+      setParseError('Analyzing video...');
+      
+      const response = await fetch('/api/analyze-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caption: captionInput }),
+        body: JSON.stringify({ url: captionInput }),
       });
       
       const data = await response.json();
       
-      if (data.places && data.places.length > 0) {
-        setParsedPlaces(data.places.map((p: typeof data.places[0]) => ({ ...p, selected: true })));
+      if (!data.success) {
+        setParseError(data.error || 'Failed to analyze video.');
+        return;
+      }
+      
+      // New API returns `locations` array
+      const places = data.locations || data.places || [];
+      
+      if (places.length > 0) {
+        // Map to expected format for the modal
+        const mappedPlaces = places.map((p: {
+          id?: string;
+          name: string;
+          city?: string;
+          country?: string;
+          category?: string;
+          type?: string;
+          address?: string;
+          rating?: number;
+          imageUrl?: string;
+        }) => ({
+          name: p.name,
+          city: p.city || '',
+          type: p.category || p.type || 'attraction',
+          address: p.address,
+          rating: p.rating,
+          imageUrl: p.imageUrl,
+          placeId: p.id,
+          selected: true,
+        }));
+        
+        setParsedPlaces(mappedPlaces);
         setShowParsedModal(true);
+        setParseError(null);
       } else {
-        setParseError(data.error || 'No places found. Try pasting a caption with place names.');
+        setParseError(data.message || 'No places found in video.');
       }
     } catch (error) {
-      console.error('Parse error:', error);
-      setParseError('Failed to parse caption. Please try again.');
+      console.error('Analyze error:', error);
+      setParseError('Failed to analyze video. Please try again.');
     } finally {
       setIsLoadingParse(false);
     }
@@ -232,7 +287,7 @@ export default function SavedPage() {
 
   if (loading || tripsLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-dvh bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading your saves...</p>
@@ -242,28 +297,23 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-dvh bg-white flex flex-col">
       <DashboardHeader
         activeTab="saved"
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
       />
 
-      {/* Map Placeholder - shows first country */}
-      <div className={`relative transition-all duration-300 ${mapExpanded ? 'h-[40vh]' : 'h-[15vh]'}`}>
-        <div className="w-full h-full bg-gradient-to-b from-green-100 to-blue-50 flex items-center justify-center">
-          {countries.length > 0 ? (
-            <div className="bg-white px-3 py-1.5 rounded-full shadow-md flex items-center gap-2">
-              <span className="font-semibold">{countries[0].name}</span>
-              <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full">{countries[0].totalPlaces}</span>
-            </div>
-          ) : (
-            <div className="text-gray-400 text-sm">No saved places yet</div>
-          )}
-        </div>
+      {/* Map - shows saved places */}
+      <div className={`relative transition-all duration-300 ${mapExpanded ? 'h-[40vh]' : 'h-[25vh]'}`}>
+        <SavedPlacesMap 
+          cities={countries.flatMap(c => c.cities.map(city => city.name))}
+          expanded={mapExpanded}
+        />
         <button
           onClick={() => setMapExpanded(!mapExpanded)}
-          className="absolute bottom-0 left-0 right-0 h-6 bg-white rounded-t-2xl flex items-center justify-center"
+          aria-label={mapExpanded ? "Collapse map" : "Expand map"}
+          className="absolute bottom-0 left-0 right-0 h-6 bg-white rounded-t-2xl flex items-center justify-center z-[100]"
         >
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </button>
@@ -275,8 +325,8 @@ export default function SavedPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-bold">My Saved</h1>
-              <p className="text-sm text-muted-foreground">{totalSaved} Saved • {totalCountries} Countries</p>
+              <h1 className="text-2xl font-bold text-balance">My Saved</h1>
+              <p className="text-sm text-muted-foreground"><span className="tabular-nums">{totalSaved}</span> Saved • <span className="tabular-nums">{totalCountries}</span> Countries</p>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -285,20 +335,15 @@ export default function SavedPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search"
-                className="w-28 focus:w-40 transition-all pl-8 pr-2 py-1.5 rounded-full border border-gray-200 text-sm outline-none focus:border-primary bg-gray-50"
+                className="w-28 focus:w-40 transition-all pl-8 pr-2 py-1.5 rounded-full border border-gray-200 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/50 bg-gray-50"
               />
             </div>
           </div>
           
-          {/* Paste link/caption input */}
+          {/* Import from video */}
           <div className="bg-gray-50 rounded-xl p-3">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-              <span>Paste TikTok/IG link or caption</span>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2"/>
-                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
-                <circle cx="18" cy="6" r="1.5" fill="currentColor"/>
-              </svg>
+              <span className="font-medium text-gray-700">Import from TikTok/IG</span>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
               </svg>
@@ -308,13 +353,13 @@ export default function SavedPage() {
                 type="text"
                 value={captionInput}
                 onChange={(e) => setCaptionInput(e.target.value)}
-                placeholder="https://vt.tiktok.com/... or paste caption text"
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-primary bg-white"
+                placeholder="Paste TikTok link..."
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/50 bg-white"
               />
               <Button 
                 size="sm" 
                 className="rounded-lg px-4"
-                onClick={handleParseCaption}
+                onClick={handleAnalyzeVideo}
                 disabled={isLoadingParse || !captionInput.trim()}
               >
                 {isLoadingParse ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Import'}
@@ -329,11 +374,11 @@ export default function SavedPage() {
         {/* Empty State */}
         {countries.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-              <Bookmark className="w-8 h-8 text-gray-400" />
+            <div className="size-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <Bookmark className="size-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No saved places yet</h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+            <h3 className="text-lg font-semibold mb-2 text-balance">No saved places yet</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs text-pretty">
               Save places from Explore to see them here
             </p>
             <Button onClick={() => router.push('/explore')} className="rounded-full">
@@ -364,7 +409,7 @@ export default function SavedPage() {
                 >
                   <div className="w-32 h-32 rounded-xl overflow-hidden mb-2 bg-slate-200">
                     {city.imageUrl ? (
-                      <img src={city.imageUrl} alt={city.name} className="w-full h-full object-cover" />
+                      <img src={city.imageUrl} alt={`Photo of ${city.name}`} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-green-200 to-emerald-300 flex items-center justify-center">
                         <MapPin className="w-8 h-8 text-white/60" />
@@ -382,8 +427,28 @@ export default function SavedPage() {
 
       {/* Country Detail Modal */}
       {selectedCountry && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-gradient-to-b from-green-100 to-blue-50">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          {/* Include header in modal so navigation stays visible */}
+          <DashboardHeader
+            activeTab="saved"
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onOpenProfile={() => setProfileOpen(true)}
+          />
+          
+          {/* Map area - clickable to close */}
+          <div 
+            className="relative flex-1 bg-gradient-to-b from-green-100 to-blue-50 cursor-pointer"
+            onClick={() => setSelectedCountry(null)}
+          >
+            {/* Close button - always visible at top right of map */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); setSelectedCountry(null); }}
+              className="absolute top-4 right-4 z-[200] p-2.5 bg-white rounded-full shadow-lg hover:bg-gray-100 border border-gray-200"
+              aria-label="Close and go back"
+            >
+              <X className="w-5 h-5 text-gray-700" />
+            </button>
+            
             {/* Place markers on map */}
             {countries.find(c => c.name === selectedCountry)?.cities.slice(0, 3).map((city, idx) => (
               city.places.slice(0, 2).map((place, pIdx) => (
@@ -394,8 +459,9 @@ export default function SavedPage() {
                     top: `${15 + idx * 12 + pIdx * 8}%`, 
                     left: `${10 + idx * 20 + pIdx * 15}%` 
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-sm shadow">
+                  <div className="size-8 bg-white rounded-lg flex items-center justify-center text-sm shadow">
                     {getPlaceIcon(place)}
                   </div>
                   <span className="text-[10px] mt-1 bg-white px-1.5 py-0.5 rounded shadow text-gray-700 max-w-20 truncate">
@@ -412,6 +478,7 @@ export default function SavedPage() {
           >
             <button 
               className="flex justify-center pt-3 pb-2 cursor-pointer"
+              aria-label="Resize sheet"
               onClick={() => {
                 if (sheetPosition === 'low') setSheetPosition('mid');
                 else if (sheetPosition === 'mid') setSheetPosition('full');
@@ -421,11 +488,15 @@ export default function SavedPage() {
               <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </button>
 
-            <div className="flex items-center justify-between px-4 pb-3">
-              <h2 className="text-xl font-bold">{selectedCountry}</h2>
-              <button onClick={() => setSelectedCountry(null)} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-5 h-5" />
+            <div className="flex items-center gap-3 px-4 pb-3">
+              <button 
+                onClick={() => setSelectedCountry(null)} 
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full flex-shrink-0"
+                aria-label="Back to cities"
+              >
+                <ArrowLeft className="w-5 h-5" />
               </button>
+              <h2 className="text-xl font-bold text-balance flex-1">{selectedCountry}</h2>
             </div>
 
             <div className="flex items-center gap-2 px-4 pb-4 overflow-x-auto scrollbar-hide">
@@ -475,8 +546,8 @@ export default function SavedPage() {
                     {isExpanded && (
                       <div className="px-4 pb-2 space-y-2">
                         {filteredPlaces.map((place) => (
-                          <div key={place.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                          <div key={place.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl group">
+                            <div className="size-10 bg-white rounded-lg flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
                               {getPlaceIcon(place)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -492,6 +563,16 @@ export default function SavedPage() {
                                 className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                               />
                             )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePlace(place.id);
+                              }}
+                              className="p-2 hover:bg-red-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label={`Delete ${place.name}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -517,8 +598,8 @@ export default function SavedPage() {
 
       {/* Parsed Places Modal */}
       {showParsedModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl max-h-[80vh] flex flex-col shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div>
@@ -548,7 +629,7 @@ export default function SavedPage() {
                   }`}
                 >
                   {/* Checkbox */}
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  <div className={`size-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                     place.selected ? 'bg-primary border-primary' : 'border-gray-300'
                   }`}>
                     {place.selected && <Check className="w-4 h-4 text-white" />}

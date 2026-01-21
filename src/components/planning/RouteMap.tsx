@@ -4,6 +4,17 @@ import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { decodePolyline } from '@/lib/geo/polyline';
+
+// Route interface for polyline-based routes
+export interface RouteSegment {
+  fromLocationId: string;
+  toLocationId: string;
+  polyline: string;
+  distance: number;
+  travelTime: number;
+  transportType: 'automobile' | 'walking';
+}
 
 // City coordinates
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -97,6 +108,11 @@ interface RouteMapProps {
   cities: string[];
   getCityCountry: (city: string) => string | undefined;
   calculateDistance: (from: string, to: string) => number | null;
+  // Optional: encoded polyline routes for actual road paths
+  routes?: RouteSegment[];
+  // Style options
+  routeColor?: string;
+  showRouteInfo?: boolean;
 }
 
 // Create numbered marker - clean pink circle with number
@@ -169,7 +185,12 @@ function MapController({ coords, isPacificRoute }: { coords: { lat: number; lng:
   return null;
 }
 
-export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
+export default function RouteMap({ 
+  cities, 
+  getCityCountry, 
+  routes,
+  routeColor = '#3b82f6', // Default blue for routes
+}: RouteMapProps) {
   // Get coordinates for all cities
   const cityCoords = useMemo(() => {
     return cities
@@ -180,6 +201,15 @@ export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
       }))
       .filter(c => c.coords);
   }, [cities, getCityCountry]);
+
+  // Decode polyline routes if provided
+  const decodedRoutes = useMemo(() => {
+    if (!routes || routes.length === 0) return [];
+    return routes.map(route => ({
+      ...route,
+      coordinates: decodePolyline(route.polyline),
+    }));
+  }, [routes]);
 
   // Check if this is a Pacific route
   const isPacificRoute = useMemo(() => {
@@ -253,16 +283,33 @@ export default function RouteMap({ cities, getCityCountry }: RouteMapProps) {
           url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=ApW52vsbKHpERF6XOM5x&language=en"
         />
 
-        {/* Single orange route line connecting all cities */}
-        {routeLine.length > 1 && (
-          <Polyline
-            positions={routeLine}
-            pathOptions={{
-              color: '#f97316',
-              weight: 3,
-              opacity: 0.9,
-            }}
-          />
+        {/* Route lines - use decoded polylines if available, otherwise straight lines */}
+        {decodedRoutes.length > 0 ? (
+          // Render actual road routes from polylines
+          decodedRoutes.map((route, idx) => (
+            <Polyline
+              key={`route-${idx}`}
+              positions={route.coordinates}
+              pathOptions={{
+                color: route.transportType === 'walking' ? '#6366f1' : routeColor,
+                weight: route.transportType === 'walking' ? 3 : 4,
+                opacity: 0.85,
+                dashArray: route.transportType === 'walking' ? '8, 6' : undefined,
+              }}
+            />
+          ))
+        ) : (
+          // Fallback: straight lines connecting cities
+          routeLine.length > 1 && (
+            <Polyline
+              positions={routeLine}
+              pathOptions={{
+                color: '#f97316',
+                weight: 3,
+                opacity: 0.9,
+              }}
+            />
+          )
         )}
 
         {/* City markers - home icon for first (Kelowna), numbered for trip cities */}
