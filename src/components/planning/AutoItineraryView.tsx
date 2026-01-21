@@ -2064,137 +2064,108 @@ export default function AutoItineraryView({
             {/* Drag handle to expand/collapse */}
             <button 
               onClick={() => setMapPanelExpanded(!mapPanelExpanded)}
-              className="flex-shrink-0 w-full py-1.5 flex items-center justify-center bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              className="flex-shrink-0 w-full py-1.5 flex items-center justify-center bg-white hover:bg-gray-50 transition-colors"
             >
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </button>
 
-            {/* City name header */}
-            <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-2">
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold">
-                  {(() => {
-                    const selectedCity = mapSelectedCity || allocations[0]?.city;
-                    const isTransit = selectedCity?.toLowerCase().includes('transit');
-                    return isTransit ? '✈️ In Transit' : selectedCity;
-                  })()}
-                </h1>
-              </div>
-            </div>
-
-            {/* City tabs - scrollable horizontal */}
+            {/* Day tabs - like Wanderlog: Overview, Day 1, Day 2, Day 3 */}
             <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                {allocations.map((alloc, idx) => {
-                  const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
-                  const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
-                  const cityDays = days.filter(d => d.city === alloc.city);
-                  
+              <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
+                {days.map((day) => {
+                  const isSelected = mapSelectedDay === day.dayNumber;
                   return (
                     <button
-                      key={alloc.city}
+                      key={day.dayNumber}
                       onClick={() => {
-                        setMapSelectedCity(alloc.city);
-                        const firstDayInCity = cityDays[0]?.dayNumber || 1;
-                        setMapSelectedDay(firstDayInCity);
+                        setMapSelectedDay(day.dayNumber);
                         setMapSelectedIndex(0);
                       }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
                         isSelected
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-500 border-transparent hover:text-gray-700'
                       }`}
                     >
-                      {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
+                      Day {day.dayNumber}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Day tabs for selected city */}
-            {(() => {
-              const selectedCity = mapSelectedCity || allocations[0]?.city;
-              const cityDays = days.filter(d => d.city === selectedCity);
-              
-              if (cityDays.length === 0) return null;
-              
-              return (
-                <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
-                  <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                    {cityDays.map((day, dayIdx) => {
-                      const isSelected = mapSelectedDay === day.dayNumber;
-                      return (
-                        <button
-                          key={day.dayNumber}
-                          onClick={() => {
-                            setMapSelectedDay(day.dayNumber);
-                            setMapSelectedIndex(0);
-                          }}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          Day {dayIdx + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Day header with collapse */}
+            <div className="flex-shrink-0 bg-white px-4 py-3 border-b flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Day {mapSelectedDay}</h2>
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            </div>
 
-            {/* Scrollable activity list */}
+            {/* Scrollable activity list - Wanderlog style */}
             <div className="flex-1 overflow-y-auto bg-white">
               {mapDayActivities.length > 0 ? (
-                <div className="p-4 space-y-3">
+                <div className="divide-y">
                   {mapDayActivities.map((activity, idx) => {
                     const isTransport = ['flight', 'train', 'bus', 'drive', 'transit'].includes(activity.type);
                     const activityNumber = mapDayActivities
                       .slice(0, idx + 1)
                       .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
                       .length;
+                    const walkingTime = activity.walkingTimeToNext || 0;
+                    const walkingKm = (walkingTime * 0.08).toFixed(1);
 
                     return (
-                      <button
-                        key={activity.id}
-                        onClick={() => setMapSelectedIndex(idx)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left ${
-                          mapSelectedIndex === idx ? 'bg-primary/5 ring-1 ring-primary' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {/* Number badge */}
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${
-                          isTransport ? 'bg-blue-500' : 'bg-primary'
-                        }`}>
-                          {isTransport ? '—' : activityNumber}
-                        </div>
+                      <div key={activity.id}>
+                        {/* Activity row */}
+                        <button
+                          onClick={() => setMapSelectedIndex(idx)}
+                          className={`w-full flex items-center gap-3 p-4 transition-colors text-left ${
+                            mapSelectedIndex === idx ? 'bg-primary/5' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {/* Number */}
+                          <span className="w-6 text-sm text-gray-400 flex-shrink-0">{activityNumber}.</span>
 
-                        {/* Image */}
-                        <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                          {activity.imageUrl ? (
-                            <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                              <MapPin className="w-5 h-5 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
+                          {/* Image */}
+                          <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                            {activity.imageUrl ? (
+                              <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <MapPin className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{activity.neighborhood || activity.type}</p>
-                          {activity.rating && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <Star className="w-3 h-3 text-amber-500 fill-current" />
-                              <span className="text-xs text-gray-600">{activity.rating.toFixed(1)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </button>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mt-1">
+                              🎯 {isTransport ? 'Transport' : 'Attractions'}
+                            </span>
+                          </div>
+                        </button>
+
+                        {/* Walking time connector */}
+                        {idx < mapDayActivities.length - 1 && (
+                          <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 border-t bg-gray-50/50">
+                            <Footprints className="w-3.5 h-3.5" />
+                            <span>{walkingTime || '?'} min • {walkingKm} km</span>
+                            <span className="text-gray-300">&gt;</span>
+                            <button 
+                              onClick={() => {
+                                const origin = encodeURIComponent(activity.name + ' ' + days.find(d => d.dayNumber === mapSelectedDay)?.city);
+                                const nextActivity = mapDayActivities[idx + 1];
+                                const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + days.find(d => d.dayNumber === mapSelectedDay)?.city) : '';
+                                window.open(`https://www.google.com/maps/dir/${origin}/${dest}`, '_blank');
+                              }}
+                              className="flex items-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full transition-colors"
+                            >
+                              <Navigation className="w-3 h-3" />
+                              Directions
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
