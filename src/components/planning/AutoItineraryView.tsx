@@ -48,6 +48,7 @@ import { allocateDays, RECOMMENDED_NIGHTS, DEFAULT_NIGHTS } from '@/lib/planning
 import { getTransportOptions } from '@/lib/planning/transport-options';
 import dynamic from 'next/dynamic';
 import { debug, debugWarn } from '@/lib/logger';
+import { DashboardHeader } from '@/components/dashboard';
 
 // Dynamically import HotelPicker, RouteMap, and ActivityMap
 const HotelPicker = dynamic(() => import('./HotelPicker'), { ssr: false });
@@ -2054,17 +2055,8 @@ export default function AutoItineraryView({
         
         return (
           <div className="fixed inset-0 z-50 bg-white flex flex-col">
-            {/* Header with Trippified */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b bg-white">
-              <button
-                onClick={() => setViewMode('picture')}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900"
-              >
-                ← Back
-              </button>
-              <span className="text-lg font-bold text-primary">Trippified</span>
-              <div className="w-12" /> {/* Spacer for centering */}
-            </div>
+            {/* Full nav header */}
+            <DashboardHeader activeTab="trips" />
 
             {/* Map section - collapses when panel expanded */}
             <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[40vh]'}`}>
@@ -2076,6 +2068,13 @@ export default function AutoItineraryView({
                   if (idx >= 0) setMapSelectedIndex(idx);
                 }}
               />
+              {/* Back button on map */}
+              <button
+                onClick={() => setViewMode('picture')}
+                className="absolute top-3 left-3 z-[30] px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-sm font-medium text-gray-700 shadow-sm"
+              >
+                ← Back
+              </button>
             </div>
 
             {/* Bottom section - scrollable content */}
