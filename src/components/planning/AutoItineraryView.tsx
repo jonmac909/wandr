@@ -1598,20 +1598,23 @@ export default function AutoItineraryView({
 
   return (
     <div className="pb-20">
-      {/* Compact Sticky Header */}
-      <div className="sticky top-0 z-40 bg-background border-b py-2 -mx-4 px-4">
-        {/* Header row: Back, Title, Date button */}
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onBack}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <h2 className="text-lg font-bold flex-1">Itinerary</h2>
-
-          {/* Dates display */}
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {formatDate(tripStartDate)} - {formatDate(tripEndDate)}
-          </span>
+      {/* Compact Sticky Header - Dates only, editable */}
+      <div className="sticky top-0 z-40 bg-background border-b py-3 -mx-4 px-4">
+        <div className="flex items-center justify-end">
+          {/* Editable dates */}
+          <button
+            onClick={() => {
+              // TODO: Open date picker modal
+              const newStart = prompt('Start date (YYYY-MM-DD):', tripStartDate);
+              if (newStart && /^\d{4}-\d{2}-\d{2}$/.test(newStart)) {
+                setTripStartDate(newStart);
+              }
+            }}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(tripStartDate)} - {formatDate(tripEndDate)}</span>
+          </button>
         </div>
       </div>
 
