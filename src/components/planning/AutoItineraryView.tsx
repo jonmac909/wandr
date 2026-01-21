@@ -2208,8 +2208,8 @@ export default function AutoItineraryView({
                           </div>
                         </div>
 
-                        {/* Walking time connector - only show if next item is NOT transport */}
-                        {nextActivity && !nextIsTransport && (
+                        {/* Walking time connector - always show like compact view */}
+                        {nextActivity && (
                           <div className="flex items-center gap-3 pl-9 py-1">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <Footprints className="w-3.5 h-3.5" />
