@@ -621,7 +621,7 @@ export default function AutoItineraryView({
   // Full-screen map state
   const [mapSelectedIndex, setMapSelectedIndex] = useState(0);
   const [mapSelectedDay, setMapSelectedDay] = useState(1); // Which day to show in map view
-  const [mapSelectedCity, setMapSelectedCity] = useState<string | null>(null); // Which city tab is selected
+  const [mapSelectedAllocationIdx, setMapSelectedAllocationIdx] = useState(0); // Which allocation (city visit) is selected
   const [mapPanelExpanded, setMapPanelExpanded] = useState(false); // Whether bottom panel is expanded (map collapsed)
 
   // Reservation modal state
@@ -2037,79 +2037,92 @@ export default function AutoItineraryView({
       )}
 
       {/* Map View - Full screen overlay */}
-      {!isLoading && viewMode === 'map' && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          {/* Map section - collapses when panel expanded */}
-          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[45vh]'}`}>
-            <ActivityMap
-              days={days.filter(d => d.dayNumber === mapSelectedDay)}
-              selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
-              onActivitySelect={(activity) => {
-                const idx = mapDayActivities.findIndex(a => a.id === activity.id);
-                if (idx >= 0) setMapSelectedIndex(idx);
-              }}
-            />
-
-            {/* Back button - white pill like Chiang Mai */}
-            <button
-              onClick={() => setViewMode('picture')}
-              className="absolute top-4 left-4 z-[30] px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-sm font-medium text-gray-700 shadow-sm"
-            >
-              ← Back
-            </button>
-          </div>
-
-          {/* Bottom section - scrollable content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Drag handle to expand/collapse */}
-            <button 
-              onClick={() => setMapPanelExpanded(!mapPanelExpanded)}
-              className="flex-shrink-0 w-full py-1.5 flex items-center justify-center bg-white hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-10 h-1 rounded-full bg-gray-300" />
-            </button>
-
-            {/* City tabs - underline style */}
-            <div className="flex-shrink-0 bg-white px-4 pt-3 border-b overflow-x-auto">
-              <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
-                {allocations.map((alloc, idx) => {
-                  const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
-                  const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
-                  const cityDays = days.filter(d => d.city === alloc.city);
-                  
-                  return (
-                    <button
-                      key={`${alloc.city}-${idx}`}
-                      onClick={() => {
-                        setMapSelectedCity(alloc.city);
-                        const firstDayInCity = cityDays[0]?.dayNumber || 1;
-                        setMapSelectedDay(firstDayInCity);
-                        setMapSelectedIndex(0);
-                      }}
-                      className={`pb-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                        isSelected
-                          ? 'text-gray-900 border-gray-900'
-                          : 'text-gray-400 border-transparent hover:text-gray-600'
-                      }`}
-                    >
-                      {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
-                    </button>
-                  );
-                })}
-              </div>
+      {!isLoading && viewMode === 'map' && (() => {
+        // Calculate day ranges for each allocation
+        const allocationDayRanges: { start: number; end: number; days: typeof days }[] = [];
+        let dayCounter = 1;
+        allocations.forEach((alloc) => {
+          const nights = Math.max(1, alloc.nights || 1);
+          const allocDays = days.filter(d => d.dayNumber >= dayCounter && d.dayNumber < dayCounter + nights);
+          allocationDayRanges.push({ start: dayCounter, end: dayCounter + nights - 1, days: allocDays });
+          dayCounter += nights;
+        });
+        
+        const selectedAlloc = allocations[mapSelectedAllocationIdx] || allocations[0];
+        const selectedRange = allocationDayRanges[mapSelectedAllocationIdx] || allocationDayRanges[0];
+        const allocDays = selectedRange?.days || [];
+        
+        return (
+          <div className="fixed inset-0 z-50 bg-white flex flex-col">
+            {/* Header with Trippified */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b bg-white">
+              <button
+                onClick={() => setViewMode('picture')}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                ← Back
+              </button>
+              <span className="text-lg font-bold text-primary">Trippified</span>
+              <div className="w-12" /> {/* Spacer for centering */}
             </div>
 
-            {/* Day tabs - underline style, RELATIVE numbering (Day 1, Day 2 within city) */}
-            {(() => {
-              const selectedCity = mapSelectedCity || allocations[0]?.city;
-              const cityDays = days.filter(d => d.city === selectedCity);
-              
-              if (cityDays.length === 0) return null;
-              
-              return (
+            {/* Map section - collapses when panel expanded */}
+            <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[40vh]'}`}>
+              <ActivityMap
+                days={days.filter(d => d.dayNumber === mapSelectedDay)}
+                selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
+                onActivitySelect={(activity) => {
+                  const idx = mapDayActivities.findIndex(a => a.id === activity.id);
+                  if (idx >= 0) setMapSelectedIndex(idx);
+                }}
+              />
+            </div>
+
+            {/* Bottom section - scrollable content */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Drag handle to expand/collapse */}
+              <button 
+                onClick={() => setMapPanelExpanded(!mapPanelExpanded)}
+                className="flex-shrink-0 w-full py-1.5 flex items-center justify-center bg-white hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-1 rounded-full bg-gray-300" />
+              </button>
+
+              {/* City tabs - underline style, each allocation is SEPARATE */}
+              <div className="flex-shrink-0 bg-white px-4 pt-3 border-b overflow-x-auto">
+                <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
+                  {allocations.map((alloc, idx) => {
+                    const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
+                    const isSelected = mapSelectedAllocationIdx === idx;
+                    const range = allocationDayRanges[idx];
+                    
+                    return (
+                      <button
+                        key={`alloc-${idx}`}
+                        onClick={() => {
+                          setMapSelectedAllocationIdx(idx);
+                          const firstDay = range?.days[0]?.dayNumber || 1;
+                          setMapSelectedDay(firstDay);
+                          setMapSelectedIndex(0);
+                        }}
+                        className={`pb-2 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                          isSelected
+                            ? 'text-gray-900 border-gray-900'
+                            : 'text-gray-400 border-transparent hover:text-gray-600'
+                        }`}
+                      >
+                        {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Day tabs - RELATIVE numbering (Day 1, Day 2 within this allocation only) */}
+              {allocDays.length > 0 && (
                 <div className="flex-shrink-0 bg-white px-4 pt-2 border-b overflow-x-auto">
                   <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
-                    {cityDays.map((day, dayIdx) => {
+                    {allocDays.map((day, dayIdx) => {
                       const isSelected = mapSelectedDay === day.dayNumber;
                       return (
                         <button
@@ -2130,21 +2143,18 @@ export default function AutoItineraryView({
                     })}
                   </div>
                 </div>
-              );
-            })()}
+              )}
 
-            {/* Day header with collapse chevron */}
-            {(() => {
-              const selectedCity = mapSelectedCity || allocations[0]?.city;
-              const cityDays = days.filter(d => d.city === selectedCity);
-              const dayIdx = cityDays.findIndex(d => d.dayNumber === mapSelectedDay);
-              return (
-                <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Day {dayIdx + 1}</h2>
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                </div>
-              );
-            })()}
+              {/* Day header with collapse chevron */}
+              {(() => {
+                const dayIdx = allocDays.findIndex(d => d.dayNumber === mapSelectedDay);
+                return (
+                  <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Day {dayIdx >= 0 ? dayIdx + 1 : 1}</h2>
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  </div>
+                );
+              })()}
 
             {/* Activity list - SAME as compact/timeline view */}
             <div className="flex-1 overflow-y-auto">
@@ -2226,9 +2236,10 @@ export default function AutoItineraryView({
                 </div>
               )}
             </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Days - chronological like Wanderlog (Picture & Compact views) */}
       {!isLoading && viewMode !== 'map' && filteredDays.map((day, idx) => {
