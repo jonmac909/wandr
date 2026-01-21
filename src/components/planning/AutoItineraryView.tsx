@@ -2036,11 +2036,11 @@ export default function AutoItineraryView({
         </div>
       )}
 
-      {/* Map View - with header and footer nav */}
+      {/* Map View - Like Chiang Mai explore page layout */}
       {!isLoading && viewMode === 'map' && (
-        <div className="min-h-screen flex flex-col bg-white">
+        <div className="h-screen flex flex-col bg-white">
           {/* Map section - collapses when panel expanded */}
-          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[40vh]'}`}>
+          <div className={`flex-shrink-0 relative transition-all duration-300 ${mapPanelExpanded ? 'h-[15vh]' : 'h-[45vh]'}`}>
             <ActivityMap
               days={days.filter(d => d.dayNumber === mapSelectedDay)}
               selectedActivityId={mapDayActivities[mapSelectedIndex]?.id}
@@ -2050,7 +2050,7 @@ export default function AutoItineraryView({
               }}
             />
 
-            {/* Back button */}
+            {/* Back button - white pill like Chiang Mai */}
             <button
               onClick={() => setViewMode('picture')}
               className="absolute top-4 left-4 z-[30] px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-sm font-medium text-gray-700 shadow-sm"
@@ -2069,89 +2069,39 @@ export default function AutoItineraryView({
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </button>
 
-            {/* City name header */}
-            <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 pt-2 pb-2">
-              <h1 className="text-xl font-bold">
-                {(() => {
-                  const selectedCity = mapSelectedCity || allocations[0]?.city;
-                  const isTransit = selectedCity?.toLowerCase().includes('transit');
-                  return isTransit ? '✈️ In Transit' : selectedCity;
-                })()}
-              </h1>
-            </div>
-
-            {/* City tabs - each allocation is separate (Tokyo and Tokyo Round 2 are different) */}
-            <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                {allocations.map((alloc, idx) => {
-                  const isTransit = alloc.city.toLowerCase().includes('transit') || alloc.nights === 0;
-                  const isSelected = mapSelectedCity === alloc.city || (!mapSelectedCity && idx === 0);
-                  const cityDays = days.filter(d => d.city === alloc.city);
-                  
+            {/* Day tabs - underline style like Wanderlog */}
+            <div className="flex-shrink-0 bg-white px-4 pt-2 border-b overflow-x-auto">
+              <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
+                {days.map((day) => {
+                  const isSelected = mapSelectedDay === day.dayNumber;
                   return (
                     <button
-                      key={`${alloc.city}-${idx}`}
+                      key={day.dayNumber}
                       onClick={() => {
-                        setMapSelectedCity(alloc.city);
-                        const firstDayInCity = cityDays[0]?.dayNumber || 1;
-                        setMapSelectedDay(firstDayInCity);
+                        setMapSelectedDay(day.dayNumber);
                         setMapSelectedIndex(0);
                       }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      className={`pb-2 text-sm font-medium transition-colors border-b-2 ${
                         isSelected
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-400 border-transparent hover:text-gray-600'
                       }`}
                     >
-                      {isTransit ? '✈️ In Transit' : `${alloc.city} (${alloc.nights})`}
+                      Day {day.dayNumber}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Day tabs for selected city - showing ACTUAL day numbers */}
-            {(() => {
-              const selectedCity = mapSelectedCity || allocations[0]?.city;
-              const cityDays = days.filter(d => d.city === selectedCity);
-              
-              if (cityDays.length === 0) return null;
-              
-              return (
-                <div className="flex-shrink-0 bg-white px-4 py-2 border-b overflow-x-auto">
-                  <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                    {cityDays.map((day) => {
-                      const isSelected = mapSelectedDay === day.dayNumber;
-                      return (
-                        <button
-                          key={day.dayNumber}
-                          onClick={() => {
-                            setMapSelectedDay(day.dayNumber);
-                            setMapSelectedIndex(0);
-                          }}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          Day {day.dayNumber}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Day header */}
-            <div className="flex-shrink-0 bg-white px-4 py-3 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Day {mapSelectedDay}</h2>
+            {/* Day header with collapse chevron */}
+            <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Day {mapSelectedDay}</h2>
               <ChevronDown className="w-5 h-5 text-gray-400" />
             </div>
 
-            {/* Scrollable activity list - Wanderlog style */}
-            <div className="flex-1 overflow-y-auto bg-white">
+            {/* Activity list - SAME as compact/timeline view */}
+            <div className="flex-1 overflow-y-auto">
               {mapDayActivities.length > 0 ? (
                 <div className="divide-y">
                   {mapDayActivities.map((activity, idx) => {
@@ -2160,52 +2110,54 @@ export default function AutoItineraryView({
                       .slice(0, idx + 1)
                       .filter(a => !['flight', 'train', 'bus', 'drive', 'transit'].includes(a.type))
                       .length;
-                    const walkingTime = activity.walkingTimeToNext || 0;
-                    const walkingKm = (walkingTime * 0.08).toFixed(1);
+                    const walkingTime = activity.walkingTimeToNext;
+                    const displayKm = walkingTime ? (walkingTime * 0.08).toFixed(1) : null;
 
                     return (
                       <div key={activity.id}>
-                        {/* Activity row */}
-                        <button
-                          onClick={() => setMapSelectedIndex(idx)}
-                          className={`w-full flex items-center gap-3 p-4 transition-colors text-left ${
-                            mapSelectedIndex === idx ? 'bg-primary/5' : 'hover:bg-gray-50'
+                        {/* Activity card - compact/timeline style */}
+                        <div
+                          className={`flex items-center gap-3 p-3 ${
+                            mapSelectedIndex === idx ? 'bg-primary/5' : ''
                           }`}
+                          onClick={() => setMapSelectedIndex(idx)}
                         >
                           {/* Number */}
-                          <span className="w-6 text-sm text-gray-400 flex-shrink-0">{activityNumber}.</span>
+                          <span className="w-5 text-sm text-gray-400 flex-shrink-0">{activityNumber}.</span>
 
                           {/* Image */}
-                          <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                             {activity.imageUrl ? (
                               <img src={activity.imageUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                <MapPin className="w-5 h-5 text-gray-400" />
+                              <div className="w-full h-full flex items-center justify-center">
+                                <MapPin className="w-4 h-4 text-gray-400" />
                               </div>
                             )}
                           </div>
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate">{activity.name}</h4>
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mt-1">
+                            <h4 className="font-medium text-sm truncate">{activity.name}</h4>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded mt-0.5">
                               🎯 {isTransport ? 'Transport' : 'Attractions'}
                             </span>
                           </div>
-                        </button>
+                        </div>
 
-                        {/* Walking time connector */}
-                        {idx < mapDayActivities.length - 1 && (
-                          <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 border-t bg-gray-50/50">
+                        {/* Walking time connector - between cards */}
+                        {idx < mapDayActivities.length - 1 && walkingTime && (
+                          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 bg-gray-50 border-t">
                             <Footprints className="w-3.5 h-3.5" />
-                            <span>{walkingTime || '?'} min • {walkingKm} km</span>
-                            <span className="text-gray-300">&gt;</span>
+                            <span>{walkingTime} min • {displayKm} km</span>
+                            <ChevronRight className="w-3 h-3 text-gray-300" />
                             <button 
-                              onClick={() => {
-                                const origin = encodeURIComponent(activity.name + ' ' + days.find(d => d.dayNumber === mapSelectedDay)?.city);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const city = days.find(d => d.dayNumber === mapSelectedDay)?.city || '';
+                                const origin = encodeURIComponent(activity.name + ' ' + city);
                                 const nextActivity = mapDayActivities[idx + 1];
-                                const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + days.find(d => d.dayNumber === mapSelectedDay)?.city) : '';
+                                const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + city) : '';
                                 window.open(`https://www.google.com/maps/dir/${origin}/${dest}`, '_blank');
                               }}
                               className="flex items-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-0.5 rounded-full transition-colors"
@@ -2223,7 +2175,6 @@ export default function AutoItineraryView({
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <MapPin className="w-12 h-12 text-gray-300 mb-3" />
                   <p className="text-gray-500">No activities for this day</p>
-                  <p className="text-xs text-gray-400 mt-1">Add activities to see them here</p>
                 </div>
               )}
             </div>
@@ -2357,7 +2308,7 @@ export default function AutoItineraryView({
       )}
 
       {/* Floating View Mode Toggle - Wanderlog style (always visible so user can navigate back) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60]">
         <div className="flex items-center gap-1 bg-gray-900 rounded-full px-1 py-1 shadow-lg">
           <button
             onClick={() => setViewMode('picture')}
