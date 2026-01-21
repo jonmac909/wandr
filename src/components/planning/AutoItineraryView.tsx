@@ -3066,10 +3066,15 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                       {/* Action icons */}
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                          onClick={() => onActivityAttachmentAdd(activity.id, { type: 'document', name: 'Attachment' })}
+                          onClick={() => setAttachmentModalId(activity.id)}
                           className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
                         >
                           <Paperclip className="w-4 h-4" />
+                          {activity.attachments && activity.attachments.length > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-violet-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                              {activity.attachments.length}
+                            </span>
+                          )}
                         </button>
                         <button
                           onClick={() => onActivityDelete(activity.id)}
@@ -3079,6 +3084,76 @@ function DayCard({ day, color, viewMode, onActivityTap, onActivityDelete, onActi
                         </button>
                       </div>
                     </div>
+
+                    {/* Attachment Modal for compact view */}
+                    {attachmentModalId === activity.id && (
+                      <div className="mx-3 mb-2 p-3 bg-gray-50 rounded-lg border" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Add attachment</span>
+                          <button onClick={() => setAttachmentModalId(null)} className="text-gray-400 hover:text-gray-600">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <select
+                            value={newAttachment.type}
+                            onChange={(e) => setNewAttachment(prev => ({ ...prev, type: e.target.value as 'link' | 'ticket' | 'reservation' | 'document' }))}
+                            className="w-full px-2 py-1.5 text-sm border rounded"
+                          >
+                            <option value="link">Link</option>
+                            <option value="ticket">Ticket/Confirmation</option>
+                            <option value="reservation">Reservation</option>
+                            <option value="document">Document/Image</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Name (e.g., Flight confirmation)"
+                            value={newAttachment.name}
+                            onChange={(e) => setNewAttachment(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-2 py-1.5 text-sm border rounded"
+                          />
+                          <input
+                            type="url"
+                            placeholder="URL (optional)"
+                            value={newAttachment.url}
+                            onChange={(e) => setNewAttachment(prev => ({ ...prev, url: e.target.value }))}
+                            className="w-full px-2 py-1.5 text-sm border rounded"
+                          />
+                          <button
+                            onClick={() => {
+                              if (newAttachment.name) {
+                                onActivityAttachmentAdd(activity.id, newAttachment);
+                                setNewAttachment({ type: 'link', name: '', url: '' });
+                                setAttachmentModalId(null);
+                              }
+                            }}
+                            disabled={!newAttachment.name}
+                            className="w-full py-1.5 bg-violet-500 text-white rounded text-sm font-medium disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {/* Existing attachments */}
+                        {activity.attachments && activity.attachments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t space-y-1">
+                            <span className="text-xs text-gray-500">Attached:</span>
+                            {activity.attachments.map((att, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                <Paperclip className="w-3 h-3 text-gray-400" />
+                                {att.url ? (
+                                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
+                                    {att.name}
+                                  </a>
+                                ) : (
+                                  <span>{att.name}</span>
+                                )}
+                                <span className="text-xs text-gray-400 capitalize">({att.type})</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Walking time connector */}
                     {idx < day.activities.length - 1 && (
