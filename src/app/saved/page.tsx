@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bookmark, MapPin, X, Search, ChevronDown, Loader2 } from 'lucide-react';
+import { Bookmark, MapPin, X, Search, ChevronDown, Loader2, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardHeader, TripDrawer, ProfileSettings } from '@/components/dashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -49,12 +49,25 @@ export default function SavedPage() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [sheetPosition, setSheetPosition] = useState<'low' | 'mid' | 'full'>('mid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [linkInput, setLinkInput] = useState('');
-  const [isLoadingLink, setIsLoadingLink] = useState(false);
+  const [captionInput, setCaptionInput] = useState('');
+  const [isLoadingParse, setIsLoadingParse] = useState(false);
+  const [parsedPlaces, setParsedPlaces] = useState<Array<{
+    name: string;
+    city: string;
+    type: string;
+    address?: string;
+    rating?: number;
+    imageUrl?: string;
+    placeId?: string;
+    selected: boolean;
+  }>>([]);
+  const [showParsedModal, setShowParsedModal] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   
   // Data state
   const [countries, setCountries] = useState<CountryData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const sheetHeights = { low: 30, mid: 60, full: 90 };
 
@@ -139,7 +152,7 @@ export default function SavedPage() {
     }
     
     loadSavedPlaces();
-  }, []);
+  }, [refreshTrigger]);
 
   const totalSaved = countries.reduce((sum, c) => sum + c.totalPlaces, 0);
   const totalCountries = countries.length;
@@ -156,16 +169,65 @@ export default function SavedPage() {
     return TYPE_ICONS[type] || TYPE_ICONS.default;
   };
 
-  // Handle paste link
-  const handlePasteLink = async () => {
-    if (!linkInput.trim()) return;
-    setIsLoadingLink(true);
-    // TODO: Implement link parsing
-    setTimeout(() => {
-      alert('Link import coming soon! This will extract places from Instagram/TikTok posts.');
-      setIsLoadingLink(false);
-      setLinkInput('');
-    }, 1000);
+  // Handle paste caption
+  const handleParseCaption = async () => {
+    if (!captionInput.trim()) return;
+    setIsLoadingParse(true);
+    setParseError(null);
+    
+    try {
+      const response = await fetch('/api/parse-caption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption: captionInput }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.places && data.places.length > 0) {
+        setParsedPlaces(data.places.map((p: typeof data.places[0]) => ({ ...p, selected: true })));
+        setShowParsedModal(true);
+      } else {
+        setParseError(data.error || 'No places found. Try pasting a caption with place names.');
+      }
+    } catch (error) {
+      console.error('Parse error:', error);
+      setParseError('Failed to parse caption. Please try again.');
+    } finally {
+      setIsLoadingParse(false);
+    }
+  };
+
+  // Save selected parsed places
+  const handleSaveParsedPlaces = async () => {
+    const selectedPlaces = parsedPlaces.filter(p => p.selected);
+    
+    for (const place of selectedPlaces) {
+      // Map type to valid SavedPlace type
+      let placeType: 'attraction' | 'restaurant' | 'cafe' | 'activity' | 'nightlife' | 'hotel' = 'attraction';
+      const t = place.type?.toLowerCase();
+      if (t === 'restaurant' || t === 'food') placeType = 'restaurant';
+      else if (t === 'cafe') placeType = 'cafe';
+      else if (t === 'bar' || t === 'nightlife') placeType = 'nightlife';
+      else if (t === 'hotel') placeType = 'hotel';
+      else if (t === 'activity') placeType = 'activity';
+      
+      await savedPlacesDb.save({
+        name: place.name,
+        city: place.city,
+        type: placeType,
+        address: place.address,
+        rating: place.rating,
+        imageUrl: place.imageUrl,
+        source: 'link',
+      });
+    }
+    
+    // Reset and refresh
+    setShowParsedModal(false);
+    setParsedPlaces([]);
+    setCaptionInput('');
+    setRefreshTrigger(prev => prev + 1);
   };
 
   if (loading || tripsLoading) {
@@ -228,10 +290,10 @@ export default function SavedPage() {
             </div>
           </div>
           
-          {/* Paste link input */}
+          {/* Paste link/caption input */}
           <div className="bg-gray-50 rounded-xl p-3">
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-              <span>Paste your link</span>
+              <span>Paste TikTok/IG link or caption</span>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2"/>
                 <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
@@ -244,20 +306,23 @@ export default function SavedPage() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={linkInput}
-                onChange={(e) => setLinkInput(e.target.value)}
-                placeholder="https://www.instagram.com/p/..."
+                value={captionInput}
+                onChange={(e) => setCaptionInput(e.target.value)}
+                placeholder="https://vt.tiktok.com/... or paste caption text"
                 className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-primary bg-white"
               />
               <Button 
                 size="sm" 
                 className="rounded-lg px-4"
-                onClick={handlePasteLink}
-                disabled={isLoadingLink || !linkInput.trim()}
+                onClick={handleParseCaption}
+                disabled={isLoadingParse || !captionInput.trim()}
               >
-                {isLoadingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Paste'}
+                {isLoadingParse ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Import'}
               </Button>
             </div>
+            {parseError && (
+              <p className="text-xs text-red-500 mt-2">{parseError}</p>
+            )}
           </div>
         </div>
 
@@ -444,6 +509,92 @@ export default function SavedPage() {
                 }}
               >
                 Plan Trip to {selectedCountry}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Parsed Places Modal */}
+      {showParsedModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h2 className="text-lg font-bold">Found {parsedPlaces.length} places</h2>
+                <p className="text-xs text-gray-500">Select places to save</p>
+              </div>
+              <button 
+                onClick={() => { setShowParsedModal(false); setParsedPlaces([]); }}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Places list */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {parsedPlaces.map((place, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setParsedPlaces(prev => prev.map((p, i) => 
+                      i === idx ? { ...p, selected: !p.selected } : p
+                    ));
+                  }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                    place.selected ? 'bg-primary/5 border-primary' : 'bg-gray-50 border-transparent'
+                  }`}
+                >
+                  {/* Checkbox */}
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    place.selected ? 'bg-primary border-primary' : 'border-gray-300'
+                  }`}>
+                    {place.selected && <Check className="w-4 h-4 text-white" />}
+                  </div>
+                  
+                  {/* Place info */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="font-medium text-sm">{place.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {place.city} • {place.type}
+                      {place.rating && ` • ${place.rating}`}
+                    </p>
+                  </div>
+                  
+                  {/* Image */}
+                  {place.imageUrl ? (
+                    <img 
+                      src={place.imageUrl} 
+                      alt={place.name}
+                      className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-gray-400" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => { setShowParsedModal(false); setParsedPlaces([]); }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleSaveParsedPlaces}
+                disabled={!parsedPlaces.some(p => p.selected)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Save {parsedPlaces.filter(p => p.selected).length} places
               </Button>
             </div>
           </div>
