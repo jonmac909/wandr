@@ -2145,16 +2145,7 @@ export default function AutoItineraryView({
                 </div>
               )}
 
-              {/* Day header with collapse chevron */}
-              {(() => {
-                const dayIdx = allocDays.findIndex(d => d.dayNumber === mapSelectedDay);
-                return (
-                  <div className="flex-shrink-0 bg-white px-4 py-3 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Day {dayIdx >= 0 ? dayIdx + 1 : 1}</h2>
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  </div>
-                );
-              })()}
+
 
             {/* Activity list - SAME as compact/timeline view */}
             <div className="flex-1 overflow-y-auto">
