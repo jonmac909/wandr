@@ -2158,6 +2158,23 @@ export default function AutoItineraryView({
                       .length;
                     const walkingTime = activity.walkingTimeToNext;
                     const displayKm = walkingTime ? (walkingTime * 0.08).toFixed(1) : null;
+                    const nextActivity = idx < mapDayActivities.length - 1 ? mapDayActivities[idx + 1] : null;
+                    const nextIsTransport = nextActivity && ['flight', 'train', 'bus', 'drive', 'transit'].includes(nextActivity.type);
+
+                    // Transport items render as connectors, not cards
+                    if (isTransport) {
+                      return (
+                        <div key={activity.id} className="flex items-center gap-3 px-4 py-2 bg-blue-50 border-y border-blue-100">
+                          <div className="flex items-center gap-2 text-xs text-blue-600">
+                            {activity.type === 'flight' && <Plane className="w-4 h-4" />}
+                            {activity.type === 'train' && <Train className="w-4 h-4" />}
+                            {activity.type === 'bus' && <Bus className="w-4 h-4" />}
+                            {(activity.type === 'drive' || activity.type === 'transit') && <Car className="w-4 h-4" />}
+                            <span className="font-medium">{activity.name}</span>
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div key={activity.id}>
@@ -2186,13 +2203,13 @@ export default function AutoItineraryView({
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate">{activity.name}</h4>
                             <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded mt-0.5">
-                              🎯 {isTransport ? 'Transport' : 'Attractions'}
+                              🎯 Attractions
                             </span>
                           </div>
                         </div>
 
-                        {/* Walking time connector - ALWAYS show between cards like compact view */}
-                        {idx < mapDayActivities.length - 1 && (
+                        {/* Walking time connector - only show if next item is NOT transport */}
+                        {nextActivity && !nextIsTransport && (
                           <div className="flex items-center gap-3 pl-9 py-1">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <Footprints className="w-3.5 h-3.5" />
@@ -2203,8 +2220,7 @@ export default function AutoItineraryView({
                                   e.stopPropagation();
                                   const city = days.find(d => d.dayNumber === mapSelectedDay)?.city || '';
                                   const origin = encodeURIComponent(activity.name + ' ' + city);
-                                  const nextActivity = mapDayActivities[idx + 1];
-                                  const dest = nextActivity ? encodeURIComponent(nextActivity.name + ' ' + city) : '';
+                                  const dest = encodeURIComponent(nextActivity.name + ' ' + city);
                                   window.open(`https://www.google.com/maps/dir/${origin}/${dest}`, '_blank');
                                 }}
                                 className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full transition-colors"
