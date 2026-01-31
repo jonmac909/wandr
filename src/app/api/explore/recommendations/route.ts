@@ -3,7 +3,7 @@ import { supabasePlaces } from '@/lib/db/supabase';
 import { getFromCache, saveToCache } from '@/lib/api/supabase-cache';
 
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 interface PlaceResult {
   id: string;

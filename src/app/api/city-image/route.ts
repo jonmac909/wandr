@@ -5,7 +5,7 @@ import { supabaseCities } from '@/lib/db/supabase';
 const imageCache = new Map<string, string>();
 
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 // Get photo URL from photo reference
 async function getPhotoUrl(photoRef: string): Promise<string | null> {

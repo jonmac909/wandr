@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabasePlaces } from '@/lib/db/supabase';
 
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 export interface ActivityResult {
   id: string;

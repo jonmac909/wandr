@@ -152,65 +152,43 @@ export async function GET(request: NextRequest) {
     const mealQuery = getMealTypeQuery(mealType);
     const priceFilters = getPriceLevelFilter(budget);
 
-    // Build multiple search queries to get more diverse results
-    // Google Places API searchText max is 20 results per query
-    const searchQueries = [
-      `best ${mealQuery} in ${location}`,
-      `top rated ${mealQuery} restaurants ${location}`,
-      `popular ${mealQuery} spots ${location}`,
-      `recommended ${mealQuery} places ${location}`,
-      `highly reviewed ${mealQuery} ${location}`,
-    ];
-
-    // Use a Set to track unique place IDs
-    const seenIds = new Set<string>();
+    // Single optimized query - no need for 5 parallel calls!
+    // Google Places API returns up to 20 quality results per query
+    const textQuery = `best ${mealQuery} restaurants in ${location}`;
+    
     const allPlaces: PlaceResult[] = [];
 
-    // Fetch from multiple queries in parallel
-    const searchPromises = searchQueries.slice(0, Math.ceil(count / 20)).map(async (textQuery) => {
-      try {
-        const searchResponse = await fetchWithTimeout(
-          'https://places.googleapis.com/v1/places:searchText',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': GOOGLE_API_KEY,
-              'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.googleMapsUri,places.photos,places.primaryType,places.types',
-            },
-            body: JSON.stringify({
-              textQuery,
-              maxResultCount: 20,
-              includedType: 'restaurant',
-              rankPreference: 'RELEVANCE',
-            }),
+    try {
+      const searchResponse = await fetchWithTimeout(
+        'https://places.googleapis.com/v1/places:searchText',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.googleMapsUri,places.photos,places.primaryType,places.types',
           },
-          15000
-        );
+          body: JSON.stringify({
+            textQuery,
+            maxResultCount: Math.min(count * 2, 20), // Fetch extra to allow filtering
+            includedType: 'restaurant',
+            rankPreference: 'RELEVANCE',
+          }),
+        },
+        15000
+      );
 
-        if (!searchResponse.ok) {
-          console.error('Google Places API error for query:', textQuery);
-          return [];
-        }
-
-        const searchData: PlaceSearchResult = await searchResponse.json();
-        return searchData.places || [];
-      } catch (err) {
-        console.error('Error fetching:', textQuery, err);
-        return [];
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text();
+        console.error('Google Places API error:', errorText);
+        return NextResponse.json({ error: 'Failed to fetch restaurants' }, { status: 500 });
       }
-    });
 
-    const results = await Promise.all(searchPromises);
-
-    // Combine results, removing duplicates
-    for (const places of results) {
-      for (const place of places) {
-        if (!seenIds.has(place.id)) {
-          seenIds.add(place.id);
-          allPlaces.push(place);
-        }
-      }
+      const searchData: PlaceSearchResult = await searchResponse.json();
+      allPlaces.push(...(searchData.places || []));
+    } catch (err) {
+      console.error('Error fetching restaurants:', err);
+      return NextResponse.json({ error: 'Failed to fetch restaurants' }, { status: 500 });
     }
 
     if (allPlaces.length === 0) {

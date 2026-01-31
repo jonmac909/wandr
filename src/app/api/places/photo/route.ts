@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseStorage } from '@/lib/db/supabase';
 
 // Use server-side env var, fallback to NEXT_PUBLIC_ for backwards compatibility
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const PLACE_IMAGES_BUCKET = 'place-images';
 
 // In-memory cache for very hot paths (cleared on deploy)
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   // Fetch from Google Places API
   if (!GOOGLE_API_KEY) {
-    console.error('[places/photo] Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY or NEXT_PUBLIC_GOOGLE_MAPS_API_KEY');
+    console.error('[places/photo] Google Maps API key not configured. Set GOOGLE_MAPS_API_KEY');
     return NextResponse.json({
       error: 'Google Maps API key not configured',
       hint: 'Set GOOGLE_MAPS_API_KEY in Cloudflare environment variables'

@@ -110,22 +110,36 @@ export function PlaceDetailsModal({ location, onClose }: PlaceDetailsModalProps)
     return `${Math.floor(diffDays / 365)} years ago`;
   };
 
+  // Use a separate, restricted key for Maps Embed only (safe for client-side)
+  // This key should ONLY have Maps Embed API enabled and be referrer-restricted
   const getMapEmbedUrl = () => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const embedKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
+    if (!embedKey) {
+      // Fallback: return Google Maps URL (will open in new tab instead of embed)
+      if (placeDetails?.geometry?.location) {
+        const { lat, lng } = placeDetails.geometry.location;
+        return `https://www.google.com/maps?q=${lat},${lng}`;
+      }
+      return `https://www.google.com/maps/search/${encodeURIComponent(location)}`;
+    }
     if (placeDetails?.geometry?.location) {
       const { lat, lng } = placeDetails.geometry.location;
-      return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}&zoom=15`;
+      return `https://www.google.com/maps/embed/v1/place?key=${embedKey}&q=${lat},${lng}&zoom=15`;
     }
-    return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(location)}`;
+    return `https://www.google.com/maps/embed/v1/place?key=${embedKey}&q=${encodeURIComponent(location)}`;
   };
 
   const getDirectionsEmbedUrl = () => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const embedKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
     const destination = placeDetails?.geometry?.location
       ? `${placeDetails.geometry.location.lat},${placeDetails.geometry.location.lng}`
       : encodeURIComponent(placeDetails?.formatted_address || location);
     const origin = startingLocation ? encodeURIComponent(startingLocation) : 'My+Location';
-    return `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${origin}&destination=${destination}&mode=${travelMode}`;
+    if (!embedKey) {
+      // Fallback: return Google Maps directions URL
+      return `https://www.google.com/maps/dir/${origin}/${destination}`;
+    }
+    return `https://www.google.com/maps/embed/v1/directions?key=${embedKey}&origin=${origin}&destination=${destination}&mode=${travelMode}`;
   };
 
   const handleGetCurrentLocation = () => {
