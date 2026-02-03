@@ -11,7 +11,7 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   // Enable Turbopack explicitly (Next.js 16 default)
   turbopack: {},
-  // Required for OpenNext/Cloudflare deployment
+  // Standalone output for Vercel deployment
   output: 'standalone',
   // Expose server-side env vars
   env: {
