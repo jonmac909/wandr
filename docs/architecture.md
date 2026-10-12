@@ -22,7 +22,7 @@ Trippified is a personal travel planning application that helps users create, ma
 | Cloud DB | Supabase (PostgreSQL) | Cross-device sync |
 | Maps | Google Maps API | Places, restaurant search |
 | PWA | next-pwa | Offline support |
-| Deployment | Netlify | Auto-deploy from GitHub |
+| Deployment | Cloudflare Workers (OpenNext) | `npm run deploy` |
 
 ---
 
@@ -171,10 +171,10 @@ CREATE TABLE trips (
 
 ## Deployment
 
-### Netlify Configuration
-- Build command: `npm run build`
-- Publish directory: `.next`
-- Environment variables set in Netlify dashboard
+### Cloudflare Configuration
+- Build command: `npm run build:cloudflare`
+- Deploy command: `npm run deploy` (config in `wrangler.jsonc`)
+- Secrets set with `wrangler secret put`
 
 ### Environment Setup
 1. Copy `.env.example` to `.env.local`
