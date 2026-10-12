@@ -8,7 +8,8 @@ Trippified runs on Cloudflare Workers through OpenNext (`wrangler.toml`,
 1. `docker build -f Dockerfile.gate -t trippified-gate .` (type check, OpenNext build).
 2. PR, merge, then copy `.open-next` out of the gate image built from the merged
    commit and run `wrangler deploy --env preview` to check it on workers.dev.
-3. `wrangler deploy` for production (trippified.com and www.trippified.com).
+3. `wrangler deploy --env production` for production (trippified.com and
+   www.trippified.com). A plain `wrangler deploy` has no domains on purpose.
 
 OpenNext builds are not reliable on Windows; always build in the Linux gate image.
 Secrets live in the Cloudflare Worker (`wrangler secret put`) and are never

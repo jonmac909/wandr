@@ -387,7 +387,7 @@ Use lucide-react icons only: `Plane`, `Search`, `Utensils`, `FileText`
 Hosting: Cloudflare only. Never Vercel or Netlify. See `AGENTS.md`.
 
 Releases go through the Docker gate (`docker build -f Dockerfile.gate .`), then
-`wrangler deploy --env preview` and `wrangler deploy`. There is no GitHub Actions
+`wrangler deploy --env preview` and `wrangler deploy --env production`. There is no GitHub Actions
 deploy workflow.
 
 **Cloudflare Worker secrets** (`wrangler secret put <NAME>`, optional features stay off without them):

@@ -11,7 +11,7 @@
     "check": "tsc --noEmit && eslint src/",
     "build:cloudflare": "opennextjs-cloudflare build",
     "preview": "npm run build:cloudflare && wrangler dev",
-    "deploy": "npm run build:cloudflare && wrangler deploy",
+    "deploy": "npm run build:cloudflare && wrangler deploy --env production",
     "test": "echo 'Use agent-browser for testing'",
     "prepare": "husky"
   },

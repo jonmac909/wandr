@@ -12,22 +12,33 @@ main = ".open-next/worker.js"
 directory = ".open-next/assets"
 binding = "ASSETS"
 
-# Production domains (DNS for trippified.com is on Cloudflare)
-[[routes]]
+# Secrets are set with `wrangler secret put` and kept across deploys.
+
+# The top level has no domains on purpose: automatic builds that run a plain
+# `wrangler deploy` can never move trippified.com. Domains are attached only by
+# an explicit `wrangler deploy --env production`.
+
+# Production: trippified.com and www.trippified.com (DNS is on Cloudflare)
+[env.production]
+name = "trippified"
+workers_dev = true
+
+[[env.production.routes]]
 pattern = "trippified.com"
 custom_domain = true
 
-[[routes]]
+[[env.production.routes]]
 pattern = "www.trippified.com"
 custom_domain = true
 
-# Secrets are set with `wrangler secret put` and kept across deploys.
+[env.production.assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 # Preview: workers.dev only, no custom domains
 [env.preview]
 name = "trippified-preview"
 workers_dev = true
-routes = []
 
 [env.preview.assets]
 directory = ".open-next/assets"
