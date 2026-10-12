@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
   env: {
     GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   },
+  // www is not a separate site: send it to the apex, keeping path and query
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.trippified.com' }],
+        destination: 'https://trippified.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);
