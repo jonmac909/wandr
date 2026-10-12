@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!*.config.*
+!tsconfig.json
+!components.json
+!wrangler.toml
+!src
+!src/**
+!public
+!public/**
+!AGENTS.md
+!Dockerfile.gate
+**/.env*
+**/.dev.vars*

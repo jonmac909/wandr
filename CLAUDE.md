@@ -376,7 +376,7 @@ Use lucide-react icons only: `Plane`, `Search`, `Utensils`, `FileText`
 - **ALWAYS run `npm run build` before deploying** - catches TypeScript/build errors
 - **Live testing site: https://trippified.com/** - User tests here, NOT localhost
 - **To deploy: run `npm run deploy`** - Deploys directly to Cloudflare Workers from terminal. Fast iterations.
-- **GitHub Actions is backup** - The workflow still runs on push for CI purposes, but manual deploy is preferred for quick iterations.
+- **No GitHub Actions** - Releases use the Docker gate in `AGENTS.md`.
 - **Testing**: Use `agent-browser` CLI for browser automation testing
 - **BEFORE REVERTING: Always `git stash` or commit first** - NEVER run `git checkout` on files with uncommitted changes. Deployed code may not be committed. Stash or commit BEFORE reverting anything.
 - **When reverting, be surgical** - Don't `git checkout` entire files. Only undo the specific changes that broke something. Use targeted Edit tool changes instead.
@@ -384,13 +384,13 @@ Use lucide-react icons only: `Plane`, `Search`, `Utensils`, `FileText`
 
 ## Deployment
 
-GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers on push to `main`.
+Hosting: Cloudflare only. Never Vercel or Netlify. See `AGENTS.md`.
 
-**Required GitHub secrets** (Settings → Secrets → Actions):
-- `CLOUDFLARE_API_TOKEN` - Get from Cloudflare dashboard → API Tokens
-- `CLOUDFLARE_ACCOUNT_ID` - Get from Cloudflare dashboard → Overview sidebar
+Releases go through the Docker gate (`docker build -f Dockerfile.gate .`), then
+`wrangler deploy --env preview` and `wrangler deploy`. There is no GitHub Actions
+deploy workflow.
 
-**Cloudflare environment variables** (Dashboard → Workers → Settings → Variables):
+**Cloudflare Worker secrets** (`wrangler secret put <NAME>`, optional features stay off without them):
 - `GOOGLE_MAPS_API_KEY` - Google Places API key (server-side)
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
